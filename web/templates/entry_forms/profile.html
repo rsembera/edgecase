@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-row-full {
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-family: inherit;
+        min-height: 150px;
+        transition: border-color 0.2s;
+    }
+    
+    textarea:focus {
+        outline: none;
+        border-color: #00aa88;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #718096;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+        <div>
+            <h2>Client Profile</h2>
+            <p style="color: #718096;">
+                {{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}
+                <span class="type-badge" style="background-color: {{ client.type.color }}">
+                    {{ client.type.name }}
+                </span>
+            </p>
+        </div>
+        <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+    </div>
+    
+    <form method="post">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" 
+                       value="{{ client.first_name }}" readonly 
+                       style="background: #f7fafc;">
+            </div>
+            
+            <div class="form-group">
+                <label for="middle_name">Middle Name</label>
+                <input type="text" id="middle_name" name="middle_name" 
+                       value="{{ client.middle_name or '' }}" readonly
+                       style="background: #f7fafc;">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" 
+                       value="{{ client.last_name }}" readonly
+                       style="background: #f7fafc;">
+            </div>
+            
+            <div class="form-group">
+                <label for="file_number">File Number</label>
+                <input type="text" id="file_number" name="file_number" 
+                       value="{{ client.file_number }}" readonly
+                       style="background: #f7fafc;">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="date_of_birth">Date of Birth</label>
+                <input type="date" id="date_of_birth" name="date_of_birth" 
+                       value="{{ profile.date_of_birth if profile else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <input type="text" id="gender" name="gender" 
+                       value="{{ profile.content if profile and profile.content else '' }}"
+                       placeholder="Optional">
+            </div>
+        </div>
+        
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="address">Address</label>
+                <input type="text" id="address" name="address" 
+                       value="{{ profile.address if profile else '' }}"
+                       placeholder="Street address">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" 
+                       value="{{ profile.email if profile else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" 
+                       value="{{ profile.phone if profile else '' }}"
+                       placeholder="(613) 555-1234">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="home_phone">Home Phone</label>
+                <input type="tel" id="home_phone" name="home_phone" 
+                       value="{{ profile.home_phone if profile else '' }}"
+                       placeholder="Optional">
+            </div>
+            
+            <div class="form-group">
+                <label for="work_phone">Work Phone</label>
+                <input type="tel" id="work_phone" name="work_phone" 
+                       value="{{ profile.work_phone if profile else '' }}"
+                       placeholder="Optional">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="preferred_contact">Preferred Contact Method</label>
+                <select id="preferred_contact" name="preferred_contact">
+                    <option value="">Select...</option>
+                    <option value="email" {% if profile and profile.preferred_contact == 'email' %}selected{% endif %}>Email</option>
+                    <option value="phone" {% if profile and profile.preferred_contact == 'phone' %}selected{% endif %}>Phone</option>
+                    <option value="text" {% if profile and profile.preferred_contact == 'text' %}selected{% endif %}>Text</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="ok_to_leave_message">OK to Leave Message?</label>
+                <select id="ok_to_leave_message" name="ok_to_leave_message">
+                    <option value="yes" {% if profile and profile.ok_to_leave_message == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if profile and profile.ok_to_leave_message == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="emergency_contact_name">Emergency Contact Name</label>
+                <input type="text" id="emergency_contact_name" name="emergency_contact_name" 
+                       value="{{ profile.emergency_contact_name if profile else '' }}"
+                       placeholder="Optional">
+            </div>
+            
+            <div class="form-group">
+                <label for="emergency_contact_phone">Emergency Contact Phone</label>
+                <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" 
+                       value="{{ profile.emergency_contact_phone if profile else '' }}"
+                       placeholder="Optional">
+            </div>
+        </div>
+        
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="emergency_contact_relationship">Emergency Contact Relationship</label>
+                <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" 
+                       value="{{ profile.emergency_contact_relationship if profile else '' }}"
+                       placeholder="e.g., Spouse, Parent, Friend">
+            </div>
+        </div>
+        
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="referral_source">How did you hear about this practice?</label>
+                <input type="text" id="referral_source" name="referral_source" 
+                       value="{{ profile.referral_source if profile else '' }}"
+                       placeholder="e.g., Referral, Online search, Insurance directory">
+            </div>
+        </div>
+        
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="additional_info">Additional Information</label>
+                <textarea id="additional_info" name="additional_info" 
+                          placeholder="Any other relevant information about the client...">{{ profile.additional_info if profile else '' }}</textarea>
+                <p class="help-text">Supports Markdown formatting</p>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn">Save Profile</button>
+            <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

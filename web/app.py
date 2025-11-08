@@ -137,6 +137,54 @@ def add_client():
     all_types = db.get_all_client_types()
     return render_template('add_client.html', all_types=all_types)
 
+@app.route('/client/<int:client_id>/profile', methods=['GET', 'POST'])
+def edit_profile(client_id):
+    """Create or edit client profile entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client['type'] = db.get_client_type(client['type_id'])
+    
+    # Get existing profile if it exists
+    profile = db.get_profile_entry(client_id)
+    
+    if request.method == 'POST':
+        # Prepare profile data
+        profile_data = {
+            'client_id': client_id,
+            'class': 'profile',
+            'description': f"{client['first_name']} {client['last_name']} - Profile",
+            'date_of_birth': request.form.get('date_of_birth', ''),
+            'content': request.form.get('gender', ''),  # Using content for gender
+            'address': request.form.get('address', ''),
+            'email': request.form.get('email', ''),
+            'phone': request.form.get('phone', ''),
+            'home_phone': request.form.get('home_phone', ''),
+            'work_phone': request.form.get('work_phone', ''),
+            'preferred_contact': request.form.get('preferred_contact', ''),
+            'ok_to_leave_message': request.form.get('ok_to_leave_message', 'yes'),
+            'emergency_contact_name': request.form.get('emergency_contact_name', ''),
+            'emergency_contact_phone': request.form.get('emergency_contact_phone', ''),
+            'emergency_contact_relationship': request.form.get('emergency_contact_relationship', ''),
+            'referral_source': request.form.get('referral_source', ''),
+            'additional_info': request.form.get('additional_info', '')
+        }
+        
+        if profile:
+            # Update existing profile
+            db.update_entry(profile['id'], profile_data)
+        else:
+            # Create new profile
+            db.add_entry(profile_data)
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET request - show form
+    return render_template('entry_forms/profile.html',
+                         client=client,
+                         profile=profile)
+
 @app.route('/types')
 def manage_types():
     """Manage client types."""

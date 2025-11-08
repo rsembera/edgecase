@@ -14,7 +14,12 @@
                 File #{{ client.file_number }}
             </p>
         </div>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Clients</a>
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="btn">
+                {% if entries|selectattr('class', 'equalto', 'profile')|list %}Edit Profile{% else %}Create Profile{% endif %}
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Clients</a>
+        </div>
     </div>
     
     <h3>Entries ({{ entries|length }})</h3>
@@ -22,15 +27,30 @@
     {% if entries %}
     <div style="margin-top: 1rem;">
         {% for entry in entries %}
-        <div style="padding: 1rem; background: #f7fafc; border-radius: 0.5rem; margin-bottom: 1rem;">
-            <strong>{{ entry.class|title }}:</strong> {{ entry.description or 'No description' }}
-            <br>
-            <small style="color: #718096;">Created: {{ entry.created_at }}</small>
+        <div style="padding: 1.5rem; background: {% if entry.class == 'profile' %}#f0fdf4{% else %}#f7fafc{% endif %}; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid {% if entry.class == 'profile' %}#00aa88{% else %}#cbd5e0{% endif %};">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <strong style="font-size: 1.125rem;">{{ entry.class|title }}:</strong>
+                {% if entry.class == 'profile' %}
+                <a href="{{ url_for('edit_profile', client_id=client.id) }}" 
+                   style="color: #00aa88; text-decoration: none; font-size: 0.875rem;">Edit</a>
+                {% endif %}
+            </div>
+            <p style="margin-bottom: 0.5rem;">{{ entry.description or 'No description' }}</p>
+            {% if entry.email %}
+            <p style="font-size: 0.875rem; color: #4a5568;">📧 {{ entry.email }}</p>
+            {% endif %}
+            {% if entry.phone %}
+            <p style="font-size: 0.875rem; color: #4a5568;">📞 {{ entry.phone }}</p>
+            {% endif %}
+            <small style="color: #718096;">Created: {{ entry.created_at|timestamp_to_date }}</small>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p style="color: #718096; margin-top: 1rem;">No entries yet. Add a profile entry to get started.</p>
+    <div style="padding: 3rem; text-align: center; background: #f7fafc; border-radius: 0.5rem; margin-top: 1rem;">
+        <p style="color: #718096; margin-bottom: 1rem;">No entries yet. Start by creating a profile for this client.</p>
+        <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="btn">Create Profile</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

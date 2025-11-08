@@ -87,8 +87,17 @@ class Database:
                 -- Profile-specific fields
                 email TEXT,
                 phone TEXT,
+                home_phone TEXT,
+                work_phone TEXT,
                 address TEXT,
                 date_of_birth TEXT,
+                preferred_contact TEXT,
+                ok_to_leave_message TEXT,
+                emergency_contact_name TEXT,
+                emergency_contact_phone TEXT,
+                emergency_contact_relationship TEXT,
+                referral_source TEXT,
+                additional_info TEXT,
                 
                 -- Session-specific fields
                 modality TEXT,
