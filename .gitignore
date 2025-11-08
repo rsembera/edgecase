@@ -1,0 +1,22 @@
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+env/
+
+# Database (local development)
+~/edgecase_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
