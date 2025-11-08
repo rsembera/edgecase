@@ -1,16 +1,18 @@
 """
 EdgeCase Database Module
-Handles SQLite database operations with SQLCipher encryption.
+Handles SQLite database operations.
+(SQLCipher encryption will be added in Phase 2)
 """
 
 import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+import time
 
 class Database:
     """
     Database interface for EdgeCase.
-    Manages all SQLite operations for clients, notes, invoices, etc.
+    Manages all SQLite operations using Entry-based architecture.
     """
     
     def __init__(self, db_path: str):
@@ -33,133 +35,258 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         
+        # Client Types table (customizable)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS client_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                color TEXT NOT NULL,
+                code TEXT,
+                file_number_style TEXT NOT NULL,
+                file_number_prefix TEXT,
+                file_number_suffix TEXT,
+                file_number_counter INTEGER DEFAULT 0,
+                session_fee REAL,
+                session_duration INTEGER,
+                retention_period INTEGER,
+                is_system INTEGER DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                modified_at INTEGER NOT NULL
+            )
+        """)
+        
         # Clients table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_number TEXT UNIQUE NOT NULL,
-                name TEXT NOT NULL,
-                phone TEXT,
-                email TEXT,
-                address TEXT,
-                date_of_birth TEXT,
-                client_type TEXT NOT NULL DEFAULT 'active',
-                notes TEXT,
+                first_name TEXT NOT NULL,
+                middle_name TEXT,
+                last_name TEXT NOT NULL,
+                type_id INTEGER NOT NULL,
                 created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
+                modified_at INTEGER NOT NULL,
+                is_deleted INTEGER DEFAULT 0,
+                FOREIGN KEY (type_id) REFERENCES client_types(id)
             )
         """)
         
-        # Notes table
+        # Entries table (unified for all entry types)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS notes (
+            CREATE TABLE IF NOT EXISTS entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id INTEGER NOT NULL,
-                date INTEGER NOT NULL,
-                content TEXT NOT NULL,
+                class TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                modified_at INTEGER NOT NULL,
+                
+                -- Common fields
+                description TEXT,
+                content TEXT,
+                
+                -- Session-specific fields
+                modality TEXT,
+                session_number INTEGER,
+                service TEXT,
+                session_date INTEGER,
+                session_time TEXT,
+                duration INTEGER,
+                fee REAL,
+                is_consultation INTEGER DEFAULT 0,
+                mood TEXT,
+                affect TEXT,
+                risk_assessment TEXT,
+                
+                -- Communication-specific fields
+                comm_recipient TEXT,
+                comm_type TEXT,
+                
+                -- Statement-specific fields
+                statement_total REAL,
+                payment_status TEXT,
+                payment_notes TEXT,
+                date_sent INTEGER,
+                date_paid INTEGER,
+                is_void INTEGER DEFAULT 0,
+                
+                -- Edit tracking
+                edit_history TEXT,
                 locked INTEGER DEFAULT 0,
                 locked_at INTEGER,
+                
+                FOREIGN KEY (client_id) REFERENCES clients(id)
+            )
+        """)
+        
+        # Client Linking (for couples/family therapy)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS client_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id_1 INTEGER NOT NULL,
+                client_id_2 INTEGER NOT NULL,
                 created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL,
-                FOREIGN KEY (client_id) REFERENCES clients(id)
+                FOREIGN KEY (client_id_1) REFERENCES clients(id),
+                FOREIGN KEY (client_id_2) REFERENCES clients(id),
+                UNIQUE(client_id_1, client_id_2)
             )
         """)
         
-        # Invoices table
+        # Entry Links (linked entries across client files)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS invoices (
+            CREATE TABLE IF NOT EXISTS entry_links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id INTEGER NOT NULL,
-                invoice_number TEXT UNIQUE NOT NULL,
-                date INTEGER NOT NULL,
-                amount REAL NOT NULL,
-                pdf_path TEXT,
-                created_at INTEGER NOT NULL,
-                FOREIGN KEY (client_id) REFERENCES clients(id)
+                entry_id_1 INTEGER NOT NULL,
+                entry_id_2 INTEGER NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                FOREIGN KEY (entry_id_1) REFERENCES entries(id),
+                FOREIGN KEY (entry_id_2) REFERENCES entries(id),
+                UNIQUE(entry_id_1, entry_id_2)
             )
         """)
         
-        # Payments table
+        # Attachments
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS payments (
+            CREATE TABLE IF NOT EXISTS attachments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                invoice_id INTEGER NOT NULL,
-                client_id INTEGER NOT NULL,
-                amount REAL NOT NULL,
-                date_issued INTEGER NOT NULL,
-                date_due INTEGER,
-                date_paid INTEGER,
-                status TEXT NOT NULL DEFAULT 'pending',
-                notes TEXT,
-                FOREIGN KEY (invoice_id) REFERENCES invoices(id),
-                FOREIGN KEY (client_id) REFERENCES clients(id)
-            )
-        """)
-        
-        # Communications table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS communications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id INTEGER NOT NULL,
-                timestamp INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                direction TEXT NOT NULL,
-                subject TEXT,
-                content TEXT NOT NULL,
-                pdf_path TEXT,
-                locked INTEGER DEFAULT 1,
-                created_at INTEGER NOT NULL,
-                FOREIGN KEY (client_id) REFERENCES clients(id)
-            )
-        """)
-        
-        # Files table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS files (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id INTEGER NOT NULL,
-                folder TEXT NOT NULL,
+                entry_id INTEGER NOT NULL,
                 filename TEXT NOT NULL,
-                path TEXT NOT NULL,
-                created_at INTEGER NOT NULL,
-                FOREIGN KEY (client_id) REFERENCES clients(id)
+                description TEXT,
+                filepath TEXT NOT NULL,
+                filesize INTEGER,
+                uploaded_at INTEGER NOT NULL,
+                FOREIGN KEY (entry_id) REFERENCES entries(id)
+            )
+        """)
+        
+        # Practice Settings
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                modified_at INTEGER NOT NULL
             )
         """)
         
         conn.commit()
+        
+        # Create default client types if they don't exist
+        self._create_default_types()
+        
         conn.close()
     
-    # Client operations
-    def add_client(self, client_data: Dict[str, Any]) -> int:
-        """
-        Add new client to database.
+    def _create_default_types(self):
+        """Create default Active and Inactive client types."""
+        conn = self.connect()
+        cursor = conn.cursor()
         
-        Args:
-            client_data: Dictionary with client information
+        # Check if default types exist
+        cursor.execute("SELECT COUNT(*) FROM client_types WHERE is_system = 1")
+        if cursor.fetchone()[0] == 0:
+            now = int(time.time())
             
-        Returns:
-            ID of newly created client
-        """
-        import time
+            # Active type
+            cursor.execute("""
+                INSERT INTO client_types 
+                (name, color, code, file_number_style, session_fee, session_duration, 
+                 retention_period, is_system, created_at, modified_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                'Active', '#00AA88', 'ACT', 'YYYYMMDD-III', 
+                150.0, 50, 2555, 1, now, now
+            ))
+            
+            # Inactive type
+            cursor.execute("""
+                INSERT INTO client_types 
+                (name, color, code, file_number_style, session_fee, session_duration, 
+                 retention_period, is_system, created_at, modified_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                'Inactive', '#FFAA00', 'INA', 'YYYYMMDD-III', 
+                150.0, 50, 2555, 1, now, now
+            ))
+            
+            conn.commit()
         
+        conn.close()
+    
+    # ===== CLIENT TYPE OPERATIONS =====
+    
+    def add_client_type(self, type_data: Dict[str, Any]) -> int:
+        """Add new client type."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        now = int(time.time())
+        cursor.execute("""
+            INSERT INTO client_types 
+            (name, color, code, file_number_style, file_number_prefix, 
+             file_number_suffix, session_fee, session_duration, retention_period, 
+             created_at, modified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            type_data['name'],
+            type_data['color'],
+            type_data.get('code', ''),
+            type_data['file_number_style'],
+            type_data.get('file_number_prefix', ''),
+            type_data.get('file_number_suffix', ''),
+            type_data.get('session_fee', 0.0),
+            type_data.get('session_duration', 50),
+            type_data.get('retention_period', 2555),
+            now,
+            now
+        ))
+        
+        type_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return type_id
+    
+    def get_client_type(self, type_id: int) -> Optional[Dict[str, Any]]:
+        """Get client type by ID."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM client_types WHERE id = ?", (type_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+    
+    def get_all_client_types(self) -> List[Dict[str, Any]]:
+        """Get all client types."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM client_types ORDER BY name")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]
+    
+    # ===== CLIENT OPERATIONS =====
+    
+    def add_client(self, client_data: Dict[str, Any]) -> int:
+        """Add new client."""
         conn = self.connect()
         cursor = conn.cursor()
         
         now = int(time.time())
         cursor.execute("""
             INSERT INTO clients 
-            (file_number, name, phone, email, address, date_of_birth, 
-             client_type, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (file_number, first_name, middle_name, last_name, type_id, 
+             created_at, modified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             client_data['file_number'],
-            client_data['name'],
-            client_data.get('phone', ''),
-            client_data.get('email', ''),
-            client_data.get('address', ''),
-            client_data.get('date_of_birth', ''),
-            client_data.get('client_type', 'active'),
-            client_data.get('notes', ''),
+            client_data['first_name'],
+            client_data.get('middle_name', ''),
+            client_data['last_name'],
+            client_data['type_id'],
             now,
             now
         ))
@@ -171,15 +298,7 @@ class Database:
         return client_id
     
     def get_client(self, client_id: int) -> Optional[Dict[str, Any]]:
-        """
-        Get client by ID.
-        
-        Args:
-            client_id: Client ID
-            
-        Returns:
-            Dictionary with client data or None if not found
-        """
+        """Get client by ID."""
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -190,27 +309,19 @@ class Database:
         
         return dict(row) if row else None
     
-    def get_all_clients(self, client_type: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        Get all clients, optionally filtered by type.
-        
-        Args:
-            client_type: Optional filter by client type
-            
-        Returns:
-            List of client dictionaries
-        """
+    def get_all_clients(self, type_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get all clients, optionally filtered by type."""
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        if client_type:
+        if type_id:
             cursor.execute(
-                "SELECT * FROM clients WHERE client_type = ? ORDER BY name",
-                (client_type,)
+                "SELECT * FROM clients WHERE type_id = ? AND is_deleted = 0 ORDER BY last_name, first_name",
+                (type_id,)
             )
         else:
-            cursor.execute("SELECT * FROM clients ORDER BY name")
+            cursor.execute("SELECT * FROM clients WHERE is_deleted = 0 ORDER BY last_name, first_name")
         
         rows = cursor.fetchall()
         conn.close()
@@ -218,34 +329,20 @@ class Database:
         return [dict(row) for row in rows]
     
     def update_client(self, client_id: int, client_data: Dict[str, Any]) -> bool:
-        """
-        Update client information.
-        
-        Args:
-            client_id: Client ID
-            client_data: Dictionary with updated client information
-            
-        Returns:
-            True if successful
-        """
-        import time
-        
+        """Update client information."""
         conn = self.connect()
         cursor = conn.cursor()
         
         cursor.execute("""
             UPDATE clients 
-            SET name = ?, phone = ?, email = ?, address = ?, 
-                date_of_birth = ?, client_type = ?, notes = ?, updated_at = ?
+            SET first_name = ?, middle_name = ?, last_name = ?, 
+                type_id = ?, modified_at = ?
             WHERE id = ?
         """, (
-            client_data['name'],
-            client_data.get('phone', ''),
-            client_data.get('email', ''),
-            client_data.get('address', ''),
-            client_data.get('date_of_birth', ''),
-            client_data.get('client_type', 'active'),
-            client_data.get('notes', ''),
+            client_data['first_name'],
+            client_data.get('middle_name', ''),
+            client_data['last_name'],
+            client_data['type_id'],
             int(time.time()),
             client_id
         ))
@@ -255,36 +352,8 @@ class Database:
         
         return True
     
-    def delete_client(self, client_id: int) -> bool:
-        """
-        Delete client from database.
-        
-        Args:
-            client_id: Client ID
-            
-        Returns:
-            True if successful
-        """
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
-        
-        conn.commit()
-        conn.close()
-        
-        return True
-    
     def search_clients(self, search_term: str) -> List[Dict[str, Any]]:
-        """
-        Search clients by name, file number, phone, or email.
-        
-        Args:
-            search_term: Search string
-            
-        Returns:
-            List of matching client dictionaries
-        """
+        """Search clients by name or file number."""
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -292,12 +361,116 @@ class Database:
         pattern = f"%{search_term}%"
         cursor.execute("""
             SELECT * FROM clients 
-            WHERE name LIKE ? OR file_number LIKE ? 
-               OR phone LIKE ? OR email LIKE ?
-            ORDER BY name
-        """, (pattern, pattern, pattern, pattern))
+            WHERE (first_name LIKE ? OR last_name LIKE ? OR file_number LIKE ?)
+              AND is_deleted = 0
+            ORDER BY last_name, first_name
+        """, (pattern, pattern, pattern))
         
         rows = cursor.fetchall()
         conn.close()
         
         return [dict(row) for row in rows]
+    
+    # ===== ENTRY OPERATIONS =====
+    
+    def add_entry(self, entry_data: Dict[str, Any]) -> int:
+        """Add new entry."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        now = int(time.time())
+        
+        # Build SQL dynamically based on which fields are provided
+        fields = ['client_id', 'class', 'created_at', 'modified_at']
+        values = [entry_data['client_id'], entry_data['class'], now, now]
+        
+        # Add optional fields if present
+        optional_fields = [
+            'description', 'content', 'modality', 'session_number', 'service',
+            'session_date', 'session_time', 'duration', 'fee', 'is_consultation',
+            'mood', 'affect', 'risk_assessment', 'comm_recipient', 'comm_type',
+            'statement_total', 'payment_status', 'payment_notes', 'date_sent',
+            'date_paid', 'edit_history', 'locked', 'locked_at'
+        ]
+        
+        for field in optional_fields:
+            if field in entry_data:
+                fields.append(field)
+                values.append(entry_data[field])
+        
+        placeholders = ', '.join(['?' for _ in values])
+        field_names = ', '.join(fields)
+        
+        cursor.execute(f"""
+            INSERT INTO entries ({field_names})
+            VALUES ({placeholders})
+        """, values)
+        
+        entry_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return entry_id
+    
+    def get_entry(self, entry_id: int) -> Optional[Dict[str, Any]]:
+        """Get entry by ID."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM entries WHERE id = ?", (entry_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+    
+    def get_client_entries(self, client_id: int, entry_class: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get all entries for a client, optionally filtered by class."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        if entry_class:
+            cursor.execute(
+                "SELECT * FROM entries WHERE client_id = ? AND class = ? ORDER BY created_at DESC",
+                (client_id, entry_class)
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM entries WHERE client_id = ? ORDER BY created_at DESC",
+                (client_id,)
+            )
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]
+    
+    def update_entry(self, entry_id: int, entry_data: Dict[str, Any]) -> bool:
+        """Update entry (adds to edit history if locked)."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Build UPDATE statement dynamically
+        set_clauses = []
+        values = []
+        
+        for key, value in entry_data.items():
+            if key != 'id':
+                set_clauses.append(f"{key} = ?")
+                values.append(value)
+        
+        set_clauses.append("modified_at = ?")
+        values.append(int(time.time()))
+        values.append(entry_id)
+        
+        cursor.execute(f"""
+            UPDATE entries 
+            SET {', '.join(set_clauses)}
+            WHERE id = ?
+        """, values)
+        
+        conn.commit()
+        conn.close()
+        
+        return True
