@@ -20,6 +20,16 @@ app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
 db_path = Path.home() / "edgecase_data" / "edgecase.db"
 db = Database(str(db_path))
 
+# Add custom Jinja filters
+from datetime import datetime
+
+@app.template_filter('timestamp_to_date')
+def timestamp_to_date(timestamp):
+    """Convert Unix timestamp to readable date."""
+    if not timestamp:
+        return '-'
+    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+
 # ===== ROUTES =====
 
 @app.route('/')
@@ -50,9 +60,21 @@ def index():
         for type_id in type_filter:
             clients.extend(db.get_all_clients(int(type_id)))
     
-    # Add type information to each client
+    # Add type information and additional data to each client
     for client in clients:
         client['type'] = db.get_client_type(client['type_id'])
+        
+        # Get profile entry for contact info
+        profile = db.get_profile_entry(client['id'])
+        client['email'] = profile.get('email', '') if profile else ''
+        client['phone'] = profile.get('phone', '') if profile else ''
+        
+        # Get last session date
+        last_session = db.get_last_session_date(client['id'])
+        client['last_session'] = last_session
+        
+        # Get payment status
+        client['payment_status'] = db.get_payment_status(client['id'])
     
     # Sort clients
     reverse = (sort_order == 'desc')
@@ -64,6 +86,8 @@ def index():
         clients.sort(key=lambda c: c['last_name'].lower(), reverse=reverse)
     elif sort_by == 'created':
         clients.sort(key=lambda c: c['created_at'], reverse=reverse)
+    elif sort_by == 'last_session':
+        clients.sort(key=lambda c: c.get('last_session') or 0, reverse=reverse)
     
     return render_template('main_view.html',
                          clients=clients,

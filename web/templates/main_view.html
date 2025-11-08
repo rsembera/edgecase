@@ -83,11 +83,15 @@
         font-weight: 600;
         color: #2d3748;
         border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
     }
     
     .client-table th a {
         color: #2d3748;
         text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
     }
     
     .client-table th a:hover {
@@ -103,7 +107,7 @@
         background: #f7fafc;
     }
     
-    .client-table tr {
+    .client-table tbody tr {
         cursor: pointer;
     }
     
@@ -114,6 +118,26 @@
         font-size: 0.875rem;
         font-weight: 600;
         color: white;
+    }
+    
+    .payment-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    
+    .payment-paid {
+        background: #48bb78;
+    }
+    
+    .payment-pending {
+        background: #ecc94b;
+    }
+    
+    .payment-overdue {
+        background: #f56565;
     }
     
     .empty-state {
@@ -173,6 +197,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 40px;"></th>
                 <th>
                     <a href="?type={{ selected_types|join('&type=') }}&sort=file_number&order={% if sort_by == 'file_number' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
                         Type / File #
@@ -189,11 +214,27 @@
                     </a>
                 </th>
                 <th>Middle Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>
+                    <a href="?type={{ selected_types|join('&type=') }}&sort=last_session&order={% if sort_by == 'last_session' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
+                        Last Session
+                    </a>
+                </th>
+                <th>
+                    <a href="?type={{ selected_types|join('&type=') }}&sort=created&order={% if sort_by == 'created' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
+                        Created
+                    </a>
+                </th>
             </tr>
         </thead>
         <tbody>
             {% for client in clients %}
             <tr onclick="window.location='{{ url_for('client_file', client_id=client.id) }}'">
+                <td>
+                    <span class="payment-indicator payment-{{ client.payment_status }}" 
+                          title="{{ client.payment_status|title }}"></span>
+                </td>
                 <td>
                     <span class="type-badge" style="background-color: {{ client.type.color }}">
                         {{ client.type.code or client.type.name }}
@@ -203,10 +244,35 @@
                 <td>{{ client.last_name }}</td>
                 <td>{{ client.first_name }}</td>
                 <td>{{ client.middle_name or '-' }}</td>
+                <td style="color: #718096; font-size: 0.875rem;">{{ client.email or '-' }}</td>
+                <td style="color: #718096; font-size: 0.875rem;">{{ client.phone or '-' }}</td>
+                <td style="color: #718096; font-size: 0.875rem;">
+                    {% if client.last_session %}
+                        {{ client.last_session|timestamp_to_date }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="color: #718096; font-size: 0.875rem;">{{ client.created_at|timestamp_to_date }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 0.5rem; display: flex; gap: 2rem; font-size: 0.875rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="payment-indicator payment-paid"></span>
+        <span>Paid / Up to date</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="payment-indicator payment-pending"></span>
+        <span>Payment pending</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="payment-indicator payment-overdue"></span>
+        <span>Overdue (30+ days)</span>
+    </div>
 </div>
 {% else %}
 <div class="card empty-state">

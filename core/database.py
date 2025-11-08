@@ -84,6 +84,12 @@ class Database:
                 description TEXT,
                 content TEXT,
                 
+                -- Profile-specific fields
+                email TEXT,
+                phone TEXT,
+                address TEXT,
+                date_of_birth TEXT,
+                
                 -- Session-specific fields
                 modality TEXT,
                 session_number INTEGER,
@@ -171,6 +177,80 @@ class Database:
         
         # Create default client types if they don't exist
         self._create_default_types()
+        
+        # ===== HELPER METHODS =====
+    
+    def get_last_session_date(self, client_id: int) -> Optional[int]:
+        """Get the date of the most recent session for a client."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT session_date FROM entries 
+            WHERE client_id = ? AND class = 'session' AND session_date IS NOT NULL
+            ORDER BY session_date DESC
+            LIMIT 1
+        """, (client_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        return row[0] if row else None
+    
+    def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
+        """Get the profile entry for a client."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM entries 
+            WHERE client_id = ? AND class = 'profile'
+            LIMIT 1
+        """, (client_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+    
+    def get_payment_status(self, client_id: int) -> str:
+        """
+        Get payment status for a client.
+        Returns: 'paid', 'pending', or 'overdue'
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get most recent statement
+        cursor.execute("""
+            SELECT payment_status, date_sent FROM entries
+            WHERE client_id = ? AND class = 'statement' AND is_void = 0
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, (client_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return 'paid'  # No statements = up to date
+        
+        payment_status = row[0]
+        date_sent = row[1]
+        
+        if payment_status == 'paid':
+            return 'paid'
+        elif payment_status == 'pending':
+            # Check if overdue (more than 30 days)
+            if date_sent:
+                import time
+                days_since_sent = (int(time.time()) - date_sent) / 86400
+                if days_since_sent > 30:
+                    return 'overdue'
+            return 'pending'
+        
+        return 'paid'
         
         conn.close()
     
@@ -474,3 +554,5 @@ class Database:
         conn.close()
         
         return True
+    
+    
