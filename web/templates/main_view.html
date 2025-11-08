@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Clients - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .filter-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-checkbox:hover {
+        border-color: #cbd5e0;
+    }
+    
+    .filter-checkbox input {
+        margin-right: 0.5rem;
+    }
+    
+    .filter-checkbox.active {
+        border-color: #00aa88;
+        background: #f0fdf4;
+    }
+    
+    .search-box {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        min-width: 250px;
+    }
+    
+    .search-box:focus {
+        outline: none;
+        border-color: #00aa88;
+    }
+    
+    .client-table {
+        width: 100%;
+        background: white;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .client-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .client-table th {
+        background: #f7fafc;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2d3748;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .client-table th a {
+        color: #2d3748;
+        text-decoration: none;
+    }
+    
+    .client-table th a:hover {
+        color: #00aa88;
+    }
+    
+    .client-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .client-table tr:hover {
+        background: #f7fafc;
+    }
+    
+    .client-table tr {
+        cursor: pointer;
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #718096;
+    }
+    
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+    <div class="filter-section">
+        <strong>Filter by Type:</strong>
+        <form method="get" id="filter-form" class="filter-group">
+            {% for type in all_types %}
+            <label class="filter-checkbox {% if type.id|string in selected_types %}active{% endif %}">
+                <input type="checkbox" name="type" value="{{ type.id }}" 
+                       {% if type.id|string in selected_types %}checked{% endif %}
+                       onchange="document.getElementById('filter-form').submit()">
+                <span class="type-badge" style="background-color: {{ type.color }}">
+                    {{ type.code or type.name }}
+                </span>
+            </label>
+            {% endfor %}
+            
+            <input type="hidden" name="sort" value="{{ sort_by }}">
+            <input type="hidden" name="order" value="{{ sort_order }}">
+            {% if search %}
+            <input type="hidden" name="search" value="{{ search }}">
+            {% endif %}
+        </form>
+    </div>
+    
+    <div style="display: flex; gap: 1rem;">
+        <form method="get" style="margin: 0;">
+            <input type="search" name="search" class="search-box" 
+                   placeholder="Search clients..." value="{{ search }}">
+            {% for type_id in selected_types %}
+            <input type="hidden" name="type" value="{{ type_id }}">
+            {% endfor %}
+            <input type="hidden" name="sort" value="{{ sort_by }}">
+            <input type="hidden" name="order" value="{{ sort_order }}">
+        </form>
+        
+        <a href="{{ url_for('add_client') }}" class="btn">+ Add Client</a>
+    </div>
+</div>
+
+{% if clients %}
+<div class="client-table">
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <a href="?type={{ selected_types|join('&type=') }}&sort=file_number&order={% if sort_by == 'file_number' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
+                        Type / File #
+                    </a>
+                </th>
+                <th>
+                    <a href="?type={{ selected_types|join('&type=') }}&sort=last_name&order={% if sort_by == 'last_name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
+                        Last Name
+                    </a>
+                </th>
+                <th>
+                    <a href="?type={{ selected_types|join('&type=') }}&sort=first_name&order={% if sort_by == 'first_name' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
+                        First Name
+                    </a>
+                </th>
+                <th>Middle Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr onclick="window.location='{{ url_for('client_file', client_id=client.id) }}'">
+                <td>
+                    <span class="type-badge" style="background-color: {{ client.type.color }}">
+                        {{ client.type.code or client.type.name }}
+                    </span>
+                    {{ client.file_number }}
+                </td>
+                <td>{{ client.last_name }}</td>
+                <td>{{ client.first_name }}</td>
+                <td>{{ client.middle_name or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty-state">
+    <h3>No clients found</h3>
+    <p>{% if search %}Try a different search term or{% else %}Get started by adding your first client{% endif %}</p>
+    <div class="mt-2">
+        <a href="{{ url_for('add_client') }}" class="btn">+ Add Client</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Client Types - EdgeCase Equalizer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Client Types</h2>
+    
+    <table style="width: 100%; margin-top: 2rem;">
+        <thead>
+            <tr style="background: #f7fafc;">
+                <th style="padding: 1rem; text-align: left;">Name</th>
+                <th style="padding: 1rem; text-align: left;">Code</th>
+                <th style="padding: 1rem; text-align: left;">Color</th>
+                <th style="padding: 1rem; text-align: left;">Session Fee</th>
+                <th style="padding: 1rem; text-align: left;">Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for type in all_types %}
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 1rem;">
+                    {{ type.name }}
+                    {% if type.is_system %}<small style="color: #718096;">(System)</small>{% endif %}
+                </td>
+                <td style="padding: 1rem;">{{ type.code or '-' }}</td>
+                <td style="padding: 1rem;">
+                    <span class="type-badge" style="background-color: {{ type.color }}">
+                        {{ type.color }}
+                    </span>
+                </td>
+                <td style="padding: 1rem;">${{ type.session_fee or 0 }}</td>
+                <td style="padding: 1rem;">{{ type.session_duration or 0 }} min</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="mt-2">
+        <p style="color: #718096;">Type management interface coming in Week 2...</p>
+    </div>
+</div>
+{% endblock %}

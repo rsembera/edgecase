@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+        <div>
+            <h2>{{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}</h2>
+            <p style="color: #718096;">
+                <span class="type-badge" style="background-color: {{ client.type.color }}">
+                    {{ client.type.name }}
+                </span>
+                File #{{ client.file_number }}
+            </p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Clients</a>
+    </div>
+    
+    <h3>Entries ({{ entries|length }})</h3>
+    
+    {% if entries %}
+    <div style="margin-top: 1rem;">
+        {% for entry in entries %}
+        <div style="padding: 1rem; background: #f7fafc; border-radius: 0.5rem; margin-bottom: 1rem;">
+            <strong>{{ entry.class|title }}:</strong> {{ entry.description or 'No description' }}
+            <br>
+            <small style="color: #718096;">Created: {{ entry.created_at }}</small>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #718096; margin-top: 1rem;">No entries yet. Add a profile entry to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}
