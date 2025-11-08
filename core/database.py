@@ -89,6 +89,7 @@ class Database:
                 phone TEXT,
                 home_phone TEXT,
                 work_phone TEXT,
+                text_number TEXT,
                 address TEXT,
                 date_of_birth TEXT,
                 preferred_contact TEXT,
@@ -473,19 +474,27 @@ class Database:
         fields = ['client_id', 'class', 'created_at', 'modified_at']
         values = [entry_data['client_id'], entry_data['class'], now, now]
         
-        # Add optional fields if present
+        # Add optional fields if present in entry_data
         optional_fields = [
-            'description', 'content', 'modality', 'session_number', 'service',
-            'session_date', 'session_time', 'duration', 'fee', 'is_consultation',
-            'mood', 'affect', 'risk_assessment', 'comm_recipient', 'comm_type',
-            'statement_total', 'payment_status', 'payment_notes', 'date_sent',
-            'date_paid', 'edit_history', 'locked', 'locked_at'
+            'description', 'content', 'email', 'phone', 'home_phone', 'work_phone',
+            'text_number', 'address', 'date_of_birth', 'preferred_contact',
+            'ok_to_leave_message', 'emergency_contact_name', 'emergency_contact_phone',
+            'emergency_contact_relationship', 'referral_source', 'additional_info',
+            'modality', 'session_number', 'service', 'session_date', 'session_time',
+            'duration', 'fee', 'is_consultation', 'mood', 'affect', 'risk_assessment',
+            'comm_recipient', 'comm_type', 'statement_total', 'payment_status',
+            'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
+            'locked', 'locked_at'
         ]
         
         for field in optional_fields:
             if field in entry_data:
                 fields.append(field)
-                values.append(entry_data[field])
+                # Convert empty strings to empty strings (not None)
+                value = entry_data[field]
+                if value is None:
+                    value = ''
+                values.append(value)
         
         placeholders = ', '.join(['?' for _ in values])
         field_names = ', '.join(fields)

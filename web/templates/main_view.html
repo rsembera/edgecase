@@ -140,6 +140,13 @@
         background: #f56565;
     }
     
+    .preferred-contact {
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 2px;
+        font-weight: 600;
+    }
+    
     .empty-state {
         text-align: center;
         padding: 4rem 2rem;
@@ -214,8 +221,7 @@
                     </a>
                 </th>
                 <th>Middle Name</th>
-                <th>Email</th>
-                <th>Phone</th>
+                <th>Email / Phone</th>
                 <th>
                     <a href="?type={{ selected_types|join('&type=') }}&sort=last_session&order={% if sort_by == 'last_session' and sort_order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search }}{% endif %}">
                         Last Session
@@ -244,8 +250,50 @@
                 <td>{{ client.last_name }}</td>
                 <td>{{ client.first_name }}</td>
                 <td>{{ client.middle_name or '-' }}</td>
-                <td style="color: #718096; font-size: 0.875rem;">{{ client.email or '-' }}</td>
-                <td style="color: #718096; font-size: 0.875rem;">{{ client.phone or '-' }}</td>
+                <td style="color: #718096; font-size: 0.875rem;">
+                    {% if client.email %}
+                        <div style="margin-bottom: 0.25rem;">
+                            {% if client.preferred_contact == 'email' %}
+                                📧 <a href="mailto:{{ client.email }}" style="color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; font-weight: 600;" onclick="event.stopPropagation();">{{ client.email }}</a>
+                            {% else %}
+                                <a href="mailto:{{ client.email }}" style="color: inherit; text-decoration: none;" onclick="event.stopPropagation();">
+                                    📧 {{ client.email }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    {% if client.display_phone %}
+                        <div>
+                            {% if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] %}
+                                {{ client.contact_icon }} 
+                                {% if client.contact_type == 'text' %}
+                                    <a href="sms:{{ client.display_phone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') }}" style="color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; font-weight: 600;" onclick="event.stopPropagation();">{{ client.display_phone }}</a>
+                                {% else %}
+                                    <a href="tel:{{ client.display_phone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') }}" style="color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; font-weight: 600;" onclick="event.stopPropagation();">{{ client.display_phone }}</a>
+                                {% endif %}
+                                {% if client.ok_to_leave_message == 'no' %}
+                                    <span style="color: #e53e3e; font-weight: 600; margin-left: 0.25rem;" title="Do not leave message">⚠️</span>
+                                {% endif %}
+                            {% else %}
+                                {% if client.contact_type == 'text' %}
+                                    <a href="sms:{{ client.display_phone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') }}" style="color: inherit; text-decoration: none;" onclick="event.stopPropagation();">
+                                        {{ client.contact_icon }} {{ client.display_phone }}
+                                    </a>
+                                {% else %}
+                                    <a href="tel:{{ client.display_phone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') }}" style="color: inherit; text-decoration: none;" onclick="event.stopPropagation();">
+                                        {{ client.contact_icon }} {{ client.display_phone }}
+                                    </a>
+                                {% endif %}
+                                {% if client.ok_to_leave_message == 'no' %}
+                                    <span style="color: #e53e3e; font-weight: 600; margin-left: 0.25rem;" title="Do not leave message">⚠️</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    {% if not client.email and not client.display_phone %}
+                        -
+                    {% endif %}
+                </td>
                 <td style="color: #718096; font-size: 0.875rem;">
                     {% if client.last_session %}
                         {{ client.last_session|timestamp_to_date }}
@@ -260,7 +308,7 @@
     </table>
 </div>
 
-<div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 0.5rem; display: flex; gap: 2rem; font-size: 0.875rem;">
+<div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 0.5rem; display: flex; gap: 2rem; font-size: 0.875rem; flex-wrap: wrap;">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span class="payment-indicator payment-paid"></span>
         <span>Paid / Up to date</span>
@@ -273,6 +321,13 @@
         <span class="payment-indicator payment-overdue"></span>
         <span>Overdue (30+ days)</span>
     </div>
+    <div style="margin-left: auto; color: #718096;">
+        <strong>Underlined</strong> = Preferred contact
+    </div>
+    <div style="color: #718096;">
+        <span style="color: #e53e3e; font-weight: 600;">⚠️</span> = Do not leave message
+    </div>
+</div>
 </div>
 {% else %}
 <div class="card empty-state">

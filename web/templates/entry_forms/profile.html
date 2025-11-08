@@ -15,8 +15,15 @@
         margin-bottom: 1.5rem;
     }
     
+    .form-row-thirds {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
     @media (max-width: 768px) {
-        .form-row {
+        .form-row, .form-row-thirds {
             grid-template-columns: 1fr;
         }
     }
@@ -42,6 +49,16 @@
         color: #718096;
         margin-top: 0.25rem;
     }
+    
+    .date-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .date-input-group select {
+        flex: 1;
+        height: 46px;  /* Match text input height */
+    }
 </style>
 {% endblock %}
 
@@ -60,7 +77,7 @@
         <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
     </div>
     
-    <form method="post">
+    <form method="post" id="profile-form">
         <div class="form-row">
             <div class="form-group">
                 <label for="first_name">First Name</label>
@@ -96,8 +113,27 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="date_of_birth">Date of Birth</label>
-                <input type="date" id="date_of_birth" name="date_of_birth" 
-                       value="{{ profile.date_of_birth if profile else '' }}">
+                <div class="date-input-group">
+                    <select id="dob_year" name="dob_year">
+                        <option value="">Year</option>
+                        {% for year in range(2024, 1899, -1) %}
+                        <option value="{{ year }}" {% if profile and profile.date_of_birth and profile.date_of_birth[:4] == year|string %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="dob_month" name="dob_month">
+                        <option value="">Month</option>
+                        {% for month in range(1, 13) %}
+                        <option value="{{ '%02d'|format(month) }}" {% if profile and profile.date_of_birth and profile.date_of_birth[5:7] == '%02d'|format(month) %}selected{% endif %}>{{ '%02d'|format(month) }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="dob_day" name="dob_day">
+                        <option value="">Day</option>
+                        {% for day in range(1, 32) %}
+                        <option value="{{ '%02d'|format(day) }}" {% if profile and profile.date_of_birth and profile.date_of_birth[8:10] == '%02d'|format(day) %}selected{% endif %}>{{ '%02d'|format(day) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <input type="hidden" id="date_of_birth" name="date_of_birth" value="{{ profile.date_of_birth if profile else '' }}">
             </div>
             
             <div class="form-group">
@@ -125,10 +161,11 @@
             </div>
             
             <div class="form-group">
-                <label for="phone">Phone</label>
+                <label for="phone">Cell</label>
                 <input type="tel" id="phone" name="phone" 
                        value="{{ profile.phone if profile else '' }}"
-                       placeholder="(613) 555-1234">
+                       placeholder="(613) 555-1234"
+                       class="phone-input">
             </div>
         </div>
         
@@ -137,26 +174,29 @@
                 <label for="home_phone">Home Phone</label>
                 <input type="tel" id="home_phone" name="home_phone" 
                        value="{{ profile.home_phone if profile else '' }}"
-                       placeholder="Optional">
+                       placeholder="(613) 555-1234"
+                       class="phone-input">
             </div>
             
             <div class="form-group">
                 <label for="work_phone">Work Phone</label>
                 <input type="tel" id="work_phone" name="work_phone" 
                        value="{{ profile.work_phone if profile else '' }}"
-                       placeholder="Optional">
+                       placeholder="(613) 555-1234"
+                       class="phone-input">
             </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
-                <label for="preferred_contact">Preferred Contact Method</label>
-                <select id="preferred_contact" name="preferred_contact">
-                    <option value="">Select...</option>
-                    <option value="email" {% if profile and profile.preferred_contact == 'email' %}selected{% endif %}>Email</option>
-                    <option value="phone" {% if profile and profile.preferred_contact == 'phone' %}selected{% endif %}>Phone</option>
-                    <option value="text" {% if profile and profile.preferred_contact == 'text' %}selected{% endif %}>Text</option>
+                <label for="text_number">Text Number</label>
+                <select id="text_number" name="text_number">
+                    <option value="none" {% if not profile or not profile.text_number or profile.text_number == 'none' %}selected{% endif %}>None (no texting)</option>
+                    <option value="cell" {% if profile and profile.text_number == 'cell' %}selected{% endif %}>Cell</option>
+                    <option value="home" {% if profile and profile.text_number == 'home' %}selected{% endif %}>Home Phone</option>
+                    <option value="work" {% if profile and profile.text_number == 'work' %}selected{% endif %}>Work Phone</option>
                 </select>
+                <p class="help-text">Which number to use for text messages</p>
             </div>
             
             <div class="form-group">
@@ -164,6 +204,20 @@
                 <select id="ok_to_leave_message" name="ok_to_leave_message">
                     <option value="yes" {% if profile and profile.ok_to_leave_message == 'yes' %}selected{% endif %}>Yes</option>
                     <option value="no" {% if profile and profile.ok_to_leave_message == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="preferred_contact">Preferred Contact Method</label>
+                <select id="preferred_contact" name="preferred_contact">
+                    <option value="">Select...</option>
+                    <option value="email" {% if profile and profile.preferred_contact == 'email' %}selected{% endif %}>Email</option>
+                    <option value="call_cell" {% if profile and profile.preferred_contact == 'call_cell' %}selected{% endif %}>Call Cell</option>
+                    <option value="call_home" {% if profile and profile.preferred_contact == 'call_home' %}selected{% endif %}>Call Home</option>
+                    <option value="call_work" {% if profile and profile.preferred_contact == 'call_work' %}selected{% endif %}>Call Work</option>
+                    <option value="text" {% if profile and profile.preferred_contact == 'text' %}selected{% endif %}>Text Message</option>
                 </select>
             </div>
         </div>
@@ -180,7 +234,8 @@
                 <label for="emergency_contact_phone">Emergency Contact Phone</label>
                 <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" 
                        value="{{ profile.emergency_contact_phone if profile else '' }}"
-                       placeholder="Optional">
+                       placeholder="(613) 555-1234"
+                       class="phone-input">
             </div>
         </div>
         
@@ -217,4 +272,74 @@
         </div>
     </form>
 </div>
+
+<script>
+    // Phone number auto-formatting (FIXED - no duplicate digits)
+    function formatPhoneNumber(value) {
+        // Remove all non-digit characters
+        let cleaned = value.replace(/\D/g, '');
+        
+        // Limit to 10 digits
+        cleaned = cleaned.substring(0, 10);
+        
+        // Format as (123) 456-7890
+        let formatted = '';
+        if (cleaned.length > 0) {
+            formatted = '(' + cleaned.substring(0, 3);
+            if (cleaned.length >= 4) {
+                formatted += ') ' + cleaned.substring(3, 6);
+            }
+            if (cleaned.length >= 7) {
+                formatted += '-' + cleaned.substring(6, 10);
+            }
+        }
+        
+        return formatted || cleaned;
+    }
+    
+    // Add event listeners to all phone inputs
+    document.querySelectorAll('.phone-input').forEach(input => {
+        // Format on page load if there's a value
+        if (input.value) {
+            input.value = formatPhoneNumber(input.value);
+        }
+        
+        input.addEventListener('input', function(e) {
+            const cursorPos = this.selectionStart;
+            const oldValue = this.value;
+            const oldLength = oldValue.length;
+            
+            // Format the value
+            this.value = formatPhoneNumber(this.value);
+            
+            // Adjust cursor position if needed
+            const newLength = this.value.length;
+            if (newLength > oldLength) {
+                // Characters were added (formatting), move cursor forward
+                this.setSelectionRange(cursorPos + (newLength - oldLength), cursorPos + (newLength - oldLength));
+            } else {
+                // Keep cursor in same position
+                this.setSelectionRange(cursorPos, cursorPos);
+            }
+        });
+    });
+    
+    // Date of birth dropdowns → hidden field
+    const dobYear = document.getElementById('dob_year');
+    const dobMonth = document.getElementById('dob_month');
+    const dobDay = document.getElementById('dob_day');
+    const dobHidden = document.getElementById('date_of_birth');
+    
+    function updateDOB() {
+        if (dobYear.value && dobMonth.value && dobDay.value) {
+            dobHidden.value = `${dobYear.value}-${dobMonth.value}-${dobDay.value}`;
+        } else {
+            dobHidden.value = '';
+        }
+    }
+    
+    dobYear.addEventListener('change', updateDOB);
+    dobMonth.addEventListener('change', updateDOB);
+    dobDay.addEventListener('change', updateDOB);
+</script>
 {% endblock %}

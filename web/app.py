@@ -68,6 +68,50 @@ def index():
         profile = db.get_profile_entry(client['id'])
         client['email'] = profile.get('email', '') if profile else ''
         client['phone'] = profile.get('phone', '') if profile else ''
+        client['home_phone'] = profile.get('home_phone', '') if profile else ''
+        client['work_phone'] = profile.get('work_phone', '') if profile else ''
+        client['text_number'] = profile.get('text_number', '') if profile else ''
+        client['preferred_contact'] = profile.get('preferred_contact', '') if profile else ''
+        client['ok_to_leave_message'] = profile.get('ok_to_leave_message', 'yes') if profile else 'yes'
+        
+        # Smart phone display based on preferred contact method
+        client['display_phone'] = ''
+        client['contact_type'] = 'call'  # Default
+        client['contact_icon'] = '📞'
+        
+        if client['preferred_contact'] == 'call_cell':
+            client['display_phone'] = client['phone']
+            client['contact_type'] = 'call'
+            client['contact_icon'] = '📞'
+        elif client['preferred_contact'] == 'call_home':
+            client['display_phone'] = client['home_phone']
+            client['contact_type'] = 'call'
+            client['contact_icon'] = '📞'
+        elif client['preferred_contact'] == 'call_work':
+            client['display_phone'] = client['work_phone']
+            client['contact_type'] = 'call'
+            client['contact_icon'] = '📞'
+        elif client['preferred_contact'] == 'text':
+            # Check if texting is disabled
+            if client['text_number'] == 'none':
+                client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
+                client['contact_type'] = 'call'
+                client['contact_icon'] = '📞'
+            else:
+                # Use text_number preference, default to cell
+                if client['text_number'] == 'home':
+                    client['display_phone'] = client['home_phone']
+                elif client['text_number'] == 'work':
+                    client['display_phone'] = client['work_phone']
+                else:  # 'cell' or empty
+                    client['display_phone'] = client['phone']
+                client['contact_type'] = 'text'
+                client['contact_icon'] = '💬'
+        else:
+            # No preference: show cell if available, otherwise home, otherwise work
+            client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
+            client['contact_type'] = 'call'
+            client['contact_icon'] = '📞'
         
         # Get last session date
         last_session = db.get_last_session_date(client['id'])
@@ -156,12 +200,13 @@ def edit_profile(client_id):
             'class': 'profile',
             'description': f"{client['first_name']} {client['last_name']} - Profile",
             'date_of_birth': request.form.get('date_of_birth', ''),
-            'content': request.form.get('gender', ''),  # Using content for gender
+            'content': request.form.get('gender', ''),
             'address': request.form.get('address', ''),
             'email': request.form.get('email', ''),
             'phone': request.form.get('phone', ''),
             'home_phone': request.form.get('home_phone', ''),
             'work_phone': request.form.get('work_phone', ''),
+            'text_number': request.form.get('text_number', ''),
             'preferred_contact': request.form.get('preferred_contact', ''),
             'ok_to_leave_message': request.form.get('ok_to_leave_message', 'yes'),
             'emergency_contact_name': request.form.get('emergency_contact_name', ''),
