@@ -50,13 +50,14 @@
         background: #f0fdf4;
     }
     
-    .search-box {
-        padding: 0.75rem 1rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 0.5rem;
-        font-size: 1rem;
-        min-width: 250px;
-    }
+ .search-box {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    min-width: 250px;
+    height: 3rem;  /* ADD THIS LINE - matches button height */
+}
     
     .search-box:focus {
         outline: none;
@@ -109,15 +110,6 @@
     
     .client-table tbody tr {
         cursor: pointer;
-    }
-    
-    .type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: white;
     }
     
     .payment-indicator {
@@ -185,18 +177,19 @@
     </div>
     
     <div style="display: flex; gap: 1rem;">
-        <form method="get" style="margin: 0;">
-            <input type="search" name="search" class="search-box" 
-                   placeholder="Search clients..." value="{{ search }}">
-            {% for type_id in selected_types %}
-            <input type="hidden" name="type" value="{{ type_id }}">
-            {% endfor %}
-            <input type="hidden" name="sort" value="{{ sort_by }}">
-            <input type="hidden" name="order" value="{{ sort_order }}">
-        </form>
-        
-        <a href="{{ url_for('add_client') }}" class="btn">+ Add Client</a>
-    </div>
+    <form method="get" style="margin: 0;">
+        <input type="search" name="search" class="search-box" 
+               placeholder="Search clients..." value="{{ search }}">
+        {% for type_id in selected_types %}
+        <input type="hidden" name="type" value="{{ type_id }}">
+        {% endfor %}
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <input type="hidden" name="order" value="{{ sort_order }}">
+    </form>
+    
+    <a href="{{ url_for('manage_types') }}" class="btn btn-secondary">⚙️ Client Types</a>
+    <a href="{{ url_for('add_client') }}" class="btn">+ Add Client</a>
+</div>
 </div>
 
 {% if clients %}

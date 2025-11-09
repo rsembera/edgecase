@@ -71,10 +71,8 @@
                 <span class="type-badge" style="background-color: {{ client.type.color }}">
                     {{ client.type.name }}
                 </span>
-                {{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}
             </p>
         </div>
-        <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
     </div>
     
     <form method="post" id="profile-form">
@@ -266,9 +264,9 @@
             </div>
         </div>
         
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit" class="btn">Save Profile</button>
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
             <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn">Save Profile</button>
         </div>
     </form>
 </div>

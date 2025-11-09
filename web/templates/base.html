@@ -37,32 +37,6 @@
             opacity: 0.9;
         }
         
-        /* Navigation */
-        nav {
-            background: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        
-        nav a {
-            color: #2d3748;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            margin-right: 1rem;
-            border-radius: 0.375rem;
-            transition: background 0.2s;
-        }
-        
-        nav a:hover {
-            background: #edf2f7;
-        }
-        
-        nav a.active {
-            background: #00aa88;
-            color: white;
-        }
-        
         /* Main content */
         main {
             max-width: 1400px;
@@ -154,14 +128,15 @@
         .mb-2 {
             margin-bottom: 2rem;
         }
+        
         /* Type Bubble */
         .type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: white;
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: white;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -172,20 +147,13 @@
         <p>Practice Management for Independent Therapists</p>
     </header>
     
-   <nav>
-    {% block nav_content %}
-    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Clients</a>
-    <a href="{{ url_for('manage_types') }}" {% if request.endpoint == 'manage_types' %}class="active"{% endif %}>Client Types</a>
-    {% endblock %}
-    </nav>
-    
     <main>
         {% block content %}{% endblock %}
     </main>
     
     {% block extra_js %}{% endblock %}
 
-    <!-- Server disconnect overlay (simple) -->
+    <!-- Server disconnect overlay -->
     <div id="disconnect-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10000; align-items: center; justify-content: center;">
         <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 350px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-top: 4px solid #f59e0b;">
             <h2 style="color: #2d3748; margin-bottom: 0.75rem; font-size: 1.375rem; font-weight: 600;">Server Disconnected</h2>
