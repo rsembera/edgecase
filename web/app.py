@@ -148,7 +148,7 @@ def index():
 
 @app.route('/client/<int:client_id>')
 def client_file(client_id):
-    """Client file view - entry timeline."""
+    """Client file view - entry timeline grouped by year/month."""
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -156,12 +156,70 @@ def client_file(client_id):
     # Get client type
     client['type'] = db.get_client_type(client['type_id'])
     
-    # Get all entries for this client
-    entries = db.get_client_entries(client_id)
+    # Get profile entry separately (pinned at top)
+    profile_entry = db.get_profile_entry(client_id)
+    
+    # Get all session entries for this client
+    all_entries = db.get_client_entries(client_id, entry_class='session')
+    
+    # Count sessions vs consultations
+    session_count = sum(1 for e in all_entries if not e.get('is_consultation'))
+    consultation_count = sum(1 for e in all_entries if e.get('is_consultation'))
+    
+    # Group entries by year and month
+    from collections import defaultdict
+    from datetime import datetime
+    
+    # Get current year and month for default expand state
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+    
+    # Organize entries by year -> month
+    year_dict = defaultdict(lambda: defaultdict(list))
+    
+    for entry in all_entries:
+        if entry.get('session_date'):
+            entry_date = datetime.fromtimestamp(entry['session_date'])
+            year = entry_date.year
+            month = entry_date.month
+            year_dict[year][month].append(entry)
+    
+    # Convert to list structure for template
+    entries_by_year = []
+    for year in sorted(year_dict.keys(), reverse=True):  # Most recent year first
+        months = []
+        year_total = 0
+        
+        for month in sorted(year_dict[year].keys(), reverse=True):  # Most recent month first
+            month_entries = sorted(year_dict[year][month], 
+                                 key=lambda e: e.get('session_date', 0), 
+                                 reverse=True)
+            
+            month_name = datetime(year, month, 1).strftime('%B')
+            
+            months.append({
+                'month_num': month,
+                'month_name': month_name,
+                'entries': month_entries,
+                'is_current': (year == current_year and month == current_month)
+            })
+            
+            year_total += len(month_entries)
+        
+        entries_by_year.append({
+            'year': year,
+            'months': months,
+            'total': year_total,
+            'is_current': (year == current_year)
+        })
     
     return render_template('client_file.html',
                          client=client,
-                         entries=entries)
+                         profile_entry=profile_entry,
+                         entries_by_year=entries_by_year,
+                         session_count=session_count,
+                         consultation_count=consultation_count)
 
 @app.route('/add_client', methods=['GET', 'POST'])
 def add_client():

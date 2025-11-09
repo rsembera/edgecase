@@ -17,61 +17,148 @@
         </div>
         <div style="display: flex; gap: 1rem;">
             <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="btn">
-                {% if entries|selectattr('class', 'equalto', 'profile')|list %}Edit Profile{% else %}Create Profile{% endif %}
+                {% if profile_entry %}Edit Profile{% else %}Create Profile{% endif %}
             </a>
             <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Clients</a>
         </div>
     </div>
     
-    <h3>Entries ({{ entries|length }})</h3>
+    {# Profile Entry - Always at top if exists #}
+    {% if profile_entry %}
+    <div style="padding: 1.5rem; background: #f0fdf4; border-radius: 0.5rem; margin-bottom: 2rem; border-left: 4px solid #00aa88;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+            <strong style="font-size: 1.125rem;">Profile</strong>
+            <a href="{{ url_for('edit_profile', client_id=client.id) }}" 
+               style="color: #00aa88; text-decoration: none; font-size: 0.875rem;">Edit</a>
+        </div>
+        {% if profile_entry.email %}
+        <p style="font-size: 0.875rem; color: #4a5568; margin: 0.25rem 0;">📧 {{ profile_entry.email }}</p>
+        {% endif %}
+        {% if profile_entry.phone %}
+        <p style="font-size: 0.875rem; color: #4a5568; margin: 0.25rem 0;">📞 {{ profile_entry.phone }}</p>
+        {% endif %}
+        <small style="color: #718096;">Created: {{ profile_entry.created_at|timestamp_to_date }}</small>
+    </div>
+    {% endif %}
     
-    {% if entries %}
-    <div style="margin-top: 1rem;">
-        {% for entry in entries %}
-        <div style="padding: 1.5rem; background: {% if entry.class == 'profile' %}#f0fdf4{% else %}#f7fafc{% endif %}; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid {% if entry.class == 'profile' %}#00aa88{% else %}#cbd5e0{% endif %};">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                <strong style="font-size: 1.125rem;">{{ entry.class|title }}:</strong>
-                {% if entry.class == 'profile' %}
-                <a href="{{ url_for('edit_profile', client_id=client.id) }}" 
-                   style="color: #00aa88; text-decoration: none; font-size: 0.875rem;">Edit</a>
-                {% elif entry.class == 'session' %}
-                <a href="{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}" 
-                   style="color: #00aa88; text-decoration: none; font-size: 0.875rem;">Edit</a>
-                {% endif %}
+    <h3>Session History 
+        {% if session_count > 0 or consultation_count > 0 %}
+            ({{ session_count }} Session{{ 's' if session_count != 1 else '' }}{% if consultation_count > 0 %}, {{ consultation_count }} Consultation{{ 's' if consultation_count != 1 else '' }}{% endif %})
+        {% endif %}
+    </h3>
+    
+    {% if entries_by_year %}
+    <div style="margin-top: 1.5rem;">
+        {% for year_group in entries_by_year %}
+        <div class="year-section" style="margin-bottom: 1.5rem;">
+            {# Year Header #}
+            <div class="year-header" 
+                 onclick="toggleYear('year-{{ year_group.year }}')"
+                 style="background: #1a365d; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                <span style="font-size: 1.125rem; font-weight: 600;">
+                    <span id="year-{{ year_group.year }}-icon">{{ '▼' if year_group.is_current else '▶' }}</span>
+                    {{ year_group.year }}
+                </span>
+                <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_group.total }} Entries</span>
             </div>
-            <p style="margin-bottom: 0.5rem;">{{ entry.description or 'No description' }}</p>
             
-            {# Session-specific fields #}
-            {% if entry.class == 'session' %}
-                {% if entry.session_time %}
-                <p style="font-size: 0.875rem; color: #4a5568;">🕐 {{ entry.session_time }}</p>
-                {% endif %}
-                {% if entry.duration %}
-                <p style="font-size: 0.875rem; color: #4a5568;">⏱️ {{ entry.duration }} minutes</p>
-                {% endif %}
-                {% if entry.fee %}
-                <p style="font-size: 0.875rem; color: #4a5568;">💵 ${{ "%.2f"|format(entry.fee) }}</p>
-                {% endif %}
-            {% endif %}
-            
-            {# Profile-specific fields #}
-            {% if entry.email %}
-            <p style="font-size: 0.875rem; color: #4a5568;">📧 {{ entry.email }}</p>
-            {% endif %}
-            {% if entry.phone %}
-            <p style="font-size: 0.875rem; color: #4a5568;">📞 {{ entry.phone }}</p>
-            {% endif %}
-            
-            <small style="color: #718096;">Created: {{ entry.created_at|timestamp_to_date }}</small>
+            {# Year Content (collapsible) #}
+            <div id="year-{{ year_group.year }}-content" 
+                 style="{% if not year_group.is_current %}display: none;{% endif %}">
+                
+                {% for month_group in year_group.months %}
+                <div class="month-section" style="margin-top: 1rem;">
+                    {# Month Header #}
+                    <div class="month-header"
+                         onclick="toggleMonth('month-{{ year_group.year }}-{{ month_group.month_num }}')"
+                         style="background: #00aa88; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                        <span style="font-weight: 600;">
+                            <span id="month-{{ year_group.year }}-{{ month_group.month_num }}-icon">{{ '▼' if month_group.is_current else '▶' }}</span>
+                            {{ month_group.month_name }}
+                        </span>
+                        <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_group.entries|length }} Entries</span>
+                    </div>
+                    
+                    {# Month Content - Table #}
+                    <div id="month-{{ year_group.year }}-{{ month_group.month_num }}-content"
+                         style="{% if not month_group.is_current %}display: none;{% endif %} margin-top: 0.5rem;">
+                        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <thead>
+                                <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Date</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Type</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Description</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Time</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Duration</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Fee</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: #4a5568; font-size: 0.875rem;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in month_group.entries %}
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #2d3748;">{{ entry.session_date|timestamp_to_date }}</td>
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem;">
+                                        <span style="background: {% if entry.is_consultation %}#fef3c7{% else %}#e6f7f5{% endif %}; color: {% if entry.is_consultation %}#d97706{% else %}#00aa88{% endif %}; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-weight: 500;">
+                                            {% if entry.is_consultation %}Consultation{% else %}Session{% endif %}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #2d3748;">{{ entry.description }}</td>
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #4a5568;">{{ entry.session_time or '-' }}</td>
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #4a5568;">{{ entry.duration or '-' }} min</td>
+                                    <td style="padding: 0.75rem 1rem; font-size: 0.875rem; color: #4a5568;">
+                                        {% if entry.fee %}${{ "%.2f"|format(entry.fee) }}{% else %}-{% endif %}
+                                    </td>
+                                    <td style="padding: 0.75rem 1rem; text-align: center;">
+                                        <a href="{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}" 
+                                           style="color: #00aa88; text-decoration: none; font-size: 0.875rem; font-weight: 500;">Edit</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
     <div style="padding: 3rem; text-align: center; background: #f7fafc; border-radius: 0.5rem; margin-top: 1rem;">
-        <p style="color: #718096; margin-bottom: 1rem;">No entries yet. Start by creating a profile for this client.</p>
-        <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="btn">Create Profile</a>
+        <p style="color: #718096; margin-bottom: 1rem;">No sessions yet. Create your first session to get started.</p>
+        <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
     </div>
     {% endif %}
 </div>
+
+<script>
+function toggleYear(yearId) {
+    const content = document.getElementById(yearId + '-content');
+    const icon = document.getElementById(yearId + '-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+function toggleMonth(monthId) {
+    const content = document.getElementById(monthId + '-content');
+    const icon = document.getElementById(monthId + '-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+</script>
+
 {% endblock %}
