@@ -452,6 +452,47 @@
         font-size: 0.875rem;
         color: #6B7280;
     }
+    
+    /* Legend card at bottom */
+    .legend-card {
+        background: #E5E8F5; /* Same as column headers */
+        border-radius: 1rem;
+        padding: 1rem 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+    }
+    
+    .legend-section {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.6875rem;
+        color: #6B7AA1;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
 </style>
 {% endblock %}
 
@@ -650,6 +691,32 @@
             {% endif %}
         </div>
         {% endfor %}
+    </div>
+    
+    <!-- Legend Card -->
+    <div class="legend-card">
+        <div class="legend-section">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #10B981;"></div>
+                <span>Paid / Up to date</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #F59E0B;"></div>
+                <span>Payment pending</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #EF4444;"></div>
+                <span>Overdue (30+ days)</span>
+            </div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-item">
+                <span><u>Underlined</u> = Preferred contact</span>
+            </div>
+            <div class="legend-item">
+                <span>⚠️ = Do not leave message</span>
+            </div>
+        </div>
     </div>
 {% else %}
 <div style="text-align: center; padding: 4rem; background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
