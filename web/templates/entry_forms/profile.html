@@ -68,10 +68,10 @@
         <div>
             <h2>Client Profile</h2>
             <p style="color: #718096;">
-                {{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}
                 <span class="type-badge" style="background-color: {{ client.type.color }}">
                     {{ client.type.name }}
                 </span>
+                {{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}
             </p>
         </div>
         <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>

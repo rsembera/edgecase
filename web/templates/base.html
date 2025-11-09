@@ -154,6 +154,15 @@
         .mb-2 {
             margin-bottom: 2rem;
         }
+        /* Type Bubble */
+        .type-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: white;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -163,9 +172,11 @@
         <p>Practice Management for Independent Therapists</p>
     </header>
     
-    <nav>
-        <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Clients</a>
-        <a href="{{ url_for('manage_types') }}" {% if request.endpoint == 'manage_types' %}class="active"{% endif %}>Client Types</a>
+   <nav>
+    {% block nav_content %}
+    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Clients</a>
+    <a href="{{ url_for('manage_types') }}" {% if request.endpoint == 'manage_types' %}class="active"{% endif %}>Client Types</a>
+    {% endblock %}
     </nav>
     
     <main>
