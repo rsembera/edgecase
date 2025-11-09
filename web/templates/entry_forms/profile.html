@@ -273,33 +273,54 @@
     </form>
 </div>
 
+<!-- Validation error modal -->
+<div id="validation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-top: 4px solid #e53e3e;">
+        <h3 style="color: #2d3748; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Validation Error</h3>
+        <div id="validation-errors" style="color: #4a5568; margin-bottom: 1.5rem; line-height: 1.6; font-size: 0.9375rem;"></div>
+        <button onclick="closeValidationModal()" style="padding: 0.625rem 1.25rem; background: #00aa88; color: white; border: none; border-radius: 0.375rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer; width: 100%;">
+            OK
+        </button>
+    </div>
+</div>
+
 <script>
-    // Phone number auto-formatting (FIXED - no duplicate digits)
+    // Validation modal functions
+    function showValidationModal(message) {
+        document.getElementById('validation-errors').innerHTML = message;
+        document.getElementById('validation-modal').style.display = 'flex';
+    }
+    
+    function closeValidationModal() {
+        document.getElementById('validation-modal').style.display = 'none';
+    }
+
+    // Phone number auto-formatting (supports 10-12 digits)
     function formatPhoneNumber(value) {
         // Remove all non-digit characters
         let cleaned = value.replace(/\D/g, '');
         
-        // Limit to 10 digits
-        cleaned = cleaned.substring(0, 10);
+        // Limit to 12 digits (international support)
+        cleaned = cleaned.substring(0, 12);
         
-        // Format as (123) 456-7890
-        let formatted = '';
-        if (cleaned.length > 0) {
-            formatted = '(' + cleaned.substring(0, 3);
-            if (cleaned.length >= 4) {
-                formatted += ') ' + cleaned.substring(3, 6);
-            }
-            if (cleaned.length >= 7) {
-                formatted += '-' + cleaned.substring(6, 10);
-            }
+        // Only format if exactly 10 digits (North American format)
+        if (cleaned.length === 10) {
+            return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
         }
         
-        return formatted || cleaned;
+        // For 11-12 digits or incomplete, just return digits as-is
+        return cleaned;
+    }
+    
+    // Validate phone number has 10-12 digits
+    function validatePhone(phoneValue) {
+        if (!phoneValue) return true; // Empty is okay
+        const digitsOnly = phoneValue.replace(/\D/g, '');
+        return digitsOnly.length >= 10 && digitsOnly.length <= 12;
     }
     
     // Add event listeners to all phone inputs
     document.querySelectorAll('.phone-input').forEach(input => {
-        // Format on page load if there's a value
         if (input.value) {
             input.value = formatPhoneNumber(input.value);
         }
@@ -309,19 +330,57 @@
             const oldValue = this.value;
             const oldLength = oldValue.length;
             
-            // Format the value
             this.value = formatPhoneNumber(this.value);
             
-            // Adjust cursor position if needed
             const newLength = this.value.length;
             if (newLength > oldLength) {
-                // Characters were added (formatting), move cursor forward
                 this.setSelectionRange(cursorPos + (newLength - oldLength), cursorPos + (newLength - oldLength));
             } else {
-                // Keep cursor in same position
                 this.setSelectionRange(cursorPos, cursorPos);
             }
         });
+    });
+    
+    // Form validation on submit
+    let validationPassed = false;
+    
+    document.getElementById('profile-form').addEventListener('submit', function(e) {
+        // If validation already passed, allow submission
+        if (validationPassed) {
+            validationPassed = false; // Reset for next time
+            return true;
+        }
+        
+        // Prevent default to validate first
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const phoneInputs = [
+            { element: document.getElementById('phone'), label: 'Cell' },
+            { element: document.getElementById('home_phone'), label: 'Home Phone' },
+            { element: document.getElementById('work_phone'), label: 'Work Phone' },
+            { element: document.getElementById('emergency_contact_phone'), label: 'Emergency Contact Phone' }
+        ];
+        
+        let errors = [];
+        
+        phoneInputs.forEach(input => {
+            if (input.element.value && !validatePhone(input.element.value)) {
+                errors.push('• ' + input.label + ' must be 10-12 digits');
+                input.element.style.borderColor = '#e53e3e';
+            } else {
+                input.element.style.borderColor = '#e2e8f0';
+            }
+        });
+        
+        if (errors.length > 0) {
+            showValidationModal(errors.join('<br>'));
+            return false;
+        } else {
+            // Validation passed, submit the form
+            validationPassed = true;
+            this.submit();
+        }
     });
     
     // Date of birth dropdowns → hidden field

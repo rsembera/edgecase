@@ -4,8 +4,13 @@ Main entry point - launches Flask web interface
 """
 
 from web.app import app
+import logging
 
 if __name__ == "__main__":
+    # Reduce Flask logging noise
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+    
     print("\n" + "="*50)
     print("EdgeCase Equalizer")
     print("="*50)
