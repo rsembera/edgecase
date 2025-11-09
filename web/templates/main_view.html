@@ -6,13 +6,19 @@
 <style>
     /* Override base styles for new design */
     body {
-        background: #F5F7FA;
+        background: #F0F4F8; /* Softer, warmer gray-blue */
+        font-size: 19px !important; /* Force bigger font */
     }
     
-    /* Stats cards row - now 4 cards */
+    /* Ensure all text elements inherit the larger size */
+    body * {
+        font-size: inherit;
+    }
+    
+    /* Stats cards row - now 5 cards */
     .stats-container {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -29,11 +35,12 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
-    /* Pastel backgrounds for stat cards */
-    .stat-card.blue { background: #E0F2FE; }
-    .stat-card.purple { background: #EDE9FE; }
-    .stat-card.coral { background: #FED7D7; }
-    .stat-card.lavender { background: #F3E8FF; }
+    /* Pastel backgrounds for stat cards - soft muted shades like screenshot */
+    .stat-card.blue { background: #D1E7F4; }      /* Soft sky blue */
+    .stat-card.purple { background: #E8DDFF; }    /* Soft lavender */
+    .stat-card.coral { background: #FFD4D4; }     /* Soft coral pink */
+    .stat-card.lavender { background: #E8DDFF; }  /* Soft lavender */
+    .stat-card.mint { background: #D8F3E8; }      /* Soft mint for billable */
     
     .stat-number {
         font-size: 2.5rem;
@@ -43,9 +50,9 @@
     }
     
     .stat-label {
-        font-size: 0.875rem;
+        font-size: 1.125rem; /* Much bigger - 18px */
         color: #6B7280;
-        font-weight: 500;
+        font-weight: 600;
     }
     
     /* Navigation card (4th card) */
@@ -74,26 +81,26 @@
     }
     
     .nav-btn.teal {
-        background: #CCFBF1;
-        color: #115E59;
+        background: #C7F0E8;
+        color: #0D6E5E;
     }
     
     .nav-btn.teal:hover {
-        background: #99F6E4;
+        background: #A8E6D8;
     }
     
     .nav-btn.rose {
-        background: #FFE4E6;
-        color: #881337;
+        background: #FFD9E1;
+        color: #7D2948;
     }
     
     .nav-btn.rose:hover {
-        background: #FECDD3;
+        background: #FFC4D1;
     }
     
     /* Controls area */
     .controls-bar {
-        background: white;
+        background: #E8F0F7; /* Soft muted blue */
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 2rem;
@@ -206,7 +213,7 @@
     .column-headers {
         position: sticky;
         top: 0;
-        background: white;
+        background: #E5E8F5; /* Soft muted lavender */
         border-radius: 1rem;
         padding: 0.875rem 1.25rem;
         margin-bottom: 0.75rem;
@@ -216,9 +223,32 @@
         z-index: 10;
         font-size: 0.6875rem;
         font-weight: 600;
-        color: #9CA3AF;
+        color: #6B7AA1; /* Muted indigo text */
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+    
+    .payment-legend {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.625rem;
+        font-weight: 500;
+        color: #6B7AA1;
+        text-transform: none;
+        letter-spacing: normal;
+        margin-right: 2rem;
+    }
+    
+    .payment-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .payment-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
     }
     
     /* Column widths - MATCH THESE IN CLIENT CARDS */
@@ -277,11 +307,11 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
-    /* Pastel backgrounds based on type - different from stat cards */
-    .client-card.type-mint { background: #F0F9F7; }
-    .client-card.type-yellow { background: #FFFBEB; }
-    .client-card.type-pink { background: #FFF5F7; }
-    .client-card.type-purple { background: #F5F3FF; }
+    /* Pastel backgrounds based on type - soft muted like screenshot */
+    .client-card.type-mint { background: #D8F3E8; }    /* Soft mint */
+    .client-card.type-yellow { background: #FFF4D9; }  /* Soft cream */
+    .client-card.type-pink { background: #FFE8F0; }    /* Soft rose */
+    .client-card.type-purple { background: #E8E3F7; }  /* Soft lavender */
     
     /* Detailed view - single line with EXACT column alignment */
     .client-card.detailed-view {
@@ -350,11 +380,11 @@
     .payment-dot.pending { background: #F59E0B; }
     .payment-dot.overdue { background: #EF4444; }
     
-    /* Type badges with specific colors */
-    .type-badge.type-mint { background: #CCFBF1; color: #115E59; }
-    .type-badge.type-yellow { background: #FEF3C7; color: #92400E; }
-    .type-badge.type-pink { background: #FCE7F3; color: #9F1239; }
-    .type-badge.type-purple { background: #E9D5FF; color: #6B21A8; }
+    /* Type badges with specific colors - soft muted */
+    .type-badge.type-mint { background: #B8E6D5; color: #0A5F4E; }
+    .type-badge.type-yellow { background: #FFE4A3; color: #6B5B2A; }
+    .type-badge.type-pink { background: #FFD0E0; color: #7A2D4A; }
+    .type-badge.type-purple { background: #D4C5F9; color: #4A3870; }
     
     /* Contact links */
     .contact-link {
@@ -369,8 +399,12 @@
     }
     
     .contact-link.preferred {
-        text-decoration: underline;
         color: #374151;
+    }
+    
+    /* Underline only the text part, not the icon */
+    .contact-link.preferred span {
+        text-decoration: underline;
     }
     
     /* Compact view - multi-line card */
@@ -423,7 +457,7 @@
 
 {% block content %}
 
-<!-- Stats Cards - Now 4 cards -->
+<!-- Stats Cards - Now 5 cards -->
 <div class="stats-container">
     <div class="stat-card blue">
         <div class="stat-number">{{ active_count }}</div>
@@ -437,10 +471,14 @@
         <div class="stat-number">{{ pending_invoices }}</div>
         <div class="stat-label">Pending Invoices</div>
     </div>
+    <div class="stat-card mint">
+        <div class="stat-number">${{ billable_this_month|default(0)|round(2) }}</div>
+        <div class="stat-label">Billable This Month</div>
+    </div>
     <div class="stat-card lavender nav-card">
         <h2>EdgeCase Equalizer</h2>
-        <a href="{{ url_for('manage_types') }}" class="nav-btn teal">Edit Client Types</a>
         <a href="#" class="nav-btn rose">Settings</a>
+        <a href="{{ url_for('manage_types') }}" class="nav-btn teal">Edit Client Types</a>
     </div>
 </div>
 
@@ -540,8 +578,8 @@
     <!-- Column Headers (only for detailed view) -->
     {% if view_mode == 'detailed' %}
     <div class="column-headers">
-        <div class="col-status"></div>
-        <div class="col-type">Type</div>
+        <div class="col-status">Status/Type</div>
+        <div class="col-type"></div>
         <div class="col-file">File #</div>
         <div class="col-name">Name</div>
         <div class="col-contact">Contact</div>
@@ -559,20 +597,19 @@
                 <span class="type-badge type-{% if client.type.name == 'Active' %}mint{% elif client.type.name == 'Inactive' %}yellow{% else %}pink{% endif %}">
                     {{ client.type.name }}
                 </span>
-                <span class="file-number">#{{ client.file_number }}</span>
+                <span class="file-number">{{ client.file_number }}</span>
                 <span class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</span>
                 <div class="contact-info">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        📧 {{ client.email }}
+                        📧 <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon }} {{ client.display_phone }}
-                        {% if client.ok_to_leave_message == 'no' %}⚠️{% endif %}
+                        {{ client.contact_icon }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} ⚠️{% endif %}</span>
                     </a>
                     {% endif %}
                 </div>
@@ -588,21 +625,20 @@
                     <span class="type-badge type-{% if client.type.name == 'Active' %}mint{% elif client.type.name == 'Inactive' %}yellow{% else %}pink{% endif %}">
                         {{ client.type.name }}
                     </span>
-                    <span style="color: #6B7280; font-size: 0.875rem;">#{{ client.file_number }}</span>
+                    <span style="color: #6B7280; font-size: 0.875rem;">{{ client.file_number }}</span>
                 </div>
                 <div class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</div>
                 <div class="contact-row">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        📧 {{ client.email }}
+                        📧 <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon }} {{ client.display_phone }}
-                        {% if client.ok_to_leave_message == 'no' %}⚠️{% endif %}
+                        {{ client.contact_icon }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} ⚠️{% endif %}</span>
                     </a>
                     {% endif %}
                 </div>
