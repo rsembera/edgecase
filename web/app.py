@@ -90,6 +90,23 @@ def index():
     for client in all_clients:
         if db.get_payment_status(client['id']) == 'pending':
             pending_invoices += 1
+            
+    # Calculate billable this month
+    from datetime import datetime
+    now = datetime.now()
+    month_start = int(datetime(now.year, now.month, 1).timestamp())
+    
+    billable_this_month = 0
+    for client in all_clients:
+        # Get all billable entries for this month (sessions and items)
+        entries = db.get_client_entries(client['id'])
+        for entry in entries:
+            if entry.get('created_at', 0) >= month_start:
+                # Sessions (non-consultation) and items are billable
+                if entry.get('class') == 'session' and not entry.get('is_consultation'):
+                    billable_this_month += entry.get('fee', 0) or 0
+                elif entry.get('class') == 'item':
+                    billable_this_month += entry.get('fee', 0) or 0
     
     # Add type information and additional data to each client
     for client in clients:
@@ -183,7 +200,8 @@ def index():
                          view_mode=view_mode,
                          active_count=active_count,
                          sessions_this_week=sessions_this_week,
-                         pending_invoices=pending_invoices)
+                         pending_invoices=pending_invoices,
+                         billable_this_month=billable_this_month)
 
 @app.route('/client/<int:client_id>')
 def client_file(client_id):
