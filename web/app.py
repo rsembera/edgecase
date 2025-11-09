@@ -39,12 +39,13 @@ def timestamp_to_date(timestamp):
 
 @app.route('/')
 def index():
-    """Main view - client list."""
+    """Main view - client list with stats cards."""
     # Get filter parameters
     type_filter = request.args.getlist('type')  # Can select multiple types
     sort_by = request.args.get('sort', 'last_name')  # Default sort by last name
     sort_order = request.args.get('order', 'asc')  # Default ascending
     search = request.args.get('search', '')
+    view_mode = request.args.get('view', 'compact')  # 'detailed' or 'compact'
     
     # Get all client types for filter
     all_types = db.get_all_client_types()
@@ -64,6 +65,31 @@ def index():
         clients = []
         for type_id in type_filter:
             clients.extend(db.get_all_clients(int(type_id)))
+    
+    # Calculate stats (for all clients, not just filtered)
+    all_clients = []
+    for client_type in all_types:
+        all_clients.extend(db.get_all_clients(client_type['id']))
+    
+    # Count active clients
+    active_type = next((t for t in all_types if t['name'] == 'Active'), None)
+    active_count = len([c for c in all_clients if c['type_id'] == active_type['id']]) if active_type else 0
+    
+    # Count sessions this week
+    from datetime import datetime, timedelta
+    week_ago = int((datetime.now() - timedelta(days=7)).timestamp())
+    sessions_this_week = 0
+    for client in all_clients:
+        entries = db.get_client_entries(client['id'], entry_class='session')
+        sessions_this_week += sum(1 for e in entries 
+                                  if e.get('created_at', 0) >= week_ago 
+                                  and not e.get('is_consultation'))
+    
+    # Count pending invoices
+    pending_invoices = 0
+    for client in all_clients:
+        if db.get_payment_status(client['id']) == 'pending':
+            pending_invoices += 1
     
     # Add type information and additional data to each client
     for client in clients:
@@ -97,24 +123,34 @@ def index():
             client['contact_type'] = 'call'
             client['contact_icon'] = '📞'
         elif client['preferred_contact'] == 'text':
-            # Check if texting is disabled
+            # Check text_number preference
             if client['text_number'] == 'none':
                 client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
                 client['contact_type'] = 'call'
                 client['contact_icon'] = '📞'
-            else:
-                # Use text_number preference, default to cell
-                if client['text_number'] == 'home':
-                    client['display_phone'] = client['home_phone']
-                elif client['text_number'] == 'work':
-                    client['display_phone'] = client['work_phone']
-                else:  # 'cell' or empty
-                    client['display_phone'] = client['phone']
+            elif client['text_number'] == 'cell':
+                client['display_phone'] = client['phone']
                 client['contact_type'] = 'text'
                 client['contact_icon'] = '💬'
-        else:
-            # No preference: show cell if available, otherwise home, otherwise work
+            elif client['text_number'] == 'home':
+                client['display_phone'] = client['home_phone']
+                client['contact_type'] = 'text'
+                client['contact_icon'] = '💬'
+            elif client['text_number'] == 'work':
+                client['display_phone'] = client['work_phone']
+                client['contact_type'] = 'text'
+                client['contact_icon'] = '💬'
+            else:
+                client['display_phone'] = client['phone']
+                client['contact_type'] = 'text'
+                client['contact_icon'] = '💬'
+        elif client['preferred_contact'] == 'email':
             client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
+            client['contact_type'] = 'call'
+            client['contact_icon'] = '📞'
+        else:
+            # Default: show cell phone for calling
+            client['display_phone'] = client['phone']
             client['contact_type'] = 'call'
             client['contact_icon'] = '📞'
         
@@ -126,25 +162,28 @@ def index():
         client['payment_status'] = db.get_payment_status(client['id'])
     
     # Sort clients
-    reverse = (sort_order == 'desc')
     if sort_by == 'file_number':
-        clients.sort(key=lambda c: c['file_number'], reverse=reverse)
-    elif sort_by == 'first_name':
-        clients.sort(key=lambda c: c['first_name'].lower(), reverse=reverse)
+        clients.sort(key=lambda c: c['file_number'], reverse=(sort_order == 'desc'))
     elif sort_by == 'last_name':
-        clients.sort(key=lambda c: c['last_name'].lower(), reverse=reverse)
+        clients.sort(key=lambda c: c['last_name'].lower(), reverse=(sort_order == 'desc'))
+    elif sort_by == 'first_name':
+        clients.sort(key=lambda c: c['first_name'].lower(), reverse=(sort_order == 'desc'))
     elif sort_by == 'created':
-        clients.sort(key=lambda c: c['created_at'], reverse=reverse)
+        clients.sort(key=lambda c: c['created_at'], reverse=(sort_order == 'desc'))
     elif sort_by == 'last_session':
-        clients.sort(key=lambda c: c.get('last_session') or 0, reverse=reverse)
+        clients.sort(key=lambda c: c.get('last_session', 0), reverse=(sort_order == 'desc'))
     
     return render_template('main_view.html',
                          clients=clients,
                          all_types=all_types,
-                         selected_types=type_filter,
+                         type_filter=type_filter,
                          sort_by=sort_by,
                          sort_order=sort_order,
-                         search=search)
+                         search=search,
+                         view_mode=view_mode,
+                         active_count=active_count,
+                         sessions_this_week=sessions_this_week,
+                         pending_invoices=pending_invoices)
 
 @app.route('/client/<int:client_id>')
 def client_file(client_id):
