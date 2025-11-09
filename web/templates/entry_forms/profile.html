@@ -74,21 +74,20 @@
             </p>
         </div>
     </div>
-    
+
     <form method="post" id="profile-form">
-        <div class="form-row">
+    
+    <div class="form-row">
             <div class="form-group">
                 <label for="first_name">First Name</label>
                 <input type="text" id="first_name" name="first_name" 
-                       value="{{ client.first_name }}" readonly 
-                       style="background: #f7fafc;">
+                       value="{{ client.first_name }}">
             </div>
             
             <div class="form-group">
                 <label for="middle_name">Middle Name</label>
                 <input type="text" id="middle_name" name="middle_name" 
-                       value="{{ client.middle_name or '' }}" readonly
-                       style="background: #f7fafc;">
+                       value="{{ client.middle_name or '' }}">
             </div>
         </div>
         
@@ -96,15 +95,14 @@
             <div class="form-group">
                 <label for="last_name">Last Name</label>
                 <input type="text" id="last_name" name="last_name" 
-                       value="{{ client.last_name }}" readonly
-                       style="background: #f7fafc;">
+                       value="{{ client.last_name }}">
             </div>
             
             <div class="form-group">
                 <label for="file_number">File Number</label>
                 <input type="text" id="file_number" name="file_number" 
                        value="{{ client.file_number }}" readonly
-                       style="background: #f7fafc;">
+                       style="background: #f7fafc; cursor: not-allowed;">
             </div>
         </div>
         

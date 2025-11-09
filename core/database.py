@@ -102,6 +102,7 @@ class Database:
                 
                 -- Session-specific fields
                 modality TEXT,
+                format TEXT,
                 session_number INTEGER,
                 service TEXT,
                 session_date INTEGER,

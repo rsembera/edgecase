@@ -198,7 +198,7 @@ def edit_profile(client_id):
         profile_data = {
             'client_id': client_id,
             'class': 'profile',
-            'description': f"{client['first_name']} {client['last_name']} - Profile",
+            'description': f"{request.form.get('first_name')} {request.form.get('last_name')} - Profile",
             'date_of_birth': request.form.get('date_of_birth', ''),
             'content': request.form.get('gender', ''),
             'address': request.form.get('address', ''),
@@ -223,13 +223,171 @@ def edit_profile(client_id):
             # Create new profile
             db.add_entry(profile_data)
         
+        # Update client record if names changed
+        import time
+        if request.form.get('first_name') != client['first_name'] or \
+           request.form.get('middle_name', '') != (client.get('middle_name') or '') or \
+           request.form.get('last_name') != client['last_name']:
+            
+            client_updates = {
+                'first_name': request.form.get('first_name'),
+                'middle_name': request.form.get('middle_name') or None,
+                'last_name': request.form.get('last_name'),
+                'modified_at': int(time.time())
+            }
+            db.update_client(client_id, client_updates)
+        
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET request - show form
     return render_template('entry_forms/profile.html',
                          client=client,
                          profile=profile)
-
+    
+@app.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
+def create_session(client_id):
+    """Create a new session entry for a client."""
+    import time
+    from datetime import datetime
+    
+    # Get client info
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    # Get client type for defaults
+    client_type = db.get_client_type(client['type_id'])
+    
+    if request.method == 'POST':
+        # Check if consultation
+        is_consultation = 1 if request.form.get('is_consultation') else 0
+        
+        # Auto-generate session number (count of non-consultation sessions + 1)
+        session_entries = db.get_client_entries(client_id, 'session')
+        non_consultation_count = sum(1 for s in session_entries if not s.get('is_consultation'))
+        
+        # Get form data
+        session_data = {
+            'client_id': client_id,
+            'class': 'session',
+            'created_at': int(time.time()),
+            'modified_at': int(time.time()),
+            
+            # Session fields
+            'modality': request.form.get('modality'),
+            'format': request.form.get('format'),
+            'session_date': int(datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').timestamp()) if request.form.get('session_date') else None,
+            'session_time': request.form.get('session_time') or None,
+            'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
+            'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
+            'is_consultation': is_consultation,
+            
+            # Clinical fields (optional)
+            'mood': request.form.get('mood') or None,
+            'affect': request.form.get('affect') or None,
+            'risk_assessment': request.form.get('risk_assessment') or None,
+            
+            # Content
+            'content': request.form.get('content') or None,
+        }
+        
+        # Set session number and description based on consultation status
+        if is_consultation:
+            session_data['session_number'] = None
+            session_data['fee'] = 0
+            session_data['description'] = 'Consultation'
+        else:
+            session_number = non_consultation_count + 1
+            session_data['session_number'] = session_number
+            session_data['description'] = f"Session {session_number}"
+        
+        # Save session entry
+        db.add_entry(session_data)
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form
+    # Get existing sessions to calculate next session number
+    session_entries = db.get_client_entries(client_id, 'session')
+    non_consultation_count = sum(1 for s in session_entries if not s.get('is_consultation'))
+    next_session_number = non_consultation_count + 1
+    
+    # Get today's date for default
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    return render_template('entry_forms/session.html',
+                         client=client,
+                         client_type=client_type,
+                         next_session_number=next_session_number,
+                         today=today)
+    
+@app.route('/client/<int:client_id>/session/<int:entry_id>', methods=['GET', 'POST'])
+def edit_session(client_id, entry_id):
+    """Edit an existing session entry."""
+    import time
+    from datetime import datetime
+    
+    # Get client info
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    # Get client type for defaults
+    client_type = db.get_client_type(client['type_id'])
+    
+    # Get existing session entry
+    session = db.get_entry(entry_id)
+    if not session or session['class'] != 'session':
+        return "Session not found", 404
+    
+    if request.method == 'POST':
+        # Check if consultation
+        is_consultation = 1 if request.form.get('is_consultation') else 0
+        
+        # Update session data
+        session_data = {
+            'modality': request.form.get('modality'),
+            'format': request.form.get('format'),
+            'session_date': int(datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').timestamp()) if request.form.get('session_date') else None,
+            'session_time': request.form.get('session_time') or None,
+            'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
+            'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
+            'is_consultation': is_consultation,
+            'modified_at': int(time.time()),
+            
+            # Clinical fields (optional)
+            'mood': request.form.get('mood') or None,
+            'affect': request.form.get('affect') or None,
+            'risk_assessment': request.form.get('risk_assessment') or None,
+            
+            # Content
+            'content': request.form.get('content') or None,
+        }
+        
+        # Update description based on consultation status
+        if is_consultation:
+            session_data['fee'] = 0
+            session_data['description'] = 'Consultation'
+        else:
+            # Keep existing session number
+            session_data['description'] = f"Session {session['session_number']}"
+        
+        # Save updated session
+        db.update_entry(entry_id, session_data)
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form with existing data
+    # Convert timestamp back to date string
+    session_date = datetime.fromtimestamp(session['session_date']).strftime('%Y-%m-%d') if session.get('session_date') else None
+    
+    return render_template('entry_forms/session.html',
+                         client=client,
+                         client_type=client_type,
+                         session=session,
+                         session_date=session_date,
+                         is_edit=True)
+    
 @app.route('/types')
 def manage_types():
     """Manage client types."""
