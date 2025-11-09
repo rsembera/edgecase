@@ -15,10 +15,10 @@
         font-size: inherit;
     }
     
-    /* Stats cards row - now 5 cards */
+    /* Stats cards row - now 6 cards in 2 rows of 3 */
     .stats-container {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -39,8 +39,9 @@
     .stat-card.blue { background: #C8D8E0; }      /* Muted sky blue */
     .stat-card.purple { background: #DCD3E8; }    /* Muted lavender */
     .stat-card.coral { background: #E9CFCF; }     /* Muted coral pink */
-    .stat-card.lavender { background: #DCD3E8; }  /* Muted lavender */
     .stat-card.mint { background: #CFE7DA; }      /* Muted mint */
+    .stat-card.peach { background: #F5DEB0; }     /* Soft peach for date/time */
+    .stat-card.lavender { background: #DCD3E8; }  /* Muted lavender */
     
     .stat-number {
         font-size: 2.5rem;
@@ -498,7 +499,7 @@
 
 {% block content %}
 
-<!-- Stats Cards - Now 5 cards -->
+<!-- Stats Cards - Now 6 cards in 2 rows of 3 -->
 <div class="stats-container">
     <div class="stat-card blue">
         <div class="stat-number">{{ active_count }}</div>
@@ -516,8 +517,11 @@
         <div class="stat-number">${{ billable_this_month|default(0)|round(2) }}</div>
         <div class="stat-label">Billable This Month</div>
     </div>
+    <div class="stat-card peach">
+        <div class="stat-number" id="current-time">{{ current_time }}</div>
+        <div class="stat-label" id="current-date">{{ current_date }}</div>
+    </div>
     <div class="stat-card lavender nav-card">
-        <h2>EdgeCase Equalizer</h2>
         <a href="#" class="nav-btn rose">Settings</a>
         <a href="{{ url_for('manage_types') }}" class="nav-btn teal">Edit Client Types</a>
     </div>
@@ -741,6 +745,48 @@ document.addEventListener('click', function(event) {
         document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.style.display = 'none');
     }
 });
+
+// Live clock update - synchronized with system clock
+function updateClock() {
+    const now = new Date();
+    
+    // Format time: "12:45 PM"
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    const timeStr = `${hours}:${minutesStr} ${ampm}`;
+    
+    // Format date: "November 9, 2025"
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December'];
+    const dateStr = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+    
+    // Update DOM
+    const timeEl = document.getElementById('current-time');
+    const dateEl = document.getElementById('current-date');
+    if (timeEl) timeEl.textContent = timeStr;
+    if (dateEl) dateEl.textContent = dateStr;
+}
+
+// Update immediately on page load
+updateClock();
+
+// Synchronize with system clock - update at the start of each second
+function syncClock() {
+    const now = new Date();
+    const msUntilNextSecond = 1000 - now.getMilliseconds();
+    
+    setTimeout(function() {
+        updateClock();
+        // After first sync, update every second
+        setInterval(updateClock, 1000);
+    }, msUntilNextSecond);
+}
+
+syncClock();
 </script>
 
 {% endblock %}

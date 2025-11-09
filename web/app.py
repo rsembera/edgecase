@@ -176,6 +176,12 @@ def index():
         last_session = db.get_last_session_date(client['id'])
         client['last_session'] = last_session
         
+        # Get current date and time
+        from datetime import datetime
+        now = datetime.now()
+        current_date = now.strftime('%B %d, %Y')  # "November 9, 2025"
+        current_time = now.strftime('%I:%M %p')    # "12:45 PM"
+        
         # Get payment status
         client['payment_status'] = db.get_payment_status(client['id'])
     
@@ -202,7 +208,9 @@ def index():
                          active_count=active_count,
                          sessions_this_week=sessions_this_week,
                          pending_invoices=pending_invoices,
-                         billable_this_month=billable_this_month)
+                         billable_this_month=billable_this_month,
+                         current_date=current_date,
+                         current_time=current_time)
 
 @app.route('/client/<int:client_id>')
 def client_file(client_id):
