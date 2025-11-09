@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 EdgeCase Flask Application
 Main web interface for EdgeCase Equalizer
