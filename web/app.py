@@ -17,7 +17,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
 
 # Initialize database
-db_path = Path.home() / "edgecase_data" / "edgecase.db"
+# Get the project root (parent of web/)
+project_root = Path(__file__).parent.parent
+data_dir = project_root / "data"
+data_dir.mkdir(exist_ok=True)  # Create data/ if it doesn't exist
+
+db_path = data_dir / "edgecase.db"
 db = Database(str(db_path))
 
 # Add custom Jinja filters
