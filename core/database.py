@@ -117,6 +117,8 @@ class Database:
                 -- Communication-specific fields
                 comm_recipient TEXT,
                 comm_type TEXT,
+                comm_date INTEGER,
+                comm_time TEXT,
                 
                 -- Statement-specific fields
                 statement_total REAL,
@@ -186,8 +188,39 @@ class Database:
         
         conn.commit()
         
+        # Run migrations to add any missing columns
+        self._run_migrations()
+        
         # Create default client types if they don't exist
         self._create_default_types()
+    
+    def _run_migrations(self):
+        """Check for missing columns and add them if needed."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get current columns in entries table
+        cursor.execute("PRAGMA table_info(entries)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        
+        # Define required columns with their types
+        required_columns = {
+            'comm_date': 'INTEGER',
+            'comm_time': 'TEXT',
+            # Add future migrations here as needed
+        }
+        
+        # Add missing columns
+        for column, col_type in required_columns.items():
+            if column not in existing_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE entries ADD COLUMN {column} {col_type}")
+                    print(f"Migration: Added column '{column}' to entries table")
+                except sqlite3.OperationalError as e:
+                    print(f"Migration warning: Could not add column '{column}': {e}")
+        
+        conn.commit()
+        conn.close()
         
         # ===== HELPER METHODS =====
     
@@ -481,9 +514,9 @@ class Database:
             'text_number', 'address', 'date_of_birth', 'preferred_contact',
             'ok_to_leave_message', 'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship', 'referral_source', 'additional_info',
-            'modality', 'session_number', 'service', 'session_date', 'session_time',
+            'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
             'duration', 'fee', 'is_consultation', 'mood', 'affect', 'risk_assessment',
-            'comm_recipient', 'comm_type', 'statement_total', 'payment_status',
+            'comm_recipient', 'comm_type', 'comm_date', 'comm_time', 'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at'
         ]
@@ -573,5 +606,3 @@ class Database:
         conn.close()
         
         return True
-    
-    
