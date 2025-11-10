@@ -87,6 +87,7 @@
     
     .button-group {
         display: flex;
+        justify-content: space-between;
         gap: 1rem;
         margin-top: 2rem;
     }
@@ -131,8 +132,8 @@
         </div>
         
         <div class="button-group">
-            <button type="submit" class="btn">Create Client</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn">Create Client</button>
         </div>
     </form>
 </div>

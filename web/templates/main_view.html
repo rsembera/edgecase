@@ -650,7 +650,7 @@
             {% if view_mode == 'detailed' %}
                 <!-- Detailed View: Single horizontal line with EXACT column alignment -->
                 <div class="payment-dot {{ client.payment_status }}"></div>
-                <span class="type-badge type-{% if client.type.name == 'Active' %}mint{% elif client.type.name == 'Inactive' %}yellow{% else %}pink{% endif %}">
+                <span class="type-badge" style="background-color: {{ client.type.color }}">
                     {{ client.type.name }}
                 </span>
                 <span class="file-number">{{ client.file_number }}</span>
@@ -678,7 +678,7 @@
                 <!-- Compact View: Multi-line card -->
                 <div class="card-header">
                     <div class="payment-dot {{ client.payment_status }}"></div>
-                    <span class="type-badge type-{% if client.type.name == 'Active' %}mint{% elif client.type.name == 'Inactive' %}yellow{% else %}pink{% endif %}">
+                    <span class="type-badge" style="background-color: {{ client.type.color }}">
                         {{ client.type.name }}
                     </span>
                     <span style="color: #6B7280; font-size: 0.875rem;">{{ client.file_number }}</span>
