@@ -36,6 +36,24 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
+    /* Drag and drop styles */
+    .stat-card {
+        cursor: move;
+        cursor: grab;
+    }
+    
+    .stat-card:active {
+        cursor: grabbing;
+    }
+    
+    .stat-card.dragging {
+        opacity: 0.5;
+    }
+    
+    .stat-card.drag-over {
+        border: 2px dashed #00aa88;
+    }
+    
     .stat-number {
         font-size: 2.5rem;
         font-weight: 700;
@@ -493,28 +511,28 @@
 {% block content %}
 
 <!-- Stats Cards - Now 6 cards in 2 rows of 3 -->
-<div class="stats-container">
-    <div class="stat-card blue">
+<div class="stats-container" id="stats-container">
+    <div class="stat-card blue" draggable="true" data-card-id="active-clients">
         <div class="stat-number">{{ active_count }}</div>
         <div class="stat-label">Active Clients</div>
     </div>
-    <div class="stat-card purple">
+    <div class="stat-card purple" draggable="true" data-card-id="sessions-week">
         <div class="stat-number">{{ sessions_this_week }}</div>
         <div class="stat-label">Sessions This Week</div>
     </div>
-    <div class="stat-card coral">
+    <div class="stat-card coral" draggable="true" data-card-id="pending-invoices">
         <div class="stat-number">{{ pending_invoices }}</div>
         <div class="stat-label">Pending Invoices</div>
     </div>
-    <div class="stat-card mint">
+    <div class="stat-card mint" draggable="true" data-card-id="billable-month">
         <div class="stat-number">${{ billable_this_month|default(0)|round(2) }}</div>
         <div class="stat-label">Billable This Month</div>
     </div>
-    <div class="stat-card peach">
+    <div class="stat-card peach" draggable="true" data-card-id="current-time">
         <div class="stat-number" id="current-time">{{ current_time }}</div>
         <div class="stat-label" id="current-date">{{ current_date }}</div>
     </div>
-    <div class="stat-card lavender nav-card">
+    <div class="stat-card lavender nav-card" draggable="true" data-card-id="navigation">
         <a href="{{ url_for('settings_page') }}" class="nav-btn rose">Settings</a>
         <a href="{{ url_for('manage_types') }}" class="nav-btn teal">Edit Client Types</a>
     </div>
@@ -781,6 +799,101 @@ function syncClock() {
 }
 
 syncClock();
+
+// ===== DRAG AND DROP FUNCTIONALITY =====
+
+let draggedCard = null;
+
+// Get all draggable cards
+const cards = document.querySelectorAll('.stat-card[draggable="true"]');
+
+// Load saved order from localStorage
+function loadCardOrder() {
+    const savedOrder = localStorage.getItem('cardOrder');
+    if (savedOrder) {
+        const orderArray = JSON.parse(savedOrder);
+        const container = document.getElementById('stats-container');
+        
+        // Reorder cards based on saved order
+        orderArray.forEach(cardId => {
+            const card = container.querySelector(`[data-card-id="${cardId}"]`);
+            if (card) {
+                container.appendChild(card);
+            }
+        });
+    }
+}
+
+// Save card order to localStorage
+function saveCardOrder() {
+    const container = document.getElementById('stats-container');
+    const cards = container.querySelectorAll('.stat-card[data-card-id]');
+    const order = Array.from(cards).map(card => card.dataset.cardId);
+    localStorage.setItem('cardOrder', JSON.stringify(order));
+}
+
+// Drag event handlers
+cards.forEach(card => {
+    card.addEventListener('dragstart', function(e) {
+        draggedCard = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    });
+    
+    card.addEventListener('dragend', function(e) {
+        this.classList.remove('dragging');
+        // Remove drag-over class from all cards
+        cards.forEach(c => c.classList.remove('drag-over'));
+        // Save the new order
+        saveCardOrder();
+    });
+    
+    card.addEventListener('dragover', function(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Add visual feedback
+        if (this !== draggedCard) {
+            this.classList.add('drag-over');
+        }
+        
+        return false;
+    });
+    
+    card.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+    
+    card.addEventListener('drop', function(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        
+        // Don't drop on itself
+        if (draggedCard !== this) {
+            // Swap the cards
+            const container = document.getElementById('stats-container');
+            const allCards = Array.from(container.querySelectorAll('.stat-card'));
+            const draggedIndex = allCards.indexOf(draggedCard);
+            const targetIndex = allCards.indexOf(this);
+            
+            if (draggedIndex < targetIndex) {
+                this.parentNode.insertBefore(draggedCard, this.nextSibling);
+            } else {
+                this.parentNode.insertBefore(draggedCard, this);
+            }
+        }
+        
+        this.classList.remove('drag-over');
+        return false;
+    });
+});
+
+// Load saved order on page load
+loadCardOrder();
 </script>
 
 {% endblock %}
