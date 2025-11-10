@@ -523,6 +523,11 @@ def manage_types():
     all_types = db.get_all_client_types()
     return render_template('manage_types.html', all_types=all_types)
 
+@app.route('/settings')
+def settings_page():
+    """Settings page."""
+    return render_template('settings.html')
+
 @app.route('/api/backgrounds')
 def list_backgrounds():
     """Return list of background images available."""

@@ -25,6 +25,14 @@
             font-size: 1.125rem; /* 18px base */
         }
         
+        /* Tutti-Frutti theme - colored stat cards (only affects main view) */
+        body.tutti-frutti .stat-card:nth-child(1) { background: #C8D8E0; }
+        body.tutti-frutti .stat-card:nth-child(2) { background: #DCD3E8; }
+        body.tutti-frutti .stat-card:nth-child(3) { background: #E9CFCF; }
+        body.tutti-frutti .stat-card:nth-child(4) { background: #CFE7DA; }
+        body.tutti-frutti .stat-card:nth-child(5) { background: #F5DEB0; }
+        body.tutti-frutti .stat-card:nth-child(6) { background: #DCD3E8; }
+        
         /* Main content */
         main {
             max-width: 1400px;
@@ -215,6 +223,35 @@
                     });
             }
         }, true);
+    </script>
+    
+    <script>
+        // Apply theme on page load - runs on ALL pages
+        function applyTheme() {
+            const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
+            const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+            
+            // Apply card style (only affects stat cards on main view)
+            if (cardStyle === 'tutti-frutti') {
+                document.body.classList.add('tutti-frutti');
+            } else {
+                document.body.classList.remove('tutti-frutti');
+            }
+            
+            // Apply background style (affects all pages)
+            if (backgroundStyle === 'suit-grey') {
+                document.body.style.background = '#EDF2F5';
+                document.body.style.backgroundImage = 'none';
+            } else {
+                document.body.style.background = '#EDF2F5';
+                document.body.style.backgroundImage = `url('/static/img/${backgroundStyle}')`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundAttachment = 'fixed';
+            }
+        }
+        
+        // Apply theme immediately
+        applyTheme();
     </script>
     
 </body>
