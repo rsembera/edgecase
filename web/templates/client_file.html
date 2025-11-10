@@ -293,8 +293,8 @@
                                     <th>Class</th>
                                     <th>Description</th>
                                     <th>Time</th>
-                                    <th>Duration</th>
-                                    <th>Fee</th>
+                                    <th>Details</th>
+                                    <th>Info</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -318,7 +318,13 @@
                                             </span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ entry.description }}</td>
+                                    <td>
+                                        {% if entry.description|length > 50 %}
+                                            {{ entry.description[:50] }}...
+                                        {% else %}
+                                            {{ entry.description }}
+                                        {% endif %}
+                                    </td>
                                     <td style="color: #5B6571;">
                                         {% if entry.class == 'session' %}
                                             {{ entry.session_time or '-' }}
@@ -329,6 +335,8 @@
                                     <td style="color: #5B6571;">
                                         {% if entry.class == 'session' %}
                                             {{ entry.duration or '-' }} min
+                                        {% elif entry.class == 'communication' %}
+                                            {{ entry.comm_recipient|replace('_', ' ')|title if entry.comm_recipient else '-' }}
                                         {% else %}
                                             -
                                         {% endif %}
@@ -336,6 +344,8 @@
                                     <td style="color: #5B6571;">
                                         {% if entry.class == 'session' and entry.fee %}
                                             ${{ "%.2f"|format(entry.fee) }}
+                                        {% elif entry.class == 'communication' and entry.comm_type %}
+                                            {{ entry.comm_type|capitalize }}
                                         {% else %}
                                             -
                                         {% endif %}
