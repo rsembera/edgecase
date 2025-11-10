@@ -35,7 +35,8 @@
         border-radius: 0.5rem;
         font-size: 1rem;
         font-family: inherit;
-        min-height: 150px;
+        min-height: 300px;
+        resize: vertical;
         transition: border-color 0.2s;
     }
     
@@ -198,6 +199,7 @@
             <div class="form-group">
                 <label for="ok_to_leave_message">OK to Leave Message?</label>
                 <select id="ok_to_leave_message" name="ok_to_leave_message">
+                    <option value="">Select...</option>
                     <option value="yes" {% if profile and profile.ok_to_leave_message == 'yes' %}selected{% endif %}>Yes</option>
                     <option value="no" {% if profile and profile.ok_to_leave_message == 'no' %}selected{% endif %}>No</option>
                 </select>
@@ -396,5 +398,31 @@
     dobYear.addEventListener('change', updateDOB);
     dobMonth.addEventListener('change', updateDOB);
     dobDay.addEventListener('change', updateDOB);
+    
+    // Auto-expanding textarea for Additional Information
+    const additionalInfoTextarea = document.getElementById('additional_info');
+    const maxHeight = 600; // About 30-35 lines
+
+    function autoResize() {
+        // Reset height to auto to get the correct scrollHeight
+        additionalInfoTextarea.style.height = 'auto';
+        
+        // Set new height, but don't exceed maxHeight
+        const newHeight = Math.min(additionalInfoTextarea.scrollHeight, maxHeight);
+        additionalInfoTextarea.style.height = newHeight + 'px';
+        
+        // Add scrollbar if content exceeds maxHeight
+        if (additionalInfoTextarea.scrollHeight > maxHeight) {
+            additionalInfoTextarea.style.overflowY = 'scroll';
+        } else {
+            additionalInfoTextarea.style.overflowY = 'hidden';
+        }
+    }
+
+    // Run on page load (for edit mode with existing content)
+    autoResize();
+
+    // Run on input
+    additionalInfoTextarea.addEventListener('input', autoResize);
 </script>
 {% endblock %}
