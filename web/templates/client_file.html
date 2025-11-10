@@ -18,6 +18,27 @@
         border-radius: 0.5rem;
         font-size: 0.875rem;
         font-weight: 600;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    /* Dropdown styling (matches main_view.html) */
+    .dropdown-btn {
+        padding: 0.75rem 1.25rem;
+        background: #FBFCFD;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #323B45;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+    }
+    
+    .dropdown-btn:hover {
+        border-color: #1F8F74;
+        color: #1F8F74;
     }
     
     /* Profile entry styling */
@@ -161,12 +182,33 @@
     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
         <div>
             <h2 style="color: #111827; margin-bottom: 0.5rem;">{{ client.first_name }} {{ client.middle_name }} {{ client.last_name }}</h2>
-            <p style="color: #5B6571;">
-                <span class="type-badge" style="background-color: {{ client.type.color }}">
-                    {{ client.type.name }}
-                </span>
-                File {{ client.file_number }}
-            </p>
+            <div style="color: #5B6571;">
+                <div style="position: relative; display: inline-block;">
+                    <span class="type-badge" 
+                          style="background-color: {{ client.type.color }}"
+                          onclick="event.stopPropagation(); toggleDropdown('type-dropdown')">
+                        {{ client.type.name }}
+                    </span>
+                    <!-- Type change dropdown -->
+                    <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+                        <form method="post" action="{{ url_for('change_client_type', client_id=client.id) }}">
+                            {% for type in all_types %}
+                            <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
+                                   onmouseover="if ({{ type.id }} != {{ client.type_id }}) this.style.background='#F3F4F6'" 
+                                   onmouseout="if ({{ type.id }} != {{ client.type_id }}) this.style.background='transparent'">
+                                <input type="radio" name="type_id" value="{{ type.id }}" 
+                                       {% if type.id == client.type_id %}checked{% endif %}
+                                       onchange="this.form.submit()"
+                                       style="margin-right: 0.5rem;">
+                                <span style="font-size: 0.875rem;">{{ type.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </form>
+                    </div>
+                </div>
+                <br>
+                <span style="display: inline-block; margin-top: 0.5rem;">File #{{ client.file_number }}</span>
+            </div>
         </div>
         <div style="display: flex; gap: 1rem;">
             <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
@@ -253,6 +295,44 @@
             ({{ session_count }} Session{{ 's' if session_count != 1 else '' }}{% if consultation_count > 0 %}, {{ consultation_count }} Consultation{{ 's' if consultation_count != 1 else '' }}{% endif %})
         {% endif %}
     </h3>
+    
+    <!-- Entry Class Filter -->
+    <div style="background: #E3E9EE; border-radius: 1rem; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+        <div style="position: relative;">
+            <button class="dropdown-btn" onclick="toggleDropdown('filter-dropdown')">
+                Filter: {{ class_filter|length }} type{{ 's' if class_filter|length != 1 else '' }} ▾
+            </button>
+            <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 220px; z-index: 100;">
+                <form id="filter-form" method="get">
+                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
+                           onmouseover="this.style.background='#F3F4F6'" 
+                           onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="class" value="session" 
+                               {% if 'session' in class_filter %}checked{% endif %}
+                               onchange="document.getElementById('filter-form').submit()">
+                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Session</span>
+                    </label>
+                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
+                           onmouseover="this.style.background='#F3F4F6'" 
+                           onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="class" value="consultation" 
+                               {% if 'consultation' in class_filter %}checked{% endif %}
+                               onchange="document.getElementById('filter-form').submit()">
+                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
+                    </label>
+                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
+                           onmouseover="this.style.background='#F3F4F6'" 
+                           onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="class" value="communication" 
+                               {% if 'communication' in class_filter %}checked{% endif %}
+                               onchange="document.getElementById('filter-form').submit()">
+                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Communication</span>
+                    </label>
+                </form>
+            </div>
+        </div>
+        <span style="color: #5B6571; font-size: 0.875rem;">Show/hide entry types</span>
+    </div>
     
     {% if entries_by_year %}
     <div style="margin-top: 1.5rem;">
@@ -395,6 +475,33 @@ function toggleMonth(monthId) {
         icon.textContent = '▶';
     }
 }
+
+// Dropdown toggle for filters and type selector
+function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const allDropdowns = document.querySelectorAll('[id$="-dropdown"]');
+    
+    // Close all other dropdowns
+    allDropdowns.forEach(d => {
+        if (d.id !== dropdownId) {
+            d.style.display = 'none';
+        }
+    });
+    
+    // Toggle this dropdown (check for both 'none' and empty string)
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.type-badge') && !e.target.closest('.dropdown-btn') && !e.target.closest('[id$="-dropdown"]')) {
+        document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.style.display = 'none');
+    }
+});
 </script>
 
 {% endblock %}

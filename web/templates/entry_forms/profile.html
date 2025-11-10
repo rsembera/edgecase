@@ -68,11 +68,29 @@
     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
         <div>
             <h2>Client Profile</h2>
-            <p style="color: #718096;">
-                <span class="type-badge" style="background-color: {{ client.type.color }}">
+            <div style="color: #718096; position: relative; display: inline-block;">
+                <span class="type-badge" 
+                      id="profile-type-badge"
+                      style="background-color: {{ client.type.color }}; cursor: pointer;">
                     {{ client.type.name }}
                 </span>
-            </p>
+                <!-- Type change dropdown -->
+                <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+                    <form method="post" action="{{ url_for('change_client_type', client_id=client.id) }}">
+                        {% for type in all_types %}
+                        <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
+                               onmouseover="if ({{ type.id }} != {{ client.type_id }}) this.style.background='#F3F4F6'" 
+                               onmouseout="if ({{ type.id }} != {{ client.type_id }}) this.style.background='transparent'">
+                            <input type="radio" name="type_id" value="{{ type.id }}" 
+                                   {% if type.id == client.type_id %}checked{% endif %}
+                                   onchange="this.form.submit()"
+                                   style="margin-right: 0.5rem;">
+                            <span style="font-size: 0.875rem;">{{ type.name }}</span>
+                        </label>
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -424,5 +442,34 @@
 
     // Run on input
     additionalInfoTextarea.addEventListener('input', autoResize);
+    
+    // Dropdown toggle for type selector
+    function toggleDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        
+        // Toggle this dropdown (check for both 'none' and empty string)
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    }
+    
+    // Add click handler to type badge
+    const typeBadge = document.getElementById('profile-type-badge');
+    if (typeBadge) {
+        typeBadge.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleDropdown('type-dropdown');
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.type-badge') && !e.target.closest('[id$="-dropdown"]')) {
+            const dropdown = document.getElementById('type-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+    });
 </script>
 {% endblock %}

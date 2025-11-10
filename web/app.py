@@ -222,16 +222,40 @@ def client_file(client_id):
     # Get client type
     client['type'] = db.get_client_type(client['type_id'])
     
+    # Get all client types for the type change dropdown
+    all_types = db.get_all_client_types()
+    
+    # Get class filter from query params
+    class_filter = request.args.getlist('class')
+    
+    # Default: show all classes if none selected
+    if not class_filter:
+        class_filter = ['session', 'consultation', 'communication']
+    
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
     
     # Get ALL entries for this client (not just sessions)
     all_entries = db.get_client_entries(client_id)
     
-    # Filter to get only sessions for counting
+    # Filter to get only sessions for counting (always count all, regardless of filter)
     session_entries = [e for e in all_entries if e['class'] == 'session']
     session_count = sum(1 for e in session_entries if not e.get('is_consultation'))
     consultation_count = sum(1 for e in session_entries if e.get('is_consultation'))
+    
+    # Filter entries by selected classes for display
+    # Note: 'consultation' is a special case - it's a session with is_consultation=1
+    filtered_entries = []
+    for entry in all_entries:
+        if entry['class'] == 'session':
+            if entry.get('is_consultation'):
+                if 'consultation' in class_filter:
+                    filtered_entries.append(entry)
+            else:
+                if 'session' in class_filter:
+                    filtered_entries.append(entry)
+        elif entry['class'] in class_filter:
+            filtered_entries.append(entry)
     
     # Group entries by year and month
     from collections import defaultdict
@@ -242,10 +266,10 @@ def client_file(client_id):
     current_year = now.year
     current_month = now.month
     
-    # Organize entries by year -> month
+    # Organize entries by year -> month (using filtered entries)
     year_dict = defaultdict(lambda: defaultdict(list))
     
-    for entry in all_entries:
+    for entry in filtered_entries:
         # Determine date field based on entry class
         date_field = None
         if entry['class'] == 'session' and entry.get('session_date'):
@@ -299,10 +323,45 @@ def client_file(client_id):
     
     return render_template('client_file.html',
                          client=client,
+                         all_types=all_types,
                          profile_entry=profile_entry,
                          entries_by_year=entries_by_year,
                          session_count=session_count,
-                         consultation_count=consultation_count)
+                         consultation_count=consultation_count,
+                         class_filter=class_filter)
+
+@app.route('/client/<int:client_id>/change_type', methods=['POST'])
+def change_client_type(client_id):
+    """Change a client's type via dropdown."""
+    import time
+    
+    type_id = request.form.get('type_id')
+    
+    if not type_id:
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # Get current client data
+    client = db.get_client(client_id)
+    if not client:
+        return redirect(url_for('index'))
+    
+    # Update client with all fields plus new type
+    client_updates = {
+        'file_number': client['file_number'],
+        'first_name': client['first_name'],
+        'middle_name': client.get('middle_name'),
+        'last_name': client['last_name'],
+        'type_id': int(type_id),
+        'modified_at': int(time.time())
+    }
+    db.update_client(client_id, client_updates)
+    
+    # Redirect back to where they came from (referrer)
+    referrer = request.referrer
+    if referrer and 'profile' in referrer:
+        return redirect(url_for('edit_profile', client_id=client_id))
+    else:
+        return redirect(url_for('client_file', client_id=client_id))
 
 @app.route('/add_client', methods=['GET', 'POST'])
 def add_client():
@@ -386,9 +445,11 @@ def edit_profile(client_id):
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET request - show form
+    all_types = db.get_all_client_types()
     return render_template('entry_forms/profile.html',
                          client=client,
-                         profile=profile)
+                         profile=profile,
+                         all_types=all_types)
     
 @app.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
 def create_session(client_id):
