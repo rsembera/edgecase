@@ -170,6 +170,7 @@
         </div>
         <div style="display: flex; gap: 1rem;">
             <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
+            <a href="{{ url_for('create_communication', client_id=client.id) }}" class="btn">+ Create Communication</a>
             <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
         </div>
     </div>
@@ -289,7 +290,7 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Type</th>
+                                    <th>Class</th>
                                     <th>Description</th>
                                     <th>Time</th>
                                     <th>Duration</th>
@@ -298,18 +299,46 @@
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr onclick="window.location.href='{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}'">
-                                    <td>{{ entry.session_date|timestamp_to_date }}</td>
+                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% endif %}'">
                                     <td>
-                                        <span class="session-badge {% if entry.is_consultation %}consultation{% else %}session{% endif %}">
-                                            {% if entry.is_consultation %}Consultation{% else %}Session{% endif %}
-                                        </span>
+                                        {% if entry.class == 'session' %}
+                                            {{ entry.session_date|timestamp_to_date }}
+                                        {% elif entry.class == 'communication' %}
+                                            {{ entry.comm_date|timestamp_to_date }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if entry.class == 'session' %}
+                                            <span class="session-badge {% if entry.is_consultation %}consultation{% else %}session{% endif %}">
+                                                {% if entry.is_consultation %}Consultation{% else %}Session{% endif %}
+                                            </span>
+                                        {% elif entry.class == 'communication' %}
+                                            <span class="session-badge" style="background: #DCD3E8; color: #3F3358;">
+                                                Communication
+                                            </span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ entry.description }}</td>
-                                    <td style="color: #5B6571;">{{ entry.session_time or '-' }}</td>
-                                    <td style="color: #5B6571;">{{ entry.duration or '-' }} min</td>
                                     <td style="color: #5B6571;">
-                                        {% if entry.fee %}${{ "%.2f"|format(entry.fee) }}{% else %}-{% endif %}
+                                        {% if entry.class == 'session' %}
+                                            {{ entry.session_time or '-' }}
+                                        {% elif entry.class == 'communication' %}
+                                            {{ entry.comm_time or '-' }}
+                                        {% endif %}
+                                    </td>
+                                    <td style="color: #5B6571;">
+                                        {% if entry.class == 'session' %}
+                                            {{ entry.duration or '-' }} min
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td style="color: #5B6571;">
+                                        {% if entry.class == 'session' and entry.fee %}
+                                            ${{ "%.2f"|format(entry.fee) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}

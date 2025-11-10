@@ -225,12 +225,13 @@ def client_file(client_id):
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
     
-    # Get all session entries for this client
-    all_entries = db.get_client_entries(client_id, entry_class='session')
+    # Get ALL entries for this client (not just sessions)
+    all_entries = db.get_client_entries(client_id)
     
-    # Count sessions vs consultations
-    session_count = sum(1 for e in all_entries if not e.get('is_consultation'))
-    consultation_count = sum(1 for e in all_entries if e.get('is_consultation'))
+    # Filter to get only sessions for counting
+    session_entries = [e for e in all_entries if e['class'] == 'session']
+    session_count = sum(1 for e in session_entries if not e.get('is_consultation'))
+    consultation_count = sum(1 for e in session_entries if e.get('is_consultation'))
     
     # Group entries by year and month
     from collections import defaultdict
@@ -245,8 +246,16 @@ def client_file(client_id):
     year_dict = defaultdict(lambda: defaultdict(list))
     
     for entry in all_entries:
-        if entry.get('session_date'):
-            entry_date = datetime.fromtimestamp(entry['session_date'])
+        # Determine date field based on entry class
+        date_field = None
+        if entry['class'] == 'session' and entry.get('session_date'):
+            date_field = entry['session_date']
+        elif entry['class'] == 'communication' and entry.get('comm_date'):
+            date_field = entry['comm_date']
+        # Add more entry types here as we implement them
+        
+        if date_field:
+            entry_date = datetime.fromtimestamp(date_field)
             year = entry_date.year
             month = entry_date.month
             year_dict[year][month].append(entry)
@@ -258,8 +267,16 @@ def client_file(client_id):
         year_total = 0
         
         for month in sorted(year_dict[year].keys(), reverse=True):  # Most recent month first
+            # Sort entries by their respective date fields
+            def get_entry_date(e):
+                if e['class'] == 'session':
+                    return e.get('session_date', 0)
+                elif e['class'] == 'communication':
+                    return e.get('comm_date', 0)
+                return 0
+            
             month_entries = sorted(year_dict[year][month], 
-                                 key=lambda e: e.get('session_date', 0), 
+                                 key=get_entry_date, 
                                  reverse=True)
             
             month_name = datetime(year, month, 1).strftime('%B')
@@ -516,6 +533,114 @@ def edit_session(client_id, entry_id):
                          session=session,
                          session_date=session_date,
                          is_edit=True)
+
+@app.route('/client/<int:client_id>/communication', methods=['GET', 'POST'])
+def create_communication(client_id):
+    """Create new communication entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp
+        comm_date_str = request.form.get('comm_date')
+        comm_date_timestamp = None
+        if comm_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(comm_date_str, '%Y-%m-%d')
+            comm_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare communication data
+        comm_data = {
+            'client_id': client_id,
+            'class': 'communication',
+            'description': request.form['description'],
+            'comm_recipient': request.form['recipient'],
+            'comm_type': request.form['comm_type'],
+            'comm_date': comm_date_timestamp,
+            'comm_time': request.form.get('comm_time', ''),
+            'content': request.form['content']
+        }
+        
+        # Save communication
+        db.add_entry(comm_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/communication.html',
+                         client=client,
+                         client_type=client_type,
+                         today=today,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
+
+@app.route('/client/<int:client_id>/communication/<int:entry_id>', methods=['GET', 'POST'])
+def edit_communication(client_id, entry_id):
+    """Edit existing communication entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    communication = db.get_entry(entry_id)
+    
+    if not communication or communication['class'] != 'communication':
+        return "Communication not found", 404
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp
+        comm_date_str = request.form.get('comm_date')
+        comm_date_timestamp = None
+        if comm_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(comm_date_str, '%Y-%m-%d')
+            comm_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare updated communication data
+        comm_data = {
+            'description': request.form['description'],
+            'comm_recipient': request.form['recipient'],
+            'comm_type': request.form['comm_type'],
+            'comm_date': comm_date_timestamp,
+            'comm_time': request.form.get('comm_time', ''),
+            'content': request.form['content']
+        }
+        
+        # Save updated communication
+        db.update_entry(entry_id, comm_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form with existing data
+    # Convert timestamp back to date string
+    from datetime import datetime
+    comm_date = datetime.fromtimestamp(communication['comm_date']).strftime('%Y-%m-%d') if communication.get('comm_date') else None
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/communication.html',
+                         client=client,
+                         client_type=client_type,
+                         entry=communication,
+                         comm_date=comm_date,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
     
 @app.route('/types')
 def manage_types():
