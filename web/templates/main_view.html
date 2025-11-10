@@ -54,6 +54,14 @@
         border: 2px dashed #00aa88;
     }
     
+    /* Tutti-Frutti theme - colors by CARD ID not position */
+    body.tutti-frutti .stat-card[data-card-id="active-clients"] { background: #C8D8E0; }
+    body.tutti-frutti .stat-card[data-card-id="sessions-week"] { background: #DCD3E8; }
+    body.tutti-frutti .stat-card[data-card-id="pending-invoices"] { background: #E9CFCF; }
+    body.tutti-frutti .stat-card[data-card-id="billable-month"] { background: #CFE7DA; }
+    body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0; }
+    body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #DCD3E8; }
+    
     .stat-number {
         font-size: 2.5rem;
         font-weight: 700;
@@ -874,26 +882,23 @@ cards.forEach(card => {
         
         // Don't drop on itself
         if (draggedCard !== this) {
-            // Get the parent container
+            // TRUE SWAP: Simply exchange the two cards' positions
             const container = draggedCard.parentNode;
             
-            // Get the next sibling of each card to preserve position
-            const draggedNext = draggedCard.nextSibling;
-            const targetNext = this.nextSibling;
+            // Create a temporary placeholder
+            const placeholder = document.createElement('div');
             
-            // Swap: Insert dragged card before target's next sibling
-            if (targetNext) {
-                container.insertBefore(draggedCard, targetNext);
-            } else {
-                container.appendChild(draggedCard);
-            }
+            // Insert placeholder where dragged card is
+            container.insertBefore(placeholder, draggedCard);
             
-            // Swap: Insert target card before dragged card's original next sibling
-            if (draggedNext) {
-                container.insertBefore(this, draggedNext);
-            } else {
-                container.appendChild(this);
-            }
+            // Move dragged card to where target is
+            container.insertBefore(draggedCard, this);
+            
+            // Move target to where placeholder is (where dragged card was)
+            container.insertBefore(this, placeholder);
+            
+            // Remove placeholder
+            container.removeChild(placeholder);
         }
         
         this.classList.remove('drag-over');
