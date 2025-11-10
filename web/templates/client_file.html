@@ -20,34 +20,6 @@
         font-weight: 600;
     }
     
-    .btn {
-        padding: 0.75rem 1.5rem;
-        background: #BFDCDC;
-        color: #115D4F;
-        text-decoration: none;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: all 0.2s;
-        display: inline-block;
-        border: none;
-        cursor: pointer;
-    }
-    
-    .btn:hover {
-        background: #9FCFC0;
-        transform: translateY(-1px);
-    }
-    
-    .btn-secondary {
-        background: #E3E9EE;
-        color: #323B45;
-    }
-    
-    .btn-secondary:hover {
-        background: #DEE2E6;
-    }
-    
     /* Profile entry styling */
     .profile-entry {
         padding: 1.5rem;
@@ -55,6 +27,14 @@
         border-radius: 1rem;
         margin-bottom: 2rem;
         border-left: 4px solid #1F8F74;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .profile-entry:hover {
+        background: #BFDCDC;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     /* Year/Month headers */
@@ -119,6 +99,8 @@
     
     tbody tr {
         border-bottom: 1px solid #DEE2E6;
+        cursor: pointer;
+        transition: background 0.2s;
     }
     
     tbody tr:hover {
@@ -187,28 +169,81 @@
             </p>
         </div>
         <div style="display: flex; gap: 1rem;">
-            <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="btn">
-                {% if profile_entry %}Edit Profile{% else %}Create Profile{% endif %}
-            </a>
             <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Clients</a>
+            <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
         </div>
     </div>
     
     {# Profile Entry - Always at top if exists #}
     {% if profile_entry %}
-    <div class="profile-entry">
+    <div class="profile-entry" onclick="window.location.href='{{ url_for('edit_profile', client_id=client.id) }}'">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
             <strong style="font-size: 1.125rem; color: #0E5346;">Profile</strong>
-            <a href="{{ url_for('edit_profile', client_id=client.id) }}" class="edit-link">Edit</a>
         </div>
+        
+        {# Contact Information - matching main_view.html logic #}
         {% if profile_entry.email %}
-        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">📧 {{ profile_entry.email }}</p>
+        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">
+            📧 <a href="mailto:{{ profile_entry.email }}" 
+                  style="color: #323B45; text-decoration: {% if profile_entry.preferred_contact == 'email' %}underline{% else %}none{% endif %};" 
+                  onclick="event.stopPropagation();">{{ profile_entry.email }}</a>
+        </p>
         {% endif %}
-        {% if profile_entry.phone %}
-        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">📞 {{ profile_entry.phone }}</p>
+        
+        {% if profile_entry.phone or profile_entry.home_phone or profile_entry.work_phone %}
+        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">
+            {# Determine which phone to display and link type based on preferred_contact #}
+            {% set display_phone = '' %}
+            {% set link_type = 'tel' %}
+            {% set is_preferred = false %}
+            
+            {% if profile_entry.preferred_contact == 'call_cell' %}
+                {% set display_phone = profile_entry.phone %}
+                {% set link_type = 'tel' %}
+                {% set is_preferred = true %}
+            {% elif profile_entry.preferred_contact == 'call_home' %}
+                {% set display_phone = profile_entry.home_phone %}
+                {% set link_type = 'tel' %}
+                {% set is_preferred = true %}
+            {% elif profile_entry.preferred_contact == 'call_work' %}
+                {% set display_phone = profile_entry.work_phone %}
+                {% set link_type = 'tel' %}
+                {% set is_preferred = true %}
+            {% elif profile_entry.preferred_contact == 'text' %}
+                {% if profile_entry.text_number == 'cell' %}
+                    {% set display_phone = profile_entry.phone %}
+                {% elif profile_entry.text_number == 'home' %}
+                    {% set display_phone = profile_entry.home_phone %}
+                {% elif profile_entry.text_number == 'work' %}
+                    {% set display_phone = profile_entry.work_phone %}
+                {% else %}
+                    {% set display_phone = profile_entry.phone %}
+                {% endif %}
+                {% set link_type = 'sms' %}
+                {% set is_preferred = true %}
+            {% else %}
+                {# Default: show cell phone #}
+                {% set display_phone = profile_entry.phone or profile_entry.home_phone or profile_entry.work_phone %}
+                {% set link_type = 'tel' %}
+            {% endif %}
+            
+            {% if display_phone %}
+                {% if link_type == 'tel' %}📞{% else %}💬{% endif %} 
+                <a href="{{ link_type }}:{{ display_phone }}" 
+                   style="color: #323B45; text-decoration: {% if is_preferred %}underline{% else %}none{% endif %};" 
+                   onclick="event.stopPropagation();">{{ display_phone }}</a>
+                {% if profile_entry.ok_to_leave_message == 'no' %} ⚠️{% endif %}
+            {% endif %}
+        </p>
         {% endif %}
+        
         <small style="color: #5B6571;">Created: {{ profile_entry.created_at|timestamp_to_date }}</small>
+    </div>
+    {% else %}
+    {# No profile - make it clickable to create one #}
+    <div class="profile-entry" onclick="window.location.href='{{ url_for('edit_profile', client_id=client.id) }}'" style="text-align: center;">
+        <strong style="font-size: 1.125rem; color: #0E5346;">+ Create Profile</strong>
+        <p style="font-size: 0.875rem; color: #5B6571; margin-top: 0.5rem;">Click to add client contact information</p>
     </div>
     {% endif %}
     
@@ -259,12 +294,11 @@
                                     <th>Time</th>
                                     <th>Duration</th>
                                     <th>Fee</th>
-                                    <th style="text-align: center;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr>
+                                <tr onclick="window.location.href='{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}'">
                                     <td>{{ entry.session_date|timestamp_to_date }}</td>
                                     <td>
                                         <span class="session-badge {% if entry.is_consultation %}consultation{% else %}session{% endif %}">
@@ -276,10 +310,6 @@
                                     <td style="color: #5B6571;">{{ entry.duration or '-' }} min</td>
                                     <td style="color: #5B6571;">
                                         {% if entry.fee %}${{ "%.2f"|format(entry.fee) }}{% else %}-{% endif %}
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <a href="{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}" 
-                                           class="edit-link">Edit</a>
                                     </td>
                                 </tr>
                                 {% endfor %}

@@ -525,7 +525,7 @@
         <div class="stat-label">Pending Invoices</div>
     </div>
     <div class="stat-card mint" draggable="true" data-card-id="billable-month">
-        <div class="stat-number">${{ billable_this_month|default(0)|round(2) }}</div>
+        <div class="stat-number">${{ "%.2f"|format(billable_this_month|default(0)) }}</div>
         <div class="stat-label">Billable This Month</div>
     </div>
     <div class="stat-card peach" draggable="true" data-card-id="current-time">
@@ -874,16 +874,25 @@ cards.forEach(card => {
         
         // Don't drop on itself
         if (draggedCard !== this) {
-            // Swap the cards
-            const container = document.getElementById('stats-container');
-            const allCards = Array.from(container.querySelectorAll('.stat-card'));
-            const draggedIndex = allCards.indexOf(draggedCard);
-            const targetIndex = allCards.indexOf(this);
+            // Get the parent container
+            const container = draggedCard.parentNode;
             
-            if (draggedIndex < targetIndex) {
-                this.parentNode.insertBefore(draggedCard, this.nextSibling);
+            // Get the next sibling of each card to preserve position
+            const draggedNext = draggedCard.nextSibling;
+            const targetNext = this.nextSibling;
+            
+            // Swap: Insert dragged card before target's next sibling
+            if (targetNext) {
+                container.insertBefore(draggedCard, targetNext);
             } else {
-                this.parentNode.insertBefore(draggedCard, this);
+                container.appendChild(draggedCard);
+            }
+            
+            // Swap: Insert target card before dragged card's original next sibling
+            if (draggedNext) {
+                container.insertBefore(this, draggedNext);
+            } else {
+                container.appendChild(this);
             }
         }
         
