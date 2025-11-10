@@ -35,7 +35,7 @@
         border-radius: 0.5rem;
         font-size: 1rem;
         font-family: inherit;
-        min-height: 150px;
+        min-height: 300px;
         transition: border-color 0.2s;
     }
     
@@ -85,6 +85,7 @@
                 <span class="type-badge" style="background-color: {{ client_type.color }}">
                     {{ client_type.name }}
                 </span>
+                {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }} - File #{{ client.file_number }}
             </p>
         </div>
     </div>
@@ -106,69 +107,14 @@
         <div class="form-row-full">
             <label class="checkbox-inline">
                 <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %}>
-                This is a consultation (free, not numbered)
+                This is a consultation (free, not numbered, 20 mins.)
             </label>
         </div>
 
-        <!-- Name and file number fields (read-only, from client record) -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="first_name">First Name</label>
-                <input type="text" id="first_name" name="first_name" 
-                       value="{{ client.first_name }}" readonly 
-                       style="background: #f7fafc; cursor: not-allowed;">
-            </div>
-            
-            <div class="form-group">
-                <label for="middle_name">Middle Name</label>
-                <input type="text" id="middle_name" name="middle_name" 
-                       value="{{ client.middle_name or '' }}" readonly 
-                       style="background: #f7fafc; cursor: not-allowed;">
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label for="last_name">Last Name</label>
-                <input type="text" id="last_name" name="last_name" 
-                       value="{{ client.last_name }}" readonly 
-                       style="background: #f7fafc; cursor: not-allowed;">
-            </div>
-            
-            <div class="form-group">
-                <label for="file_number">File Number</label>
-                <input type="text" id="file_number" name="file_number" 
-                       value="{{ client.file_number }}" readonly 
-                       style="background: #f7fafc; cursor: not-allowed;">
-            </div>
-        </div>
-        
-        <!-- Modality and Format -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="modality">Modality</label>
-                <select id="modality" name="modality" required>
-                    <option value="in-person" {% if is_edit and session.modality == 'in-person' %}selected{% elif not is_edit %}selected{% endif %}>In-Person</option>
-                    <option value="videoconference" {% if is_edit and session.modality == 'videoconference' %}selected{% endif %}>Videoconference</option>
-                    <option value="telephone" {% if is_edit and session.modality == 'telephone' %}selected{% endif %}>Telephone</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="format">Format</label>
-                <select id="format" name="format" required>
-                    <option value="individual" {% if is_edit and session.format == 'individual' %}selected{% elif not is_edit %}selected{% endif %}>Individual</option>
-                    <option value="couples" {% if is_edit and session.format == 'couples' %}selected{% endif %}>Couples</option>
-                    <option value="family" {% if is_edit and session.format == 'family' %}selected{% endif %}>Family</option>
-                    <option value="group" {% if is_edit and session.format == 'group' %}selected{% endif %}>Group</option>
-                </select>
-            </div>
-        </div>
-        
         <!-- Date and Time -->
         <div class="form-row">
             <div class="form-group">
-                <label for="session_date">Date</label>
+                <label for="session_date">Date *</label>
                 <input type="date" id="session_date" name="session_date" 
                        value="{% if is_edit %}{{ session_date }}{% else %}{{ today }}{% endif %}" required>
             </div>
@@ -182,18 +128,42 @@
             </div>
         </div>
         
-        <!-- Duration and Fee -->
+        <!-- Modality and Format -->
         <div class="form-row">
             <div class="form-group">
-                <label for="duration">Duration (minutes)</label>
-                <input type="number" id="duration" name="duration" 
-                       value="{% if is_edit %}{{ session.duration }}{% else %}{{ client_type.session_duration or 50 }}{% endif %}" min="1">
+                <label for="modality">Modality *</label>
+                <select id="modality" name="modality" required>
+                    <option value="">Select modality</option>
+                    <option value="in-person" {% if is_edit and session.modality == 'in-person' %}selected{% endif %}>In-Person</option>
+                    <option value="videoconference" {% if is_edit and session.modality == 'videoconference' %}selected{% endif %}>Videoconference</option>
+                    <option value="telephone" {% if is_edit and session.modality == 'telephone' %}selected{% endif %}>Telephone</option>
+                </select>
             </div>
             
             <div class="form-group">
-                <label for="fee">Fee ($)</label>
-                <input type="number" id="fee" name="fee" step="0.01"
-                       value="{% if is_edit %}{{ session.fee }}{% else %}{{ client_type.session_fee or 0 }}{% endif %}">
+                <label for="format">Format *</label>
+                <select id="format" name="format" required>
+                    <option value="">Select format</option>
+                    <option value="individual" {% if is_edit and session.format == 'individual' %}selected{% endif %}>Individual</option>
+                    <option value="couples" {% if is_edit and session.format == 'couples' %}selected{% endif %}>Couples</option>
+                    <option value="family" {% if is_edit and session.format == 'family' %}selected{% endif %}>Family</option>
+                    <option value="group" {% if is_edit and session.format == 'group' %}selected{% endif %}>Group</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Duration and Fee -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="duration">Duration (minutes) *</label>
+                <input type="number" id="duration" name="duration" 
+                       value="{% if is_edit %}{{ session.duration }}{% else %}{{ client_type.session_duration or 50 }}{% endif %}" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="fee">Fee ($) *</label>
+                <input type="number" id="fee" name="fee" step="0.01" min="0"
+                       value="{% if is_edit %}{{ '%.2f'|format(session.fee) }}{% else %}{{ '%.2f'|format(client_type.session_fee or 0) }}{% endif %}" required>
             </div>
         </div>
         
@@ -238,8 +208,8 @@
         <!-- Session notes -->
         <div class="form-row-full">
             <div class="form-group">
-                <label for="content">Session Notes</label>
-                <textarea id="content" name="content" placeholder="Session notes...">{% if is_edit %}{{ session.content or '' }}{% endif %}</textarea>
+                <label for="content">Session Notes *</label>
+                <textarea id="content" name="content" placeholder="Session notes..." required>{% if is_edit %}{{ session.content or '' }}{% endif %}</textarea>
                 <p class="help-text">Supports Markdown formatting</p>
             </div>
         </div>
@@ -261,9 +231,9 @@
     consultationCheckbox.addEventListener('change', function() {
     if (this.checked) {
         // Consultation: set fee to 0 (but keep editable)
-        feeInput.value = '0';
+        feeInput.value = '0.00';
         
-        document.getElementById('duration').value = '20';  // ADD THIS LINE
+        document.getElementById('duration').value = '20';
         
         {% if not is_edit %}
         sessionNumberDisplay.textContent = 'Consultation';
@@ -272,12 +242,38 @@
         // Regular session: restore fee and duration
         feeInput.value = originalFee;
         
-        document.getElementById('duration').value = '{{ client_type.session_duration or 50 }}';  // ADD THIS LINE
+        document.getElementById('duration').value = '{{ client_type.session_duration or 50 }}';
         
         {% if not is_edit %}
         sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
         {% endif %}
     }
 });
+
+// Auto-expanding textarea
+const textarea = document.getElementById('content');
+const maxHeight = 600; // About 30-35 lines
+
+function autoResize() {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set new height, but don't exceed maxHeight
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = newHeight + 'px';
+    
+    // Add scrollbar if content exceeds maxHeight
+    if (textarea.scrollHeight > maxHeight) {
+        textarea.style.overflowY = 'scroll';
+    } else {
+        textarea.style.overflowY = 'hidden';
+    }
+}
+
+// Run on page load (for edit mode with existing content)
+autoResize();
+
+// Run on input
+textarea.addEventListener('input', autoResize);
 </script>
 {% endblock %}
