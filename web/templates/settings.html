@@ -93,17 +93,9 @@
         transform: translateY(-1px);
     }
     
-    .btn-secondary {
-        background: #E3E9EE;
-        color: #323B45;
-    }
-    
-    .btn-secondary:hover {
-        background: #DEE2E6;
-    }
-    
     .button-group {
         display: flex;
+        justify-content: space-between;
         gap: 1rem;
         margin-top: 2rem;
     }
@@ -168,8 +160,8 @@
     </div>
     
     <div class="button-group">
+        <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
         <button onclick="saveSettings()" class="btn">Save Settings</button>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Clients</a>
     </div>
 </div>
 
