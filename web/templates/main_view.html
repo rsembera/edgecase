@@ -894,6 +894,65 @@ cards.forEach(card => {
 
 // Load saved order on page load
 loadCardOrder();
+
+// ===== SESSION PERSISTENCE FOR FILTER/SORT/VIEW =====
+
+// Save current settings to sessionStorage whenever the page loads
+function saveCurrentSettings() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const settings = {
+        types: urlParams.getAll('type'),
+        sort: urlParams.get('sort') || 'last_name',
+        order: urlParams.get('order') || 'asc',
+        view: urlParams.get('view') || 'compact',
+        search: urlParams.get('search') || ''
+    };
+    sessionStorage.setItem('viewSettings', JSON.stringify(settings));
+}
+
+// Restore settings from sessionStorage on page load
+function restoreSettings() {
+    const saved = sessionStorage.getItem('viewSettings');
+    
+    // If no saved settings, this is first visit in session - use defaults
+    if (!saved) {
+        return;
+    }
+    
+    // Parse saved settings
+    const settings = JSON.parse(saved);
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check if URL already has parameters (user clicked something)
+    const hasParams = urlParams.toString().length > 0;
+    
+    // If URL has no parameters, restore from session
+    if (!hasParams) {
+        const newParams = new URLSearchParams();
+        
+        // Restore type filters
+        settings.types.forEach(type => newParams.append('type', type));
+        
+        // Restore sort, order, view
+        newParams.set('sort', settings.sort);
+        newParams.set('order', settings.order);
+        newParams.set('view', settings.view);
+        
+        // Restore search if it exists
+        if (settings.search) {
+            newParams.set('search', settings.search);
+        }
+        
+        // Redirect with restored settings
+        window.location.search = newParams.toString();
+    }
+}
+
+// On page load: restore settings if available, then save current state
+document.addEventListener('DOMContentLoaded', function() {
+    restoreSettings();
+    saveCurrentSettings();
+});
 </script>
 
 {% endblock %}
