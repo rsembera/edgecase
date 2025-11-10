@@ -523,6 +523,25 @@ def manage_types():
     all_types = db.get_all_client_types()
     return render_template('manage_types.html', all_types=all_types)
 
+@app.route('/api/backgrounds')
+def list_backgrounds():
+    """Return list of background images available."""
+    from pathlib import Path
+    import os
+    
+    img_dir = Path(__file__).parent / 'static' / 'img'
+    
+    if not img_dir.exists():
+        return jsonify([])
+    
+    # Get all image files
+    backgrounds = []
+    for file in os.listdir(img_dir):
+        if file.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')):
+            backgrounds.append(file)
+    
+    return jsonify(backgrounds)
+
 @app.route('/add_type', methods=['POST'])
 def add_type():
     """Add new client type."""
