@@ -36,14 +36,6 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
-    /* Tutti-Frutti theme - colored cards */
-    body.tutti-frutti .stat-card:nth-child(1) { background: #C8D8E0; }      /* Muted sky blue */
-    body.tutti-frutti .stat-card:nth-child(2) { background: #DCD3E8; }      /* Muted lavender */
-    body.tutti-frutti .stat-card:nth-child(3) { background: #E9CFCF; }      /* Muted coral pink */
-    body.tutti-frutti .stat-card:nth-child(4) { background: #CFE7DA; }      /* Muted mint */
-    body.tutti-frutti .stat-card:nth-child(5) { background: #F5DEB0; }      /* Soft peach */
-    body.tutti-frutti .stat-card:nth-child(6) { background: #DCD3E8; }      /* Muted lavender */
-    
     .stat-number {
         font-size: 2.5rem;
         font-weight: 700;
@@ -523,7 +515,7 @@
         <div class="stat-label" id="current-date">{{ current_date }}</div>
     </div>
     <div class="stat-card lavender nav-card">
-        <a href="#" onclick="openSettingsModal(); return false;" class="nav-btn rose">Settings</a>
+        <a href="{{ url_for('settings_page') }}" class="nav-btn rose">Settings</a>
         <a href="{{ url_for('manage_types') }}" class="nav-btn teal">Edit Client Types</a>
     </div>
 </div>
@@ -730,33 +722,6 @@
 </div>
 {% endif %}
 
-<!-- Settings Modal -->
-<div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.2);">
-        <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #111827;">Settings</h2>
-        
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #323B45;">Card Style</label>
-            <select id="card-style" style="width: 100%; padding: 0.75rem; border: 2px solid #DEE2E6; border-radius: 0.5rem; font-size: 1rem;">
-                <option value="strait-laced">Strait-Laced</option>
-                <option value="tutti-frutti">Tutti-Frutti</option>
-            </select>
-        </div>
-        
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #323B45;">Background</label>
-            <select id="background-style" style="width: 100%; padding: 0.75rem; border: 2px solid #DEE2E6; border-radius: 0.5rem; font-size: 1rem;">
-                <option value="suit-grey">Suit Grey</option>
-                <!-- Background images will be added by JavaScript -->
-            </select>
-        </div>
-        
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="closeSettingsModal()" style="padding: 0.75rem 1.5rem; background: #F2F4F5; color: #323B45; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">Cancel</button>
-            <button onclick="saveSettings()" style="padding: 0.75rem 1.5rem; background: #BFDCDC; color: #115D4F; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">Save</button>
-        </div>
-    </div>
-</div>
 
 <script>
 function toggleDropdown(id) {
@@ -816,102 +781,6 @@ function syncClock() {
 }
 
 syncClock();
-
-// Settings Modal Functions
-function openSettingsModal() {
-    // Load current settings from localStorage
-    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
-    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
-    
-    document.getElementById('card-style').value = cardStyle;
-    document.getElementById('background-style').value = backgroundStyle;
-    
-    // Show modal
-    const modal = document.getElementById('settings-modal');
-    modal.style.display = 'flex';
-}
-
-function closeSettingsModal() {
-    document.getElementById('settings-modal').style.display = 'none';
-}
-
-function saveSettings() {
-    const cardStyle = document.getElementById('card-style').value;
-    const backgroundStyle = document.getElementById('background-style').value;
-    
-    // Save to localStorage
-    localStorage.setItem('cardStyle', cardStyle);
-    localStorage.setItem('backgroundStyle', backgroundStyle);
-    
-    // Apply settings
-    applyTheme();
-    
-    // Close modal
-    closeSettingsModal();
-}
-
-function applyTheme() {
-    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
-    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
-    
-    // Apply card style
-    if (cardStyle === 'tutti-frutti') {
-        document.body.classList.add('tutti-frutti');
-    } else {
-        document.body.classList.remove('tutti-frutti');
-    }
-    
-    // Apply background style
-    if (backgroundStyle === 'suit-grey') {
-        document.body.style.background = '#EDF2F5';
-        document.body.style.backgroundImage = 'none';
-    } else {
-        document.body.style.background = '#EDF2F5';
-        document.body.style.backgroundImage = `url('/static/img/${backgroundStyle}')`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundAttachment = 'fixed';
-    }
-}
-
-// Load available background images
-async function loadBackgroundOptions() {
-    try {
-        const response = await fetch('/api/backgrounds');
-        const backgrounds = await response.json();
-        
-        // Create array of {filename, displayName} objects and sort by display name
-        const backgroundOptions = backgrounds.map(bg => {
-            const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            return { filename: bg, displayName: displayName };
-        });
-        
-        // Sort alphabetically by display name
-        backgroundOptions.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        
-        const select = document.getElementById('background-style');
-        backgroundOptions.forEach(bg => {
-            const option = document.createElement('option');
-            option.value = bg.filename;
-            option.textContent = bg.displayName;
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Failed to load background options:', error);
-    }
-}
-
-// Apply theme on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadBackgroundOptions();
-    applyTheme();
-});
-
-// Close modal when clicking outside
-document.getElementById('settings-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeSettingsModal();
-    }
-});
 </script>
 
 {% endblock %}

@@ -2,42 +2,146 @@
 
 {% block title %}Manage Client Types - EdgeCase Equalizer{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Muted palette styling for manage types */
+    .card {
+        background: #FBFCFD;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    h2 {
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: white;
+    }
+    
+    /* Table styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #FBFCFD;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        margin-top: 2rem;
+    }
+    
+    thead tr {
+        background: #E3E9EE;
+        border-bottom: 2px solid #DEE2E6;
+    }
+    
+    th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #55607D;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    tbody tr {
+        border-bottom: 1px solid #DEE2E6;
+        transition: background 0.2s;
+    }
+    
+    tbody tr:hover {
+        background: #F2F4F5;
+    }
+    
+    td {
+        padding: 1rem;
+        color: #323B45;
+    }
+    
+    small {
+        color: #5B6571;
+    }
+    
+    .info-note {
+        color: #5B6571;
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #E3E9EE;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        background: #BFDCDC;
+        color: #115D4F;
+        text-decoration: none;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        margin-top: 1.5rem;
+    }
+    
+    .btn:hover {
+        background: #9FCFC0;
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="card">
     <h2>Client Types</h2>
+    <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types, session fees, and file numbering</p>
     
-    <table style="width: 100%; margin-top: 2rem;">
+    <table>
         <thead>
-            <tr style="background: #f7fafc;">
-                <th style="padding: 1rem; text-align: left;">Name</th>
-                <th style="padding: 1rem; text-align: left;">Code</th>
-                <th style="padding: 1rem; text-align: left;">Color</th>
-                <th style="padding: 1rem; text-align: left;">Session Fee</th>
-                <th style="padding: 1rem; text-align: left;">Duration</th>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Color</th>
+                <th>Session Fee</th>
+                <th>Duration</th>
             </tr>
         </thead>
         <tbody>
             {% for type in all_types %}
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 1rem;">
-                    {{ type.name }}
-                    {% if type.is_system %}<small style="color: #718096;">(System)</small>{% endif %}
+            <tr>
+                <td>
+                    <strong>{{ type.name }}</strong>
+                    {% if type.is_system %}<small>(System)</small>{% endif %}
                 </td>
-                <td style="padding: 1rem;">{{ type.code or '-' }}</td>
-                <td style="padding: 1rem;">
+                <td>{{ type.code or '-' }}</td>
+                <td>
                     <span class="type-badge" style="background-color: {{ type.color }}">
                         {{ type.color }}
                     </span>
                 </td>
-                <td style="padding: 1rem;">${{ type.session_fee or 0 }}</td>
-                <td style="padding: 1rem;">{{ type.session_duration or 0 }} min</td>
+                <td>${{ type.session_fee or 0 }}</td>
+                <td>{{ type.session_duration or 0 }} min</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     
-    <div class="mt-2">
-        <p style="color: #718096;">Type management interface coming in Week 2...</p>
+    <div class="info-note">
+        📝 Type management interface coming in Week 2...
     </div>
+    
+    <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
 </div>
 {% endblock %}
