@@ -6,7 +6,7 @@ Main web interface for EdgeCase Equalizer
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pathlib import Path
-import sys
+import sys, sqlite3
 
 # Add parent directory to path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -1058,6 +1058,159 @@ def add_type():
     
     db.add_client_type(type_data)
     return redirect(url_for('manage_types'))
+
+@app.route('/api/practice_info', methods=['GET', 'POST'])
+def practice_info():
+    """Get or save practice information"""
+    if request.method == 'GET':
+        # Fetch all practice info from settings table
+        # Get all the specific keys we need
+        keys = [
+            'practice_name', 'therapist_name', 'credentials', 'email', 'phone',
+            'address_line_1', 'address_line_2', 'address_line_3', 'website',
+            'consultation_fee', 'consultation_duration'
+        ]
+        
+        placeholders = ','.join(['?' for _ in keys])
+        query = f"SELECT key, value FROM settings WHERE key IN ({placeholders})"
+        
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, keys)
+            rows = cursor.fetchall()
+        
+        info = {}
+        for row in rows:
+            info[row[0]] = row[1]
+        
+        return jsonify({'success': True, 'info': info})
+    
+    else:  # POST
+        data = request.get_json()
+        
+        # Save each field to settings table
+        settings_map = {
+            'practice_name': data.get('practice_name', ''),
+            'therapist_name': data.get('therapist_name', ''),
+            'credentials': data.get('credentials', ''),
+            'email': data.get('email', ''),
+            'phone': data.get('phone', ''),
+            'address_line_1': data.get('address_line_1', ''),
+            'address_line_2': data.get('address_line_2', ''),
+            'address_line_3': data.get('address_line_3', ''),
+            'website': data.get('website', ''),
+            'consultation_fee': data.get('consultation_fee', '0.00'),
+            'consultation_duration': data.get('consultation_duration', '20')
+        }
+        
+        import time
+        modified_at = int(time.time())
+        
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            for key, value in settings_map.items():
+                cursor.execute("""
+                    INSERT INTO settings (key, value, modified_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
+                """, (key, value, modified_at, value, modified_at))
+            conn.commit()
+        
+        return jsonify({'success': True})
+
+
+@app.route('/upload_logo', methods=['POST'])
+def upload_logo():
+    """Handle practice logo upload"""
+    if 'logo' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['logo']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'Invalid file type. Use: png, jpg, jpeg, or gif'})
+    
+    # Save as 'logo.png' (or whatever extension)
+    from werkzeug.utils import secure_filename
+    filename = f'logo.{file_ext}'
+    
+    # Save to assets directory
+    assets_dir = Path(__file__).parent.parent / 'assets'
+    assets_dir.mkdir(exist_ok=True)
+    
+    upload_path = assets_dir / filename
+    
+    try:
+        file.save(str(upload_path))
+        
+        # Save filename to settings
+        cursor = db.conn.cursor()
+        import time
+        modified_at = int(time.time())
+        cursor.execute("""
+            INSERT INTO settings (key, value, modified_at)
+            VALUES ('logo_filename', ?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
+        """, (filename, modified_at, filename, modified_at))
+        db.conn.commit()
+        
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/upload_signature', methods=['POST'])
+def upload_signature():
+    """Handle signature upload"""
+    if 'signature' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['signature']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'Invalid file type. Use: png, jpg, jpeg, or gif'})
+    
+    # Save as 'signature.png' (or whatever extension)
+    from werkzeug.utils import secure_filename
+    filename = f'signature.{file_ext}'
+    
+    # Save to assets directory
+    assets_dir = Path(__file__).parent.parent / 'assets'
+    assets_dir.mkdir(exist_ok=True)
+    
+    upload_path = assets_dir / filename
+    
+    try:
+        file.save(str(upload_path))
+        
+        # Save filename to settings
+        cursor = db.conn.cursor()
+        import time
+        modified_at = int(time.time())
+        cursor.execute("""
+            INSERT INTO settings (key, value, modified_at)
+            VALUES ('signature_filename', ?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
+        """, (filename, modified_at, filename, modified_at))
+        db.conn.commit()
+        
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # ===== RUN APP =====
 

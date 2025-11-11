@@ -84,6 +84,22 @@
         width: auto;
         margin-right: 0.5rem;
     }
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+    input[readonly] {
+    background-color: #f7fafc;
+    cursor: not-allowed;
+}
+
 </style>
 {% endblock %}
 
@@ -125,7 +141,7 @@
         <div class="form-row-full">
             <label class="checkbox-inline">
                 <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %}>
-                This is a consultation (free, not numbered, 20 mins.)
+                This is a consultation
             </label>
         </div>
 
@@ -198,9 +214,9 @@
             </div>
             
             <div class="form-group">
-                <label for="fee">Fee ($) *</label>
+                <label for="fee">Fee<span style="font-size: 0.875rem; color: #718096; font-weight: normal;"> (From Client Type or Settings)</span></label>
                 <input type="number" id="fee" name="fee" step="0.01" min="0"
-                       value="{% if is_edit %}{{ '%.2f'|format(session.fee) }}{% else %}{{ '%.2f'|format(client_type.session_fee or 0) }}{% endif %}" required>
+                    value="{% if is_edit %}{{ '%.2f'|format(session.fee) }}{% else %}{{ '%.2f'|format(client_type.session_fee or 0) }}{% endif %}" required readonly>
             </div>
         </div>
         
@@ -277,31 +293,60 @@
     dateMonth.addEventListener('change', updateSessionDate);
     dateDay.addEventListener('change', updateSessionDate);
 
-    // Consultation checkbox logic
+    // Consultation checkbox logic with settings from database
     const consultationCheckbox = document.getElementById('is_consultation');
     const feeInput = document.getElementById('fee');
+    const durationInput = document.getElementById('duration');
     const sessionNumberDisplay = document.getElementById('session-number-display');
     const originalFee = feeInput.value;
+    const originalDuration = durationInput.value;
+    
+    // Fetch consultation settings from database
+    let consultationFee = '0.00';
+    let consultationDuration = '20';
+    
+    // Load settings immediately
+    fetch('/api/practice_info')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.info) {
+                consultationFee = data.info.consultation_fee || '0.00';
+                consultationDuration = data.info.consultation_duration || '20';
+                console.log('Loaded consultation settings:', consultationFee, consultationDuration);
+            }
+        })
+        .catch(error => console.error('Failed to load consultation settings:', error));
     
     consultationCheckbox.addEventListener('change', function() {
+        console.log('Checkbox changed. Checked:', this.checked);
+        console.log('Current consultation values:', consultationFee, consultationDuration);
+        
         if (this.checked) {
-            // Consultation: set fee to 0 (but keep editable)
-            feeInput.value = '0.00';
-            
-            document.getElementById('duration').value = '20';
+            // Consultation: use settings from database
+            feeInput.value = consultationFee;
+            durationInput.value = consultationDuration;
+            console.log('Set to consultation values');
             
             {% if not is_edit %}
             sessionNumberDisplay.textContent = 'Consultation';
             {% endif %}
         } else {
-            // Regular session: restore fee and duration
+            // Regular session: restore original values
             feeInput.value = originalFee;
-            
-            document.getElementById('duration').value = '{{ client_type.session_duration or 50 }}';
+            durationInput.value = originalDuration;
+            console.log('Restored original values');
             
             {% if not is_edit %}
             sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
             {% endif %}
+        }
+    });
+
+    // Currency formatting for fee field
+    document.getElementById('fee').addEventListener('blur', function(e) {
+        let value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+            e.target.value = value.toFixed(2);
         }
     });
 
