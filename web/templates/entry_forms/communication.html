@@ -42,6 +42,17 @@
         line-height: 1.6;
     }
     
+    /* Date dropdown styling */
+    .date-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .date-input-group select {
+        flex: 1;
+        height: 46px;
+    }
+    
     .form-actions {
         display: flex;
         gap: 1rem;
@@ -126,11 +137,27 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
             <div class="form-group">
                 <label for="comm_date">Date *</label>
-                <input type="date" 
-                       id="comm_date" 
-                       name="comm_date" 
-                       value="{% if entry %}{{ comm_date }}{% else %}{{ today }}{% endif %}"
-                       required>
+                <div class="date-input-group">
+                    <select id="date_year" name="date_year" required>
+                        <option value="">Year</option>
+                        {% for year in range(2025, 2019, -1) %}
+                        <option value="{{ year }}" {% if entry and comm_date and comm_date[:4] == year|string %}selected{% elif not entry and today[:4] == year|string %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="date_month" name="date_month" required>
+                        <option value="">Month</option>
+                        {% for month in range(1, 13) %}
+                        <option value="{{ '%02d'|format(month) }}" {% if entry and comm_date and comm_date[5:7] == '%02d'|format(month) %}selected{% elif not entry and today[5:7] == '%02d'|format(month) %}selected{% endif %}>{{ '%02d'|format(month) }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="date_day" name="date_day" required>
+                        <option value="">Day</option>
+                        {% for day in range(1, 32) %}
+                        <option value="{{ '%02d'|format(day) }}" {% if entry and comm_date and comm_date[8:10] == '%02d'|format(day) %}selected{% elif not entry and today[8:10] == '%02d'|format(day) %}selected{% endif %}>{{ '%02d'|format(day) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <input type="hidden" id="comm_date" name="comm_date" value="{% if entry %}{{ comm_date }}{% else %}{{ today }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="comm_time">Time</label>
@@ -219,6 +246,24 @@
 </div>
 
 <script>
+// Date dropdowns → hidden field
+const dateYear = document.getElementById('date_year');
+const dateMonth = document.getElementById('date_month');
+const dateDay = document.getElementById('date_day');
+const dateHidden = document.getElementById('comm_date');
+
+function updateCommDate() {
+    if (dateYear.value && dateMonth.value && dateDay.value) {
+        dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
+    } else {
+        dateHidden.value = '';
+    }
+}
+
+dateYear.addEventListener('change', updateCommDate);
+dateMonth.addEventListener('change', updateCommDate);
+dateDay.addEventListener('change', updateCommDate);
+
 // Auto-expanding textarea
 const textarea = document.getElementById('content');
 const maxHeight = 600; // About 30-35 lines

@@ -28,6 +28,17 @@
         }
     }
     
+    /* Date dropdown styling - matches profile.html */
+    .date-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .date-input-group select {
+        flex: 1;
+        height: 46px;  /* Match text input height */
+    }
+    
     textarea {
         width: 100%;
         padding: 0.75rem;
@@ -118,12 +129,31 @@
             </label>
         </div>
 
-        <!-- Date and Time -->
+        <!-- Date and Time - Date now uses Y/M/D dropdowns -->
         <div class="form-row">
             <div class="form-group">
                 <label for="session_date">Date *</label>
-                <input type="date" id="session_date" name="session_date" 
-                       value="{% if is_edit %}{{ session_date }}{% else %}{{ today }}{% endif %}" required>
+                <div class="date-input-group">
+                    <select id="date_year" name="date_year" required>
+                        <option value="">Year</option>
+                        {% for year in range(2025, 2019, -1) %}
+                        <option value="{{ year }}" {% if is_edit and session_date and session_date[:4] == year|string %}selected{% elif not is_edit and today[:4] == year|string %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="date_month" name="date_month" required>
+                        <option value="">Month</option>
+                        {% for month in range(1, 13) %}
+                        <option value="{{ '%02d'|format(month) }}" {% if is_edit and session_date and session_date[5:7] == '%02d'|format(month) %}selected{% elif not is_edit and today[5:7] == '%02d'|format(month) %}selected{% endif %}>{{ '%02d'|format(month) }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="date_day" name="date_day" required>
+                        <option value="">Day</option>
+                        {% for day in range(1, 32) %}
+                        <option value="{{ '%02d'|format(day) }}" {% if is_edit and session_date and session_date[8:10] == '%02d'|format(day) %}selected{% elif not is_edit and today[8:10] == '%02d'|format(day) %}selected{% endif %}>{{ '%02d'|format(day) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <input type="hidden" id="session_date" name="session_date" value="{% if is_edit %}{{ session_date }}{% else %}{{ today }}{% endif %}">
             </div>
             
             <div class="form-group">
@@ -229,6 +259,24 @@
 </div>
 
 <script>
+    // Date dropdowns → hidden field (same as profile.html)
+    const dateYear = document.getElementById('date_year');
+    const dateMonth = document.getElementById('date_month');
+    const dateDay = document.getElementById('date_day');
+    const dateHidden = document.getElementById('session_date');
+    
+    function updateSessionDate() {
+        if (dateYear.value && dateMonth.value && dateDay.value) {
+            dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
+        } else {
+            dateHidden.value = '';
+        }
+    }
+    
+    dateYear.addEventListener('change', updateSessionDate);
+    dateMonth.addEventListener('change', updateSessionDate);
+    dateDay.addEventListener('change', updateSessionDate);
+
     // Consultation checkbox logic
     const consultationCheckbox = document.getElementById('is_consultation');
     const feeInput = document.getElementById('fee');
@@ -236,51 +284,51 @@
     const originalFee = feeInput.value;
     
     consultationCheckbox.addEventListener('change', function() {
-    if (this.checked) {
-        // Consultation: set fee to 0 (but keep editable)
-        feeInput.value = '0.00';
+        if (this.checked) {
+            // Consultation: set fee to 0 (but keep editable)
+            feeInput.value = '0.00';
+            
+            document.getElementById('duration').value = '20';
+            
+            {% if not is_edit %}
+            sessionNumberDisplay.textContent = 'Consultation';
+            {% endif %}
+        } else {
+            // Regular session: restore fee and duration
+            feeInput.value = originalFee;
+            
+            document.getElementById('duration').value = '{{ client_type.session_duration or 50 }}';
+            
+            {% if not is_edit %}
+            sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
+            {% endif %}
+        }
+    });
+
+    // Auto-expanding textarea
+    const textarea = document.getElementById('content');
+    const maxHeight = 600; // About 30-35 lines
+
+    function autoResize() {
+        // Reset height to auto to get the correct scrollHeight
+        textarea.style.height = 'auto';
         
-        document.getElementById('duration').value = '20';
+        // Set new height, but don't exceed maxHeight
+        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+        textarea.style.height = newHeight + 'px';
         
-        {% if not is_edit %}
-        sessionNumberDisplay.textContent = 'Consultation';
-        {% endif %}
-    } else {
-        // Regular session: restore fee and duration
-        feeInput.value = originalFee;
-        
-        document.getElementById('duration').value = '{{ client_type.session_duration or 50 }}';
-        
-        {% if not is_edit %}
-        sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
-        {% endif %}
+        // Add scrollbar if content exceeds maxHeight
+        if (textarea.scrollHeight > maxHeight) {
+            textarea.style.overflowY = 'scroll';
+        } else {
+            textarea.style.overflowY = 'hidden';
+        }
     }
-});
 
-// Auto-expanding textarea
-const textarea = document.getElementById('content');
-const maxHeight = 600; // About 30-35 lines
+    // Run on page load (for edit mode with existing content)
+    autoResize();
 
-function autoResize() {
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
-    
-    // Set new height, but don't exceed maxHeight
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = newHeight + 'px';
-    
-    // Add scrollbar if content exceeds maxHeight
-    if (textarea.scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'scroll';
-    } else {
-        textarea.style.overflowY = 'hidden';
-    }
-}
-
-// Run on page load (for edit mode with existing content)
-autoResize();
-
-// Run on input
-textarea.addEventListener('input', autoResize);
+    // Run on input
+    textarea.addEventListener('input', autoResize);
 </script>
 {% endblock %}
