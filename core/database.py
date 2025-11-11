@@ -124,6 +124,12 @@ class Database:
                 absence_date INTEGER,
                 absence_time TEXT,
                 
+                -- Item-specific fields
+                item_date INTEGER,
+                item_time TEXT,
+                base_price REAL,
+                tax_rate REAL,
+                
                 -- Statement-specific fields
                 statement_total REAL,
                 payment_status TEXT,
@@ -213,6 +219,10 @@ class Database:
             'comm_time': 'TEXT',
             'absence_date': 'INTEGER',
             'absence_time': 'TEXT',
+            'item_date': 'INTEGER',
+            'item_time': 'TEXT',
+            'base_price': 'REAL',
+            'tax_rate': 'REAL',
             # Add future migrations here as needed
         }
         
@@ -524,6 +534,7 @@ class Database:
             'duration', 'fee', 'is_consultation', 'mood', 'affect', 'risk_assessment',
             'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
             'absence_date', 'absence_time',
+            'item_date', 'item_time', 'base_price', 'tax_rate',
             'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at'
