@@ -68,6 +68,32 @@
         border-color: #1F8F74;
         box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
     }
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    input[type="tel"],
+    input[type="number"] {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.75rem;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        color: #111827;
+        transition: all 0.2s;
+        background: #FBFCFD;
+    }
+    
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="url"]:focus,
+    input[type="tel"]:focus,
+    input[type="number"]:focus {
+        outline: none;
+        border-color: #1F8F74;
+        box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+    }
+
     
     .button-group {
         display: flex;
@@ -88,6 +114,17 @@
     .success-message.show {
         display: block;
     }
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
 </style>
 {% endblock %}
 
@@ -221,12 +258,104 @@
         </div>
     </div>
     
-    <!-- Future Settings Sections -->
+    <!-- Practice Information Section -->
     <div class="settings-section">
         <h3>Practice Information</h3>
-        <p>Manage your practice details, logo, and signature</p>
-        <div style="color: #5B6571; font-style: italic;">Coming soon...</div>
+        <p>Your contact details and branding (used on invoices)</p>
+        
+        <div class="form-group">
+            <label for="practice-name">Practice Name</label>
+            <input type="text" id="practice-name" placeholder="e.g., Mindful Pathways Counselling">
+        </div>
+        
+        <div class="form-group">
+            <label for="therapist-name">Therapist Name</label>
+            <input type="text" id="therapist-name" placeholder="e.g., Dr. Jane Smith">
+        </div>
+        
+        <div class="form-group">
+            <label for="credentials">Credentials</label>
+            <input type="text" id="credentials" placeholder="e.g., MSW, RSW, PhD">
+        </div>
+        
+        <div class="form-group">
+            <label for="practice-email">Email</label>
+            <input type="email" id="practice-email" placeholder="e.g., contact@practice.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="practice-phone">Phone</label>
+            <input type="tel" id="practice-phone" placeholder="(123) 456-7890">
+        </div>
+        
+        <div class="form-group">
+            <label for="address-line-1">Address Line 1</label>
+            <input type="text" id="address-line-1" placeholder="e.g., 123 Main Street">
+        </div>
+        
+        <div class="form-group">
+            <label for="address-line-2">Address Line 2</label>
+            <input type="text" id="address-line-2" placeholder="e.g., Suite 200">
+        </div>
+        
+        <div class="form-group">
+            <label for="address-line-3">Address Line 3</label>
+            <input type="text" id="address-line-3" placeholder="e.g., Ottawa, ON K1A 0B1">
+        </div>
+        
+        <div class="form-group">
+            <label for="website">Website (optional)</label>
+            <input type="url" id="website" placeholder="e.g., https://practice.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="consultation-fee">Consultation Base Fee</label>
+            <input type="number" id="consultation-fee" step="0.01" min="0" placeholder="0.00" style="max-width: 200px;">
+        </div>
+        
+        <div class="form-group">
+            <label for="consultation-duration">Consultation Duration</label>
+            <select id="consultation-duration" style="max-width: 200px;">
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="25">25 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="35">35 minutes</option>
+                <option value="40">40 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="50">50 minutes</option>
+                <option value="55">55 minutes</option>
+                <option value="60">60 minutes</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="logo-upload">Practice Logo</label>
+            <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+            <button onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                Choose Logo
+            </button>
+            <span id="logo-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
+            <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+                Upload
+            </button>
+        </div>
+        
+        <div class="form-group">
+            <label for="signature-upload">Digital Signature</label>
+            <input type="file" id="signature-upload" accept="image/*" style="display: none;">
+            <button onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                Choose Signature
+            </button>
+            <span id="signature-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
+            <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+                Upload
+            </button>
+        </div>
+        
+        <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
+
     
     <div class="settings-section">
         <h3>Defaults</h3>
@@ -529,7 +658,7 @@ async function uploadBackground() {
 }
 
 // Save settings
-function saveSettings() {
+async function saveSettings() {
     const cardStyle = document.getElementById('card-style').value;
     const backgroundStyle = document.getElementById('background-style').value;
     
@@ -540,6 +669,9 @@ function saveSettings() {
     // Apply settings (applyTheme is defined in base.html)
     applyTheme();
     
+    // Save practice info to database
+    await savePracticeInfo();
+    
     // Show success message
     const successMsg = document.getElementById('success-message');
     successMsg.classList.add('show');
@@ -548,9 +680,118 @@ function saveSettings() {
     }, 3000);
 }
 
+// Load practice information from database
+async function loadPracticeInfo() {
+    try {
+        const response = await fetch('/api/practice_info');
+        const data = await response.json();
+        console.log('Practice info data:', data);
+        
+        if (data.success && data.info) {
+            // Populate form fields
+            document.getElementById('practice-name').value = data.info.practice_name || '';
+            document.getElementById('therapist-name').value = data.info.therapist_name || '';
+            document.getElementById('credentials').value = data.info.credentials || '';
+            document.getElementById('practice-email').value = data.info.email || '';
+            document.getElementById('practice-phone').value = data.info.phone || '';
+            document.getElementById('address-line-1').value = data.info.address_line_1 || '';
+            document.getElementById('address-line-2').value = data.info.address_line_2 || '';
+            document.getElementById('address-line-3').value = data.info.address_line_3 || '';
+            document.getElementById('website').value = data.info.website || '';
+            document.getElementById('consultation-fee').value = data.info.consultation_fee || '0.00';
+            document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
+        }
+    } catch (error) {
+        console.error('Failed to load practice info:', error);
+    }
+}
+
+// Save practice information to database
+async function savePracticeInfo() {
+    const practiceData = {
+        practice_name: document.getElementById('practice-name').value,
+        therapist_name: document.getElementById('therapist-name').value,
+        credentials: document.getElementById('credentials').value,
+        email: document.getElementById('practice-email').value,
+        phone: document.getElementById('practice-phone').value,
+        address_line_1: document.getElementById('address-line-1').value,
+        address_line_2: document.getElementById('address-line-2').value,
+        address_line_3: document.getElementById('address-line-3').value,
+        website: document.getElementById('website').value,
+        consultation_fee: document.getElementById('consultation-fee').value,
+        consultation_duration: document.getElementById('consultation-duration').value
+    };
+    
+    try {
+        const response = await fetch('/api/practice_info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(practiceData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('practice-info-status');
+            statusDiv.textContent = '✓ Practice information saved successfully!';
+            statusDiv.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Failed to save practice information');
+        }
+    } catch (error) {
+        alert('Failed to save practice information: ' + error.message);
+    }
+}
+
+// Phone number formatting (from profile.html)
+const practicePhoneInput = document.getElementById('practice-phone');
+
+practicePhoneInput.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    
+    if (value.length <= 10) {
+        // Format as (123) 456-7890
+        if (value.length > 6) {
+            value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
+        } else if (value.length > 3) {
+            value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+        } else if (value.length > 0) {
+            value = `(${value}`;
+        }
+    } else if (value.length <= 12) {
+        // Allow up to 12 digits (international)
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+    } else {
+        // Truncate at 12 digits
+        value = value.slice(0, 12);
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+    }
+    
+    e.target.value = value;
+});
+
+// Currency formatting for consultation fee
+const consultationFeeInput = document.getElementById('consultation-fee');
+
+consultationFeeInput.addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(2);
+    }
+});
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadBackgroundOptions();
+    loadPracticeInfo();
 });
 </script>
 
