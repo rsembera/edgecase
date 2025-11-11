@@ -49,6 +49,13 @@
     .stat-card.dragging {
         opacity: 0.5;
     }
+
+    /* Prevent drag visual feedback on touch devices */
+    @media (pointer: coarse) {
+        .stat-card.dragging {
+            opacity: 1 !important;
+        }
+    }
     
     .stat-card.drag-over {
         border: 2px dashed #00aa88;
@@ -770,7 +777,7 @@ document.addEventListener('click', function(event) {
 function updateClock() {
     const now = new Date();
     
-    // Format time: "12:45 PM"
+    // Format time: "12:45:30 PM"
     let hours = now.getHours();
     const minutes = now.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -814,9 +821,23 @@ let draggedCard = null;
 let touchStartX = 0;
 let touchStartY = 0;
 let isDragging = false;
+let hasMoved = false; // Track if card actually moved
 
 // Get all draggable cards
 const cards = document.querySelectorAll('.stat-card[draggable="true"]');
+
+// Disable dragging on touch devices (iPad/mobile)
+if ('ontouchstart' in window) {
+    cards.forEach(card => {
+        card.setAttribute('draggable', 'false');
+        card.style.cursor = 'default';
+        // Also prevent the dragstart event entirely
+        card.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    });
+}
 
 // Load saved order from localStorage
 function loadCardOrder() {
@@ -845,8 +866,18 @@ function saveCardOrder() {
 
 // MOUSE DRAG HANDLERS (for desktop)
 cards.forEach(card => {
+    // Prevent clicks on links/buttons during drag
+    card.addEventListener('click', function(e) {
+        if (hasMoved) {
+            e.preventDefault();
+            e.stopPropagation();
+            hasMoved = false; // Reset for next interaction
+        }
+    }, true); // Use capture phase to intercept before link clicks
+    
     card.addEventListener('dragstart', function(e) {
         draggedCard = this;
+        hasMoved = false; // Reset at start
         this.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/html', this.innerHTML);
@@ -858,6 +889,11 @@ cards.forEach(card => {
         cards.forEach(c => c.classList.remove('drag-over'));
         // Save the new order
         saveCardOrder();
+        
+        // If card moved, prevent any clicks for a moment
+        if (hasMoved) {
+            setTimeout(() => { hasMoved = false; }, 100);
+        }
     });
     
     card.addEventListener('dragover', function(e) {
@@ -885,6 +921,8 @@ cards.forEach(card => {
         
         // Don't drop on itself
         if (draggedCard !== this) {
+            hasMoved = true; // Card was actually moved
+            
             // TRUE SWAP: Simply exchange the two cards' positions
             const container = draggedCard.parentNode;
             
@@ -909,109 +947,11 @@ cards.forEach(card => {
     });
 });
 
-// TOUCH HANDLERS (for iPad/mobile)
-cards.forEach(card => {
-    // Touch start
-    card.addEventListener('touchstart', function(e) {
-        // Don't interfere with scrolling if touch is light
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        
-        // Set a timeout - if held for 300ms, start drag
-        const holdTimeout = setTimeout(() => {
-            isDragging = true;
-            draggedCard = this;
-            this.classList.add('dragging');
-            
-            // Prevent scrolling while dragging
-            e.preventDefault();
-        }, 300);
-        
-        // Store timeout so we can cancel if they move quickly
-        this.holdTimeout = holdTimeout;
-    }, { passive: false });
-    
-    // Touch move
-    card.addEventListener('touchmove', function(e) {
-        if (!isDragging) {
-            // If moving before 300ms hold, cancel the drag attempt
-            clearTimeout(this.holdTimeout);
-            return;
-        }
-        
-        e.preventDefault(); // Prevent scrolling while dragging
-        
-        const touch = e.touches[0];
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        // Remove drag-over from all cards
-        cards.forEach(c => c.classList.remove('drag-over'));
-        
-        // Find the closest stat-card element
-        let targetCard = targetElement;
-        while (targetCard && !targetCard.classList.contains('stat-card')) {
-            targetCard = targetCard.parentElement;
-        }
-        
-        // Add drag-over to target card if it exists and isn't the dragged card
-        if (targetCard && targetCard !== draggedCard && targetCard.hasAttribute('draggable')) {
-            targetCard.classList.add('drag-over');
-        }
-    }, { passive: false });
-    
-    // Touch end
-    card.addEventListener('touchend', function(e) {
-        clearTimeout(this.holdTimeout);
-        
-        if (!isDragging) {
-            return;
-        }
-        
-        e.preventDefault();
-        
-        const touch = e.changedTouches[0];
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        // Find the closest stat-card element
-        let targetCard = targetElement;
-        while (targetCard && !targetCard.classList.contains('stat-card')) {
-            targetCard = targetCard.parentElement;
-        }
-        
-        // Perform the swap if we have a valid target
-        if (targetCard && targetCard !== draggedCard && targetCard.hasAttribute('draggable')) {
-            const container = draggedCard.parentNode;
-            const placeholder = document.createElement('div');
-            
-            container.insertBefore(placeholder, draggedCard);
-            container.insertBefore(draggedCard, targetCard);
-            container.insertBefore(targetCard, placeholder);
-            container.removeChild(placeholder);
-            
-            // Save the new order
-            saveCardOrder();
-        }
-        
-        // Clean up
-        this.classList.remove('dragging');
-        cards.forEach(c => c.classList.remove('drag-over'));
-        isDragging = false;
-        draggedCard = null;
-    }, { passive: false });
-    
-    // Touch cancel (if interrupted)
-    card.addEventListener('touchcancel', function(e) {
-        clearTimeout(this.holdTimeout);
-        this.classList.remove('dragging');
-        cards.forEach(c => c.classList.remove('drag-over'));
-        isDragging = false;
-        draggedCard = null;
-    });
-});
 
 // Load saved order on page load
-loadCardOrder();
+document.addEventListener('DOMContentLoaded', function() {
+    loadCardOrder();
+});
 
 // ===== SESSION PERSISTENCE FOR FILTER/SORT/VIEW =====
 
@@ -1071,6 +1011,24 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreSettings();
     saveCurrentSettings();
 });
+
+// Auto-switch to compact view on narrow screens (portrait iPad)
+function checkViewMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentView = urlParams.get('view') || 'compact';
+    
+    // If screen is narrow (portrait) and in detailed view, switch to compact
+    if (window.innerWidth < 900 && currentView === 'detailed') {
+        urlParams.set('view', 'compact');
+        window.location.search = urlParams.toString();
+    }
+}
+
+// Check on page load
+checkViewMode();
+
+// Check when device rotates
+window.addEventListener('resize', checkViewMode);
 </script>
 
 {% endblock %}

@@ -97,7 +97,7 @@
     <p style="color: #5B6571; margin-top: 0.5rem; margin-bottom: 2rem;">Customize your EdgeCase experience</p>
     
     <div id="success-message" class="success-message">
-        âœ" Settings saved successfully!
+        ✓ Settings saved successfully!
     </div>
     
     <!-- Theme Settings Section -->
@@ -119,6 +119,88 @@
                 <option value="suit-grey">Suit Grey (Solid)</option>
                 <!-- Background images will be added by JavaScript -->
             </select>
+        </div>
+    </div>
+    
+    <!-- Card Layout Section -->
+    <div class="settings-section">
+        <h3>Card Layout</h3>
+        <p>Arrange your info cards in your preferred order</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-1">Position 1 (Top Left)</label>
+                <select id="position-1" onchange="handleCardSwap(0)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-2">Position 2 (Top Center)</label>
+                <select id="position-2" onchange="handleCardSwap(1)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-3">Position 3 (Top Right)</label>
+                <select id="position-3" onchange="handleCardSwap(2)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-4">Position 4 (Bottom Left)</label>
+                <select id="position-4" onchange="handleCardSwap(3)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-5">Position 5 (Bottom Center)</label>
+                <select id="position-5" onchange="handleCardSwap(4)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="position-6">Position 6 (Bottom Right)</label>
+                <select id="position-6" onchange="handleCardSwap(5)">
+                    <option value="active-clients">Active Clients</option>
+                    <option value="sessions-week">Sessions This Week</option>
+                    <option value="pending-invoices">Pending Invoices</option>
+                    <option value="billable-month">Billable This Month</option>
+                    <option value="current-time">Current Time</option>
+                    <option value="navigation">Navigation</option>
+                </select>
+            </div>
         </div>
     </div>
     
@@ -149,6 +231,90 @@ function loadCurrentSettings() {
     
     document.getElementById('card-style').value = cardStyle;
     document.getElementById('background-style').value = backgroundStyle;
+    
+    // Load card positions
+    loadCardPositions();
+}
+
+// Card layout management
+const cardNames = {
+    'active-clients': 'Active Clients',
+    'sessions-week': 'Sessions This Week',
+    'pending-invoices': 'Pending Invoices',
+    'billable-month': 'Billable This Month',
+    'current-time': 'Current Time',
+    'navigation': 'Navigation'
+};
+
+// Load card positions from localStorage
+function loadCardPositions() {
+    const savedOrder = localStorage.getItem('cardOrder');
+    let currentOrder;
+    
+    if (savedOrder) {
+        currentOrder = JSON.parse(savedOrder);
+    } else {
+        // Default order
+        currentOrder = ['active-clients', 'sessions-week', 'pending-invoices', 
+                       'billable-month', 'current-time', 'navigation'];
+    }
+    
+    // Set dropdown values
+    for (let i = 0; i < 6; i++) {
+        const select = document.getElementById(`position-${i + 1}`);
+        if (select) {
+            select.value = currentOrder[i];
+        }
+    }
+    
+    return currentOrder;
+}
+
+// Handle card swap when dropdown changes
+function handleCardSwap(position) {
+    const select = document.getElementById(`position-${position + 1}`);
+    const newCardId = select.value;
+    
+    // Get the SAVED order from localStorage (the truth)
+    const savedOrder = localStorage.getItem('cardOrder');
+    let currentOrder;
+    
+    if (savedOrder) {
+        currentOrder = JSON.parse(savedOrder);
+    } else {
+        // Default order
+        currentOrder = ['active-clients', 'sessions-week', 'pending-invoices', 
+                       'billable-month', 'current-time', 'navigation'];
+    }
+    
+    // What card WAS in this position?
+    const oldCardId = currentOrder[position];
+    
+    // Where is the newCardId currently?
+    const existingPosition = currentOrder.indexOf(newCardId);
+    
+    if (existingPosition !== -1 && existingPosition !== position) {
+        // Swap them in the array
+        currentOrder[position] = newCardId;
+        currentOrder[existingPosition] = oldCardId;
+        
+        // Update all dropdowns to reflect the swap
+        for (let i = 0; i < 6; i++) {
+            document.getElementById(`position-${i + 1}`).value = currentOrder[i];
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('cardOrder', JSON.stringify(currentOrder));
+        
+        // Show success message briefly
+        const successMsg = document.getElementById('success-message');
+        successMsg.textContent = '✓ Card positions updated! Changes will appear on the main page.';
+        successMsg.classList.add('show');
+        setTimeout(() => {
+            successMsg.classList.remove('show');
+            successMsg.textContent = '✓ Settings saved successfully!';
+        }, 2000);
+    }
 }
 
 // Save settings
