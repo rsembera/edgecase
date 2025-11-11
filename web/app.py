@@ -230,7 +230,7 @@ def client_file(client_id):
     
     # Default: show all classes if none selected
     if not class_filter:
-        class_filter = ['session', 'consultation', 'communication']
+        class_filter = ['session', 'consultation', 'communication', 'absence']
     
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
@@ -238,10 +238,19 @@ def client_file(client_id):
     # Get ALL entries for this client (not just sessions)
     all_entries = db.get_client_entries(client_id)
     
+    # Get current time for calculations
+    from datetime import datetime
+    now = datetime.now()
+    
     # Filter to get only sessions for counting (always count all, regardless of filter)
     session_entries = [e for e in all_entries if e['class'] == 'session']
     session_count = sum(1 for e in session_entries if not e.get('is_consultation'))
     consultation_count = sum(1 for e in session_entries if e.get('is_consultation'))
+    
+    # Count absences for this calendar year only
+    year_start = int(datetime(now.year, 1, 1).timestamp())
+    absence_entries = [e for e in all_entries if e['class'] == 'absence' and (e.get('absence_date') or 0) >= year_start]
+    absence_count = len(absence_entries)
     
     # Filter entries by selected classes for display
     # Note: 'consultation' is a special case - it's a session with is_consultation=1
@@ -259,10 +268,8 @@ def client_file(client_id):
     
     # Group entries by year and month
     from collections import defaultdict
-    from datetime import datetime
     
-    # Get current year and month for default expand state
-    now = datetime.now()
+    # Get current year and month for default expand state (reuse now from above)
     current_year = now.year
     current_month = now.month
     
@@ -276,6 +283,8 @@ def client_file(client_id):
             date_field = entry['session_date']
         elif entry['class'] == 'communication' and entry.get('comm_date'):
             date_field = entry['comm_date']
+        elif entry['class'] == 'absence' and entry.get('absence_date'):
+            date_field = entry['absence_date']
         # Add more entry types here as we implement them
         
         if date_field:
@@ -297,6 +306,8 @@ def client_file(client_id):
                     return e.get('session_date', 0)
                 elif e['class'] == 'communication':
                     return e.get('comm_date', 0)
+                elif e['class'] == 'absence':
+                    return e.get('absence_date', 0)
                 return 0
             
             month_entries = sorted(year_dict[year][month], 
@@ -328,6 +339,7 @@ def client_file(client_id):
                          entries_by_year=entries_by_year,
                          session_count=session_count,
                          consultation_count=consultation_count,
+                         absence_count=absence_count,
                          class_filter=class_filter)
 
 @app.route('/client/<int:client_id>/change_type', methods=['POST'])
@@ -703,6 +715,112 @@ def edit_communication(client_id, entry_id):
                          has_links=has_links,
                          linked_clients=linked_clients)
     
+@app.route('/client/<int:client_id>/absence', methods=['GET', 'POST'])
+def create_absence(client_id):
+    """Create a new absence entry for a client."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp
+        absence_date_str = request.form.get('absence_date')
+        absence_date_timestamp = None
+        if absence_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            absence_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare absence data
+        absence_data = {
+            'client_id': client_id,
+            'class': 'absence',
+            'description': request.form['description'],
+            'absence_date': absence_date_timestamp,
+            'absence_time': request.form.get('absence_time', ''),
+            'fee': float(request.form.get('fee', 0)),
+            'content': request.form.get('content', '')
+        }
+        
+        # Save absence
+        db.add_entry(absence_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/absence.html',
+                         client=client,
+                         client_type=client_type,
+                         today=today,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
+
+@app.route('/client/<int:client_id>/absence/<int:entry_id>', methods=['GET', 'POST'])
+def edit_absence(client_id, entry_id):
+    """Edit existing absence entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    absence = db.get_entry(entry_id)
+    
+    if not absence or absence['class'] != 'absence':
+        return "Absence not found", 404
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp
+        absence_date_str = request.form.get('absence_date')
+        absence_date_timestamp = None
+        if absence_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            absence_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare updated absence data
+        absence_data = {
+            'description': request.form['description'],
+            'absence_date': absence_date_timestamp,
+            'absence_time': request.form.get('absence_time', ''),
+            'fee': float(request.form.get('fee', 0)),
+            'content': request.form.get('content', '')
+        }
+        
+        # Save updated absence
+        db.update_entry(entry_id, absence_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form with existing data
+    # Convert timestamp back to date string
+    from datetime import datetime
+    absence_date = datetime.fromtimestamp(absence['absence_date']).strftime('%Y-%m-%d') if absence.get('absence_date') else None
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/absence.html',
+                         client=client,
+                         client_type=client_type,
+                         entry=absence,
+                         absence_date=absence_date,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
+
 @app.route('/types')
 def manage_types():
     """Manage client types."""
