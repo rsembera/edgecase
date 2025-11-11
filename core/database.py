@@ -120,6 +120,10 @@ class Database:
                 comm_date INTEGER,
                 comm_time TEXT,
                 
+                -- Absence-specific fields
+                absence_date INTEGER,
+                absence_time TEXT,
+                
                 -- Statement-specific fields
                 statement_total REAL,
                 payment_status TEXT,
@@ -207,6 +211,8 @@ class Database:
         required_columns = {
             'comm_date': 'INTEGER',
             'comm_time': 'TEXT',
+            'absence_date': 'INTEGER',
+            'absence_time': 'TEXT',
             # Add future migrations here as needed
         }
         
@@ -516,7 +522,9 @@ class Database:
             'emergency_contact_relationship', 'referral_source', 'additional_info',
             'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
             'duration', 'fee', 'is_consultation', 'mood', 'affect', 'risk_assessment',
-            'comm_recipient', 'comm_type', 'comm_date', 'comm_time', 'statement_total', 'payment_status',
+            'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
+            'absence_date', 'absence_time',
+            'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at'
         ]
