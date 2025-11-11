@@ -115,11 +115,28 @@
         
         <div class="form-group">
             <label for="background-style">Background</label>
-            <select id="background-style">
+            <select id="background-style" onchange="updateDeleteButton()">
                 <option value="suit-grey">Suit Grey (Solid)</option>
                 <!-- Background images will be added by JavaScript -->
             </select>
+            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none; background: #E7CFD4; color: #6A243E;">
+                🗑️ Delete
+            </button>
         </div>
+        
+        <div class="form-group">
+            <label for="background-upload">Upload New Background</label>
+            <input type="file" id="background-upload" accept="image/*" style="display: none;">
+            <button onclick="document.getElementById('background-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                Choose Image
+            </button>
+            <span id="upload-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
+            <button onclick="uploadBackground()" id="upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+                Upload
+            </button>
+        </div>
+        
+        <div id="upload-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
     
     <!-- Card Layout Section -->
@@ -234,6 +251,9 @@ function loadCurrentSettings() {
     
     // Load card positions
     loadCardPositions();
+    
+    // Update delete button visibility
+    updateDeleteButton();
 }
 
 // Card layout management
@@ -317,6 +337,197 @@ function handleCardSwap(position) {
     }
 }
 
+// Track which backgrounds are user-uploaded
+let userBackgrounds = [];
+
+// Load available background images
+async function loadBackgroundOptions() {
+    try {
+        const response = await fetch('/api/backgrounds');
+        const data = await response.json();
+        
+        // Separate system and user backgrounds
+        const systemBackgrounds = data.system || [];
+        userBackgrounds = data.user || [];
+        
+        const select = document.getElementById('background-style');
+        
+        // Clear existing options except "Suit Grey"
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
+        // Add system backgrounds
+        if (systemBackgrounds.length > 0) {
+            const systemGroup = document.createElement('optgroup');
+            systemGroup.label = 'System Backgrounds';
+            systemBackgrounds.forEach(bg => {
+                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const option = document.createElement('option');
+                option.value = 'system:' + bg;
+                option.textContent = displayName;
+                systemGroup.appendChild(option);
+            });
+            select.appendChild(systemGroup);
+        }
+        
+        // Add user backgrounds
+        if (userBackgrounds.length > 0) {
+            const userGroup = document.createElement('optgroup');
+            userGroup.label = 'My Backgrounds';
+            userBackgrounds.forEach(bg => {
+                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const option = document.createElement('option');
+                option.value = 'user:' + bg;
+                option.textContent = displayName;
+                userGroup.appendChild(option);
+            });
+            select.appendChild(userGroup);
+        }
+        
+        // Load current settings after options are populated
+        loadCurrentSettings();
+    } catch (error) {
+        console.error('Failed to load background options:', error);
+        loadCurrentSettings();
+    }
+}
+
+// Show/hide delete button based on selection
+function updateDeleteButton() {
+    const select = document.getElementById('background-style');
+    const deleteBtn = document.getElementById('delete-bg-button');
+    
+    // Show delete button only for user backgrounds
+    if (select.value.startsWith('user:')) {
+        deleteBtn.style.display = 'inline-block';
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+}
+
+// Delete user background
+async function deleteBackground() {
+    const select = document.getElementById('background-style');
+    const selectedValue = select.value;
+    
+    if (!selectedValue.startsWith('user:')) {
+        alert('Can only delete user-uploaded backgrounds');
+        return;
+    }
+    
+    const filename = selectedValue.replace('user:', '');
+    
+    if (!confirm(`Delete background "${filename}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/delete_background', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filename: filename })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.textContent = '✓ Background deleted successfully!';
+            statusDiv.style.display = 'block';
+            
+            // If this was the selected background, switch to default
+            const backgroundStyle = localStorage.getItem('backgroundStyle');
+            if (backgroundStyle === selectedValue) {
+                localStorage.setItem('backgroundStyle', 'suit-grey');
+                applyTheme(); // Apply the new theme immediately
+            }
+            
+            // Reload background options
+            await loadBackgroundOptions();
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Delete failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Delete failed: ' + error.message);
+    }
+}
+
+// Show filename when file is selected
+document.getElementById('background-upload').addEventListener('change', function(e) {
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('upload-filename').textContent = filename;
+        document.getElementById('upload-button').style.display = 'inline-block';
+    }
+});
+
+// Upload background image
+async function uploadBackground() {
+    const fileInput = document.getElementById('background-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('background', file);
+    
+    try {
+        const response = await fetch('/upload_background', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.textContent = '✓ Background uploaded successfully!';
+            statusDiv.style.display = 'block';
+            
+            // Clear the file input
+            fileInput.value = '';
+            document.getElementById('upload-filename').textContent = '';
+            document.getElementById('upload-button').style.display = 'none';
+            
+            // Reload background options to include the new one
+            await loadBackgroundOptions();
+            
+            // Auto-select the newly uploaded background
+            document.getElementById('background-style').value = 'user:' + result.filename;
+            updateDeleteButton();
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Upload failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Upload failed: ' + error.message);
+    }
+}
+
 // Save settings
 function saveSettings() {
     const cardStyle = document.getElementById('card-style').value;
@@ -335,37 +546,6 @@ function saveSettings() {
     setTimeout(() => {
         successMsg.classList.remove('show');
     }, 3000);
-}
-
-// Load available background images
-async function loadBackgroundOptions() {
-    try {
-        const response = await fetch('/api/backgrounds');
-        const backgrounds = await response.json();
-        
-        // Create array of {filename, displayName} objects and sort by display name
-        const backgroundOptions = backgrounds.map(bg => {
-            const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            return { filename: bg, displayName: displayName };
-        });
-        
-        // Sort alphabetically by display name
-        backgroundOptions.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        
-        const select = document.getElementById('background-style');
-        backgroundOptions.forEach(bg => {
-            const option = document.createElement('option');
-            option.value = bg.filename;
-            option.textContent = bg.displayName;
-            select.appendChild(option);
-        });
-        
-        // Load current settings after options are populated
-        loadCurrentSettings();
-    } catch (error) {
-        console.error('Failed to load background options:', error);
-        loadCurrentSettings();
-    }
 }
 
 // Initialize on page load

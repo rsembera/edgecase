@@ -948,22 +948,100 @@ def settings_page():
 
 @app.route('/api/backgrounds')
 def list_backgrounds():
-    """Return list of background images available."""
-    from pathlib import Path
+    """Return list of available backgrounds separated by system and user"""
     import os
     
-    img_dir = Path(__file__).parent / 'static' / 'img'
+    # System backgrounds (bundled)
+    system_dir = Path(__file__).parent / 'static' / 'img'
+    system_backgrounds = []
     
-    if not img_dir.exists():
-        return jsonify([])
+    if system_dir.exists():
+        for file in system_dir.iterdir():
+            if file.is_file() and file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                system_backgrounds.append(file.name)
     
-    # Get all image files
-    backgrounds = []
-    for file in os.listdir(img_dir):
-        if file.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')):
-            backgrounds.append(file)
+    # User backgrounds (uploaded)
+    user_dir = Path(__file__).parent / 'static' / 'user_backgrounds'
+    user_backgrounds = []
     
-    return jsonify(backgrounds)
+    if user_dir.exists():
+        for file in user_dir.iterdir():
+            if file.is_file() and file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                user_backgrounds.append(file.name)
+    
+    return jsonify({
+        'system': sorted(system_backgrounds),
+        'user': sorted(user_backgrounds)
+    })
+
+
+@app.route('/upload_background', methods=['POST'])
+def upload_background():
+    """Handle background image upload to user_backgrounds directory"""
+    if 'background' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['background']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'Invalid file type. Use: png, jpg, jpeg, gif, or webp'})
+    
+    # Create safe filename
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file.filename)
+    
+    # Create user_backgrounds directory if it doesn't exist
+    upload_dir = Path(__file__).parent / 'static' / 'user_backgrounds'
+    upload_dir.mkdir(exist_ok=True)
+    
+    # Save to user_backgrounds directory
+    upload_path = upload_dir / filename
+    
+    try:
+        file.save(str(upload_path))
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/delete_background', methods=['POST'])
+def delete_background():
+    """Delete a user-uploaded background"""
+    import os
+    
+    data = request.get_json()
+    filename = data.get('filename')
+    
+    if not filename:
+        return jsonify({'success': False, 'error': 'No filename provided'})
+    
+    # Only allow deleting from user_backgrounds directory
+    user_dir = Path(__file__).parent / 'static' / 'user_backgrounds'
+    file_path = user_dir / filename
+    
+    # Security check: ensure the file is actually in user_backgrounds
+    try:
+        file_path = file_path.resolve()
+        user_dir = user_dir.resolve()
+        
+        if not str(file_path).startswith(str(user_dir)):
+            return jsonify({'success': False, 'error': 'Invalid file path'})
+        
+        if file_path.exists():
+            os.remove(file_path)
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'File not found'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/add_type', methods=['POST'])
 def add_type():

@@ -232,29 +232,41 @@
     </script>
     
     <script>
-        // Apply theme on page load - runs on ALL pages
-        function applyTheme() {
-            const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
-            const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
-            
-            // Apply card style (only affects stat cards on main view)
-            if (cardStyle === 'tutti-frutti') {
-                document.body.classList.add('tutti-frutti');
-            } else {
-                document.body.classList.remove('tutti-frutti');
-            }
-            
-            // Apply background style (affects all pages)
-            if (backgroundStyle === 'suit-grey') {
-                document.body.style.background = '#EDF2F5';
-                document.body.style.backgroundImage = 'none';
-            } else {
-                document.body.style.background = '#EDF2F5';
-                document.body.style.backgroundImage = `url('/static/img/${backgroundStyle}')`;
-                document.body.style.backgroundSize = 'cover';
-                document.body.style.backgroundAttachment = 'fixed';
-            }
+    function applyTheme() {
+        const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
+        const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+        
+        // Apply card style
+        if (cardStyle === 'tutti-frutti') {
+            document.body.classList.add('tutti-frutti');
+        } else {
+            document.body.classList.remove('tutti-frutti');
         }
+        
+        // Apply background
+        if (backgroundStyle === 'suit-grey') {
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = '#EDF2F5';
+        } else {
+            // Parse the background value (system:filename or user:filename)
+            let bgPath;
+            if (backgroundStyle.startsWith('system:')) {
+                const filename = backgroundStyle.replace('system:', '');
+                bgPath = `/static/img/${filename}`;
+            } else if (backgroundStyle.startsWith('user:')) {
+                const filename = backgroundStyle.replace('user:', '');
+                bgPath = `/static/user_backgrounds/${filename}`;
+            } else {
+                // Legacy format (no prefix) - assume system
+                bgPath = `/static/img/${backgroundStyle}`;
+            }
+            
+            document.body.style.backgroundImage = `url('${bgPath}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+            document.body.style.backgroundAttachment = 'fixed';
+        }
+    }
         
         // Apply theme immediately
         applyTheme();
