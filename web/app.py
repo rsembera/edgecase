@@ -230,7 +230,7 @@ def client_file(client_id):
     
     # Default: show all classes if none selected
     if not class_filter:
-        class_filter = ['session', 'consultation', 'communication', 'absence']
+        class_filter = ['session', 'consultation', 'communication', 'absence', 'item']
     
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
@@ -285,6 +285,8 @@ def client_file(client_id):
             date_field = entry['comm_date']
         elif entry['class'] == 'absence' and entry.get('absence_date'):
             date_field = entry['absence_date']
+        elif entry['class'] == 'item' and entry.get('item_date'):
+            date_field = entry['item_date']
         # Add more entry types here as we implement them
         
         if date_field:
@@ -308,6 +310,8 @@ def client_file(client_id):
                     return e.get('comm_date', 0)
                 elif e['class'] == 'absence':
                     return e.get('absence_date', 0)
+                elif e['class'] == 'item':
+                    return e.get('item_date', 0)
                 return 0
             
             month_entries = sorted(year_dict[year][month], 
@@ -818,6 +822,116 @@ def edit_absence(client_id, entry_id):
                          client_type=client_type,
                          entry=absence,
                          absence_date=absence_date,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
+
+@app.route('/client/<int:client_id>/item', methods=['GET', 'POST'])
+def create_item(client_id):
+    """Create a new item entry for a client."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp (optional for items)
+        item_date_str = request.form.get('item_date')
+        item_date_timestamp = None
+        if item_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
+            item_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare item data
+        item_data = {
+            'client_id': client_id,
+            'class': 'item',
+            'description': request.form['description'],
+            'item_date': item_date_timestamp,
+            'item_time': request.form.get('item_time', ''),
+            'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
+            'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
+            'fee': float(request.form.get('total_price', 0)),  # Total price = fee
+            'content': request.form.get('content', '')
+        }
+        
+        # Save item
+        db.add_entry(item_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/item.html',
+                         client=client,
+                         client_type=client_type,
+                         today=today,
+                         has_links=has_links,
+                         linked_clients=linked_clients)
+
+@app.route('/client/<int:client_id>/item/<int:entry_id>', methods=['GET', 'POST'])
+def edit_item(client_id, entry_id):
+    """Edit existing item entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    item = db.get_entry(entry_id)
+    
+    if not item or item['class'] != 'item':
+        return "Item not found", 404
+    
+    if request.method == 'POST':
+        # Convert date string to Unix timestamp (optional for items)
+        item_date_str = request.form.get('item_date')
+        item_date_timestamp = None
+        if item_date_str:
+            from datetime import datetime
+            date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
+            item_date_timestamp = int(date_obj.timestamp())
+        
+        # Prepare updated item data
+        item_data = {
+            'description': request.form['description'],
+            'item_date': item_date_timestamp,
+            'item_time': request.form.get('item_time', ''),
+            'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
+            'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
+            'fee': float(request.form.get('total_price', 0)),  # Total price = fee
+            'content': request.form.get('content', '')
+        }
+        
+        # Save updated item
+        db.update_entry(entry_id, item_data)
+        
+        # TODO: Handle link_entry checkbox when linking is implemented
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form with existing data
+    # Convert timestamp back to date string
+    from datetime import datetime
+    item_date = datetime.fromtimestamp(item['item_date']).strftime('%Y-%m-%d') if item.get('item_date') else None
+    
+    # TODO: Check if client has links
+    has_links = False
+    linked_clients = []
+    
+    return render_template('entry_forms/item.html',
+                         client=client,
+                         client_type=client_type,
+                         entry=item,
+                         item_date=item_date,
                          has_links=has_links,
                          linked_clients=linked_clients)
 
