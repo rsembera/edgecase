@@ -40,15 +40,19 @@ def timestamp_to_date(timestamp):
 
 def renumber_sessions(client_id):
     """Recalculate session numbers for a client based on chronological order."""
+    # Get client to check for session offset
+    client = db.get_client(client_id)
+    offset = client.get('session_offset', 0)  # Default to 0 if not set
+    
     # Get all non-consultation sessions with dates
     all_sessions = db.get_client_entries(client_id, 'session')
     dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
     
-    # Sort by date, then by ID for stable ordering
+    # Sort by date, then by ID
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
     
-    # Renumber sessions
-    for i, session in enumerate(dated_sessions, start=1):
+    # Renumber sessions starting from (offset + 1)
+    for i, session in enumerate(dated_sessions, start=offset + 1):
         if session['session_number'] != i:
             db.update_entry(session['id'], {
                 'session_number': i,
@@ -406,7 +410,8 @@ def add_client():
             'first_name': request.form['first_name'],
             'middle_name': request.form.get('middle_name', ''),
             'last_name': request.form['last_name'],
-            'type_id': int(request.form['type_id'])
+            'type_id': int(request.form['type_id']),
+            'session_offset': int(request.form.get('session_offset', 0))  # ADD THIS LINE
         }
         
         # Add client to database
@@ -569,10 +574,13 @@ def create_session(client_id):
     dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
 
+    # Get client's session offset
+    offset = client.get('session_offset', 0)
+
     # Count how many sessions are before or on today's date
     today_timestamp = int(today_dt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     sessions_before_today = sum(1 for s in dated_sessions if s['session_date'] <= today_timestamp)
-    preview_session_number = sessions_before_today + 1
+    preview_session_number = sessions_before_today + offset + 1
 
     # Get all sessions for navigation
     prev_session_id = None

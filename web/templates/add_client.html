@@ -76,6 +76,13 @@
                 {% endfor %}
             </select>
         </div>
+
+        <div class="form-group">
+            <label for="session_offset">Starting Session Number</label>
+            <input type="number" id="session_offset" name="session_offset" 
+                value="0" min="0">
+            <small>For new clients, leave at 0.<br />For migrated clients: if they've had 15 sessions elsewhere, enter 15 (next session will be #16)</small>
+        </div>
         
         <div class="form-group">
             <label for="file_number">File Number</label>
