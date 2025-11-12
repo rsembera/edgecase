@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ledger-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .controls-bar {
+        background: #E3E9EE;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .filter-search-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    /* Dropdown button */
+    .dropdown-btn {
+        padding: 0.75rem 1.25rem;
+        background: #FBFCFD;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #323B45;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+    }
+    
+    .dropdown-btn:hover {
+        border-color: #1F8F74;
+        color: #1F8F74;
+    }
+    
+    .dropdown-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    
+    /* Search box */
+    .search-box {
+        position: relative;
+    }
+    
+    .search-box input {
+        padding: 0.75rem 2.5rem 0.75rem 1rem;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        width: 300px;
+        transition: all 0.2s;
+    }
+    
+    .search-box input:focus {
+        outline: none;
+        border-color: #1F8F74;
+        box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+    }
+    
+    .search-box input:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    
+    .search-icon {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9CA3AF;
+        font-size: 1.125rem;
+    }
+    
+    .ledger-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .ledger-table th {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        background: #f7fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #4a5568;
+    }
+    
+    .ledger-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .year-header {
+        background: #2d3748;
+        color: white;
+        padding: 1rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        border-radius: 0.5rem;
+    }
+    
+    .year-header:hover {
+        background: #1a202c;
+    }
+    
+    .month-header {
+        background: #edf2f7;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #cbd5e0;
+    }
+    
+    .month-header:hover {
+        background: #e2e8f0;
+    }
+    
+    .year-content {
+        display: none;
+    }
+    
+    .year-content.expanded {
+        display: block;
+    }
+    
+    .month-content {
+        display: none;
+    }
+    
+    .month-content.expanded {
+        display: block;
+    }
+    
+    .income-amount {
+        color: #0E5346;
+        font-weight: 600;
+    }
+    
+    .expense-amount {
+        color: #6B2832;
+        font-weight: 600;
+    }
+    
+    .placeholder-message {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #718096;
+        background: #f7fafc;
+        border-radius: 0.5rem;
+        margin: 2rem 0;
+    }
+    
+    .placeholder-message h3 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="ledger-header">
+        <div>
+            <h2>Ledger</h2>
+            <p style="color: #718096; margin-top: 0.5rem;">Track income and expenses for your practice</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
+    </div>
+    
+    <!-- Controls Bar: Filter, Search, and Action Buttons -->
+    <div class="controls-bar">
+        <div class="filter-search-group">
+            <!-- Category Filter Dropdown -->
+            <div style="position: relative;">
+                <button class="dropdown-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Category: All ▾
+                </button>
+            </div>
+            
+            <!-- Search Box -->
+            <div class="search-box">
+                <input type="text" placeholder="Search amount or description..." disabled style="opacity: 0.5; cursor: not-allowed;">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">+ Income</button>
+            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">+ Expense</button>
+            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">Report</button>
+        </div>
+    </div>
+    
+    <!-- Placeholder Message -->
+    <div class="placeholder-message">
+        <h3>Ledger Coming in Week 4</h3>
+        <p>Income and expense tracking with automatic invoice integration will be available soon.</p>
+        <p style="margin-top: 1rem; font-size: 0.875rem;">
+            <strong>Features:</strong> Auto-generate income from paid invoices • Track expenses with receipts • 
+            User-defined categories • Generate tax reports
+        </p>
+    </div>
+    
+    <!-- Sample Year/Month Structure (will be populated with real data in Week 4) -->
+    <div class="year-header" onclick="toggleYear('2025')" style="opacity: 0.5; cursor: not-allowed;">
+        <span style="font-size: 1.125rem; font-weight: 600;">2025</span>
+        <span id="year-arrow-2025">▼</span>
+    </div>
+    
+    <div id="year-2025" class="year-content">
+        <div class="month-header" onclick="toggleMonth('2025-11')" style="opacity: 0.5; cursor: not-allowed;">
+            <span style="font-weight: 600;">November 2025</span>
+            <span id="month-arrow-2025-11">▼</span>
+        </div>
+        
+        <div id="month-2025-11" class="month-content">
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">Date</th>
+                        <th style="width: 20%;">Category</th>
+                        <th style="width: 15%;">Amount</th>
+                        <th style="width: 53%;">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="opacity: 0.5;">
+                        <td>Nov 10</td>
+                        <td>Income</td>
+                        <td class="income-amount">$600.00</td>
+                        <td>20251101-JB (Session payment)</td>
+                    </tr>
+                    <tr style="opacity: 0.5;">
+                        <td>Nov 8</td>
+                        <td>Office Supplies</td>
+                        <td class="expense-amount">$45.50</td>
+                        <td>Paper and pens from Staples</td>
+                    </tr>
+                    <tr style="opacity: 0.5;">
+                        <td>Nov 5</td>
+                        <td>Income</td>
+                        <td class="income-amount">$150.00</td>
+                        <td>20251102-AS (Consultation)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Year/month toggle functions (disabled for placeholder)
+    function toggleYear(yearId) {
+        // Disabled in placeholder - will be functional in Week 4
+        return false;
+    }
+    
+    function toggleMonth(monthId) {
+        // Disabled in placeholder - will be functional in Week 4
+        return false;
+    }
+</script>
+{% endblock %}
