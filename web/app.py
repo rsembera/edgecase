@@ -1069,7 +1069,8 @@ def practice_info():
             'practice_name', 'therapist_name', 'credentials', 'email', 'phone',
             'address_line_1', 'address_line_2', 'address_line_3', 'website',
             'consultation_fee', 'consultation_duration',
-            'logo_filename', 'signature_filename'
+            'logo_filename', 'signature_filename',
+            'currency'  # Add this
         ]
         
         placeholders = ','.join(['?' for _ in keys])
@@ -1100,6 +1101,7 @@ def practice_info():
             'address_line_2': data.get('address_line_2', ''),
             'address_line_3': data.get('address_line_3', ''),
             'website': data.get('website', ''),
+            'currency': data.get('currency', 'CAD'),
             'consultation_fee': data.get('consultation_fee', '0.00'),
             'consultation_duration': data.get('consultation_duration', '20')
         }

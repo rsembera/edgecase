@@ -307,6 +307,19 @@
             <label for="website">Website (optional)</label>
             <input type="url" id="website" placeholder="e.g., https://practice.com">
         </div>
+
+        <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency">
+                <option value="CAD">$ CAD - Canadian Dollar</option>
+                <option value="USD">$ USD - US Dollar</option>
+                <option value="EUR">€ EUR - Euro</option>
+                <option value="GBP">£ GBP - British Pound</option>
+                <option value="AUD">$ AUD - Australian Dollar</option>
+                <option value="INR">₹ INR - Indian Rupee</option>
+                <option value="JPY">¥ JPY - Japanese Yen</option>
+            </select>
+        </div>
         
         <div class="form-group">
             <label for="consultation-fee">Consultation Base Fee</label>
@@ -706,10 +719,22 @@ async function uploadBackground() {
 
 // Save settings
 async function saveSettings() {
-    // Save practice info to database
+    // Validate phone number FIRST
+    const practicePhone = document.getElementById('practice-phone').value;
+
+    if (practicePhone && !validatePhone(practicePhone)) {
+        alert('Practice phone must be 10-15 digits');
+        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
+        return; // Stop here, don't save
+    }
+    
+    // Reset border color
+    document.getElementById('practice-phone').style.borderColor = '';
+    
+    // THEN save practice info to database
     await savePracticeInfo();
     
-    // Show success message
+    // THEN show success message
     const successMsg = document.getElementById('success-message');
     successMsg.classList.add('show');
     setTimeout(() => {
@@ -736,6 +761,7 @@ async function loadPracticeInfo() {
             document.getElementById('address-line-3').value = data.info.address_line_3 || '';
             document.getElementById('website').value = data.info.website || '';
             document.getElementById('consultation-fee').value = data.info.consultation_fee || '0.00';
+            document.getElementById('currency').value = data.info.currency || 'CAD';
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
             // Show current logo/signature status
@@ -772,6 +798,7 @@ async function savePracticeInfo() {
         address_line_2: document.getElementById('address-line-2').value,
         address_line_3: document.getElementById('address-line-3').value,
         website: document.getElementById('website').value,
+        currency: document.getElementById('currency').value,
         consultation_fee: document.getElementById('consultation-fee').value,
         consultation_duration: document.getElementById('consultation-duration').value
     };
@@ -805,11 +832,21 @@ async function savePracticeInfo() {
     }
 }
 
-// Phone number formatting (from profile.html)
+// Phone number formatting with extension support (up to 5 digits) and international bypass
 const practicePhoneInput = document.getElementById('practice-phone');
 
 practicePhoneInput.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    let rawValue = e.target.value;
+    
+    // If starts with +, it's international - don't format, just limit length
+    if (rawValue.startsWith('+')) {
+        // Allow + and up to 20 digits
+        let cleaned = '+' + rawValue.slice(1).replace(/\D/g, '');
+        e.target.value = cleaned.substring(0, 21); // + plus 20 digits
+        return;
+    }
+    
+    let value = rawValue.replace(/\D/g, ''); // Remove non-digits
     
     if (value.length <= 10) {
         // Format as (123) 456-7890
@@ -820,18 +857,39 @@ practicePhoneInput.addEventListener('input', function(e) {
         } else if (value.length > 0) {
             value = `(${value}`;
         }
-    } else if (value.length <= 12) {
-        // Allow up to 12 digits (international)
+    } else if (value.length <= 15) {
+        // Allow up to 15 digits (10 + 5 digit extension)
         value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
     } else {
-        // Truncate at 12 digits
-        value = value.slice(0, 12);
+        // Truncate at 15 digits
+        value = value.slice(0, 15);
         value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
     }
     
     e.target.value = value;
 });
 
+// Validate phone number has 10-15 digits (or international format)
+function validatePhone(phoneValue) {
+    if (!phoneValue) return true; // Empty is okay
+    
+    // International format: starts with + and has 10-20 digits after it
+    if (phoneValue.startsWith('+')) {
+        const digitsOnly = phoneValue.slice(1).replace(/\D/g, '');
+        return digitsOnly.length >= 10 && digitsOnly.length <= 20;
+    }
+    
+    // North American format: 10-15 digits
+    const digitsOnly = phoneValue.replace(/\D/g, '');
+    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+}
+
+// Validate phone number has 10-15 digits
+function validatePhone(phoneValue) {
+    if (!phoneValue) return true; // Empty is okay
+    const digitsOnly = phoneValue.replace(/\D/g, '');
+    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+}
 // Currency formatting for consultation fee
 const consultationFeeInput = document.getElementById('consultation-fee');
 
