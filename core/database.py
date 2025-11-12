@@ -64,6 +64,7 @@ class Database:
                 middle_name TEXT,
                 last_name TEXT NOT NULL,
                 type_id INTEGER NOT NULL,
+                session_offset INTEGER DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 modified_at INTEGER NOT NULL,
                 is_deleted INTEGER DEFAULT 0,
@@ -222,11 +223,10 @@ class Database:
             'item_date': 'INTEGER',
             'item_time': 'TEXT',
             'base_price': 'REAL',
-            'tax_rate': 'REAL',
-            # Add future migrations here as needed
-        }
+            'tax_rate': 'REAL'
+        }  # <-- CLOSE THE DICTIONARY HERE
         
-        # Add missing columns
+        # Add missing columns to entries table
         for column, col_type in required_columns.items():
             if column not in existing_columns:
                 try:
@@ -235,9 +235,15 @@ class Database:
                 except sqlite3.OperationalError as e:
                     print(f"Migration warning: Could not add column '{column}': {e}")
         
+        # Add session_offset column to clients table
+        cursor.execute("PRAGMA table_info(clients)")
+        client_columns = [col[1] for col in cursor.fetchall()]
+        if 'session_offset' not in client_columns:
+            cursor.execute("ALTER TABLE clients ADD COLUMN session_offset INTEGER DEFAULT 0")
+            print("Migration: Added session_offset column to clients table")
+        
         conn.commit()
         conn.close()
-        
         # ===== HELPER METHODS =====
     
     def get_last_session_date(self, client_id: int) -> Optional[int]:
@@ -419,18 +425,19 @@ class Database:
         cursor.execute("""
             INSERT INTO clients 
             (file_number, first_name, middle_name, last_name, type_id, 
-             created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            session_offset, created_at, modified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             client_data['file_number'],
             client_data['first_name'],
             client_data.get('middle_name', ''),
             client_data['last_name'],
             client_data['type_id'],
+            client_data.get('session_offset', 0),
             now,
             now
         ))
-        
+    
         client_id = cursor.lastrowid
         conn.commit()
         conn.close()
