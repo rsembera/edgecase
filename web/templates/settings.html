@@ -144,7 +144,7 @@
         
         <div class="form-group">
             <label for="card-style">Info Card Style</label>
-            <select id="card-style">
+            <select id="card-style" onchange="saveAndApplyCardStyle()">
                 <option value="strait-laced">Strait-Laced (White cards)</option>
                 <option value="tutti-frutti">Tutti-Frutti (Colored cards)</option>
             </select>
@@ -152,7 +152,7 @@
         
         <div class="form-group">
             <label for="background-style">Background</label>
-            <select id="background-style" onchange="updateDeleteButton()">
+            <select id="background-style" onchange="saveAndApplyBackground()">
                 <option value="suit-grey">Suit Grey (Solid)</option>
                 <!-- Background images will be added by JavaScript -->
             </select>
@@ -706,16 +706,6 @@ async function uploadBackground() {
 
 // Save settings
 async function saveSettings() {
-    const cardStyle = document.getElementById('card-style').value;
-    const backgroundStyle = document.getElementById('background-style').value;
-    
-    // Save to localStorage
-    localStorage.setItem('cardStyle', cardStyle);
-    localStorage.setItem('backgroundStyle', backgroundStyle);
-    
-    // Apply settings (applyTheme is defined in base.html)
-    applyTheme();
-    
     // Save practice info to database
     await savePracticeInfo();
     
@@ -1038,6 +1028,21 @@ async function deleteSignature() {
             alert('Delete failed: ' + error.message);
         }
     });
+}
+
+// Save and apply card style immediately
+function saveAndApplyCardStyle() {
+    const cardStyle = document.getElementById('card-style').value;
+    localStorage.setItem('cardStyle', cardStyle);
+    applyTheme();
+}
+
+// Save and apply background immediately
+function saveAndApplyBackground() {
+    const backgroundStyle = document.getElementById('background-style').value;
+    localStorage.setItem('backgroundStyle', backgroundStyle);
+    applyTheme();
+    updateDeleteButton();
 }
 
 // Initialize on page load
