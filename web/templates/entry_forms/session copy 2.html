@@ -150,37 +150,26 @@
             <div class="form-group">
                 <label for="session_date">Date *</label>
                 <div class="date-input-group">
-                    <select id="year" name="year" required>
+                    <select id="date_year" name="date_year" required>
                         <option value="">Year</option>
                         {% for year in range(2025, 2019, -1) %}
-                        <option value="{{ year }}" 
-                                {% if is_edit and session_year == year %}selected
-                                {% elif not is_edit and today[:4] == year|string %}selected{% endif %}>
-                            {{ year }}
-                        </option>
+                        <option value="{{ year }}" {% if is_edit and session_date and session_date[:4] == year|string %}selected{% elif not is_edit and today[:4] == year|string %}selected{% endif %}>{{ year }}</option>
                         {% endfor %}
                     </select>
-                    <select id="month" name="month" required>
+                    <select id="date_month" name="date_month" required>
                         <option value="">Month</option>
                         {% for month in range(1, 13) %}
-                        <option value="{{ month }}" 
-                                {% if is_edit and session_month == month %}selected
-                                {% elif not is_edit and today[5:7] == '%02d'|format(month) %}selected{% endif %}>
-                            {{ '%02d'|format(month) }}
-                        </option>
+                        <option value="{{ '%02d'|format(month) }}" {% if is_edit and session_date and session_date[5:7] == '%02d'|format(month) %}selected{% elif not is_edit and today[5:7] == '%02d'|format(month) %}selected{% endif %}>{{ '%02d'|format(month) }}</option>
                         {% endfor %}
                     </select>
-                    <select id="day" name="day" required>
+                    <select id="date_day" name="date_day" required>
                         <option value="">Day</option>
                         {% for day in range(1, 32) %}
-                        <option value="{{ day }}" 
-                                {% if is_edit and session_day == day %}selected
-                                {% elif not is_edit and today[8:10] == '%02d'|format(day) %}selected{% endif %}>
-                            {{ '%02d'|format(day) }}
-                        </option>
+                        <option value="{{ '%02d'|format(day) }}" {% if is_edit and session_date and session_date[8:10] == '%02d'|format(day) %}selected{% elif not is_edit and today[8:10] == '%02d'|format(day) %}selected{% endif %}>{{ '%02d'|format(day) }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <input type="hidden" id="session_date" name="session_date" value="{% if is_edit %}{{ session_date }}{% else %}{{ today }}{% endif %}">
             </div>
             
             <div class="form-group">
@@ -278,32 +267,9 @@
             </div>
         </div>
         
-        <!-- Navigation and Action Buttons -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
-            <!-- Cancel (Hard Left) -->
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
             <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
-            
-            <!-- Previous/Next (Center) -->
-            <div style="display: flex; gap: 1rem;">
-                {% if prev_session_id %}
-                <a href="{{ url_for('edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
-                {% else %}
-                <button disabled class="btn" style="opacity: 0.5; cursor: not-allowed;">← Prev</button>
-                {% endif %}
-                
-                {% if next_session_id %}
-                <a href="{{ url_for('edit_session', client_id=client.id, entry_id=next_session_id) }}" class="btn">Next →</a>
-                {% else %}
-                <button disabled class="btn" style="opacity: 0.5; cursor: not-allowed;">Next →</button>
-                {% endif %}
-            </div>
-            
-            <!-- Save Session (Hard Right) -->
-            {% if is_edit %}
-            <button type="submit" class="btn">Save Edits</button>
-            {% else %}
             <button type="submit" class="btn">Save Session</button>
-            {% endif %}
         </div>
     </form>
 </div>
