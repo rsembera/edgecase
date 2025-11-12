@@ -1068,7 +1068,8 @@ def practice_info():
         keys = [
             'practice_name', 'therapist_name', 'credentials', 'email', 'phone',
             'address_line_1', 'address_line_2', 'address_line_3', 'website',
-            'consultation_fee', 'consultation_duration'
+            'consultation_fee', 'consultation_duration',
+            'logo_filename', 'signature_filename'
         ]
         
         placeholders = ','.join(['?' for _ in keys])
@@ -1150,16 +1151,18 @@ def upload_logo():
     try:
         file.save(str(upload_path))
         
-        # Save filename to settings
-        cursor = db.conn.cursor()
+        # Save filename to settings using proper connection
         import time
         modified_at = int(time.time())
-        cursor.execute("""
-            INSERT INTO settings (key, value, modified_at)
-            VALUES ('logo_filename', ?, ?)
-            ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
-        """, (filename, modified_at, filename, modified_at))
-        db.conn.commit()
+        
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO settings (key, value, modified_at)
+                VALUES ('logo_filename', ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
+            """, (filename, modified_at, filename, modified_at))
+            conn.commit()
         
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
@@ -1197,18 +1200,77 @@ def upload_signature():
     try:
         file.save(str(upload_path))
         
-        # Save filename to settings
-        cursor = db.conn.cursor()
+        # Save filename to settings using proper connection
         import time
         modified_at = int(time.time())
-        cursor.execute("""
-            INSERT INTO settings (key, value, modified_at)
-            VALUES ('signature_filename', ?, ?)
-            ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
-        """, (filename, modified_at, filename, modified_at))
-        db.conn.commit()
+        
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO settings (key, value, modified_at)
+                VALUES ('signature_filename', ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
+            """, (filename, modified_at, filename, modified_at))
+            conn.commit()
         
         return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    
+@app.route('/delete_logo', methods=['POST'])
+def delete_logo():
+    """Delete practice logo"""
+    try:
+        # Get current logo filename from settings
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM settings WHERE key = 'logo_filename'")
+            row = cursor.fetchone()
+            
+            if row:
+                filename = row[0]
+                
+                # Delete file from assets directory
+                assets_dir = Path(__file__).parent.parent / 'assets'
+                logo_path = assets_dir / filename
+                
+                if logo_path.exists():
+                    logo_path.unlink()
+                
+                # Remove from settings
+                cursor.execute("DELETE FROM settings WHERE key = 'logo_filename'")
+                conn.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/delete_signature', methods=['POST'])
+def delete_signature():
+    """Delete digital signature"""
+    try:
+        # Get current signature filename from settings
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM settings WHERE key = 'signature_filename'")
+            row = cursor.fetchone()
+            
+            if row:
+                filename = row[0]
+                
+                # Delete file from assets directory
+                assets_dir = Path(__file__).parent.parent / 'assets'
+                signature_path = assets_dir / filename
+                
+                if signature_path.exists():
+                    signature_path.unlink()
+                
+                # Remove from settings
+                cursor.execute("DELETE FROM settings WHERE key = 'signature_filename'")
+                conn.commit()
+        
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

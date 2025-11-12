@@ -330,28 +330,40 @@
         </div>
         
         <div class="form-group">
-            <label for="logo-upload">Practice Logo</label>
+        <label for="logo-upload">Practice Logo</label>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="file" id="logo-upload" accept="image/*" style="display: none;">
             <button onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                 Choose Logo
             </button>
-            <span id="logo-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+            <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+            <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
                 Upload
             </button>
+            <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+            <button onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                🗑️ Delete
+            </button>
         </div>
+    </div>
         
         <div class="form-group">
-            <label for="signature-upload">Digital Signature</label>
+        <label for="signature-upload">Digital Signature</label>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="file" id="signature-upload" accept="image/*" style="display: none;">
             <button onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                 Choose Signature
             </button>
-            <span id="signature-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+            <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+            <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
                 Upload
             </button>
+            <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+            <button onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                🗑️ Delete
+            </button>
         </div>
+    </div>
         
         <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
@@ -367,6 +379,23 @@
         <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
         <button onclick="saveSettings()" class="btn">Save Settings</button>
     </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 1rem; max-width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <h2 id="confirm-title" style="color: #1F2937; margin-bottom: 0.75rem; font-size: 1.375rem; font-weight: 700;">Confirm Delete</h2>
+            <p id="confirm-message" style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.9375rem;">Are you sure?</p>
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="closeConfirmModal()" style="flex: 1; padding: 0.75rem 1.5rem; background: #E2E8F0; color: #4A5568; border: none; border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; font-family: 'Lexend', sans-serif;">
+                    Cancel
+                </button>
+                <button id="confirm-ok-button" style="flex: 1; padding: 0.75rem 1.5rem; background: #E7CFD4; color: #6A243E; border: none; border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; font-family: 'Lexend', sans-serif;">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -383,6 +412,30 @@ function loadCurrentSettings() {
     
     // Update delete button visibility
     updateDeleteButton();
+}
+
+// Confirmation modal helpers
+let confirmCallback = null;
+
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('confirm-modal').style.display = 'flex';
+    
+    confirmCallback = onConfirm;
+    
+    // Set up the OK button click handler
+    document.getElementById('confirm-ok-button').onclick = function() {
+        closeConfirmModal();
+        if (confirmCallback) {
+            confirmCallback();
+        }
+    };
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').style.display = 'none';
+    confirmCallback = null;
 }
 
 // Card layout management
@@ -547,47 +600,41 @@ async function deleteBackground() {
     
     const filename = selectedValue.replace('user:', '');
     
-    if (!confirm(`Delete background "${filename}"?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/delete_background', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ filename: filename })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Show success message
-            const statusDiv = document.getElementById('upload-status');
-            statusDiv.textContent = '✓ Background deleted successfully!';
-            statusDiv.style.display = 'block';
+    showConfirmModal('Delete Background', `Delete background "${filename}"?`, async function() {
+        try {
+            const response = await fetch('/delete_background', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ filename: filename })
+            });
             
-            // If this was the selected background, switch to default
-            const backgroundStyle = localStorage.getItem('backgroundStyle');
-            if (backgroundStyle === selectedValue) {
-                localStorage.setItem('backgroundStyle', 'suit-grey');
-                applyTheme(); // Apply the new theme immediately
+            const result = await response.json();
+            
+            if (result.success) {
+                const statusDiv = document.getElementById('upload-status');
+                statusDiv.textContent = '✓ Background deleted successfully!';
+                statusDiv.style.display = 'block';
+                
+                const backgroundStyle = localStorage.getItem('backgroundStyle');
+                if (backgroundStyle === selectedValue) {
+                    localStorage.setItem('backgroundStyle', 'suit-grey');
+                    applyTheme();
+                }
+                
+                await loadBackgroundOptions();
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Delete failed: ' + result.error);
             }
-            
-            // Reload background options
-            await loadBackgroundOptions();
-            
-            // Hide success message after 3 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
-        } else {
-            alert('Delete failed: ' + result.error);
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
         }
-    } catch (error) {
-        alert('Delete failed: ' + error.message);
-    }
+    });
 }
 
 // Show filename when file is selected
@@ -685,9 +732,9 @@ async function loadPracticeInfo() {
     try {
         const response = await fetch('/api/practice_info');
         const data = await response.json();
-        console.log('Practice info data:', data);
         
         if (data.success && data.info) {
+            console.log('Practice info loaded:', data.info);
             // Populate form fields
             document.getElementById('practice-name').value = data.info.practice_name || '';
             document.getElementById('therapist-name').value = data.info.therapist_name || '';
@@ -700,6 +747,23 @@ async function loadPracticeInfo() {
             document.getElementById('website').value = data.info.website || '';
             document.getElementById('consultation-fee').value = data.info.consultation_fee || '0.00';
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
+            
+            // Show current logo/signature status
+            if (data.info.logo_filename) {
+                document.getElementById('logo-current').textContent = '✓ ' + data.info.logo_filename;
+                document.getElementById('logo-delete-button').style.display = 'inline-block';
+            } else {
+                document.getElementById('logo-current').textContent = '';
+                document.getElementById('logo-delete-button').style.display = 'none';
+            }
+            
+            if (data.info.signature_filename) {
+                document.getElementById('signature-current').textContent = '✓ ' + data.info.signature_filename;
+                document.getElementById('signature-delete-button').style.display = 'inline-block';
+            } else {
+                document.getElementById('signature-current').textContent = '';
+                document.getElementById('signature-delete-button').style.display = 'none';
+            }
         }
     } catch (error) {
         console.error('Failed to load practice info:', error);
@@ -787,6 +851,194 @@ consultationFeeInput.addEventListener('blur', function(e) {
         e.target.value = value.toFixed(2);
     }
 });
+
+// Show filename when logo is selected
+document.getElementById('logo-upload').addEventListener('change', function(e) {
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('logo-filename').textContent = filename;
+        document.getElementById('logo-upload-button').style.display = 'inline-block';
+    }
+});
+
+// Show filename when signature is selected
+document.getElementById('signature-upload').addEventListener('change', function(e) {
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('signature-filename').textContent = filename;
+        document.getElementById('signature-upload-button').style.display = 'inline-block';
+    }
+});
+
+// Upload logo
+async function uploadLogo() {
+    const fileInput = document.getElementById('logo-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('logo', file);
+    
+    try {
+        const response = await fetch('/upload_logo', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('practice-info-status');
+            statusDiv.textContent = '✓ Logo uploaded successfully!';
+            statusDiv.style.display = 'block';
+
+            // Update display
+            document.getElementById('logo-current').textContent = '✓ ' + result.filename;
+            document.getElementById('logo-delete-button').style.display = 'inline-block';
+            
+            // Clear the file input
+            fileInput.value = '';
+            document.getElementById('logo-filename').textContent = '';
+            document.getElementById('logo-upload-button').style.display = 'none';
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Upload failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Upload failed: ' + error.message);
+    }
+}
+
+// Upload signature
+async function uploadSignature() {
+    const fileInput = document.getElementById('signature-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('signature', file);
+    
+    try {
+        const response = await fetch('/upload_signature', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('practice-info-status');
+            statusDiv.textContent = '✓ Signature uploaded successfully!';
+            statusDiv.style.display = 'block';
+
+            // Update display
+            document.getElementById('signature-current').textContent = '✓ ' + result.filename;
+            document.getElementById('signature-delete-button').style.display = 'inline-block';
+            
+            // Clear the file input
+            fileInput.value = '';
+            document.getElementById('signature-filename').textContent = '';
+            document.getElementById('signature-upload-button').style.display = 'none';
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Upload failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Upload failed: ' + error.message);
+    }
+}
+
+// Delete logo
+async function deleteLogo() {
+    showConfirmModal('Delete Logo', 'Delete practice logo?', async function() {
+        try {
+            const response = await fetch('/delete_logo', {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const statusDiv = document.getElementById('practice-info-status');
+                statusDiv.textContent = '✓ Logo deleted successfully!';
+                statusDiv.style.display = 'block';
+                
+                document.getElementById('logo-current').textContent = '';
+                document.getElementById('logo-delete-button').style.display = 'none';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Delete failed: ' + result.error);
+            }
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        }
+    });
+}
+
+// Delete signature
+async function deleteSignature() {
+    showConfirmModal('Delete Signature', 'Delete digital signature?', async function() {
+        try {
+            const response = await fetch('/delete_signature', {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const statusDiv = document.getElementById('practice-info-status');
+                statusDiv.textContent = '✓ Signature deleted successfully!';
+                statusDiv.style.display = 'block';
+                
+                document.getElementById('signature-current').textContent = '';
+                document.getElementById('signature-delete-button').style.display = 'none';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Delete failed: ' + result.error);
+            }
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        }
+    });
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
