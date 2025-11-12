@@ -107,6 +107,18 @@
         font-size: 0.875rem;
         font-weight: 600;
     }
+
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 </style>
 {% endblock %}
 
@@ -301,7 +313,7 @@ textarea.addEventListener('input', autoResize);
 // Tax calculation logic
 const basePrice = document.getElementById('base_price');
 const taxRate = document.getElementById('tax_rate');
-const totalPrice = document.getElementById('total_price');
+const totalPrice = document.getElementById('total_price'); // Correct ID
 
 let lastEdited = null;
 
@@ -335,6 +347,34 @@ taxRate.addEventListener('input', function() {
 totalPrice.addEventListener('input', function() {
     lastEdited = 'total';
     calculateTax();
+});
+
+// Currency formatting functions
+function formatCurrency(input) {
+    let value = parseFloat(input.value);
+    if (!isNaN(value)) {
+        input.value = value.toFixed(2);
+    }
+}
+
+function formatTaxRate(input) {
+    let value = parseFloat(input.value);
+    if (!isNaN(value)) {
+        input.value = value.toFixed(1); // Tax rate to 1 decimal (e.g., 13.0%)
+    }
+}
+
+// Format on blur
+basePrice.addEventListener('blur', function() {
+    formatCurrency(this);
+});
+
+totalPrice.addEventListener('blur', function() {
+    formatCurrency(this);
+});
+
+taxRate.addEventListener('blur', function() {
+    formatTaxRate(this);
 });
 
 // On page load, if editing existing item with values, set lastEdited to make calculations work

@@ -107,6 +107,17 @@
         font-size: 0.875rem;
         font-weight: 600;
     }
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 </style>
 {% endblock %}
 
@@ -245,6 +256,14 @@ function updateAbsenceDate() {
         dateHidden.value = '';
     }
 }
+
+// Currency formatting for fee field
+document.getElementById('fee').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(2);
+    }
+});
 
 dateYear.addEventListener('change', updateAbsenceDate);
 dateMonth.addEventListener('change', updateAbsenceDate);

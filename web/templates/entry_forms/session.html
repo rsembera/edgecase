@@ -312,20 +312,16 @@
             if (data.success && data.info) {
                 consultationFee = data.info.consultation_fee || '0.00';
                 consultationDuration = data.info.consultation_duration || '20';
-                console.log('Loaded consultation settings:', consultationFee, consultationDuration);
             }
         })
         .catch(error => console.error('Failed to load consultation settings:', error));
     
     consultationCheckbox.addEventListener('change', function() {
-        console.log('Checkbox changed. Checked:', this.checked);
-        console.log('Current consultation values:', consultationFee, consultationDuration);
         
         if (this.checked) {
             // Consultation: use settings from database
             feeInput.value = consultationFee;
             durationInput.value = consultationDuration;
-            console.log('Set to consultation values');
             
             {% if not is_edit %}
             sessionNumberDisplay.textContent = 'Consultation';
@@ -334,7 +330,6 @@
             // Regular session: restore original values
             feeInput.value = originalFee;
             durationInput.value = originalDuration;
-            console.log('Restored original values');
             
             {% if not is_edit %}
             sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
