@@ -38,6 +38,23 @@ def timestamp_to_date(timestamp):
 
 # ===== ROUTES =====
 
+def renumber_sessions(client_id):
+    """Recalculate session numbers for a client based on chronological order."""
+    # Get all non-consultation sessions with dates
+    all_sessions = db.get_client_entries(client_id, 'session')
+    dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
+    
+    # Sort by date, then by ID for stable ordering
+    dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
+    
+    # Renumber sessions
+    for i, session in enumerate(dated_sessions, start=1):
+        if session['session_number'] != i:
+            db.update_entry(session['id'], {
+                'session_number': i,
+                'description': f"Session {i}"
+            })
+
 @app.route('/')
 def index():
     """Main view - client list with stats cards."""
@@ -485,9 +502,15 @@ def create_session(client_id):
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
         
-        # Auto-generate session number (count of non-consultation sessions + 1)
-        session_entries = db.get_client_entries(client_id, 'session')
-        non_consultation_count = sum(1 for s in session_entries if not s.get('is_consultation'))
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        session_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            session_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
         
         # Get form data
         session_data = {
@@ -499,7 +522,7 @@ def create_session(client_id):
             # Session fields
             'modality': request.form.get('modality'),
             'format': request.form.get('format'),
-            'session_date': int(datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').timestamp()) if request.form.get('session_date') else None,
+            'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
@@ -515,34 +538,61 @@ def create_session(client_id):
         }
         
         # Set session number and description based on consultation status
+        # Note: session number will be recalculated by renumber_sessions()
         if is_consultation:
             session_data['session_number'] = None
             session_data['fee'] = 0
             session_data['description'] = 'Consultation'
         else:
-            session_number = non_consultation_count + 1
-            session_data['session_number'] = session_number
-            session_data['description'] = f"Session {session_number}"
+            # Temporary number, will be corrected by renumber_sessions()
+            session_data['session_number'] = 999
+            session_data['description'] = 'Session 999'
         
         # Save session entry
         db.add_entry(session_data)
         
+        # Renumber all sessions to maintain chronological order
+        renumber_sessions(client_id)
+        
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET - show form
-    # Get existing sessions to calculate next session number
-    session_entries = db.get_client_entries(client_id, 'session')
-    non_consultation_count = sum(1 for s in session_entries if not s.get('is_consultation'))
-    next_session_number = non_consultation_count + 1
-    
-    # Get today's date for default
-    today = datetime.now().strftime('%Y-%m-%d')
-    
+    # Get today's date for defaults
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
+
+    # Calculate preview session number (what it will be if saved with today's date)
+    all_sessions = db.get_client_entries(client_id, 'session')
+    dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
+    dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
+
+    # Count how many sessions are before or on today's date
+    today_timestamp = int(today_dt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    sessions_before_today = sum(1 for s in dated_sessions if s['session_date'] <= today_timestamp)
+    preview_session_number = sessions_before_today + 1
+
+    # Get all sessions for navigation
+    prev_session_id = None
+    next_session_id = None
+
+    # If there are existing sessions, the "previous" would be the most recent one
+    if dated_sessions:
+        prev_session_id = dated_sessions[-1]['id']  # Most recent session
+
     return render_template('entry_forms/session.html',
-                         client=client,
-                         client_type=client_type,
-                         next_session_number=next_session_number,
-                         today=today)
+                        client=client,
+                        client_type=client_type,
+                        today=today,
+                        today_year=today_year,
+                        today_month=today_month,
+                        today_day=today_day,
+                        next_session_number=preview_session_number,
+                        is_edit=False,
+                        prev_session_id=prev_session_id,
+                        next_session_id=next_session_id)
     
 @app.route('/client/<int:client_id>/session/<int:entry_id>', methods=['GET', 'POST'])
 def edit_session(client_id, entry_id):
@@ -560,6 +610,7 @@ def edit_session(client_id, entry_id):
     
     # Get existing session entry
     session = db.get_entry(entry_id)
+    
     if not session or session['class'] != 'session':
         return "Session not found", 404
     
@@ -567,11 +618,21 @@ def edit_session(client_id, entry_id):
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
         
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        session_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            session_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
         # Update session data
         session_data = {
             'modality': request.form.get('modality'),
             'format': request.form.get('format'),
-            'session_date': int(datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').timestamp()) if request.form.get('session_date') else None,
+            'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
@@ -600,16 +661,46 @@ def edit_session(client_id, entry_id):
         
         return redirect(url_for('client_file', client_id=client_id))
     
-    # GET - show form with existing data
-    # Convert timestamp back to date string
-    session_date = datetime.fromtimestamp(session['session_date']).strftime('%Y-%m-%d') if session.get('session_date') else None
+    # GET request - show form with existing data
+    
+    # Get all sessions for this client (ordered by date, then by ID)
+    all_sessions = db.get_client_entries(client_id, 'session')
+    # Filter out sessions without dates
+    dated_sessions = [s for s in all_sessions if s.get('session_date')]
+    # Sort by date (oldest first), then by ID for stable ordering when dates match
+    dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
+    
+    # Find current session index
+    current_index = None
+    for i, s in enumerate(dated_sessions):
+        if s['id'] == entry_id:
+            current_index = i
+            break
+    
+    # Determine prev/next session IDs (prev = older, next = newer)
+    prev_session_id = dated_sessions[current_index - 1]['id'] if current_index and current_index > 0 else None
+    next_session_id = dated_sessions[current_index + 1]['id'] if current_index is not None and current_index < len(dated_sessions) - 1 else None
+    
+    # Parse session date into year, month, day for dropdowns
+    session_year = None
+    session_month = None
+    session_day = None
+    if session.get('session_date'):
+        session_dt = datetime.fromtimestamp(session['session_date'])
+        session_year = session_dt.year
+        session_month = session_dt.month
+        session_day = session_dt.day
     
     return render_template('entry_forms/session.html',
                          client=client,
                          client_type=client_type,
                          session=session,
-                         session_date=session_date,
-                         is_edit=True)
+                         session_year=session_year,
+                         session_month=session_month,
+                         session_day=session_day,
+                         is_edit=True,
+                         prev_session_id=prev_session_id,
+                         next_session_id=next_session_id)
 
 @app.route('/client/<int:client_id>/communication', methods=['GET', 'POST'])
 def create_communication(client_id):
