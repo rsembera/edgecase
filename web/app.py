@@ -946,6 +946,11 @@ def settings_page():
     """Settings page."""
     return render_template('settings.html')
 
+@app.route('/financials')
+def financials():
+    """Financial tracking - Income and Expense ledger"""
+    return render_template('financials.html')
+
 @app.route('/api/backgrounds')
 def list_backgrounds():
     """Return list of available backgrounds separated by system and user"""
@@ -1275,6 +1280,7 @@ def delete_signature():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+    
 
 # ===== RUN APP =====
 
