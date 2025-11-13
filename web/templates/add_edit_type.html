@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Client Type' if is_edit else 'Add Client Type' }} - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Muted palette styling matching add_client.html */
+    .card {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    h2 {
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #323B45;
+        font-size: 0.875rem;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    input[type="color"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        color: #111827;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+    
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="color"]:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #1F8F74;
+        box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+    }
+    
+    input[type="color"] {
+        height: 50px;
+        cursor: pointer;
+    }
+    
+    textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    
+    small {
+        display: block;
+        margin-top: 0.25rem;
+        color: #5B6571;
+        font-size: 0.875rem;
+    }
+    
+    .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .button-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-delete {
+        background: #F8DCDD;
+        color: #B91C1C;
+    }
+    
+    .btn-delete:hover {
+        background: #F5C2C4;
+    }
+    
+    .locked-notice {
+        background: #FEF3C7;
+        border: 2px solid #FCD34D;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: #92400E;
+    }
+    
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ 'Edit Client Type: ' + type.name if is_edit else 'Add Client Type' }}</h2>
+    <p style="color: #5B6571; margin-top: 0.5rem; margin-bottom: 2rem;">
+        {{ 'Modify client type settings' if is_edit else 'Create a new client type' }}
+    </p>
+    
+    {% if is_edit and type.is_system_locked %}
+    <div class="locked-notice">
+        <strong>⚠️ System Type</strong><br>
+        This is a locked system type ({{ type.name }}). It cannot be edited or deleted.
+    </div>
+    {% endif %}
+    
+    <form method="post" id="type-form">
+        <!-- Name and Code -->
+        <div class="two-col">
+            <div class="form-group">
+                <label for="name">Type Name *</label>
+                <input type="text" 
+                       id="name" 
+                       name="name" 
+                       value="{{ type.name if is_edit else '' }}"
+                       {% if is_edit and type.is_system_locked %}readonly{% endif %}
+                       maxlength="50"
+                       required>
+                <small>Display name (e.g., "Active", "Assessment")</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="code">Code *</label>
+                <input type="text" 
+                       id="code" 
+                       name="code" 
+                       value="{{ type.code if is_edit else '' }}"
+                       {% if is_edit and type.is_system_locked %}readonly{% endif %}
+                       maxlength="4"
+                       style="text-transform: uppercase;"
+                       required>
+                <small>3-4 letter abbreviation (e.g., "ACT", "ASM")</small>
+            </div>
+        </div>
+        
+        <!-- Color -->
+        <div class="form-group">
+            <label for="color">Color *</label>
+            <input type="color" 
+                   id="color" 
+                   name="color" 
+                   value="{{ type.color if is_edit else '#10B981' }}"
+                   {% if is_edit and type.is_system_locked %}disabled{% endif %}
+                   required>
+            <small>Badge color for this type in the UI</small>
+        </div>
+        
+        {% if not (is_edit and type.is_system_locked) %}
+        <!-- Service Description -->
+        <div class="form-group">
+            <label for="service_description">Service Description</label>
+            <input type="text" 
+                   id="service_description" 
+                   name="service_description" 
+                   value="{{ type.service_description if is_edit else '' }}"
+                   maxlength="100"
+                   placeholder="e.g., Psychotherapy, Initial Assessment, CBT">
+            <small>Appears on invoices and statements</small>
+        </div>
+        
+        <!-- Session Duration -->
+        <div class="form-group">
+            <label for="session_duration">Session Duration (minutes)</label>
+            <input type="number" 
+                   id="session_duration" 
+                   name="session_duration" 
+                   value="{{ type.session_duration if is_edit else '' }}"
+                   min="0"
+                   step="5"
+                   placeholder="e.g., 50">
+            <small>Default duration for sessions (optional)</small>
+        </div>
+        
+        <!-- Pricing: Base Price, Tax Rate, Total (3-way calculation) -->
+        <div class="three-col">
+            <div class="form-group">
+                <label for="base_price">Base Price ($)</label>
+                <input type="number" 
+                       id="base_price" 
+                       name="base_price" 
+                       value="{{ '%.2f'|format(type.base_price) if type and type.base_price else '' }}"
+                       min="0"
+                       step="0.01"
+                       placeholder="100.00">
+                <small>Before tax</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="tax_rate">Tax Rate (%)</label>
+                <input type="number" 
+                       id="tax_rate" 
+                       name="tax_rate" 
+                       value="{{ '%.1f'|format(type.tax_rate) if type and type.tax_rate else '' }}"
+                       min="0"
+                       max="100"
+                       step="0.1"
+                       placeholder="13.0">
+                <small>GST/HST/etc.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="session_fee">Total Price ($)</label>
+                <input type="number" 
+                       id="session_fee" 
+                       name="session_fee" 
+                       value="{{ '%.2f'|format(type.session_fee) if type and type.session_fee else '' }}"
+                       min="0"
+                       step="0.01"
+                       placeholder="113.00">
+                <small>Including tax</small>
+            </div>
+        </div>
+        <small style="color: #5B6571; margin-top: -1rem; margin-bottom: 1rem; display: block;">
+            Fill any 2 fields, the 3rd will auto-calculate
+        </small>
+        
+        <!-- Retention Period -->
+        <div class="form-group">
+            <label for="retention_period">Retention Period</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <input type="number" 
+                    id="retention_period" 
+                    name="retention_period" 
+                    value="{% if is_edit and type.retention_period %}{{ (type.retention_period // 365) if type.retention_period >= 365 else ((type.retention_period // 30) if type.retention_period >= 30 else type.retention_period) }}{% endif %}"
+                    min="0"
+                    placeholder="1">
+                <select id="retention_unit" name="retention_unit">
+                    <option value="days" {% if is_edit and type.retention_period and type.retention_period < 30 %}selected{% endif %}>Days</option>
+                    <option value="months" {% if is_edit and type.retention_period and 30 <= type.retention_period < 365 %}selected{% endif %}>Months</option>
+                    <option value="years" {% if not is_edit or not type.retention_period or type.retention_period >= 365 %}selected{% endif %}>Years</option>
+                </select>
+            </div>
+            <small>How long to keep records after client moves to Inactive</small>
+        </div>
+        {% endif %}
+        
+        <div class="button-group">
+            <div>
+                <a href="{{ url_for('manage_types') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                {% if is_edit and not type.is_system_locked %}
+                <button type="button" 
+                        onclick="confirmDelete()" 
+                        class="btn btn-delete">Delete Type</button>
+                {% endif %}
+                
+                {% if not (is_edit and type.is_system_locked) %}
+                <button type="submit" class="btn">
+                    {{ 'Save Changes' if is_edit else 'Create Type' }}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 3-way tax calculation (like item.html)
+    const basePrice = document.getElementById('base_price');
+    const taxRate = document.getElementById('tax_rate');
+    const totalPrice = document.getElementById('session_fee');
+    let lastEditedField = null;
+    
+    basePrice.addEventListener('blur', function() {
+        lastEditedField = 'base';
+        // Format to 2 decimals
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+        calculateTax();
+    });
+
+    taxRate.addEventListener('blur', function() {
+        lastEditedField = 'tax';
+        // Format to 1 decimal
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(1);
+        }
+        calculateTax();
+    });
+
+    totalPrice.addEventListener('blur', function() {
+        lastEditedField = 'total';
+        // Format to 2 decimals
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+        calculateTax();
+    });
+    
+    function calculateTax() {
+        const base = parseFloat(basePrice.value) || 0;
+        const rate = parseFloat(taxRate.value) || 0;
+        const total = parseFloat(totalPrice.value) || 0;
+        
+        // Count how many fields are filled
+        const filledCount = (base > 0 ? 1 : 0) + (rate > 0 ? 1 : 0) + (total > 0 ? 1 : 0);
+        
+        if (filledCount < 2) {
+            // Need at least 2 fields filled
+            return;
+        }
+        
+        // Calculate the missing field
+        if (lastEditedField === 'base' && rate > 0) {
+            // Calculate total from base and rate
+            totalPrice.value = (base * (1 + rate / 100)).toFixed(2);
+        } else if (lastEditedField === 'tax' && base > 0) {
+            // Calculate total from base and rate
+            totalPrice.value = (base * (1 + rate / 100)).toFixed(2);
+        } else if (lastEditedField === 'total' && rate > 0) {
+            // Calculate base from total and rate
+            basePrice.value = (total / (1 + rate / 100)).toFixed(2);
+        } else if (lastEditedField === 'total' && base > 0) {
+            // Calculate tax rate from total and base
+            taxRate.value = (((total - base) / base) * 100).toFixed(1);
+        } else if (lastEditedField === 'base' && total > 0) {
+            // Calculate tax rate from base and total
+            taxRate.value = (((total - base) / base) * 100).toFixed(1);
+        } else if (lastEditedField === 'tax' && total > 0) {
+            // Calculate base from total and rate
+            basePrice.value = (total / (1 + rate / 100)).toFixed(2);
+        }
+    }
+    
+    // Auto-uppercase code field
+    document.getElementById('code').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    
+    // Delete confirmation
+    function confirmDelete() {
+        // Show styled modal instead of alert
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <h3 style="margin-top: 0; color: #B91C1C;">Delete Client Type?</h3>
+                    <p style="color: #323B45; margin: 1rem 0;"><p style="color: #323B45; margin: 1rem 0;">Are you sure you want to delete this client type? You cannot delete a type if clients are assigned to it.</p></p>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="executeDelete()" class="btn btn-delete">Delete Type</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    function executeDelete() {
+        fetch('{{ url_for("delete_type", type_id=type.id) if is_edit else "#" }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '{{ url_for("manage_types") }}';
+            } else {
+                // Show error in modal
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                        <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                            <h3 style="margin-top: 0; color: #B91C1C;">Cannot Delete Type</h3>
+                            <p style="color: #323B45; margin: 1rem 0;">${data.error || 'Cannot delete type'}</p>
+                            <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                                <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn">OK</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(errorDiv);
+                document.querySelector('[style*="position: fixed"]').remove();
+            }
+        })
+        .catch(error => {
+            // Show error in modal
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                        <h3 style="margin-top: 0; color: #B91C1C;">Cannot Delete Type</h3>
+                        <p style="color: #323B45; margin: 1rem 0;">${data.error || 'Cannot delete type'}</p>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn">OK</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            document.querySelector('[style*="position: fixed"]').remove();
+        });
+    }
+</script>
+{% endblock %}

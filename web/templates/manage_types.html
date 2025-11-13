@@ -10,9 +10,35 @@
         margin: 0 auto;
     }
     
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
     h2 {
         color: #111827;
-        margin-bottom: 0.5rem;
+        margin: 0;
+    }
+    
+    .btn-add {
+        padding: 0.75rem 1.5rem;
+        background: #BFDCDC;
+        color: #115D4F;
+        text-decoration: none;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-add:hover {
+        background: #9FCFC0;
+        transform: translateY(-1px);
     }
     
     .type-badge {
@@ -21,7 +47,24 @@
         border-radius: 0.5rem;
         font-size: 0.875rem;
         font-weight: 600;
-        color: white;
+        color: #323B45;
+    }
+    
+    /* Section headers */
+    .section-header {
+        background: #E3E9EE;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: #55607D;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 2rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    
+    .section-header:first-of-type {
+        margin-top: 1.5rem;
     }
     
     /* Table styling */
@@ -29,23 +72,22 @@
         width: 100%;
         border-collapse: collapse;
         background: #FBFCFD;
-        border-radius: 0.75rem;
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        margin-top: 2rem;
+        margin-bottom: 0.5rem;
     }
     
     thead tr {
-        background: #E3E9EE;
+        background: #F2F4F5;
         border-bottom: 2px solid #DEE2E6;
     }
     
     th {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         text-align: left;
         font-weight: 600;
         color: #55607D;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -53,28 +95,30 @@
     tbody tr {
         border-bottom: 1px solid #DEE2E6;
         transition: background 0.2s;
+        cursor: pointer;
     }
     
     tbody tr:hover {
         background: #F2F4F5;
     }
     
+    tbody tr.locked-type {
+        background: #FEF3C7;
+        cursor: default;
+    }
+    
+    tbody tr.locked-type:hover {
+        background: #FEF3C7;
+    }
+    
     td {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         color: #323B45;
     }
     
     small {
         color: #5B6571;
-    }
-    
-    .info-note {
-        color: #5B6571;
-        margin-top: 2rem;
-        padding: 1rem;
-        background: #E3E9EE;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
     }
     
     .btn {
@@ -96,30 +140,46 @@
         background: #9FCFC0;
         transform: translateY(-1px);
     }
+    
+    .locked-indicator {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: #FCD34D;
+        color: #92400E;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 0.25rem;
+        margin-left: 0.5rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Client Types</h2>
-    <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types, session fees, and file numbering</p>
+    <div class="header-row">
+        <div>
+            <h2>Client Types</h2>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types, session fees, and retention periods</p>
+        </div>
+        <a href="{{ url_for('add_type') }}" class="btn-add">+ Type</a>
+    </div>
     
+    <!-- Locked system types -->
+    <div class="section-header">Lifecycle States</div>
     <table>
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Code</th>
                 <th>Color</th>
-                <th>Session Fee</th>
-                <th>Duration</th>
+                <th style="text-align: center;">Status</th>
             </tr>
         </thead>
         <tbody>
-            {% for type in all_types %}
-            <tr>
+            {% for type in locked_types %}
+            <tr class="locked-type">
                 <td>
                     <strong>{{ type.name }}</strong>
-                    {% if type.is_system %}<small>(System)</small>{% endif %}
                 </td>
                 <td>{{ type.code or '-' }}</td>
                 <td>
@@ -127,16 +187,52 @@
                         {{ type.color }}
                     </span>
                 </td>
-                <td>${{ type.session_fee or 0 }}</td>
+                <td style="text-align: center;">
+                    <span class="locked-indicator">🔒 LOCKED</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <small style="color: #5B6571; display: block; margin-bottom: 1rem;">
+        Locked system types for client lifecycle management (cannot be edited or deleted)
+    </small>
+    
+    <!-- Editable therapy types -->
+    <div class="section-header">Therapy Types</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Color</th>
+                <th>Service</th>
+                <th>Fee</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for type in editable_types %}
+            <tr onclick="window.location='{{ url_for('edit_type', type_id=type.id) }}'">
+                <td>
+                    <strong>{{ type.name }}</strong>
+                </td>
+                <td>{{ type.code or '-' }}</td>
+                <td>
+                    <span class="type-badge" style="background-color: {{ type.color }}">
+                        {{ type.color }}
+                    </span>
+                </td>
+                <td>{{ type.service_description or '-' }}</td>
+                <td>${{ '%.2f'|format(type.session_fee) if type.session_fee else '0.00' }}</td>
                 <td>{{ type.session_duration or 0 }} min</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    
-    <div class="info-note">
-        ðŸ" Type management interface coming in Week 2...
-    </div>
+    <small style="color: #5B6571; display: block; margin-top: 0.5rem;">
+        Click any row to edit. All therapy types can be customized or deleted (if no clients assigned).
+    </small>
     
     <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
 </div>

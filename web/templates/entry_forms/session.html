@@ -323,10 +323,6 @@
         }
     }
     
-    dateYear.addEventListener('change', updateSessionDate);
-    dateMonth.addEventListener('change', updateSessionDate);
-    dateDay.addEventListener('change', updateSessionDate);
-
     // Consultation checkbox logic with settings from database
     const consultationCheckbox = document.getElementById('is_consultation');
     const feeInput = document.getElementById('fee');
@@ -334,11 +330,12 @@
     const sessionNumberDisplay = document.getElementById('session-number-display');
     const originalFee = feeInput.value;
     const originalDuration = durationInput.value;
-    
+
     // Fetch consultation settings from database
     let consultationFee = '0.00';
     let consultationDuration = '20';
-    
+    let settingsLoaded = false;
+
     // Load settings immediately
     fetch('/api/practice_info')
         .then(response => response.json())
@@ -347,11 +344,16 @@
                 consultationFee = data.info.consultation_fee || '0.00';
                 consultationDuration = data.info.consultation_duration || '20';
             }
+            settingsLoaded = true;
+            // Apply if checkbox already checked
+            if (consultationCheckbox.checked) {
+                feeInput.value = consultationFee;
+                durationInput.value = consultationDuration;
+            }
         })
         .catch(error => console.error('Failed to load consultation settings:', error));
-    
+
     consultationCheckbox.addEventListener('change', function() {
-        
         if (this.checked) {
             // Consultation: use settings from database
             feeInput.value = consultationFee;

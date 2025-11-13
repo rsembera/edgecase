@@ -72,12 +72,10 @@ def index():
     # Get all client types for filter
     all_types = db.get_all_client_types()
     
-    # If no types selected, default to Active only
+    # If no types selected, default to all non-locked types (exclude Inactive, Deleted)
     if not type_filter:
-        active_type = next((t for t in all_types if t['name'] == 'Active'), None)
-        if active_type:
-            type_filter = [str(active_type['id'])]
-    
+        type_filter = [str(t['id']) for t in all_types if not t.get('is_system_locked')]
+        
     # Get clients
     if search:
         clients = db.search_clients(search)
@@ -129,6 +127,12 @@ def index():
                     billable_this_month += entry.get('fee', 0) or 0
                 elif entry.get('class') == 'item':
                     billable_this_month += entry.get('fee', 0) or 0
+                    
+    # Get current date and time
+    from datetime import datetime
+    now = datetime.now()
+    current_date = now.strftime('%B %d, %Y')  # "November 9, 2025"
+    current_time = now.strftime('%I:%M %p')    # "12:45 PM"
     
     # Add type information and additional data to each client
     for client in clients:
@@ -196,12 +200,6 @@ def index():
         # Get last session date
         last_session = db.get_last_session_date(client['id'])
         client['last_session'] = last_session
-        
-        # Get current date and time
-        from datetime import datetime
-        now = datetime.now()
-        current_date = now.strftime('%B %d, %Y')  # "November 9, 2025"
-        current_time = now.strftime('%I:%M %p')    # "12:45 PM"
         
         # Get payment status
         client['payment_status'] = db.get_payment_status(client['id'])
@@ -1088,11 +1086,152 @@ def edit_item(client_id, entry_id):
                          has_links=has_links,
                          linked_clients=linked_clients)
 
+# ===== CLIENT TYPE MANAGEMENT =====
+
 @app.route('/types')
 def manage_types():
-    """Manage client types."""
+    """Display client types with locked and editable sections."""
     all_types = db.get_all_client_types()
-    return render_template('manage_types.html', all_types=all_types)
+    
+    # Separate locked (Inactive, Deleted) from editable types
+    locked_types = [t for t in all_types if t.get('is_system_locked')]
+    editable_types = [t for t in all_types if not t.get('is_system_locked')]
+    
+    # Sort editable types alphabetically
+    editable_types.sort(key=lambda t: t['name'])
+    
+    return render_template('manage_types.html',
+                         locked_types=locked_types,
+                         editable_types=editable_types)
+    
+@app.route('/types/add', methods=['GET', 'POST'])
+def add_type():
+    """Add new client type."""
+    if request.method == 'POST':
+        import time
+        
+        # Calculate retention period in days
+        retention_days = None
+        if request.form.get('retention_period'):
+            retention_value = int(request.form['retention_period'])
+            retention_unit = request.form.get('retention_unit', 'years')
+            
+            if retention_unit == 'days':
+                retention_days = retention_value
+            elif retention_unit == 'months':
+                retention_days = retention_value * 30
+            elif retention_unit == 'years':
+                retention_days = retention_value * 365
+        
+        # Gather form data
+        type_data = {
+            'name': request.form['name'],
+            'code': request.form['code'].upper(),
+            'color': request.form['color'],
+            'service_description': request.form.get('service_description') or None,
+            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
+            'base_price': float(request.form['base_price']) if request.form.get('base_price') else None,
+            'tax_rate': float(request.form['tax_rate']) if request.form.get('tax_rate') else None,
+            'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
+            'retention_period': retention_days,
+            'file_number_style': 'manual',
+            'is_system': 0,
+            'is_system_locked': 0,
+            'created_at': int(time.time()),
+            'modified_at': int(time.time())
+        }
+        
+        # Add type to database
+        db.add_client_type(type_data)
+        
+        return redirect(url_for('manage_types'))
+    
+    # GET - show form
+    return render_template('add_edit_type.html', is_edit=False)
+
+
+@app.route('/types/<int:type_id>/edit', methods=['GET', 'POST'])
+def edit_type(type_id):
+    """Edit existing client type."""
+    type_obj = db.get_client_type(type_id)
+    
+    if not type_obj:
+        return "Type not found", 404
+    
+    if request.method == 'POST':
+        # Check if locked
+        if type_obj.get('is_system_locked'):
+            return "Cannot edit locked system type", 403
+        
+        import time
+        
+        # Calculate retention period in days
+        retention_days = None
+        if request.form.get('retention_period'):
+            retention_value = int(request.form['retention_period'])
+            retention_unit = request.form.get('retention_unit', 'years')
+            
+            if retention_unit == 'days':
+                retention_days = retention_value
+            elif retention_unit == 'months':
+                retention_days = retention_value * 30
+            elif retention_unit == 'years':
+                retention_days = retention_value * 365
+        
+        # Gather form data
+        type_data = {
+            'name': request.form['name'],
+            'code': request.form['code'].upper(),
+            'color': request.form['color'],
+            'service_description': request.form.get('service_description') or None,
+            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
+            'base_price': float(request.form['base_price']) if request.form.get('base_price') else None,
+            'tax_rate': float(request.form['tax_rate']) if request.form.get('tax_rate') else None,
+            'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
+            'retention_period': retention_days,
+            'modified_at': int(time.time())
+        }
+        
+        # Update type in database
+        db.update_client_type(type_id, type_data)
+        
+        return redirect(url_for('manage_types'))
+    
+    # GET - show form
+    return render_template('add_edit_type.html', 
+                         type=type_obj,
+                         is_edit=True)
+
+
+@app.route('/types/<int:type_id>/delete', methods=['POST'])
+def delete_type(type_id):
+    """Delete client type (only if no clients assigned and not locked)."""
+    type_obj = db.get_client_type(type_id)
+    
+    if not type_obj:
+        return jsonify({'success': False, 'error': 'Type not found'}), 404
+    
+    # Check if locked
+    if type_obj.get('is_system_locked'):
+        return jsonify({'success': False, 'error': 'Cannot delete locked system types'}), 403
+    
+    # Check if any clients are assigned to this type
+    clients = db.get_all_clients(type_id=type_id)
+    if clients:
+        return jsonify({
+            'success': False, 
+            'error': f'Cannot delete: {len(clients)} client(s) are assigned to this type'
+        }), 400
+    
+    # Delete the type
+    success = db.delete_client_type(type_id)
+    
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+    
+# ===========================
 
 @app.route('/settings')
 def settings_page():
@@ -1200,22 +1339,6 @@ def delete_background():
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/add_type', methods=['POST'])
-def add_type():
-    """Add new client type."""
-    type_data = {
-        'name': request.form['name'],
-        'color': request.form['color'],
-        'code': request.form.get('code', ''),
-        'file_number_style': request.form['file_number_style'],
-        'session_fee': float(request.form.get('session_fee', 0)),
-        'session_duration': int(request.form.get('session_duration', 50)),
-        'retention_period': int(request.form.get('retention_period', 2555))
-    }
-    
-    db.add_client_type(type_data)
-    return redirect(url_for('manage_types'))
 
 @app.route('/api/practice_info', methods=['GET', 'POST'])
 def practice_info():
@@ -1434,7 +1557,6 @@ def delete_signature():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
     
-
 # ===== RUN APP =====
 
 if __name__ == '__main__':

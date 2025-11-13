@@ -241,6 +241,39 @@ class Database:
         if 'session_offset' not in client_columns:
             cursor.execute("ALTER TABLE clients ADD COLUMN session_offset INTEGER DEFAULT 0")
             print("Migration: Added session_offset column to clients table")
+            
+        # NEW: Add columns to client_types table
+        cursor.execute("PRAGMA table_info(client_types)")
+        type_columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'service_description' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN service_description TEXT")
+            print("Migration: Added service_description to client_types")
+        
+        if 'is_system_locked' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN is_system_locked INTEGER DEFAULT 0")
+            print("Migration: Added is_system_locked to client_types")
+            
+            # Lock existing Inactive and Deleted types
+            cursor.execute("UPDATE client_types SET is_system_locked = 1 WHERE name IN ('Inactive', 'Deleted')")
+            print("Migration: Locked Inactive and Deleted types")
+        
+        if 'base_price' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN base_price REAL")
+            print("Migration: Added base_price to client_types")
+        
+        if 'tax_rate' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN tax_rate REAL")
+            print("Migration: Added tax_rate to client_types")
+            
+            # Calculate base_price and tax_rate from existing session_fee (assuming 13% tax)
+            cursor.execute("""
+                UPDATE client_types 
+                SET base_price = session_fee / 1.13,
+                    tax_rate = 13.0
+                WHERE session_fee IS NOT NULL AND session_fee > 0
+            """)
+            print("Migration: Calculated base_price and tax_rate from session_fee")
         
         conn.commit()
         conn.close()
@@ -321,40 +354,113 @@ class Database:
         conn.close()
     
     def _create_default_types(self):
-        """Create default Active and Inactive client types."""
+        """Create default client types on first run.
+        
+        Creates 5 types:
+        - Inactive (locked, workflow state)
+        - Deleted (locked, workflow state)  
+        - Active (editable, default therapy type)
+        - Assessment (editable, example type)
+        - Reduced Fee (editable, example type)
+        """
+        # Check if any types exist
         conn = self.connect()
         cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM client_types")
+        count = cursor.fetchone()[0]
         
-        # Check if default types exist
-        cursor.execute("SELECT COUNT(*) FROM client_types WHERE is_system = 1")
-        if cursor.fetchone()[0] == 0:
-            now = int(time.time())
-            
-            # Active type
-            cursor.execute("""
-                INSERT INTO client_types 
-                (name, color, code, file_number_style, session_fee, session_duration, 
-                 retention_period, is_system, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                'Active', '#00AA88', 'ACT', 'YYYYMMDD-III', 
-                150.0, 50, 2555, 1, now, now
-            ))
-            
-            # Inactive type
-            cursor.execute("""
-                INSERT INTO client_types 
-                (name, color, code, file_number_style, session_fee, session_duration, 
-                 retention_period, is_system, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                'Inactive', '#FFAA00', 'INA', 'YYYYMMDD-III', 
-                150.0, 50, 2555, 1, now, now
-            ))
-            
-            conn.commit()
+        if count > 0:
+            conn.close()
+            return  # Types already exist, don't create defaults
         
+        import time
+        now = int(time.time())
+        
+        # Create 5 default types
+        default_types = [
+            # Workflow state types (locked, cannot edit/delete)
+            {
+                'name': 'Inactive',
+                'color': '#F5DDA9',  # Amber/yellow
+                'code': 'INA',
+                'service_description': None,
+                'session_fee': None,
+                'session_duration': None,
+                'retention_period': None,
+                'is_system': 1,
+                'is_system_locked': 1
+            },
+            {
+                'name': 'Deleted',
+                'color': '#F5C2C4',  # Red
+                'code': 'DEL',
+                'service_description': None,
+                'session_fee': None,
+                'session_duration': None,
+                'retention_period': None,
+                'is_system': 1,
+                'is_system_locked': 1
+            },
+            # Editable therapy types
+            {
+                'name': 'Active',
+                'color': '#9FCFC0',  # Green
+                'code': 'ACT',
+                'service_description': 'Psychotherapy',
+                'session_fee': 150.00,
+                'session_duration': 50,
+                'retention_period': 365,  # 1 year in days
+                'is_system': 1,
+                'is_system_locked': 0
+            },
+            {
+                'name': 'Assessment',
+                'color': '#B8D4E8',  # Blue
+                'code': 'ASM',
+                'service_description': 'Assessment',
+                'session_fee': 200.00,
+                'session_duration': 90,
+                'retention_period': 365,
+                'is_system': 0,
+                'is_system_locked': 0
+            },
+            {
+                'name': 'Low Fee',
+                'color': '#D4C5E0',  # Purple
+                'code': 'LOW',
+                'service_description': 'Psychotherapy',
+                'session_fee': 75.00,
+                'session_duration': 45,
+                'retention_period': 365,
+                'is_system': 0,
+                'is_system_locked': 0
+            }
+        ]
+        
+        for type_data in default_types:
+            cursor.execute('''
+                INSERT INTO client_types 
+                (name, color, code, file_number_style, service_description, session_fee, session_duration, 
+                retention_period, is_system, is_system_locked, created_at, modified_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                type_data['name'],
+                type_data['color'],
+                type_data['code'],
+                'manual',
+                type_data['service_description'],
+                type_data['session_fee'],
+                type_data['session_duration'],
+                type_data['retention_period'],
+                type_data['is_system'],
+                type_data['is_system_locked'],
+                now,
+                now
+            ))
+        
+        conn.commit()
         conn.close()
+        print(f"Created 5 default client types: Inactive, Deleted, Active, Assessment, Low Fee")
     
     # ===== CLIENT TYPE OPERATIONS =====
     
@@ -632,3 +738,86 @@ class Database:
         conn.close()
         
         return True
+    
+    def update_client_type(self, type_id: int, type_data: dict) -> bool:
+        """Update an existing client type.
+        
+        Args:
+            type_id: ID of type to update
+            type_data: Dictionary of fields to update
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        # Build UPDATE statement dynamically based on provided fields
+        allowed_fields = [
+            'name', 'code', 'color', 'service_description', 
+            'session_duration', 'base_price', 'tax_rate', 'session_fee',
+            'retention_period', 'modified_at'
+        ]
+        
+        # Filter to only allowed fields that are present
+        update_fields = {k: v for k, v in type_data.items() if k in allowed_fields}
+        
+        if not update_fields:
+            return False
+        
+        # Build SQL
+        set_clause = ', '.join([f"{field} = ?" for field in update_fields.keys()])
+        values = list(update_fields.values())
+        values.append(type_id)
+        
+        sql = f"UPDATE client_types SET {set_clause} WHERE id = ?"
+        
+        conn = self.connect()
+        try:
+            conn.execute(sql, values)
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error updating client type: {e}")
+            conn.close()
+            return False
+
+    def delete_client_type(self, type_id: int) -> bool:
+        """Delete a client type.
+        
+        Only succeeds if:
+        - Type is not locked (is_system_locked = 0)
+        - No clients are assigned to this type
+        
+        Args:
+            type_id: ID of type to delete
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        conn = self.connect()
+        try:
+            # Check if type is locked
+            type_obj = self.get_client_type(type_id)
+            if not type_obj or type_obj.get('is_system_locked'):
+                conn.close()
+                return False
+            
+            # Check if any clients use this type
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM clients WHERE type_id = ?",
+                (type_id,)
+            )
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                conn.close()
+                return False
+            
+            # Safe to delete
+            conn.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error deleting client type: {e}")
+            conn.close()
+            return False
