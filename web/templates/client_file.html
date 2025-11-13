@@ -355,7 +355,7 @@
     <!-- Entry Class Filter -->
     <div style="background: #E3E9EE; border-radius: 1rem; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
         <div style="position: relative;">
-            <button class="dropdown-btn" onclick="toggleDropdown('filter-dropdown')">
+            <button class="dropdown-btn" id="class-filter-button" onclick="toggleDropdown('filter-dropdown')">
                 Filter: {{ class_filter|length }} type{{ 's' if class_filter|length != 1 else '' }} ▾
             </button>
             <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 220px; z-index: 100;">
@@ -364,42 +364,38 @@
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="session" 
-                               {% if 'session' in class_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if 'session' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Session</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="consultation" 
-                               {% if 'consultation' in class_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if 'consultation' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="communication" 
-                               {% if 'communication' in class_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if 'communication' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Communication</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="absence" 
-                               {% if 'absence' in class_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if 'absence' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Absence</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="item" 
-                               {% if 'item' in class_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if 'item' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Item</span>
                     </label>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Apply Filter</button>
                 </form>
             </div>
         </div>
@@ -550,8 +546,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <p style="color: #5B6571; margin-bottom: 1rem;">No sessions yet. Create your first session to get started.</p>
-        <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">+ Create Session</a>
+        <p style="color: #5B6571; margin-bottom: 1rem;">No Entries yet.</p>
     </div>
     {% endif %}
 </div>
@@ -609,6 +604,18 @@ document.addEventListener('click', function(e) {
         document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.style.display = 'none');
     }
 });
+
+// Update class filter button text as checkboxes change
+document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const checkedCount = document.querySelectorAll('#filter-form input[type="checkbox"]:checked').length;
+        const filterButton = document.getElementById('class-filter-button');
+        if (filterButton) {
+            filterButton.textContent = `Filter: ${checkedCount} type${checkedCount !== 1 ? 's' : ''} ▾`;
+        }
+    });
+});
+
 </script>
 
 {% endblock %}

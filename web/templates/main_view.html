@@ -558,7 +558,7 @@
     <div class="controls-left">
         <!-- Filter Dropdown -->
         <div style="position: relative;">
-            <button class="dropdown-btn" onclick="toggleDropdown('filter-dropdown')">
+            <button class="dropdown-btn" id="filter-button">
                 Filter: {{ type_filter|length }} type{{ 's' if type_filter|length != 1 else '' }} ▾
             </button>
             <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
@@ -572,11 +572,11 @@
                            onmouseover="this.style.background='#F3F4F6'" 
                            onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="type" value="{{ client_type.id }}" 
-                               {% if client_type.id|string in type_filter %}checked{% endif %}
-                               onchange="document.getElementById('filter-form').submit()">
+                               {% if client_type.id|string in type_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">{{ client_type.name }}</span>
                     </label>
                     {% endfor %}
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Apply Filter</button>
                 </form>
             </div>
         </div>
@@ -752,7 +752,7 @@
 {% else %}
 <div style="text-align: center; padding: 4rem; background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
     <p style="color: #6B7280; font-size: 1.125rem; margin-bottom: 1.5rem;">No clients found.</p>
-    <a href="{{ url_for('add_client') }}" class="btn-primary">+ Add Your First Client</a>
+    <a href="{{ url_for('add_client') }}" class="btn-primary">+ Add Client</a>
 </div>
 {% endif %}
 
@@ -1030,6 +1030,43 @@ checkViewMode();
 
 // Check when device rotates
 window.addEventListener('resize', checkViewMode);
+
+// Handle filter dropdown
+const filterButton = document.getElementById('filter-button');
+const filterDropdown = document.getElementById('filter-dropdown');
+
+if (filterButton && filterDropdown) {
+    // Open/close on button click
+    filterButton.addEventListener('click', function(event) {
+        event.stopPropagation();
+        
+        // Close other dropdowns
+        document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
+            if (d.id !== 'filter-dropdown') d.style.display = 'none';
+        });
+        
+        // Toggle this dropdown
+        filterDropdown.style.display = filterDropdown.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Update button text as checkboxes change
+    document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedCount = document.querySelectorAll('#filter-form input[type="checkbox"]:checked').length;
+            filterButton.textContent = `Filter: ${checkedCount} type${checkedCount !== 1 ? 's' : ''} ▾`;
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (filterDropdown.style.display === 'block') {
+            const isClickInside = filterDropdown.contains(event.target) || filterButton.contains(event.target);
+            if (!isClickInside) {
+                filterDropdown.style.display = 'none';
+            }
+        }
+    });
+}
 
 </script>
 
