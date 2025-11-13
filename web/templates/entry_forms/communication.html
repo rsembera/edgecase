@@ -132,32 +132,43 @@
         </div>
     </div>
     
-    <form method="POST">
+    <form method="POST" id="communication-form">
         <!-- Date and Time (at the top like session.html) -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
             <div class="form-group">
                 <label for="comm_date">Date *</label>
                 <div class="date-input-group">
-                    <select id="date_year" name="date_year" required>
+                    <select id="year" name="year" required>
                         <option value="">Year</option>
                         {% for year in range(2025, 2019, -1) %}
-                        <option value="{{ year }}" {% if entry and comm_date and comm_date[:4] == year|string %}selected{% elif not entry and today[:4] == year|string %}selected{% endif %}>{{ year }}</option>
+                        <option value="{{ year }}" 
+                                {% if is_edit and comm_year == year %}selected
+                                {% elif not is_edit and today_year == year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
                         {% endfor %}
                     </select>
-                    <select id="date_month" name="date_month" required>
+                    <select id="month" name="month" required>
                         <option value="">Month</option>
                         {% for month in range(1, 13) %}
-                        <option value="{{ '%02d'|format(month) }}" {% if entry and comm_date and comm_date[5:7] == '%02d'|format(month) %}selected{% elif not entry and today[5:7] == '%02d'|format(month) %}selected{% endif %}>{{ '%02d'|format(month) }}</option>
+                        <option value="{{ month }}" 
+                                {% if is_edit and comm_month == month %}selected
+                                {% elif not is_edit and today_month == month %}selected{% endif %}>
+                            {{ '%02d'|format(month) }}
+                        </option>
                         {% endfor %}
                     </select>
-                    <select id="date_day" name="date_day" required>
+                    <select id="day" name="day" required>
                         <option value="">Day</option>
                         {% for day in range(1, 32) %}
-                        <option value="{{ '%02d'|format(day) }}" {% if entry and comm_date and comm_date[8:10] == '%02d'|format(day) %}selected{% elif not entry and today[8:10] == '%02d'|format(day) %}selected{% endif %}>{{ '%02d'|format(day) }}</option>
+                        <option value="{{ day }}" 
+                                {% if is_edit and comm_day == day %}selected
+                                {% elif not is_edit and today_day == day %}selected{% endif %}>
+                            {{ '%02d'|format(day) }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <input type="hidden" id="comm_date" name="comm_date" value="{% if entry %}{{ comm_date }}{% else %}{{ today }}{% endif %}">
             </div>
             <div class="form-group">
                 <label for="comm_time">Time</label>
@@ -236,34 +247,39 @@
             </div>
         </div>
         {% endif %}
-        
-        <!-- Form Actions -->
-        <div class="form-actions" style="justify-content: space-between;">
-            <a href="{{ url_for('client_file', client_id=client['id']) }}" class="btn-cancel">Cancel</a>
-            <button type="submit" class="btn-save">Save Communication</button>
-        </div>
+
     </form>
+
+    </form> <!-- CLOSE FORM HERE -->
+    
+    <!-- Navigation buttons OUTSIDE the form -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+        <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+        
+        <div style="display: flex; gap: 1rem;">
+            {% if prev_comm_id %}
+            <a href="{{ url_for('edit_communication', client_id=client.id, entry_id=prev_comm_id) }}" class="btn">← Prev</a>
+            {% else %}
+            <span class="btn" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">← Prev</span>
+            {% endif %}
+            
+            {% if next_comm_id %}
+            <a href="{{ url_for('edit_communication', client_id=client.id, entry_id=next_comm_id) }}" class="btn">Next →</a>
+            {% else %}
+            <span class="btn" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Next →</span>
+            {% endif %}
+        </div>
+        
+        {% if is_edit %}
+        <button type="submit" form="communication-form" class="btn">Save Edits</button>
+        {% else %}
+        <button type="submit" form="communication-form" class="btn">Save Communication</button>
+        {% endif %}
+    </div>
+
 </div>
 
 <script>
-// Date dropdowns → hidden field
-const dateYear = document.getElementById('date_year');
-const dateMonth = document.getElementById('date_month');
-const dateDay = document.getElementById('date_day');
-const dateHidden = document.getElementById('comm_date');
-
-function updateCommDate() {
-    if (dateYear.value && dateMonth.value && dateDay.value) {
-        dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
-    } else {
-        dateHidden.value = '';
-    }
-}
-
-dateYear.addEventListener('change', updateCommDate);
-dateMonth.addEventListener('change', updateCommDate);
-dateDay.addEventListener('change', updateCommDate);
-
 // Auto-expanding textarea
 const textarea = document.getElementById('content');
 const maxHeight = 600; // About 30-35 lines
