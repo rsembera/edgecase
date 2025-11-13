@@ -720,13 +720,16 @@ def create_communication(client_id):
     client_type = db.get_client_type(client['type_id'])
     
     if request.method == 'POST':
-        # Convert date string to Unix timestamp
-        comm_date_str = request.form.get('comm_date')
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
         comm_date_timestamp = None
-        if comm_date_str:
+        if year and month and day:
             from datetime import datetime
-            date_obj = datetime.strptime(comm_date_str, '%Y-%m-%d')
-            comm_date_timestamp = int(date_obj.timestamp())
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            comm_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
         
         # Prepare communication data
         comm_data = {
@@ -743,24 +746,30 @@ def create_communication(client_id):
         # Save communication
         db.add_entry(comm_data)
         
-        # TODO: Handle link_entry checkbox when linking is implemented
-        
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET - show form
-    from datetime import date
-    today = date.today().strftime('%Y-%m-%d')
-    
+    from datetime import datetime
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
+
     # TODO: Check if client has links
     has_links = False
     linked_clients = []
-    
+
     return render_template('entry_forms/communication.html',
-                         client=client,
-                         client_type=client_type,
-                         today=today,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
+                        client=client,
+                        client_type=client_type,
+                        today=today,
+                        today_year=today_year,
+                        today_month=today_month,
+                        today_day=today_day,
+                        is_edit=False,
+                        has_links=has_links,
+                        linked_clients=linked_clients)
 
 @app.route('/client/<int:client_id>/communication/<int:entry_id>', methods=['GET', 'POST'])
 def edit_communication(client_id, entry_id):
@@ -776,13 +785,16 @@ def edit_communication(client_id, entry_id):
         return "Communication not found", 404
     
     if request.method == 'POST':
-        # Convert date string to Unix timestamp
-        comm_date_str = request.form.get('comm_date')
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
         comm_date_timestamp = None
-        if comm_date_str:
+        if year and month and day:
             from datetime import datetime
-            date_obj = datetime.strptime(comm_date_str, '%Y-%m-%d')
-            comm_date_timestamp = int(date_obj.timestamp())
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            comm_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
         
         # Prepare updated communication data
         comm_data = {
@@ -794,29 +806,71 @@ def edit_communication(client_id, entry_id):
             'content': request.form['content']
         }
         
-        # Save updated communication
+        # Update the existing communication
         db.update_entry(entry_id, comm_data)
-        
-        # TODO: Handle link_entry checkbox when linking is implemented
         
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET - show form with existing data
-    # Convert timestamp back to date string
-    from datetime import datetime
-    comm_date = datetime.fromtimestamp(communication['comm_date']).strftime('%Y-%m-%d') if communication.get('comm_date') else None
     
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
+    # Get all communications for this client (ordered by date, then by ID)
+    all_communications = db.get_client_entries(client_id, 'communication')
+    # Filter out communications without dates
+    dated_communications = [c for c in all_communications if c.get('comm_date')]
+    # Sort by date (newest first) to match Client File display
+    dated_communications.sort(key=lambda c: (c['comm_date'], c['created_at']), reverse=True)
+    
+    # Find current communication index
+    current_index = None
+    for i, c in enumerate(dated_communications):
+        if c['id'] == entry_id:
+            current_index = i
+            break
+    
+    # Determine prev/next communication IDs
+    # Since sorted newest-first (reverse=True):
+    # - "Previous" (older) is at higher index (further down the list)
+    # - "Next" (newer) is at lower index (further up the list)
+    prev_comm_id = dated_communications[current_index + 1]['id'] if current_index is not None and current_index < len(dated_communications) - 1 else None
+    next_comm_id = dated_communications[current_index - 1]['id'] if current_index and current_index > 0 else None
+
+    # DEBUG: Print navigation info
+    print(f"\n=== COMMUNICATION NAVIGATION DEBUG ===")
+    print(f"Current entry_id: {entry_id}")
+    print(f"Current index: {current_index}")
+    print(f"Total dated communications: {len(dated_communications)}")
+    print(f"All comm IDs in order: {[c['id'] for c in dated_communications]}")
+    print(f"All comm dates: {[c['comm_date'] for c in dated_communications]}")
+    print(f"Previous comm_id (older): {prev_comm_id}")
+    print(f"Next comm_id (newer): {next_comm_id}")
+    print(f"=====================================\n")
+    
+    # Parse communication date into year, month, day for dropdowns
+    from datetime import datetime
+    comm_year = None
+    comm_month = None
+    comm_day = None
+    if communication.get('comm_date'):
+        comm_dt = datetime.fromtimestamp(communication['comm_date'])
+        comm_year = comm_dt.year
+        comm_month = comm_dt.month
+        comm_day = comm_dt.day
     
     return render_template('entry_forms/communication.html',
-                         client=client,
-                         client_type=client_type,
-                         entry=communication,
-                         comm_date=comm_date,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
+                        client=client,
+                        client_type=client_type,
+                        entry=communication,  # Changed from 'entry'
+                        comm_year=comm_year,
+                        comm_month=comm_month,
+                        comm_day=comm_day,
+                        comm_time=communication.get('comm_time', ''),  # Added
+                        description=communication.get('description', ''),  # Added
+                        comm_recipient=communication.get('comm_recipient', ''),  # Added
+                        comm_type=communication.get('comm_type', ''),  # Added
+                        content=communication.get('content', ''),  # Added
+                        is_edit=True,
+                        prev_comm_id=prev_comm_id,
+                        next_comm_id=next_comm_id)
     
 @app.route('/client/<int:client_id>/absence', methods=['GET', 'POST'])
 def create_absence(client_id):
