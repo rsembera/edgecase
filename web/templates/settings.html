@@ -382,14 +382,54 @@
     </div>
 
     
+    <!-- File Number Format Section (replaces "Coming soon" section around line 385) -->
     <div class="settings-section">
-        <h3>Defaults</h3>
-        <p>Set default values for new clients and sessions</p>
-        <div style="color: #5B6571; font-style: italic;">Coming soon...</div>
+        <h3>File Number Format</h3>
+        <p>Choose how client file numbers are generated</p>
+        
+        <div class="form-group">
+            <label for="file-number-format">Format Type</label>
+            <select id="file-number-format" onchange="toggleFileNumberFields()">
+                <option value="manual">Manual Entry - User types file number</option>
+                <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
+                <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
+            </select>
+        </div>
+        
+        <!-- Options for Prefix-Counter format -->
+        <div id="prefix-counter-options" style="display: none; margin-left: 2rem; padding: 1rem; background: #F2F4F5; border-radius: 0.5rem;">
+            <div class="form-group">
+                <label for="file-number-prefix">Prefix (optional)</label>
+                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;">
+                <small>Up to 6 characters</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="file-number-suffix">Suffix (optional)</label>
+                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;">
+                <small>Up to 4 characters</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="file-number-start">Starting Number</label>
+                <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;">
+                <small>Counter starts here and increments automatically</small>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Preview</label>
+                <div id="file-number-preview" style="font-family: monospace; font-size: 1.125rem; color: #111827; padding: 0.75rem; background: white; border: 2px solid #DEE2E6; border-radius: 0.5rem; max-width: 300px;">
+                    0001
+                </div>
+                <small>Total length must not exceed 12 characters</small>
+            </div>
+        </div>
+        
+        <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
     
     <div class="button-group">
-        <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
         <button onclick="saveSettings()" class="btn">Save Settings</button>
     </div>
 
@@ -739,6 +779,7 @@ async function uploadBackground() {
 }
 
 // Save settings
+// Save settings
 async function saveSettings() {
     // Validate phone number FIRST
     const practicePhone = document.getElementById('practice-phone').value;
@@ -752,15 +793,20 @@ async function saveSettings() {
     // Reset border color
     document.getElementById('practice-phone').style.borderColor = '';
     
-    // THEN save practice info to database
+    // Save practice info to database
     await savePracticeInfo();
     
-    // THEN show success message
+    // Save file number settings
+    await saveFileNumberSettings();
+    
+    // Show success message and redirect
     const successMsg = document.getElementById('success-message');
     successMsg.classList.add('show');
     setTimeout(() => {
         successMsg.classList.remove('show');
-    }, 3000);
+        // Redirect to main view after saving
+        window.location.href = '{{ url_for("index") }}';
+    }, 1000);
 }
 
 // Load practice information from database
@@ -1109,6 +1155,98 @@ async function deleteSignature() {
     });
 }
 
+function toggleFileNumberFields() {
+    const format = document.getElementById('file-number-format').value;
+    const options = document.getElementById('prefix-counter-options');
+    
+    if (format === 'prefix-counter') {
+        options.style.display = 'block';
+        updateFileNumberPreview();
+    } else {
+        options.style.display = 'none';
+    }
+}
+
+function updateFileNumberPreview() {
+    const prefix = document.getElementById('file-number-prefix').value || '';
+    const suffix = document.getElementById('file-number-suffix').value || '';
+    const start = document.getElementById('file-number-start').value || '1';
+    
+    // Pad number to 4 digits
+    const paddedNumber = start.toString().padStart(4, '0');
+    
+    // Build preview
+    let preview = '';
+    if (prefix) preview += prefix + '-';
+    preview += paddedNumber;
+    if (suffix) preview += '-' + suffix;
+    
+    document.getElementById('file-number-preview').textContent = preview;
+    
+    // Check length
+    if (preview.length > 12) {
+        document.getElementById('file-number-preview').style.borderColor = '#B91C1C';
+        document.getElementById('file-number-preview').style.color = '#B91C1C';
+    } else {
+        document.getElementById('file-number-preview').style.borderColor = '#DEE2E6';
+        document.getElementById('file-number-preview').style.color = '#111827';
+    }
+}
+
+// Add event listeners for preview updates
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('file-number-prefix').addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-suffix').addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-start').addEventListener('input', updateFileNumberPreview);
+});
+
+// Load file number settings
+function loadFileNumberSettings() {
+    fetch('/settings/file-number')
+        .then(response => response.json())
+        .then(data => {
+            if (data.format) {
+                document.getElementById('file-number-format').value = data.format;
+                toggleFileNumberFields();
+                
+                if (data.format === 'prefix-counter') {
+                    document.getElementById('file-number-prefix').value = data.prefix || '';
+                    document.getElementById('file-number-suffix').value = data.suffix || '';
+                    document.getElementById('file-number-start').value = data.counter || 1;
+                    updateFileNumberPreview();
+                }
+            }
+        })
+        .catch(error => console.error('Error loading file number settings:', error));
+}
+
+// Save file number settings
+function saveFileNumberSettings() {
+    const format = document.getElementById('file-number-format').value;
+    const settings = {
+        format: format,
+        prefix: format === 'prefix-counter' ? document.getElementById('file-number-prefix').value : '',
+        suffix: format === 'prefix-counter' ? document.getElementById('file-number-suffix').value : '',
+        counter: format === 'prefix-counter' ? parseInt(document.getElementById('file-number-start').value) : 1
+    };
+    
+    fetch('/settings/file-number', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const status = document.getElementById('file-number-status');
+            status.textContent = '✓ File number format saved';
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 3000);
+        }
+    })
+    .catch(error => console.error('Error saving file number settings:', error));
+}
+
 // Save and apply card style immediately
 function saveAndApplyCardStyle() {
     const cardStyle = document.getElementById('card-style').value;
@@ -1128,6 +1266,7 @@ function saveAndApplyBackground() {
 document.addEventListener('DOMContentLoaded', function() {
     loadBackgroundOptions();
     loadPracticeInfo();
+    loadFileNumberSettings();  // ADD THIS LINE
 });
 
 function showAboutModal() {

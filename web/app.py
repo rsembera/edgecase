@@ -398,30 +398,6 @@ def change_client_type(client_id):
     else:
         return redirect(url_for('client_file', client_id=client_id))
 
-@app.route('/add_client', methods=['GET', 'POST'])
-def add_client():
-    """Add new client."""
-    if request.method == 'POST':
-        # Get form data
-        client_data = {
-            'file_number': request.form['file_number'],
-            'first_name': request.form['first_name'],
-            'middle_name': request.form.get('middle_name', ''),
-            'last_name': request.form['last_name'],
-            'type_id': int(request.form['type_id']),
-            'session_offset': int(request.form.get('session_offset', 0))  # ADD THIS LINE
-        }
-        
-        # Add client to database
-        client_id = db.add_client(client_data)
-        
-        # Redirect to client file to create profile entry
-        return redirect(url_for('client_file', client_id=client_id))
-    
-    # GET request - show form
-    all_types = db.get_all_client_types()
-    return render_template('add_client.html', all_types=all_types)
-
 @app.route('/client/<int:client_id>/profile', methods=['GET', 'POST'])
 def edit_profile(client_id):
     """Create or edit client profile entry."""
@@ -1554,6 +1530,164 @@ def delete_signature():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+    
+    # Add these routes to app.py
+
+@app.route('/settings/file-number', methods=['GET', 'POST'])
+def file_number_settings():
+    """Get or save file number format settings."""
+    if request.method == 'POST':
+        data = request.json
+        
+        # Save settings to database
+        db.set_setting('file_number_format', data['format'])
+        db.set_setting('file_number_prefix', data.get('prefix', ''))
+        db.set_setting('file_number_suffix', data.get('suffix', ''))
+        db.set_setting('file_number_counter', str(data.get('counter', 1)))
+        
+        return jsonify({'success': True})
+    
+    # GET - return current settings
+    settings = {
+        'format': db.get_setting('file_number_format', 'manual'),
+        'prefix': db.get_setting('file_number_prefix', ''),
+        'suffix': db.get_setting('file_number_suffix', ''),
+        'counter': int(db.get_setting('file_number_counter', '1'))
+    }
+    
+    return jsonify(settings)
+
+
+@app.route('/add_client', methods=['GET', 'POST'])
+def add_client():
+    """Add new client with auto-generated file number support."""
+    if request.method == 'POST':
+        # Get file number format setting
+        format_type = db.get_setting('file_number_format', 'manual')
+        
+        # Generate file number based on format
+        if format_type == 'manual':
+            # User-provided file number
+            file_number = request.form['file_number']
+        
+        elif format_type == 'date-initials':
+            # YYYYMMDD-ABC format
+            from datetime import datetime
+            date_str = datetime.now().strftime('%Y%m%d')
+            
+            first = request.form['first_name'][0].upper()
+            middle = request.form.get('middle_name', '')
+            middle = middle[0].upper() if middle else ''
+            last = request.form['last_name'][0].upper()
+            
+            initials = first + middle + last
+            file_number = f"{date_str}-{initials}"
+        
+        elif format_type == 'prefix-counter':
+            # Prefix-Counter-Suffix format
+            prefix = db.get_setting('file_number_prefix', '')
+            suffix = db.get_setting('file_number_suffix', '')
+            counter = int(db.get_setting('file_number_counter', '1'))
+            
+            # Build file number
+            parts = []
+            if prefix:
+                parts.append(prefix)
+            parts.append(str(counter).zfill(4))  # 4-digit padded number
+            if suffix:
+                parts.append(suffix)
+            
+            file_number = '-'.join(parts)
+            
+            # Increment counter for next time
+            db.set_setting('file_number_counter', str(counter + 1))
+        
+        else:
+            # Fallback to manual
+            file_number = request.form['file_number']
+        
+        # Get form data
+        client_data = {
+            'file_number': file_number,
+            'first_name': request.form['first_name'],
+            'middle_name': request.form.get('middle_name', ''),
+            'last_name': request.form['last_name'],
+            'type_id': int(request.form['type_id']),
+            'session_offset': int(request.form.get('session_offset', 0))
+        }
+        
+        # Add client to database
+        client_id = db.add_client(client_data)
+        
+        # Redirect to client file to create profile entry
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET request - show form
+    all_types = db.get_all_client_types()
+    
+    # Get file number format for UI
+    format_type = db.get_setting('file_number_format', 'manual')
+    
+    # Generate preview/placeholder based on format
+    file_number_preview = ''
+    file_number_readonly = False
+    
+    if format_type == 'date-initials':
+        from datetime import datetime
+        date_str = datetime.now().strftime('%Y%m%d')
+        file_number_preview = f"{date_str}-ABC"
+        file_number_readonly = True
+    
+    elif format_type == 'prefix-counter':
+        prefix = db.get_setting('file_number_prefix', '')
+        suffix = db.get_setting('file_number_suffix', '')
+        counter = int(db.get_setting('file_number_counter', '1'))
+        
+        parts = []
+        if prefix:
+            parts.append(prefix)
+        parts.append(str(counter).zfill(4))
+        if suffix:
+            parts.append(suffix)
+        
+        file_number_preview = '-'.join(parts)
+        file_number_readonly = True
+    
+    return render_template('add_client.html', 
+                         all_types=all_types,
+                         file_number_preview=file_number_preview,
+                         file_number_readonly=file_number_readonly)
+
+
+# Also need to add these helper methods to database.py:
+
+def set_setting(self, key: str, value: str):
+    """Set a setting value."""
+    import time
+    conn = self.connect()
+    cursor = conn.cursor()
+    
+    now = int(time.time())
+    cursor.execute("""
+        INSERT INTO settings (key, value, modified_at) 
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value=?, modified_at=?
+    """, (key, value, now, value, now))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_setting(self, key: str, default: str = '') -> str:
+    """Get a setting value."""
+    conn = self.connect()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    return row[0] if row else default
     
 # ===== RUN APP =====
 
