@@ -72,7 +72,8 @@
     input[type="email"],
     input[type="url"],
     input[type="tel"],
-    input[type="number"] {
+    input[type="number"],
+    textarea {
         width: 100%;
         max-width: 400px;
         padding: 0.75rem;
@@ -82,6 +83,12 @@
         color: #111827;
         transition: all 0.2s;
         background: #FBFCFD;
+        font-family: 'Lexend', sans-serif;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 120px;
     }
     
     input[type="text"]:focus,
@@ -289,18 +296,8 @@
         </div>
         
         <div class="form-group">
-            <label for="address-line-1">Address Line 1</label>
-            <input type="text" id="address-line-1" placeholder="e.g., 123 Main Street">
-        </div>
-        
-        <div class="form-group">
-            <label for="address-line-2">Address Line 2</label>
-            <input type="text" id="address-line-2" placeholder="e.g., Suite 200">
-        </div>
-        
-        <div class="form-group">
-            <label for="address-line-3">Address Line 3</label>
-            <input type="text" id="address-line-3" placeholder="e.g., Ottawa, ON K1A 0B1">
+            <label for="practice-address">Practice Address</label>
+            <textarea id="practice-address" rows="5" placeholder="123 Main Street&#10;Suite 200&#10;Ottawa, ON K1A 0B1&#10;Canada"></textarea>
         </div>
         
         <div class="form-group">
@@ -823,9 +820,7 @@ async function loadPracticeInfo() {
             document.getElementById('credentials').value = data.info.credentials || '';
             document.getElementById('practice-email').value = data.info.email || '';
             document.getElementById('practice-phone').value = data.info.phone || '';
-            document.getElementById('address-line-1').value = data.info.address_line_1 || '';
-            document.getElementById('address-line-2').value = data.info.address_line_2 || '';
-            document.getElementById('address-line-3').value = data.info.address_line_3 || '';
+            document.getElementById('practice-address').value = data.info.address || '';  // CHANGED: single address field
             document.getElementById('website').value = data.info.website || '';
             document.getElementById('consultation-fee').value = data.info.consultation_fee || '0.00';
             document.getElementById('currency').value = data.info.currency || 'CAD';
@@ -861,9 +856,7 @@ async function savePracticeInfo() {
         credentials: document.getElementById('credentials').value,
         email: document.getElementById('practice-email').value,
         phone: document.getElementById('practice-phone').value,
-        address_line_1: document.getElementById('address-line-1').value,
-        address_line_2: document.getElementById('address-line-2').value,
-        address_line_3: document.getElementById('address-line-3').value,
+        address: document.getElementById('practice-address').value,  // CHANGED: single address field
         website: document.getElementById('website').value,
         currency: document.getElementById('currency').value,
         consultation_fee: document.getElementById('consultation-fee').value,

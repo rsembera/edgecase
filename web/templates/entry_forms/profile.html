@@ -35,14 +35,23 @@
         border-radius: 0.5rem;
         font-size: 1rem;
         font-family: inherit;
-        min-height: 300px;
         resize: vertical;
         transition: border-color 0.2s;
     }
-    
+
     textarea:focus {
         outline: none;
         border-color: #00aa88;
+    }
+
+    /* Specific heights for different textareas */
+    textarea[name="address"] {
+        min-height: 120px;
+    }
+
+    textarea[name="content"],
+    textarea[name="additional_info"] {
+        min-height: 300px;
     }
     
     .help-text {
@@ -162,9 +171,8 @@
         <div class="form-row-full">
             <div class="form-group">
                 <label for="address">Address</label>
-                <input type="text" id="address" name="address" 
-                       value="{{ profile.address if profile else '' }}"
-                       placeholder="Street address">
+                <textarea id="address" name="address" rows="5" 
+                          placeholder="123 Main Street&#10;Apt 4B&#10;Toronto, ON M5V 1A1&#10;Canada">{{ profile.address if profile else '' }}</textarea>
             </div>
         </div>
         

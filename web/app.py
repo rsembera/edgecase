@@ -1322,10 +1322,10 @@ def practice_info():
         # Get all the specific keys we need
         keys = [
             'practice_name', 'therapist_name', 'credentials', 'email', 'phone',
-            'address_line_1', 'address_line_2', 'address_line_3', 'website',
+            'address', 'website',  # CHANGED: single address field
             'consultation_fee', 'consultation_duration',
             'logo_filename', 'signature_filename',
-            'currency'  # Add this
+            'currency'
         ]
         
         placeholders = ','.join(['?' for _ in keys])
@@ -1352,9 +1352,7 @@ def practice_info():
             'credentials': data.get('credentials', ''),
             'email': data.get('email', ''),
             'phone': data.get('phone', ''),
-            'address_line_1': data.get('address_line_1', ''),
-            'address_line_2': data.get('address_line_2', ''),
-            'address_line_3': data.get('address_line_3', ''),
+            'address': data.get('address', ''),  # CHANGED: single address field
             'website': data.get('website', ''),
             'currency': data.get('currency', 'CAD'),
             'consultation_fee': data.get('consultation_fee', '0.00'),
