@@ -41,7 +41,6 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 color TEXT NOT NULL,
-                code TEXT,
                 file_number_style TEXT NOT NULL,
                 file_number_prefix TEXT,
                 file_number_suffix TEXT,
@@ -50,6 +49,10 @@ class Database:
                 session_duration INTEGER,
                 retention_period INTEGER,
                 is_system INTEGER DEFAULT 0,
+                service_description TEXT,
+                is_system_locked INTEGER DEFAULT 0,
+                base_price REAL,
+                tax_rate REAL,
                 created_at INTEGER NOT NULL,
                 modified_at INTEGER NOT NULL
             )
@@ -204,6 +207,116 @@ class Database:
         
         # Create default client types if they don't exist
         self._create_default_types()
+
+
+    def _create_default_types(self):
+        """Create default client types on first run.
+        
+        Creates 5 types:
+        - Inactive (locked, workflow state)
+        - Deleted (locked, workflow state)  
+        - Active (editable, default therapy type)
+        - Assessment (editable, example type)
+        - Low Fee (editable, example type)
+        """
+        # Check if any types exist
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM client_types")
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            conn.close()
+            return  # Types already exist, don't create defaults
+        
+        import time
+        now = int(time.time())
+        
+        # Create 5 default types (names limited to 9 characters for badge display)
+        default_types = [
+            # Workflow state types (locked, cannot edit/delete)
+            {
+                'name': 'Inactive',
+                'color': '#F5DDA9',  # Amber/yellow
+                'service_description': None,
+                'session_fee': None,
+                'session_duration': None,
+                'retention_period': None,
+                'is_system': 1,
+                'is_system_locked': 1
+            },
+            {
+                'name': 'Deleted',
+                'color': '#F5C2C4',  # Red
+                'service_description': None,
+                'session_fee': None,
+                'session_duration': None,
+                'retention_period': None,
+                'is_system': 1,
+                'is_system_locked': 1
+            },
+            # Editable therapy types
+            {
+                'name': 'Active',
+                'color': '#9FCFC0',  # Green
+                'service_description': 'Psychotherapy',
+                'session_fee': 150.00,
+                'session_duration': 50,
+                'retention_period': 365,  # 1 year in days
+                'is_system': 1,
+                'is_system_locked': 0
+            },
+            {
+                'name': 'Assess',  # Shortened to fit 9-char limit
+                'color': '#B8D4E8',  # Blue
+                'service_description': 'Assessment',
+                'session_fee': 200.00,
+                'session_duration': 90,
+                'retention_period': 365,
+                'is_system': 0,
+                'is_system_locked': 0
+            },
+            {
+                'name': 'Low Fee',
+                'color': '#D4C5E0',  # Purple
+                'service_description': 'Psychotherapy',
+                'session_fee': 75.00,
+                'session_duration': 45,
+                'retention_period': 365,
+                'is_system': 0,
+                'is_system_locked': 0
+            }
+        ]
+        
+        for type_data in default_types:
+            cursor.execute('''
+                INSERT INTO client_types 
+                (name, color, file_number_style, service_description, session_fee, session_duration, 
+                retention_period, is_system, is_system_locked, created_at, modified_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                type_data['name'],
+                type_data['color'],
+                'manual',
+                type_data['service_description'],
+                type_data['session_fee'],
+                type_data['session_duration'],
+                type_data['retention_period'],
+                type_data['is_system'],
+                type_data['is_system_locked'],
+                now,
+                now
+            ))
+        
+        conn.commit()
+        conn.close()
+        print(f"Created 5 default client types: Inactive, Deleted, Active, Assess, Low Fee")
+        
+        # Run migrations to add any missing columns
+        self._run_migrations()
+        
+        # Create default client types if they don't exist
+        self._create_default_types()
     
     def _run_migrations(self):
         """Check for missing columns and add them if needed."""
@@ -277,7 +390,8 @@ class Database:
         
         conn.commit()
         conn.close()
-        # ===== HELPER METHODS =====
+        
+    # ===== HELPER METHODS =====
     
     def get_last_session_date(self, client_id: int) -> Optional[int]:
         """Get the date of the most recent session for a client."""
