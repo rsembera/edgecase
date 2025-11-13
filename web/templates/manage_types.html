@@ -168,10 +168,9 @@
     <!-- Locked system types -->
     <div class="section-header">Lifecycle States</div>
     <table>
-        
-           <thead> <tr>
+        <thead>
+            <tr>
                 <th>Name</th>
-                <th>Code</th>
                 <th>Color</th>
                 <th style="text-align: center;">Status</th>
             </tr>
@@ -182,10 +181,9 @@
                 <td>
                     <strong>{{ type.name }}</strong>
                 </td>
-                <td>{{ type.code or '-' }}</td>
                 <td>
                     <span class="type-badge" style="background-color: {{ type.color }}">
-                        {{ type.color }}
+                        {{ type.color|upper }}
                     </span>
                 </td>
                 <td style="text-align: center;">
@@ -205,7 +203,6 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Code</th>
                 <th>Color</th>
                 <th>Service</th>
                 <th>Fee</th>
@@ -218,10 +215,9 @@
                 <td>
                     <strong>{{ type.name }}</strong>
                 </td>
-                <td>{{ type.code or '-' }}</td>
                 <td>
                     <span class="type-badge" style="background-color: {{ type.color }}">
-                        {{ type.color }}
+                        {{ type.color|upper }}
                     </span>
                 </td>
                 <td>{{ type.service_description or '-' }}</td>

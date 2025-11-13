@@ -133,32 +133,17 @@
     {% endif %}
     
     <form method="post" id="type-form">
-        <!-- Name and Code -->
-        <div class="two-col">
-            <div class="form-group">
-                <label for="name">Type Name *</label>
-                <input type="text" 
-                       id="name" 
-                       name="name" 
-                       value="{{ type.name if is_edit else '' }}"
-                       {% if is_edit and type.is_system_locked %}readonly{% endif %}
-                       maxlength="50"
-                       required>
-                <small>Display name (e.g., "Active", "Assessment")</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="code">Code *</label>
-                <input type="text" 
-                       id="code" 
-                       name="code" 
-                       value="{{ type.code if is_edit else '' }}"
-                       {% if is_edit and type.is_system_locked %}readonly{% endif %}
-                       maxlength="4"
-                       style="text-transform: uppercase;"
-                       required>
-                <small>3-4 letter abbreviation (e.g., "ACT", "ASM")</small>
-            </div>
+        <!-- Name -->
+        <div class="form-group">
+            <label for="name">Type Name *</label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   value="{{ type.name if is_edit else '' }}"
+                   {% if is_edit and type.is_system_locked %}readonly{% endif %}
+                   maxlength="9"
+                   required>
+            <small>Maximum 9 characters (displays in badges throughout system)</small>
         </div>
         
         <!-- Color -->
@@ -291,31 +276,41 @@
     const totalPrice = document.getElementById('session_fee');
     let lastEditedField = null;
     
-    basePrice.addEventListener('blur', function() {
+    // Use 'input' event instead of 'blur' for immediate calculation
+    basePrice.addEventListener('input', function() {
         lastEditedField = 'base';
-        // Format to 2 decimals
+        calculateTax();
+    });
+    
+    // Format on blur
+    basePrice.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(2);
         }
-        calculateTax();
     });
 
-    taxRate.addEventListener('blur', function() {
+    taxRate.addEventListener('input', function() {
         lastEditedField = 'tax';
-        // Format to 1 decimal
+        calculateTax();
+    });
+    
+    // Format on blur
+    taxRate.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(1);
         }
-        calculateTax();
     });
 
-    totalPrice.addEventListener('blur', function() {
+    totalPrice.addEventListener('input', function() {
         lastEditedField = 'total';
-        // Format to 2 decimals
+        calculateTax();
+    });
+    
+    // Format on blur
+    totalPrice.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(2);
         }
-        calculateTax();
     });
     
     function calculateTax() {
@@ -353,8 +348,8 @@
         }
     }
     
-    // Auto-uppercase code field
-    document.getElementById('code').addEventListener('input', function() {
+    // Uppercase color input
+    document.getElementById('color').addEventListener('change', function() {
         this.value = this.value.toUpperCase();
     });
     
@@ -366,7 +361,7 @@
             <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
                 <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                     <h3 style="margin-top: 0; color: #B91C1C;">Delete Client Type?</h3>
-                    <p style="color: #323B45; margin: 1rem 0;"><p style="color: #323B45; margin: 1rem 0;">Are you sure you want to delete this client type? You cannot delete a type if clients are assigned to it.</p></p>
+                    <p style="color: #323B45; margin: 1rem 0;">Are you sure you want to delete this client type? You cannot delete a type if clients are assigned to it.</p>
                     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
                         <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn btn-secondary">Cancel</button>
                         <button onclick="executeDelete()" class="btn btn-delete">Delete Type</button>
