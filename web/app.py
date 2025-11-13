@@ -1126,7 +1126,6 @@ def add_type():
         # Gather form data
         type_data = {
             'name': request.form['name'],
-            'code': request.form['code'].upper(),
             'color': request.form['color'],
             'service_description': request.form.get('service_description') or None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
@@ -1181,7 +1180,6 @@ def edit_type(type_id):
         # Gather form data
         type_data = {
             'name': request.form['name'],
-            'code': request.form['code'].upper(),
             'color': request.form['color'],
             'service_description': request.form.get('service_description') or None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,

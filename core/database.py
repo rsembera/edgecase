@@ -208,7 +208,6 @@ class Database:
         # Create default client types if they don't exist
         self._create_default_types()
 
-
     def _create_default_types(self):
         """Create default client types on first run.
         
@@ -216,7 +215,7 @@ class Database:
         - Inactive (locked, workflow state)
         - Deleted (locked, workflow state)  
         - Active (editable, default therapy type)
-        - Assessment (editable, example type)
+        - Assess (editable, example type)
         - Low Fee (editable, example type)
         """
         # Check if any types exist
@@ -311,12 +310,6 @@ class Database:
         conn.commit()
         conn.close()
         print(f"Created 5 default client types: Inactive, Deleted, Active, Assess, Low Fee")
-        
-        # Run migrations to add any missing columns
-        self._run_migrations()
-        
-        # Create default client types if they don't exist
-        self._create_default_types()
     
     def _run_migrations(self):
         """Check for missing columns and add them if needed."""
@@ -467,115 +460,6 @@ class Database:
         
         conn.close()
     
-    def _create_default_types(self):
-        """Create default client types on first run.
-        
-        Creates 5 types:
-        - Inactive (locked, workflow state)
-        - Deleted (locked, workflow state)  
-        - Active (editable, default therapy type)
-        - Assessment (editable, example type)
-        - Reduced Fee (editable, example type)
-        """
-        # Check if any types exist
-        conn = self.connect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM client_types")
-        count = cursor.fetchone()[0]
-        
-        if count > 0:
-            conn.close()
-            return  # Types already exist, don't create defaults
-        
-        import time
-        now = int(time.time())
-        
-        # Create 5 default types
-        default_types = [
-            # Workflow state types (locked, cannot edit/delete)
-            {
-                'name': 'Inactive',
-                'color': '#F5DDA9',  # Amber/yellow
-                'code': 'INA',
-                'service_description': None,
-                'session_fee': None,
-                'session_duration': None,
-                'retention_period': None,
-                'is_system': 1,
-                'is_system_locked': 1
-            },
-            {
-                'name': 'Deleted',
-                'color': '#F5C2C4',  # Red
-                'code': 'DEL',
-                'service_description': None,
-                'session_fee': None,
-                'session_duration': None,
-                'retention_period': None,
-                'is_system': 1,
-                'is_system_locked': 1
-            },
-            # Editable therapy types
-            {
-                'name': 'Active',
-                'color': '#9FCFC0',  # Green
-                'code': 'ACT',
-                'service_description': 'Psychotherapy',
-                'session_fee': 150.00,
-                'session_duration': 50,
-                'retention_period': 365,  # 1 year in days
-                'is_system': 1,
-                'is_system_locked': 0
-            },
-            {
-                'name': 'Assessment',
-                'color': '#B8D4E8',  # Blue
-                'code': 'ASM',
-                'service_description': 'Assessment',
-                'session_fee': 200.00,
-                'session_duration': 90,
-                'retention_period': 365,
-                'is_system': 0,
-                'is_system_locked': 0
-            },
-            {
-                'name': 'Low Fee',
-                'color': '#D4C5E0',  # Purple
-                'code': 'LOW',
-                'service_description': 'Psychotherapy',
-                'session_fee': 75.00,
-                'session_duration': 45,
-                'retention_period': 365,
-                'is_system': 0,
-                'is_system_locked': 0
-            }
-        ]
-        
-        for type_data in default_types:
-            cursor.execute('''
-                INSERT INTO client_types 
-                (name, color, code, file_number_style, service_description, session_fee, session_duration, 
-                retention_period, is_system, is_system_locked, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                type_data['name'],
-                type_data['color'],
-                type_data['code'],
-                'manual',
-                type_data['service_description'],
-                type_data['session_fee'],
-                type_data['session_duration'],
-                type_data['retention_period'],
-                type_data['is_system'],
-                type_data['is_system_locked'],
-                now,
-                now
-            ))
-        
-        conn.commit()
-        conn.close()
-        print(f"Created 5 default client types: Inactive, Deleted, Active, Assessment, Low Fee")
-    
     # ===== CLIENT TYPE OPERATIONS =====
     
     def add_client_type(self, type_data: Dict[str, Any]) -> int:
@@ -586,20 +470,25 @@ class Database:
         now = int(time.time())
         cursor.execute("""
             INSERT INTO client_types 
-            (name, color, code, file_number_style, file_number_prefix, 
-             file_number_suffix, session_fee, session_duration, retention_period, 
-             created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, color, file_number_style, file_number_prefix, 
+            file_number_suffix, session_fee, session_duration, retention_period, 
+            service_description, is_system, is_system_locked, base_price, tax_rate,
+            created_at, modified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             type_data['name'],
             type_data['color'],
-            type_data.get('code', ''),
-            type_data['file_number_style'],
+            type_data.get('file_number_style', 'manual'),
             type_data.get('file_number_prefix', ''),
             type_data.get('file_number_suffix', ''),
-            type_data.get('session_fee', 0.0),
-            type_data.get('session_duration', 50),
-            type_data.get('retention_period', 2555),
+            type_data.get('session_fee'),
+            type_data.get('session_duration'),
+            type_data.get('retention_period'),
+            type_data.get('service_description'),
+            type_data.get('is_system', 0),
+            type_data.get('is_system_locked', 0),
+            type_data.get('base_price'),
+            type_data.get('tax_rate'),
             now,
             now
         ))
@@ -865,7 +754,7 @@ class Database:
         """
         # Build UPDATE statement dynamically based on provided fields
         allowed_fields = [
-            'name', 'code', 'color', 'service_description', 
+            'name', 'color', 'service_description', 
             'session_duration', 'base_price', 'tax_rate', 'session_fee',
             'retention_period', 'modified_at'
         ]
