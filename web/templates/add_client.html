@@ -28,6 +28,7 @@
     }
     
     input[type="text"],
+    input[type="number"],
     select {
         width: 100%;
         padding: 0.75rem;
@@ -40,10 +41,17 @@
     }
     
     input[type="text"]:focus,
+    input[type="number"]:focus,
     select:focus {
         outline: none;
         border-color: #1F8F74;
         box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+    }
+    
+    input[readonly] {
+        background: #F2F4F5;
+        color: #5B6571;
+        cursor: not-allowed;
     }
     
     small {
@@ -85,13 +93,6 @@
         </div>
         
         <div class="form-group">
-            <label for="file_number">File Number</label>
-            <input type="text" id="file_number" name="file_number" 
-                   placeholder="e.g., 20251108-RLS" required>
-            <small>Format will depend on client type settings</small>
-        </div>
-        
-        <div class="form-group">
             <label for="first_name">First Name</label>
             <input type="text" id="first_name" name="first_name" required>
         </div>
@@ -106,10 +107,83 @@
             <input type="text" id="last_name" name="last_name" required>
         </div>
         
+        <div class="form-group">
+            <label for="file_number">File Number</label>
+            <input type="text" 
+                   id="file_number" 
+                   name="file_number" 
+                   {% if file_number_readonly %}
+                       value="{{ file_number_preview }}"
+                       readonly
+                   {% else %}
+                       placeholder="e.g., 20251108-RLS"
+                   {% endif %}
+                   required>
+            <small>
+                {% if file_number_readonly %}
+                    Auto-generated based on settings ({% if 'ABC' in file_number_preview %}Date + Initials{% else %}Prefix + Counter{% endif %})
+                {% else %}
+                    Enter manually (change format in Settings)
+                {% endif %}
+            </small>
+        </div>
+        
         <div class="button-group">
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn">Create Client</button>
         </div>
     </form>
 </div>
+
+<script>
+// Dynamic file number calculation for date-initials format
+function updateFileNumber() {
+    const fileNumberInput = document.getElementById('file_number');
+    
+    // Only update if field is readonly (auto-generated)
+    if (!fileNumberInput.hasAttribute('readonly')) {
+        return;
+    }
+    
+    // Check if we're in date-initials mode
+    const isDateInitials = '{{ "date-initials" if file_number_readonly and "ABC" in file_number_preview else "" }}';
+    
+    if (isDateInitials === 'date-initials') {
+        const first = document.getElementById('first_name').value.trim();
+        const middle = document.getElementById('middle_name').value.trim();
+        const last = document.getElementById('last_name').value.trim();
+        
+        // Get today's date in YYYYMMDD format
+        const today = new Date();
+        const dateStr = today.getFullYear() + 
+                      String(today.getMonth() + 1).padStart(2, '0') + 
+                      String(today.getDate()).padStart(2, '0');
+        
+        // Build initials progressively as names are entered
+        let initials = '';
+        if (first) initials += first[0].toUpperCase();
+        if (middle) initials += middle[0].toUpperCase();
+        if (last) initials += last[0].toUpperCase();
+        
+        // If no names entered yet, show placeholder
+        if (!initials) {
+            initials = 'ABC';
+        }
+        
+        // Update file number field
+        fileNumberInput.value = dateStr + '-' + initials;
+    }
+}
+
+// Add event listeners when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Listen for changes to name fields
+    document.getElementById('first_name').addEventListener('input', updateFileNumber);
+    document.getElementById('middle_name').addEventListener('input', updateFileNumber);
+    document.getElementById('last_name').addEventListener('input', updateFileNumber);
+    
+    // Run once on page load to set initial value
+    updateFileNumber();
+});
+</script>
 {% endblock %}
