@@ -346,3 +346,93 @@ if (filterButton && filterDropdown) {
         }
     });
 }
+
+// ===== SEARCH FUNCTIONALITY =====
+
+const searchInput = document.querySelector('.search-box input[name="search"]');
+const clearSearchBtn = document.querySelector('.clear-search');
+const clientCards = document.querySelectorAll('.client-card');
+
+// Strip phone formatting for smart matching
+function stripPhoneFormat(text) {
+    return text.replace(/[\s\-\(\)\.\+]/g, '');
+}
+
+// Search function
+function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    // Show/hide clear button
+    if (clearSearchBtn) {
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+    }
+    
+    if (!searchTerm) {
+        // No search term - show all cards (that pass type filter)
+        clientCards.forEach(card => {
+            card.style.display = '';
+        });
+        return;
+    }
+    
+    // Strip formatting from search term if it looks like a phone number
+    const searchTermStripped = stripPhoneFormat(searchTerm);
+    const isPhoneSearch = /^\d+$/.test(searchTermStripped);
+    
+    clientCards.forEach(card => {
+        // Extract searchable text from card
+        const fileNumber = card.querySelector('.file-number')?.textContent || '';
+        const clientName = card.querySelector('.client-name')?.textContent || '';
+        const email = card.querySelector('.contact-link[href^="mailto:"] span')?.textContent || '';
+        const phoneElement = card.querySelector('.contact-link[href^="tel:"] span, .contact-link[href^="sms:"] span');
+        const phone = phoneElement?.textContent || '';
+        
+        // Combine all searchable fields (except phone for now)
+        const searchableText = `${fileNumber} ${clientName} ${email}`.toLowerCase();
+        
+        // For phone, use stripped version if searching numbers
+        let phoneMatch = false;
+        if (isPhoneSearch && phone) {
+            const phoneStripped = stripPhoneFormat(phone);
+            phoneMatch = phoneStripped.includes(searchTermStripped);
+        } else {
+            phoneMatch = phone.toLowerCase().includes(searchTerm);
+        }
+        
+        // Check if search term matches
+        const textMatch = searchableText.includes(searchTerm);
+        const matches = textMatch || phoneMatch;
+        
+        // Show or hide card
+        card.style.display = matches ? '' : 'none';
+    });
+}
+
+// Real-time search as user types
+if (searchInput) {
+    searchInput.addEventListener('input', performSearch);
+}
+
+// Clear search button
+if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        performSearch();
+        searchInput.focus();
+    });
+}
+
+// Prevent form submission (we're doing real-time filtering, not server-side search)
+const searchForm = document.querySelector('.search-box');
+if (searchForm) {
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+    });
+}
+
+// Run search on page load if there's a search term
+document.addEventListener('DOMContentLoaded', function() {
+    if (searchInput && searchInput.value) {
+        performSearch();
+    }
+});
