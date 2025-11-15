@@ -133,45 +133,56 @@
                 Filter: {{ class_filter|length }} type{{ 's' if class_filter|length != 1 else '' }} ▾
             </button>
             <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 220px; z-index: 100;">
-                <form id="filter-form" method="get">
+                <div id="filter-form">
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="session" 
-                               {% if 'session' in class_filter %}checked{% endif %}>
+                            {% if 'session' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Session</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="consultation" 
-                               {% if 'consultation' in class_filter %}checked{% endif %}>
+                            {% if 'consultation' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="communication" 
-                               {% if 'communication' in class_filter %}checked{% endif %}>
+                            {% if 'communication' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Communication</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="absence" 
-                               {% if 'absence' in class_filter %}checked{% endif %}>
+                            {% if 'absence' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Absence</span>
                     </label>
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="item" 
-                               {% if 'item' in class_filter %}checked{% endif %}>
+                            {% if 'item' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Item</span>
                     </label>
-                    <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Apply Filter</button>
-                </form>
+                </div>
             </div>
+        </div>
+        
+        <!-- Search Box -->
+        <div class="entry-search-box" style="position: relative; flex: 1; max-width: 400px;">
+            <input type="text" 
+                id="entry-search" 
+                placeholder="Search entries..." 
+                style="width: 100%; padding: 0.75rem 2.5rem 0.75rem 2.5rem; border: 2px solid #DEE2E6; border-radius: 0.75rem; font-size: 0.875rem;">
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 1rem;">🔍</span>
+            <button type="button" 
+                    id="clear-entry-search" 
+                    style="display: none; position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9CA3AF; font-size: 1.25rem; cursor: pointer; padding: 0.25rem 0.5rem;">✕</button>
         </div>
         
         <!-- Action Buttons (right-aligned) -->
@@ -228,7 +239,9 @@
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('edit_item', client_id=client.id, entry_id=entry.id) }}{% endif %}'">
+                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('edit_item', client_id=client.id, entry_id=entry.id) }}{% endif %}'" 
+                                    data-description="{{ entry.description|e }}" 
+                                    data-content="{{ entry.content|e if entry.content else '' }}">
                                     <td>
                                         {% if entry.class == 'session' %}
                                             {{ entry.session_date|timestamp_to_date }}

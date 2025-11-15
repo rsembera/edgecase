@@ -676,7 +676,7 @@ def edit_session(client_id, entry_id):
             break
     
     # Determine prev/next session IDs (prev = older, next = newer)
-    prev_session_id = dated_sessions[current_index - 1]['id'] if current_index and current_index > 0 else None
+    prev_session_id = dated_sessions[current_index - 1]['id'] if current_index is not None and current_index > 0 else None
     next_session_id = dated_sessions[current_index + 1]['id'] if current_index is not None and current_index < len(dated_sessions) - 1 else None
     
     # Parse session date into year, month, day for dropdowns
