@@ -10,9 +10,10 @@ function updateFileNumber() {
     }
     
     // Check if we're in date-initials mode
-    const isDateInitials = '{{ "date-initials" if file_number_readonly and "ABC" in file_number_preview else "" }}';
+    const form = document.querySelector('form');
+    const format = form ? form.dataset.fileNumberFormat : '';
     
-    if (isDateInitials === 'date-initials') {
+    if (format === 'date-initials') {
         const first = document.getElementById('first_name').value.trim();
         const middle = document.getElementById('middle_name').value.trim();
         const last = document.getElementById('last_name').value.trim();
@@ -42,9 +43,13 @@ function updateFileNumber() {
 // Add event listeners when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Listen for changes to name fields
-    document.getElementById('first_name').addEventListener('input', updateFileNumber);
-    document.getElementById('middle_name').addEventListener('input', updateFileNumber);
-    document.getElementById('last_name').addEventListener('input', updateFileNumber);
+    const firstName = document.getElementById('first_name');
+    const middleName = document.getElementById('middle_name');
+    const lastName = document.getElementById('last_name');
+    
+    if (firstName) firstName.addEventListener('input', updateFileNumber);
+    if (middleName) middleName.addEventListener('input', updateFileNumber);
+    if (lastName) lastName.addEventListener('input', updateFileNumber);
     
     // Run once on page load to set initial value
     updateFileNumber();

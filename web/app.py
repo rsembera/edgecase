@@ -1645,7 +1645,8 @@ def add_client():
     return render_template('add_client.html', 
                          all_types=all_types,
                          file_number_preview=file_number_preview,
-                         file_number_readonly=file_number_readonly)
+                         file_number_readonly=file_number_readonly,
+                         file_number_format=format_type)
 
 
 # Also need to add these helper methods to database.py:

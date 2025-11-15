@@ -169,6 +169,29 @@
         color: #9CA3AF;
         font-size: 1.125rem;
     }
+
+    .clear-search {
+    position: absolute;
+    right: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    display: none;
+    transition: color 0.2s;
+    }
+
+    .clear-search:hover {
+        color: #6B7280;
+    }
+
+    .search-box {
+        position: relative;
+    }
     
     /* Dropdown buttons */
     .dropdown-btn {
