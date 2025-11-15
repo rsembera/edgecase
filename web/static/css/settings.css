@@ -1,0 +1,130 @@
+/* Settings page styles - EdgeCase Equalizer */
+/* Muted palette styling for settings page */
+
+.card {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h2 {
+    color: #111827;
+    margin-bottom: 0.5rem;
+}
+
+.settings-section {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #DEE2E6;
+}
+
+.settings-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.settings-section h3 {
+    color: #111827;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.settings-section p {
+    color: #5B6571;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #323B45;
+    font-size: 0.875rem;
+}
+
+select {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    color: #111827;
+    transition: all 0.2s;
+    background: #FBFCFD;
+}
+
+select:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+textarea {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    color: #111827;
+    transition: all 0.2s;
+    background: #FBFCFD;
+    font-family: 'Lexend', sans-serif;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.success-message {
+    background: #CFE7DA;
+    color: #0E5346;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+}
+
+.success-message.show {
+    display: block;
+}
+
+/* Remove spinner arrows from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
