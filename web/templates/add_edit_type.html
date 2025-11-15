@@ -171,6 +171,12 @@
 {% block content %}
 <div class="card">
     <h2>{{ 'Edit' if type else 'Add' }} Client Type</h2>
+
+        {% if error %}
+        <div style="background: #FEE2E2; border: 2px solid #EF4444; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+            {{ error }}
+        </div>
+        {% endif %}
     
     <form method="POST">
         <div class="form-group">
@@ -189,7 +195,7 @@
             <div class="color-picker">
                 {% for color in colors %}
                 <div class="color-option {% if type and type.color == color.hex %}selected{% endif %}" 
-                     onclick="selectColor('{{ color.hex }}', '{{ color.name }}')">
+                     onclick="selectColor('{{ color.hex }}', '{{ color.name }}', '{{ color.bubble }}')">
                     <div class="color-swatch" style="background-color: {{ color.hex }}">
                         {{ color.name }}
                     </div>
@@ -199,13 +205,15 @@
             </div>
             <input type="hidden" id="color" name="color" value="{{ type.color if type else '#9FCFC0' }}">
             <input type="hidden" id="color_name" name="color_name" value="{{ type.color_name if type else 'Soft Teal' }}">
+            <input type="hidden" id="bubble_color" name="bubble_color" value="{{ type.bubble_color if type else '#E0F2EE' }}">
         </div>
         
         <div class="form-group">
             <label for="service_description">Service Description</label>
             <input type="text" id="service_description" name="service_description" 
                    value="{{ type.service_description if type else '' }}"
-                   placeholder="e.g., Psychotherapy, Assessment, Counseling">
+                   placeholder="e.g., Psychotherapy, Assessment, Counseling"
+                   required>
         </div>
         
         <div class="form-group">
@@ -213,7 +221,8 @@
             <input type="number" id="session_fee" name="session_fee" 
                    step="0.01" min="0"
                    value="{{ type.session_fee if type else '' }}"
-                   placeholder="150.00">
+                   placeholder="150.00"
+                   required>
         </div>
         
         <div class="form-group">
@@ -221,7 +230,8 @@
             <input type="number" id="session_duration" name="session_duration" 
                    min="5" step="5"
                    value="{{ type.session_duration if type else '' }}"
-                   placeholder="50">
+                   placeholder="50"
+                   required>
         </div>
         
         <div class="form-group">
@@ -230,7 +240,8 @@
                 <input type="number" id="retention_value" name="retention_value" 
                        min="0" style="flex: 2;"
                        value="{{ retention_value if type else '' }}"
-                       placeholder="1">
+                       placeholder="1"
+                       required>
                 <select id="retention_unit" name="retention_unit" style="flex: 1;">
                     <option value="days" {% if retention_unit == 'days' %}selected{% endif %}>Days</option>
                     <option value="months" {% if retention_unit == 'months' or (type and not retention_unit) %}selected{% endif %}>Months</option>
@@ -270,10 +281,11 @@
 </div>
 
 <script>
-function selectColor(hex, name) {
+function selectColor(hex, name, bubble) {
     // Update hidden inputs
     document.getElementById('color').value = hex;
     document.getElementById('color_name').value = name;
+    document.getElementById('bubble_color').value = bubble;
     
     // Update UI
     document.querySelectorAll('.color-option').forEach(option => {

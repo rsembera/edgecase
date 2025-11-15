@@ -238,6 +238,7 @@ class Database:
                 'name': 'Inactive',
                 'color': '#F5DDA9',
                 'color_name': 'Soft Amber',
+                'bubble_color': '#FEF8E8',
                 'service_description': None,
                 'session_fee': None,
                 'session_duration': None,
@@ -249,6 +250,7 @@ class Database:
                 'name': 'Deleted',
                 'color': '#F5C2C4',
                 'color_name': 'Soft Rose',
+                'bubble_color': '#FDEEF0',
                 'service_description': None,
                 'session_fee': None,
                 'session_duration': None,
@@ -261,6 +263,7 @@ class Database:
                 'name': 'Active',
                 'color': '#9FCFC0',
                 'color_name': 'Soft Teal',
+                'bubble_color': '#E0F2EE', 
                 'service_description': 'Psychotherapy',
                 'session_fee': 150.00,
                 'session_duration': 50,
@@ -272,6 +275,7 @@ class Database:
                 'name': 'Assess',
                 'color': '#B8D4E8',
                 'color_name': 'Soft Blue',
+                'bubble_color': '#EBF3FA',
                 'service_description': 'Assessment',
                 'session_fee': 200.00,
                 'session_duration': 90,
@@ -283,6 +287,7 @@ class Database:
                 'name': 'Low Fee',
                 'color': '#D4C5E0',
                 'color_name': 'Soft Lavender',
+                'bubble_color': '#F3EDF7',
                 'service_description': 'Psychotherapy',
                 'session_fee': 75.00,
                 'session_duration': 45,
@@ -295,13 +300,14 @@ class Database:
         for type_data in default_types:
             cursor.execute('''
                 INSERT INTO client_types 
-                (name, color, color_name, file_number_style, service_description, session_fee, session_duration, 
+                (name, color, color_name, bubble_color, file_number_style, service_description, session_fee, session_duration, 
                 retention_period, is_system, is_system_locked, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 type_data['name'],
                 type_data['color'],
                 type_data['color_name'],
+                type_data.get('bubble_color'),
                 'manual',
                 type_data['service_description'],
                 type_data['session_fee'],
@@ -410,6 +416,30 @@ class Database:
                     (color_name, hex_code)
                 )
             print("Migration: Added color names to existing types")
+            
+        # Add bubble_color column to client_types table
+        cursor.execute("PRAGMA table_info(client_types)")
+        type_columns = [col[1] for col in cursor.fetchall()]
+
+        if 'bubble_color' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN bubble_color TEXT")
+            print("Migration: Added bubble_color to client_types")
+            
+            # Update existing types with bubble colors
+            bubble_map = {
+                '#9FCFC0': '#E0F2EE',  # Soft Teal
+                '#F5DDA9': '#FEF8E8',  # Soft Amber (Inactive)
+                '#F5C2C4': '#FDEEF0',  # Soft Rose (Deleted)
+                '#B8D4E8': '#EBF3FA',  # Soft Blue
+                '#D4C5E0': '#F3EDF7',  # Soft Lavender
+            }
+            
+            for badge_color, bubble_color in bubble_map.items():
+                cursor.execute(
+                    "UPDATE client_types SET bubble_color = ? WHERE color = ?",
+                    (bubble_color, badge_color)
+                )
+            print("Migration: Added bubble colors to existing types")
         
         conn.commit()
         conn.close()
@@ -509,13 +539,14 @@ class Database:
         
         cursor.execute('''
             INSERT INTO client_types 
-            (name, color, color_name, file_number_style, service_description, session_fee, session_duration, 
+            (name, color, color_name, bubble_color, file_number_style, service_description, session_fee, session_duration, 
             retention_period, is_system, is_system_locked, created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             type_data['name'],
             type_data['color'],
-            type_data.get('color_name'),  # NEW
+            type_data.get('color_name'),
+            type_data.get('bubble_color'),
             'manual',
             type_data.get('service_description'),
             type_data.get('session_fee'),
@@ -794,13 +825,14 @@ class Database:
         
         cursor.execute('''
             UPDATE client_types 
-            SET name = ?, color = ?, color_name = ?, service_description = ?, 
+            SET name = ?, color = ?, color_name = ?, bubble_color = ?, service_description = ?, 
                 session_fee = ?, session_duration = ?, retention_period = ?, modified_at = ?
             WHERE id = ?
         ''', (
             type_data['name'],
             type_data['color'],
-            type_data.get('color_name'),  # NEW
+            type_data.get('color_name'), 
+            type_data.get('bubble_color'),
             type_data.get('service_description'),
             type_data.get('session_fee'),
             type_data.get('session_duration'),
@@ -828,15 +860,22 @@ class Database:
             True if successful, False otherwise
         """
         conn = self.connect()
+        cursor = conn.cursor()
+        
         try:
-            # Check if type is locked
-            type_obj = self.get_client_type(type_id)
-            if not type_obj or type_obj.get('is_system_locked'):
+            # Check if type is locked (do it in this connection, don't call get_client_type)
+            cursor.execute(
+                "SELECT is_system_locked FROM client_types WHERE id = ?",
+                (type_id,)
+            )
+            result = cursor.fetchone()
+            
+            if not result or result[0] == 1:
                 conn.close()
                 return False
             
             # Check if any clients use this type
-            cursor = conn.execute(
+            cursor.execute(
                 "SELECT COUNT(*) FROM clients WHERE type_id = ?",
                 (type_id,)
             )
@@ -847,7 +886,7 @@ class Database:
                 return False
             
             # Safe to delete
-            conn.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
+            cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
             conn.commit()
             conn.close()
             return True
