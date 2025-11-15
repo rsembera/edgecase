@@ -214,7 +214,7 @@ def index():
     elif sort_by == 'created':
         clients.sort(key=lambda c: c['created_at'], reverse=(sort_order == 'desc'))
     elif sort_by == 'last_session':
-        clients.sort(key=lambda c: c.get('last_session', 0), reverse=(sort_order == 'desc'))
+        clients.sort(key=lambda c: c.get('last_session') or 0, reverse=(sort_order == 'desc'))
     
     return render_template('main_view.html',
                          clients=clients,
