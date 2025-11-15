@@ -29,6 +29,22 @@ db = Database(str(db_path))
 # Add custom Jinja filters
 from datetime import datetime
 
+# Color palette for client types
+COLOR_PALETTE = [
+    # Original 3 (from Active, Assess, Low Fee)
+    {'hex': '#9FCFC0', 'name': 'Soft Teal'},
+    {'hex': '#B8D4E8', 'name': 'Soft Blue'},
+    {'hex': '#D4C5E0', 'name': 'Soft Lavender'},
+    
+    # Additional muted options
+    {'hex': '#C8E6C9', 'name': 'Mint Green'},
+    {'hex': '#FFE0B2', 'name': 'Soft Peach'},
+    {'hex': '#F8BBD0', 'name': 'Soft Pink'},
+    {'hex': '#D7CCC8', 'name': 'Soft Taupe'},
+    {'hex': '#CFD8DC', 'name': 'Soft Slate'},
+    {'hex': '#E1BEE7', 'name': 'Soft Mauve'},
+]
+
 @app.template_filter('timestamp_to_date')
 def timestamp_to_date(timestamp):
     """Convert Unix timestamp to readable date."""
@@ -1080,102 +1096,67 @@ def manage_types():
                          locked_types=locked_types,
                          editable_types=editable_types)
     
-@app.route('/types/add', methods=['GET', 'POST'])
+@app.route('/add_type', methods=['GET', 'POST'])
 def add_type():
-    """Add new client type."""
+    """Add a new client type"""
     if request.method == 'POST':
-        import time
-        
-        # Calculate retention period in days
-        retention_days = None
-        if request.form.get('retention_period'):
-            retention_value = int(request.form['retention_period'])
-            retention_unit = request.form.get('retention_unit', 'years')
-            
-            if retention_unit == 'days':
-                retention_days = retention_value
-            elif retention_unit == 'months':
-                retention_days = retention_value * 30
-            elif retention_unit == 'years':
-                retention_days = retention_value * 365
-        
-        # Gather form data
         type_data = {
             'name': request.form['name'],
             'color': request.form['color'],
+            'color_name': request.form['color_name'],
             'service_description': request.form.get('service_description') or None,
-            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
-            'base_price': float(request.form['base_price']) if request.form.get('base_price') else None,
-            'tax_rate': float(request.form['tax_rate']) if request.form.get('tax_rate') else None,
             'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
-            'retention_period': retention_days,
-            'file_number_style': 'manual',
+            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
+            'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None,
             'is_system': 0,
-            'is_system_locked': 0,
-            'created_at': int(time.time()),
-            'modified_at': int(time.time())
+            'is_system_locked': 0
         }
         
-        # Add type to database
         db.add_client_type(type_data)
-        
         return redirect(url_for('manage_types'))
     
-    # GET - show form
-    return render_template('add_edit_type.html', is_edit=False)
+    return render_template('add_edit_type.html', type=None, colors=COLOR_PALETTE)
 
 
-@app.route('/types/<int:type_id>/edit', methods=['GET', 'POST'])
+@app.route('/edit_type/<int:type_id>', methods=['GET', 'POST'])
 def edit_type(type_id):
-    """Edit existing client type."""
+    """Edit an existing client type"""
     type_obj = db.get_client_type(type_id)
     
     if not type_obj:
-        return "Type not found", 404
+        return redirect(url_for('manage_types'))
+    
+    # Can't edit locked system types
+    if type_obj.get('is_system_locked'):
+        return redirect(url_for('manage_types'))
     
     if request.method == 'POST':
-        # Check if locked
-        if type_obj.get('is_system_locked'):
-            return "Cannot edit locked system type", 403
-        
-        import time
-        
-        # Calculate retention period in days
-        retention_days = None
-        if request.form.get('retention_period'):
-            retention_value = int(request.form['retention_period'])
-            retention_unit = request.form.get('retention_unit', 'years')
+        # Check for delete action
+        if request.form.get('_method') == 'DELETE':
+            # Check if any clients use this type
+            clients = db.get_all_clients(type_id=type_id)
+            if clients:
+                # Can't delete if clients exist
+                return redirect(url_for('manage_types'))
             
-            if retention_unit == 'days':
-                retention_days = retention_value
-            elif retention_unit == 'months':
-                retention_days = retention_value * 30
-            elif retention_unit == 'years':
-                retention_days = retention_value * 365
+            db.delete_client_type(type_id)
+            return redirect(url_for('manage_types'))
         
-        # Gather form data
+        # Regular update
         type_data = {
             'name': request.form['name'],
             'color': request.form['color'],
+            'color_name': request.form['color_name'],
             'service_description': request.form.get('service_description') or None,
-            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
-            'base_price': float(request.form['base_price']) if request.form.get('base_price') else None,
-            'tax_rate': float(request.form['tax_rate']) if request.form.get('tax_rate') else None,
             'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
-            'retention_period': retention_days,
-            'modified_at': int(time.time())
+            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
+            'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None
         }
         
-        # Update type in database
         db.update_client_type(type_id, type_data)
-        
         return redirect(url_for('manage_types'))
     
-    # GET - show form
-    return render_template('add_edit_type.html', 
-                         type=type_obj,
-                         is_edit=True)
-
+    return render_template('add_edit_type.html', type=type_obj, colors=COLOR_PALETTE)
 
 @app.route('/types/<int:type_id>/delete', methods=['POST'])
 def delete_type(type_id):

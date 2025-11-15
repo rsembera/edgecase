@@ -1,5 +1,42 @@
 // Main View (Dashboard) JavaScript - Extracted from main_view.html
 
+// ===== COLOR PALETTE SYSTEM =====
+const COLOR_PALETTE = {
+    green: { name: 'Green', bg: '#D1F0E8', badge: '#00AA88', text: '#1F2937' },
+    blue: { name: 'Blue', bg: '#DBEAFE', badge: '#3B82F6', text: '#1F2937' },
+    purple: { name: 'Purple', bg: '#E9D5FF', badge: '#A855F7', text: '#1F2937' },
+    pink: { name: 'Pink', bg: '#FCE7F3', badge: '#EC4899', text: '#1F2937' },
+    yellow: { name: 'Yellow', bg: '#FEF3C7', badge: '#F59E0B', text: '#1F2937' },
+    orange: { name: 'Orange', bg: '#FFEDD5', badge: '#F97316', text: '#1F2937' },
+    teal: { name: 'Teal', bg: '#CCFBF1', badge: '#14B8A6', text: '#1F2937' },
+    gray: { name: 'Gray', bg: '#F3F4F6', badge: '#6B7280', text: '#1F2937' }
+};
+
+function getColors(colorKey) {
+    return COLOR_PALETTE[colorKey] || COLOR_PALETTE.green;
+}
+
+// Apply colors to client cards when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply colors to client cards
+    document.querySelectorAll('.client-card').forEach(card => {
+        const colorKey = card.dataset.color;
+        if (colorKey) {
+            const colors = getColors(colorKey);
+            card.style.backgroundColor = colors.bg;
+            
+            // Update the type badge
+            const badge = card.querySelector('.type-badge');
+            if (badge) {
+                badge.style.backgroundColor = colors.badge;
+                badge.style.color = 'white';
+            }
+        }
+    });
+});
+
+// ===== EXISTING MAIN VIEW CODE =====
+
 function toggleDropdown(id) {
     const dropdown = document.getElementById(id);
     // Close all other dropdowns
