@@ -349,7 +349,7 @@ if (filterButton && filterDropdown) {
 
 // ===== SEARCH FUNCTIONALITY =====
 
-const searchInput = document.querySelector('.search-box input[name="search"]');
+const searchInput = document.querySelector('input[name="search"]');
 const clearSearchBtn = document.querySelector('.clear-search');
 const clientCards = document.querySelectorAll('.client-card');
 
@@ -435,4 +435,114 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput && searchInput.value) {
         performSearch();
     }
+});
+// Add this to the end of main_view.js
+
+// ===== REAL-TIME TYPE FILTER =====
+
+// Get selected type IDs
+function getSelectedTypes() {
+    const checkboxes = document.querySelectorAll('#filter-form input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// Apply type filter
+function applyTypeFilter() {
+    const selectedTypes = getSelectedTypes();
+    const clientCards = document.querySelectorAll('.client-card');
+    
+    // Update button text
+    const filterButton = document.getElementById('filter-button');
+    if (filterButton) {
+        filterButton.textContent = `Filter: ${selectedTypes.length} type${selectedTypes.length !== 1 ? 's' : ''} ▾`;
+    }
+    
+    // If no types selected, hide all cards
+    if (selectedTypes.length === 0) {
+        clientCards.forEach(card => {
+            card.style.display = 'none';
+        });
+        return;
+    }
+    
+    // Show/hide cards based on type
+    clientCards.forEach(card => {
+        // Get the type ID from the card's data or from the hidden input
+        // The card should have a way to identify its type
+        // Looking at the template, we need to add a data-type-id attribute
+        const typeId = card.dataset.typeId;
+        
+        if (!typeId) {
+            // Fallback: try to find it from the card structure
+            card.style.display = '';
+            return;
+        }
+        
+        // Check if this type is selected
+        const isTypeSelected = selectedTypes.includes(typeId);
+        
+        // If search is also active, combine both filters
+        if (searchInput && searchInput.value.trim()) {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const fileNumber = card.querySelector('.file-number')?.textContent || '';
+            const clientName = card.querySelector('.client-name')?.textContent || '';
+            const email = card.querySelector('.contact-link[href^="mailto:"] span')?.textContent || '';
+            const phoneElement = card.querySelector('.contact-link[href^="tel:"] span, .contact-link[href^="sms:"] span');
+            const phone = phoneElement?.textContent || '';
+            
+            const searchableText = `${fileNumber} ${clientName} ${email}`.toLowerCase();
+            
+            const searchTermStripped = stripPhoneFormat(searchTerm);
+            const isPhoneSearch = /^\d+$/.test(searchTermStripped);
+            
+            let phoneMatch = false;
+            if (isPhoneSearch && phone) {
+                const phoneStripped = stripPhoneFormat(phone);
+                phoneMatch = phoneStripped.includes(searchTermStripped);
+            } else {
+                phoneMatch = phone.toLowerCase().includes(searchTerm);
+            }
+            
+            const textMatch = searchableText.includes(searchTerm);
+            const searchMatches = textMatch || phoneMatch;
+            
+            // Must match both type filter AND search
+            card.style.display = (isTypeSelected && searchMatches) ? '' : 'none';
+        } else {
+            // Only type filter, no search
+            card.style.display = isTypeSelected ? '' : 'none';
+        }
+    });
+}
+
+// Add real-time filtering to checkboxes
+document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        applyTypeFilter();
+    });
+});
+
+// Update search to work with filter
+const originalPerformSearch = performSearch;
+performSearch = function() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    // Show/hide clear button
+    if (clearSearchBtn) {
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+    }
+    
+    if (!searchTerm) {
+        // No search term - just apply type filter
+        applyTypeFilter();
+        return;
+    }
+    
+    // Apply type filter which will handle search too
+    applyTypeFilter();
+};
+
+// Apply filter on page load
+document.addEventListener('DOMContentLoaded', function() {
+    applyTypeFilter();
 });
