@@ -183,7 +183,7 @@
                 </td>
                 <td>
                     <span class="type-badge" style="background-color: {{ type.color }}">
-                        {{ type.color|upper }}
+                        {{ type.color_name or type.color }}
                     </span>
                 </td>
                 <td style="text-align: center;">
@@ -217,7 +217,7 @@
                 </td>
                 <td>
                     <span class="type-badge" style="background-color: {{ type.color }}">
-                        {{ type.color|upper }}
+                        {{ type.color_name or type.color }}
                     </span>
                 </td>
                 <td>{{ type.service_description or '-' }}</td>

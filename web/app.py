@@ -32,17 +32,17 @@ from datetime import datetime
 # Color palette for client types
 COLOR_PALETTE = [
     # Original 3 (from Active, Assess, Low Fee)
-    {'hex': '#9FCFC0', 'name': 'Soft Teal'},
-    {'hex': '#B8D4E8', 'name': 'Soft Blue'},
-    {'hex': '#D4C5E0', 'name': 'Soft Lavender'},
+    {'hex': '#9FCFC0', 'name': 'Soft Teal', 'bubble': '#E0F2EE'},
+    {'hex': '#B8D4E8', 'name': 'Soft Blue', 'bubble': '#EBF3FA'},
+    {'hex': '#D4C5E0', 'name': 'Soft Lavender', 'bubble': '#F3EDF7'},
     
     # Additional muted options
-    {'hex': '#C8E6C9', 'name': 'Mint Green'},
-    {'hex': '#FFE0B2', 'name': 'Soft Peach'},
-    {'hex': '#F8BBD0', 'name': 'Soft Pink'},
-    {'hex': '#D7CCC8', 'name': 'Soft Taupe'},
-    {'hex': '#CFD8DC', 'name': 'Soft Slate'},
-    {'hex': '#E1BEE7', 'name': 'Soft Mauve'},
+    {'hex': '#C8E6C9', 'name': 'Mint Green', 'bubble': '#EDF7ED'},
+    {'hex': '#FFE0B2', 'name': 'Soft Peach', 'bubble': '#FFF5E6'},
+    {'hex': '#F8BBD0', 'name': 'Soft Pink', 'bubble': '#FEEEF3'},
+    {'hex': '#D7CCC8', 'name': 'Soft Taupe', 'bubble': '#F2EFEE'},
+    {'hex': '#CFD8DC', 'name': 'Soft Slate', 'bubble': '#EEF1F3'},
+    {'hex': '#E1BEE7', 'name': 'Soft Mauve', 'bubble': '#F7EFF9'},
 ]
 
 @app.template_filter('timestamp_to_date')
@@ -1104,6 +1104,7 @@ def add_type():
             'name': request.form['name'],
             'color': request.form['color'],
             'color_name': request.form['color_name'],
+            'bubble_color': request.form['bubble_color'],
             'service_description': request.form.get('service_description') or None,
             'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
@@ -1112,8 +1113,12 @@ def add_type():
             'is_system_locked': 0
         }
         
-        db.add_client_type(type_data)
-        return redirect(url_for('manage_types'))
+        try:
+            db.add_client_type(type_data)
+            return redirect(url_for('manage_types'))
+        except Exception as e:
+            error_message = "A type with that name already exists." if "UNIQUE constraint" in str(e) else str(e)
+            return render_template('add_edit_type.html', type=None, colors=COLOR_PALETTE, error=error_message)
     
     return render_template('add_edit_type.html', type=None, colors=COLOR_PALETTE)
 
@@ -1147,6 +1152,7 @@ def edit_type(type_id):
             'name': request.form['name'],
             'color': request.form['color'],
             'color_name': request.form['color_name'],
+            'bubble_color': request.form['bubble_color'],
             'service_description': request.form.get('service_description') or None,
             'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,

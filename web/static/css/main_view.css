@@ -330,12 +330,6 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
-    /* Pastel backgrounds based on type - muted palette */
-    .client-card.type-mint { background: #CFE7DA; }    /* Muted mint */
-    .client-card.type-yellow { background: #FAF0DF; }  /* Muted cream */
-    .client-card.type-pink { background: #F0DBE3; }    /* Muted rose */
-    .client-card.type-purple { background: #DCD7E9; }  /* Muted lavender */
-    
     /* Detailed view - single line with EXACT column alignment */
     .client-card.detailed-view {
         display: flex;
