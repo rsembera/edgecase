@@ -1,0 +1,97 @@
+/* Session Entry Form Styles - Extracted from session.html */
+
+.form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-row-full {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-row-thirds {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row, .form-row-thirds {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Date dropdown styling - matches profile.html */
+    .date-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .date-input-group select {
+        flex: 1;
+        height: 46px;  /* Match text input height */
+    }
+    
+    textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-family: inherit;
+        min-height: 300px;
+        transition: border-color 0.2s;
+    }
+    
+    textarea:focus {
+        outline: none;
+        border-color: #00aa88;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #718096;
+        margin-top: 0.25rem;
+    }
+    
+    .session-number-display {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #00aa88;
+        margin-bottom: 1.5rem;
+    }
+    
+    .checkbox-inline {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+    
+    .checkbox-inline:hover {
+        border-color: #cbd5e0;
+    }
+    
+    .checkbox-inline input[type="checkbox"] {
+        width: auto;
+        margin-right: 0.5rem;
+    }
+    /* Remove spinner arrows from number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+    input[readonly] {
+    background-color: #f7fafc;
+    cursor: not-allowed;
+}

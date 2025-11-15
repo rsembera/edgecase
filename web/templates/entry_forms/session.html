@@ -3,104 +3,11 @@
 {% block title %}Session Entry - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<style>
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-row-full {
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-row-thirds {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    @media (max-width: 768px) {
-        .form-row, .form-row-thirds {
-            grid-template-columns: 1fr;
-        }
-    }
-    
-    /* Date dropdown styling - matches profile.html */
-    .date-input-group {
-        display: flex;
-        gap: 0.5rem;
-    }
-    
-    .date-input-group select {
-        flex: 1;
-        height: 46px;  /* Match text input height */
-    }
-    
-    textarea {
-        width: 100%;
-        padding: 0.75rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 0.5rem;
-        font-size: 1rem;
-        font-family: inherit;
-        min-height: 300px;
-        transition: border-color 0.2s;
-    }
-    
-    textarea:focus {
-        outline: none;
-        border-color: #00aa88;
-    }
-    
-    .help-text {
-        font-size: 0.875rem;
-        color: #718096;
-        margin-top: 0.25rem;
-    }
-    
-    .session-number-display {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #00aa88;
-        margin-bottom: 1.5rem;
-    }
-    
-    .checkbox-inline {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 0;
-        cursor: pointer;
-        font-size: 0.875rem;
-    }
-    
-    .checkbox-inline:hover {
-        border-color: #cbd5e0;
-    }
-    
-    .checkbox-inline input[type="checkbox"] {
-        width: auto;
-        margin-right: 0.5rem;
-    }
-    /* Remove spinner arrows from number inputs */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
+<link rel="stylesheet" href="{{ url_for('static', filename='css/session.css') }}">
+{% endblock %}
 
-    input[type="number"] {
-        -moz-appearance: textfield;
-    }
-
-    input[readonly] {
-    background-color: #f7fafc;
-    cursor: not-allowed;
-}
-
-</style>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/session.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -309,102 +216,9 @@
 </div>
 
 <script>
-    // Date dropdowns → hidden field (same as profile.html)
-    const dateYear = document.getElementById('date_year');
-    const dateMonth = document.getElementById('date_month');
-    const dateDay = document.getElementById('date_day');
-    const dateHidden = document.getElementById('session_date');
-    
-    function updateSessionDate() {
-        if (dateYear.value && dateMonth.value && dateDay.value) {
-            dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
-        } else {
-            dateHidden.value = '';
-        }
-    }
-    
-    // Consultation checkbox logic with settings from database
-    const consultationCheckbox = document.getElementById('is_consultation');
-    const feeInput = document.getElementById('fee');
-    const durationInput = document.getElementById('duration');
-    const sessionNumberDisplay = document.getElementById('session-number-display');
-    const originalFee = feeInput.value;
-    const originalDuration = durationInput.value;
-
-    // Fetch consultation settings from database
-    let consultationFee = '0.00';
-    let consultationDuration = '20';
-    let settingsLoaded = false;
-
-    // Load settings immediately
-    fetch('/api/practice_info')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.info) {
-                consultationFee = data.info.consultation_fee || '0.00';
-                consultationDuration = data.info.consultation_duration || '20';
-            }
-            settingsLoaded = true;
-            // Apply if checkbox already checked
-            if (consultationCheckbox.checked) {
-                feeInput.value = consultationFee;
-                durationInput.value = consultationDuration;
-            }
-        })
-        .catch(error => console.error('Failed to load consultation settings:', error));
-
-    consultationCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            // Consultation: use settings from database
-            feeInput.value = consultationFee;
-            durationInput.value = consultationDuration;
-            
-            {% if not is_edit %}
-            sessionNumberDisplay.textContent = 'Consultation';
-            {% endif %}
-        } else {
-            // Regular session: restore original values
-            feeInput.value = originalFee;
-            durationInput.value = originalDuration;
-            
-            {% if not is_edit %}
-            sessionNumberDisplay.textContent = 'Session {{ next_session_number }}';
-            {% endif %}
-        }
-    });
-
-    // Currency formatting for fee field
-    document.getElementById('fee').addEventListener('blur', function(e) {
-        let value = parseFloat(e.target.value);
-        if (!isNaN(value)) {
-            e.target.value = value.toFixed(2);
-        }
-    });
-
-    // Auto-expanding textarea
-    const textarea = document.getElementById('content');
-    const maxHeight = 600; // About 30-35 lines
-
-    function autoResize() {
-        // Reset height to auto to get the correct scrollHeight
-        textarea.style.height = 'auto';
-        
-        // Set new height, but don't exceed maxHeight
-        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-        textarea.style.height = newHeight + 'px';
-        
-        // Add scrollbar if content exceeds maxHeight
-        if (textarea.scrollHeight > maxHeight) {
-            textarea.style.overflowY = 'scroll';
-        } else {
-            textarea.style.overflowY = 'hidden';
-        }
-    }
-
-    // Run on page load (for edit mode with existing content)
-    autoResize();
-
-    // Run on input
-    textarea.addEventListener('input', autoResize);
+// Set data attributes for JavaScript to read
+document.body.dataset.isEdit = '{% if is_edit %}true{% else %}false{% endif %}';
+document.body.dataset.nextSessionNumber = '{% if not is_edit %}{{ next_session_number }}{% endif %}';
 </script>
+
 {% endblock %}
