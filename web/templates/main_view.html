@@ -49,7 +49,7 @@
                 Filter: {{ type_filter|length }} type{{ 's' if type_filter|length != 1 else '' }} ▾
             </button>
             <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
-                <form id="filter-form" method="get">
+                <div id="filter-form">
                     <input type="hidden" name="sort" value="{{ sort_by }}">
                     <input type="hidden" name="order" value="{{ sort_order }}">
                     <input type="hidden" name="search" value="{{ search }}">
@@ -63,8 +63,7 @@
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">{{ client_type.name }}</span>
                     </label>
                     {% endfor %}
-                    <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Apply Filter</button>
-                </form>
+                </div>
             </div>
         </div>
         
@@ -151,6 +150,7 @@
         {% for client in clients %}
         <div class="client-card {{ view_mode }}-view" 
             style="background-color: {{ client.type.bubble_color or '#FBFCFD' }}"
+            data-type-id="{{ client.type_id }}"
             onclick="window.location='{{ url_for('client_file', client_id=client.id) }}'">
             {% if view_mode == 'detailed' %}
                 <!-- Detailed View: Single horizontal line with EXACT column alignment -->
