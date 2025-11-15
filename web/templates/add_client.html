@@ -3,71 +3,8 @@
 {% block title %}Add Client - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Muted palette styling for add client form */
-    .card {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    h2 {
-        color: #111827;
-        margin-bottom: 0.5rem;
-    }
-    
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-    
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #323B45;
-        font-size: 0.875rem;
-    }
-    
-    input[type="text"],
-    input[type="number"],
-    select {
-        width: 100%;
-        padding: 0.75rem;
-        border: 2px solid #DEE2E6;
-        border-radius: 0.5rem;
-        font-size: 1rem;
-        color: #111827;
-        transition: all 0.2s;
-        box-sizing: border-box;
-    }
-    
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    select:focus {
-        outline: none;
-        border-color: #1F8F74;
-        box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-    }
-    
-    input[readonly] {
-        background: #F2F4F5;
-        color: #5B6571;
-        cursor: not-allowed;
-    }
-    
-    small {
-        display: block;
-        margin-top: 0.25rem;
-        color: #5B6571;
-        font-size: 0.875rem;
-    }
-    
-    .button-group {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_client.css') }}">
+
 {% endblock %}
 
 {% block content %}
@@ -135,55 +72,10 @@
     </form>
 </div>
 
-<script>
-// Dynamic file number calculation for date-initials format
-function updateFileNumber() {
-    const fileNumberInput = document.getElementById('file_number');
-    
-    // Only update if field is readonly (auto-generated)
-    if (!fileNumberInput.hasAttribute('readonly')) {
-        return;
-    }
-    
-    // Check if we're in date-initials mode
-    const isDateInitials = '{{ "date-initials" if file_number_readonly and "ABC" in file_number_preview else "" }}';
-    
-    if (isDateInitials === 'date-initials') {
-        const first = document.getElementById('first_name').value.trim();
-        const middle = document.getElementById('middle_name').value.trim();
-        const last = document.getElementById('last_name').value.trim();
-        
-        // Get today's date in YYYYMMDD format
-        const today = new Date();
-        const dateStr = today.getFullYear() + 
-                      String(today.getMonth() + 1).padStart(2, '0') + 
-                      String(today.getDate()).padStart(2, '0');
-        
-        // Build initials progressively as names are entered
-        let initials = '';
-        if (first) initials += first[0].toUpperCase();
-        if (middle) initials += middle[0].toUpperCase();
-        if (last) initials += last[0].toUpperCase();
-        
-        // If no names entered yet, show placeholder
-        if (!initials) {
-            initials = 'ABC';
-        }
-        
-        // Update file number field
-        fileNumberInput.value = dateStr + '-' + initials;
-    }
-}
 
-// Add event listeners when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Listen for changes to name fields
-    document.getElementById('first_name').addEventListener('input', updateFileNumber);
-    document.getElementById('middle_name').addEventListener('input', updateFileNumber);
-    document.getElementById('last_name').addEventListener('input', updateFileNumber);
-    
-    // Run once on page load to set initial value
-    updateFileNumber();
-});
-</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/add_client.js') }}"></script>
 {% endblock %}
