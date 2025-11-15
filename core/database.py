@@ -236,7 +236,8 @@ class Database:
             # Workflow state types (locked, cannot edit/delete)
             {
                 'name': 'Inactive',
-                'color': '#F5DDA9',  # Amber/yellow
+                'color': '#F5DDA9',
+                'color_name': 'Soft Amber',
                 'service_description': None,
                 'session_fee': None,
                 'session_duration': None,
@@ -246,7 +247,8 @@ class Database:
             },
             {
                 'name': 'Deleted',
-                'color': '#F5C2C4',  # Red
+                'color': '#F5C2C4',
+                'color_name': 'Soft Rose',
                 'service_description': None,
                 'session_fee': None,
                 'session_duration': None,
@@ -257,7 +259,8 @@ class Database:
             # Editable therapy types
             {
                 'name': 'Active',
-                'color': '#9FCFC0',  # Green
+                'color': '#9FCFC0',
+                'color_name': 'Soft Teal',
                 'service_description': 'Psychotherapy',
                 'session_fee': 150.00,
                 'session_duration': 50,
@@ -266,8 +269,9 @@ class Database:
                 'is_system_locked': 0
             },
             {
-                'name': 'Assess',  # Shortened to fit 9-char limit
-                'color': '#B8D4E8',  # Blue
+                'name': 'Assess',
+                'color': '#B8D4E8',
+                'color_name': 'Soft Blue',
                 'service_description': 'Assessment',
                 'session_fee': 200.00,
                 'session_duration': 90,
@@ -277,7 +281,8 @@ class Database:
             },
             {
                 'name': 'Low Fee',
-                'color': '#D4C5E0',  # Purple
+                'color': '#D4C5E0',
+                'color_name': 'Soft Lavender',
                 'service_description': 'Psychotherapy',
                 'session_fee': 75.00,
                 'session_duration': 45,
@@ -290,12 +295,13 @@ class Database:
         for type_data in default_types:
             cursor.execute('''
                 INSERT INTO client_types 
-                (name, color, file_number_style, service_description, session_fee, session_duration, 
+                (name, color, color_name, file_number_style, service_description, session_fee, session_duration, 
                 retention_period, is_system, is_system_locked, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 type_data['name'],
                 type_data['color'],
+                type_data['color_name'],
                 'manual',
                 type_data['service_description'],
                 type_data['session_fee'],
@@ -380,6 +386,30 @@ class Database:
                 WHERE session_fee IS NOT NULL AND session_fee > 0
             """)
             print("Migration: Calculated base_price and tax_rate from session_fee")
+            
+        # Add color_name column to client_types table
+        cursor.execute("PRAGMA table_info(client_types)")
+        type_columns = [col[1] for col in cursor.fetchall()]
+
+        if 'color_name' not in type_columns:
+            cursor.execute("ALTER TABLE client_types ADD COLUMN color_name TEXT")
+            print("Migration: Added color_name to client_types")
+            
+            # Update existing types with color names based on their hex values
+            color_map = {
+                '#9FCFC0': 'Soft Teal',
+                '#F5DDA9': 'Soft Amber',
+                '#F5C2C4': 'Soft Rose',
+                '#B8D4E8': 'Soft Blue',
+                '#D4C5E0': 'Soft Lavender'
+            }
+            
+            for hex_code, color_name in color_map.items():
+                cursor.execute(
+                    "UPDATE client_types SET color_name = ? WHERE color = ?",
+                    (color_name, hex_code)
+                )
+            print("Migration: Added color names to existing types")
         
         conn.commit()
         conn.close()
@@ -462,33 +492,37 @@ class Database:
     
     # ===== CLIENT TYPE OPERATIONS =====
     
-    def add_client_type(self, type_data: Dict[str, Any]) -> int:
-        """Add new client type."""
+    def add_client_type(self, type_data: Dict) -> int:
+        """Add a new client type.
+        
+        Args:
+            type_data: Dictionary with type fields (name, color, color_name, session_fee, etc.)
+        
+        Returns:
+            ID of newly created type
+        """
+        import time
+        now = int(time.time())
+        
         conn = self.connect()
         cursor = conn.cursor()
         
-        now = int(time.time())
-        cursor.execute("""
+        cursor.execute('''
             INSERT INTO client_types 
-            (name, color, file_number_style, file_number_prefix, 
-            file_number_suffix, session_fee, session_duration, retention_period, 
-            service_description, is_system, is_system_locked, base_price, tax_rate,
-            created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
+            (name, color, color_name, file_number_style, service_description, session_fee, session_duration, 
+            retention_period, is_system, is_system_locked, created_at, modified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
             type_data['name'],
             type_data['color'],
-            type_data.get('file_number_style', 'manual'),
-            type_data.get('file_number_prefix', ''),
-            type_data.get('file_number_suffix', ''),
+            type_data.get('color_name'),  # NEW
+            'manual',
+            type_data.get('service_description'),
             type_data.get('session_fee'),
             type_data.get('session_duration'),
             type_data.get('retention_period'),
-            type_data.get('service_description'),
             type_data.get('is_system', 0),
             type_data.get('is_system_locked', 0),
-            type_data.get('base_price'),
-            type_data.get('tax_rate'),
             now,
             now
         ))
@@ -742,46 +776,43 @@ class Database:
         
         return True
     
-    def update_client_type(self, type_id: int, type_data: dict) -> bool:
+    def update_client_type(self, type_id: int, type_data: Dict) -> bool:
         """Update an existing client type.
         
         Args:
             type_id: ID of type to update
-            type_data: Dictionary of fields to update
+            type_data: Dictionary with fields to update
         
         Returns:
-            True if successful, False otherwise
+            True if successful
         """
-        # Build UPDATE statement dynamically based on provided fields
-        allowed_fields = [
-            'name', 'color', 'service_description', 
-            'session_duration', 'base_price', 'tax_rate', 'session_fee',
-            'retention_period', 'modified_at'
-        ]
-        
-        # Filter to only allowed fields that are present
-        update_fields = {k: v for k, v in type_data.items() if k in allowed_fields}
-        
-        if not update_fields:
-            return False
-        
-        # Build SQL
-        set_clause = ', '.join([f"{field} = ?" for field in update_fields.keys()])
-        values = list(update_fields.values())
-        values.append(type_id)
-        
-        sql = f"UPDATE client_types SET {set_clause} WHERE id = ?"
+        import time
+        now = int(time.time())
         
         conn = self.connect()
-        try:
-            conn.execute(sql, values)
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"Error updating client type: {e}")
-            conn.close()
-            return False
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE client_types 
+            SET name = ?, color = ?, color_name = ?, service_description = ?, 
+                session_fee = ?, session_duration = ?, retention_period = ?, modified_at = ?
+            WHERE id = ?
+        ''', (
+            type_data['name'],
+            type_data['color'],
+            type_data.get('color_name'),  # NEW
+            type_data.get('service_description'),
+            type_data.get('session_fee'),
+            type_data.get('session_duration'),
+            type_data.get('retention_period'),
+            now,
+            type_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return True
 
     def delete_client_type(self, type_id: int) -> bool:
         """Delete a client type.
