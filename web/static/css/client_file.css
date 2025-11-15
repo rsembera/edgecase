@@ -36,6 +36,11 @@
         border-color: #1F8F74;
         color: #1F8F74;
     }
+
+    /* Entry search clear button */
+    #clear-entry-search:hover {
+        color: #6B7280; 
+    }
     
     /* Profile entry styling */
     .profile-entry {
