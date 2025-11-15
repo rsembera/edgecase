@@ -1546,15 +1546,19 @@ def file_number_settings():
         return jsonify({'success': True})
     
     # GET - return current settings
+    counter_value = db.get_setting('file_number_counter', '1')
+    # Handle None case (setting doesn't exist yet)
+    if counter_value is None or counter_value == 'None':
+        counter_value = '1'
+    
     settings = {
         'format': db.get_setting('file_number_format', 'manual'),
         'prefix': db.get_setting('file_number_prefix', ''),
         'suffix': db.get_setting('file_number_suffix', ''),
-        'counter': int(db.get_setting('file_number_counter', '1'))
+        'counter': int(counter_value)
     }
     
     return jsonify(settings)
-
 
 @app.route('/add_client', methods=['GET', 'POST'])
 def add_client():
