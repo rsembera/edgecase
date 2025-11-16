@@ -3,182 +3,23 @@
 {% block title %}{{ 'Edit' if type else 'Add' }} Client Type - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<style>
-    .card {
-        max-width: 700px;
-        margin: 0 auto;
-    }
-    
-    h2 {
-        color: #111827;
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Color picker grid */
-    .color-picker {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.75rem;
-        margin-top: 0.5rem;
-    }
-    
-    .color-option {
-        position: relative;
-        cursor: pointer;
-        border: 3px solid transparent;
-        border-radius: 0.5rem;
-        transition: all 0.2s;
-    }
-    
-    .color-option:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .color-option.selected {
-        border-color: #00AA88;
-        box-shadow: 0 0 0 2px rgba(0,170,136,0.2);
-    }
-    
-    .color-swatch {
-        padding: 1.25rem;
-        border-radius: 0.375rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: #111827;
-    }
-    
-    .color-name {
-        margin-top: 0.5rem;
-        font-size: 0.75rem;
-        color: #5B6571;
-        text-align: center;
-    }
-    
-    .checkmark {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        background: #00AA88;
-        color: white;
-        border-radius: 50%;
-        width: 1.5rem;
-        height: 1.5rem;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.875rem;
-    }
-    
-    .color-option.selected .checkmark {
-        display: flex;
-    }
-    
-    .form-actions {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-    
-    .btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: none;
-        text-decoration: none;
-        display: inline-block;
-    }
-    
-    .btn-primary {
-        background: #BFDCDC;
-        color: #115D4F;
-    }
-    
-    .btn-primary:hover {
-        background: #9FCFC0;
-        transform: translateY(-1px);
-    }
-    
-    .btn-secondary {
-        background: #E3E9EE;
-        color: #323B45;
-    }
-    
-    .btn-secondary:hover {
-        background: #DEE2E6;
-    }
-    
-    .btn-delete {
-        background: #F8DCDD;
-        color: #6B2D2E;
-        margin-left: auto;
-    }
-    
-    .btn-delete:hover {
-        background: #F5C2C4;
-    }
-    
-    /* Delete confirmation modal */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .modal-overlay.active {
-        display: flex;
-    }
-    
-    .modal {
-        background: white;
-        padding: 2rem;
-        border-radius: 1rem;
-        max-width: 400px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    
-    .modal h3 {
-        margin-top: 0;
-        margin-bottom: 1rem;
-        color: #111827;
-    }
-    
-    .modal p {
-        color: #5B6571;
-        margin-bottom: 1.5rem;
-    }
-    
-    .modal-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_type.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="card">
     <h2>{{ 'Edit' if type else 'Add' }} Client Type</h2>
 
-        {% if error %}
-        <div style="background: #FEE2E2; border: 2px solid #EF4444; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-            {{ error }}
-        </div>
-        {% endif %}
+    {% if error %}
+    <div style="background: #FEE2E2; border: 2px solid #EF4444; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+        {{ error }}
+    </div>
+    {% endif %}
     
-    <form method="POST">
+    <form method="POST" id="type-form"
+          data-type-id="{{ type.id if type else '' }}"
+          data-retention-days="{{ type.retention_period if type and type.retention_period else 0 }}">
+        
         <div class="form-group">
             <label for="name">Type Name</label>
             <input type="text" id="name" name="name" 
@@ -195,7 +36,9 @@
             <div class="color-picker">
                 {% for color in colors %}
                 <div class="color-option {% if type and type.color == color.hex %}selected{% endif %}" 
-                     onclick="selectColor('{{ color.hex }}', '{{ color.name }}', '{{ color.bubble }}')">
+                     data-hex="{{ color.hex }}"
+                     data-name="{{ color.name }}"
+                     data-bubble="{{ color.bubble }}">
                     <div class="color-swatch" style="background-color: {{ color.hex }}">
                         {{ color.name }}
                     </div>
@@ -217,12 +60,41 @@
         </div>
         
         <div class="form-group">
-            <label for="session_fee">Session Fee ($)</label>
-            <input type="number" id="session_fee" name="session_fee" 
-                   step="0.01" min="0"
-                   value="{{ type.session_fee if type else '' }}"
-                   placeholder="150.00"
-                   required>
+            <label style="font-weight: 600; color: #374151; margin-bottom: 0.75rem; display: block;">Session Fee</label>
+            <div class="fee-grid">
+                <div class="fee-field">
+                    <label for="session_base_price">Base Price</label>
+                    <input type="number" id="session_base_price" name="session_base_price" 
+                           step="0.01" min="0"
+                           value="{{ '%.2f' | format(type.session_base_price) if type and type.session_base_price else '' }}"
+                           placeholder="100.00"
+                           required>
+                    <small>Before tax</small>
+                </div>
+                
+                <div class="fee-field">
+                    <label for="session_tax_rate">Tax Rate</label>
+                    <input type="number" id="session_tax_rate" name="session_tax_rate" 
+                           step="0.01" min="0" max="100"
+                           value="{{ '%.2f' | format(type.session_tax_rate) if type and type.session_tax_rate else '' }}"
+                           placeholder="13.00"
+                           required>
+                    <small>Percentage (%)</small>
+                </div>
+                
+                <div class="fee-field">
+                    <label for="session_total">Total</label>
+                    <input type="number" id="session_total" name="session_total" 
+                           step="0.01" min="0"
+                           value="{{ '%.2f' | format(type.session_fee) if type and type.session_fee else '' }}"
+                           placeholder="113.00"
+                           required>
+                    <small>With tax</small>
+                </div>
+            </div>
+            <div class="helper-text">
+                Fill any two fields and the third calculates automatically
+            </div>
         </div>
         
         <div class="form-group">
@@ -258,7 +130,7 @@
             
             <div style="display: flex; gap: 1rem;">
                 {% if type and not type.is_system_locked %}
-                <button type="button" class="btn btn-delete" onclick="showDeleteModal()">Delete Type</button>
+                <button type="button" class="btn btn-delete" id="delete-btn">Delete Type</button>
                 {% endif %}
                 <button type="submit" class="btn btn-primary">
                     {{ 'Save Changes' if type else 'Create Type' }}
@@ -274,87 +146,14 @@
         <h3>Delete Client Type?</h3>
         <p>Are you sure you want to delete this type? This action cannot be undone.</p>
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">Cancel</button>
-            <button type="button" class="btn btn-delete" onclick="confirmDelete()">Delete Type</button>
+            <button type="button" class="btn btn-secondary" id="cancel-delete">Cancel</button>
+            <button type="button" class="btn btn-delete" id="confirm-delete">Delete Type</button>
         </div>
     </div>
 </div>
 
-<script>
-function selectColor(hex, name, bubble) {
-    // Update hidden inputs
-    document.getElementById('color').value = hex;
-    document.getElementById('color_name').value = name;
-    document.getElementById('bubble_color').value = bubble;
-    
-    // Update UI
-    document.querySelectorAll('.color-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    event.currentTarget.classList.add('selected');
-}
+{% endblock %}
 
-function showDeleteModal() {
-    document.getElementById('deleteModal').classList.add('active');
-}
-
-function hideDeleteModal() {
-    document.getElementById('deleteModal').classList.remove('active');
-}
-
-function confirmDelete() {
-    // Create a form to submit DELETE request
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{{ url_for("edit_type", type_id=type.id) if type else "" }}';
-    
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = '_method';
-    input.value = 'DELETE';
-    form.appendChild(input);
-    
-    document.body.appendChild(form);
-    form.submit();
-}
-
-// Convert retention period on page load
-window.addEventListener('DOMContentLoaded', function() {
-    const retentionDays = {{ type.retention_period if type and type.retention_period else 0 }};
-    
-    if (retentionDays > 0) {
-        // Convert days to most appropriate unit
-        if (retentionDays % 365 === 0) {
-            document.getElementById('retention_value').value = retentionDays / 365;
-            document.getElementById('retention_unit').value = 'years';
-        } else if (retentionDays % 30 === 0) {
-            document.getElementById('retention_value').value = retentionDays / 30;
-            document.getElementById('retention_unit').value = 'months';
-        } else {
-            document.getElementById('retention_value').value = retentionDays;
-            document.getElementById('retention_unit').value = 'days';
-        }
-    }
-});
-
-// Convert retention period to days before form submission
-document.querySelector('form').addEventListener('submit', function(e) {
-    const value = parseInt(document.getElementById('retention_value').value) || 0;
-    const unit = document.getElementById('retention_unit').value;
-    let days = value;
-    
-    if (unit === 'months') {
-        days = value * 30;
-    } else if (unit === 'years') {
-        days = value * 365;
-    }
-    
-    // Create hidden input with days value
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'retention_period';
-    hiddenInput.value = days;
-    this.appendChild(hiddenInput);
-});
-</script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/add_edit_type.js') }}"></script>
 {% endblock %}

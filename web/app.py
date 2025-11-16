@@ -1109,7 +1109,9 @@ def add_type():
             'color_name': request.form['color_name'],
             'bubble_color': request.form['bubble_color'],
             'service_description': request.form.get('service_description') or None,
-            'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
+            'session_base_price': float(request.form['session_base_price']) if request.form.get('session_base_price') else None,
+            'session_tax_rate': float(request.form['session_tax_rate']) if request.form.get('session_tax_rate') else None,
+            'session_fee': float(request.form['session_total']) if request.form.get('session_total') else None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
             'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None,
             'is_system': 0,
@@ -1124,7 +1126,6 @@ def add_type():
             return render_template('add_edit_type.html', type=None, colors=COLOR_PALETTE, error=error_message)
     
     return render_template('add_edit_type.html', type=None, colors=COLOR_PALETTE)
-
 
 @app.route('/edit_type/<int:type_id>', methods=['GET', 'POST'])
 def edit_type(type_id):
@@ -1157,7 +1158,9 @@ def edit_type(type_id):
             'color_name': request.form['color_name'],
             'bubble_color': request.form['bubble_color'],
             'service_description': request.form.get('service_description') or None,
-            'session_fee': float(request.form['session_fee']) if request.form.get('session_fee') else None,
+            'session_base_price': float(request.form['session_base_price']) if request.form.get('session_base_price') else None,
+            'session_tax_rate': float(request.form['session_tax_rate']) if request.form.get('session_tax_rate') else None,
+            'session_fee': float(request.form['session_total']) if request.form.get('session_total') else None,
             'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
             'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None
         }
@@ -1166,6 +1169,7 @@ def edit_type(type_id):
         return redirect(url_for('manage_types'))
     
     return render_template('add_edit_type.html', type=type_obj, colors=COLOR_PALETTE)
+
 
 @app.route('/types/<int:type_id>/delete', methods=['POST'])
 def delete_type(type_id):
