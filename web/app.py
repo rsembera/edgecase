@@ -514,23 +514,6 @@ def create_session(client_id):
     
     # Get client type for defaults
     client_type = db.get_client_type(client['type_id'])
-
-    # Check for Profile fee override (ADD THESE LINES)
-    profile = db.get_profile_entry(client_id)
-
-    # Determine which fee to use
-    if profile and profile.get('fee_override_total'):
-        # Use Profile Override
-        default_base = profile['fee_override_base']
-        default_tax_rate = profile['fee_override_tax_rate']
-        default_total = profile['fee_override_total']
-        fee_source = 'Profile Override'
-    else:
-        # Use Client Type
-        default_base = client_type.get('session_base_price')
-        default_tax_rate = client_type.get('session_tax_rate', 0.0)
-        default_total = client_type.get('session_fee')
-        fee_source = 'Client Type'
     
     if request.method == 'POST':
         # Check if consultation
@@ -574,10 +557,11 @@ def create_session(client_id):
         }
         
         # Set session number and description based on consultation status
-        # Note: session number will be recalculated by renumber_sessions()
         if is_consultation:
             session_data['session_number'] = None
             session_data['fee'] = 0
+            session_data['base_fee'] = 0
+            session_data['tax_rate'] = 0
             session_data['description'] = 'Consultation'
         else:
             # Temporary number, will be corrected by renumber_sessions()
@@ -600,15 +584,12 @@ def create_session(client_id):
     today_month = today_dt.month
     today_day = today_dt.day
 
-    # Calculate preview session number (what it will be if saved with today's date)
+    # Calculate preview session number
     all_sessions = db.get_client_entries(client_id, 'session')
     dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
 
-    # Get client's session offset
     offset = client.get('session_offset', 0)
-
-    # Count how many sessions are before or on today's date
     today_timestamp = int(today_dt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     sessions_before_today = sum(1 for s in dated_sessions if s['session_date'] <= today_timestamp)
     preview_session_number = sessions_before_today + offset + 1
@@ -616,18 +597,59 @@ def create_session(client_id):
     # Get all sessions for navigation
     prev_session_id = None
     next_session_id = None
-
-    # If there are existing sessions, the "previous" would be the most recent one
     if dated_sessions:
-        prev_session_id = dated_sessions[-1]['id']  # Most recent session
+        prev_session_id = dated_sessions[-1]['id']
+
+    # Prepare fee sources for JavaScript to use
+    # 1. Profile Override (if exists)
+    profile = db.get_profile_entry(client_id)
+    profile_override = None
+    if profile and profile.get('fee_override_total'):
+        profile_override = {
+            'base': profile['fee_override_base'],
+            'tax': profile['fee_override_tax_rate'],
+            'total': profile['fee_override_total']
+        }
+    
+    # 2. Client Type
+    client_type_fees = {
+        'base': client_type.get('session_base_price') or 0,
+        'tax': client_type.get('session_tax_rate') or 0,
+        'total': client_type.get('session_fee') or 0
+    }
+    
+    # 3. Link Groups (by format)
+    link_group_fees = {}  # Format: {'couples': {...}, 'family': {...}, 'group': {...}}
+    
+    # Get all link groups this client is in
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+    
+    for row in cursor.fetchall():
+        format_type = row['format']
+        if format_type:  # Only if format is set
+            link_group_fees[format_type] = {
+                'base': row['member_base_fee'] or 0,
+                'tax': row['member_tax_rate'] or 0,
+                'total': row['member_total_fee'] or 0
+            }
+    
+    conn.close()
 
     return render_template('entry_forms/session.html',
                         client=client,
                         client_type=client_type,
-                        default_base=default_base,
-                        default_tax_rate=default_tax_rate,
-                        default_total=default_total,
-                        fee_source=fee_source,
+                        profile_override=profile_override,
+                        client_type_fees=client_type_fees,
+                        link_group_fees=link_group_fees,
                         today=today,
                         today_year=today_year,
                         today_month=today_month,
