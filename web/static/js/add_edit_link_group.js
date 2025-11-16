@@ -1,5 +1,10 @@
 // Get all clients data from hidden div
 const allClientsData = JSON.parse(document.getElementById('all-clients-data').textContent);
+
+// Get existing group data (if editing)
+const groupDataElement = document.getElementById('group-data');
+const existingGroupData = groupDataElement ? JSON.parse(groupDataElement.textContent) : null;
+
 let selectedClients = [];
 
 // Initialize with existing selected clients (if editing)
@@ -133,10 +138,28 @@ function updateMemberFees() {
         const client = allClientsData.find(c => c.id === clientId);
         if (!client) return '';
         
-        // Get default fees from client type
-        const defaultBase = client.type.session_base_price || 0;
-        const defaultTax = client.type.session_tax_rate || 0;
-        const defaultTotal = client.type.session_fee || 0;
+        // Get fees: use saved fees if editing, otherwise use client type defaults
+        let defaultBase, defaultTax, defaultTotal;
+
+        if (existingGroupData && existingGroupData.members) {
+            // Editing: find this member's saved fees
+            const savedMember = existingGroupData.members.find(m => m.id === clientId);
+            if (savedMember && savedMember.member_total_fee !== null) {
+                defaultBase = savedMember.member_base_fee || 0;
+                defaultTax = savedMember.member_tax_rate || 0;
+                defaultTotal = savedMember.member_total_fee || 0;
+            } else {
+                // Fallback to client type
+                defaultBase = client.type.session_base_price || 0;
+                defaultTax = client.type.session_tax_rate || 0;
+                defaultTotal = client.type.session_fee || 0;
+            }
+        } else {
+            // Creating new: use client type defaults
+            defaultBase = client.type.session_base_price || 0;
+            defaultTax = client.type.session_tax_rate || 0;
+            defaultTotal = client.type.session_fee || 0;
+        }
         
         return `
             <div class="member-fee-row" data-client-id="${clientId}">
