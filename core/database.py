@@ -220,6 +220,199 @@ class Database:
         
         # Create default client types if they don't exist
         self._create_default_types()
+    
+    def _run_migrations(self):
+        """Run database migrations to add missing columns"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # ============================================
+        # EXISTING MIGRATIONS (from Week 2)
+        # ============================================
+        
+        # Migration: Add color_name and bubble_color to client_types
+        cursor.execute("PRAGMA table_info(client_types)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'color_name' not in columns:
+            print("Running migration: Add color_name to client_types")
+            cursor.execute("ALTER TABLE client_types ADD COLUMN color_name TEXT")
+            
+            # Set default color names based on existing colors
+            cursor.execute("UPDATE client_types SET color_name = 'Soft Teal' WHERE color = '#9FCFC0'")
+            cursor.execute("UPDATE client_types SET color_name = 'Mint Green' WHERE color = '#A7D4A4'")
+            cursor.execute("UPDATE client_types SET color_name = 'Sage' WHERE color = '#B8C5A8'")
+            cursor.execute("UPDATE client_types SET color_name = 'Lavender' WHERE color = '#C8B8D9'")
+            cursor.execute("UPDATE client_types SET color_name = 'Dusty Rose' WHERE color = '#D4A5A5'")
+            cursor.execute("UPDATE client_types SET color_name = 'Peach' WHERE color = '#E8C4A8'")
+            cursor.execute("UPDATE client_types SET color_name = 'Powder Blue' WHERE color = '#A8C8D9'")
+            cursor.execute("UPDATE client_types SET color_name = 'Soft Gray' WHERE color = '#B8B8C5'")
+            cursor.execute("UPDATE client_types SET color_name = 'Warm Amber' WHERE color = '#D9C8A5'")
+            
+            # Default to Soft Teal for any other colors
+            cursor.execute("UPDATE client_types SET color_name = 'Soft Teal' WHERE color_name IS NULL")
+            conn.commit()
+        
+        if 'bubble_color' not in columns:
+            print("Running migration: Add bubble_color to client_types")
+            cursor.execute("ALTER TABLE client_types ADD COLUMN bubble_color TEXT")
+            
+            # Set bubble colors based on existing colors
+            cursor.execute("UPDATE client_types SET bubble_color = '#E6F5F1' WHERE color = '#9FCFC0'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#E8F5E7' WHERE color = '#A7D4A4'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#EEF2E9' WHERE color = '#B8C5A8'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#F1EDF5' WHERE color = '#C8B8D9'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#F5E9E9' WHERE color = '#D4A5A5'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#F9F0E8' WHERE color = '#E8C4A8'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#E8F0F5' WHERE color = '#A8C8D9'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#EEEEEF' WHERE color = '#B8B8C5'")
+            cursor.execute("UPDATE client_types SET bubble_color = '#F5F0E9' WHERE color = '#D9C8A5'")
+            
+            # Default to Soft Teal bubble for any other colors
+            cursor.execute("UPDATE client_types SET bubble_color = '#E6F5F1' WHERE bubble_color IS NULL")
+            conn.commit()
+        
+        # ============================================
+        # FEE OVERRIDE MIGRATIONS (Week 3, Session 1)
+        # ============================================
+        
+        # Re-fetch columns after existing migrations
+        cursor.execute("PRAGMA table_info(client_types)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        # Migration: Add fee breakdown to client_types
+        if 'session_base_price' not in columns:
+            print("Running migration: Add session_base_price to client_types")
+            cursor.execute("ALTER TABLE client_types ADD COLUMN session_base_price REAL")
+            
+            # Migrate existing session_fee to base (assume 0% tax initially)
+            cursor.execute("UPDATE client_types SET session_base_price = session_fee WHERE session_fee IS NOT NULL")
+            conn.commit()
+        
+        if 'session_tax_rate' not in columns:
+            print("Running migration: Add session_tax_rate to client_types")
+            cursor.execute("ALTER TABLE client_types ADD COLUMN session_tax_rate REAL DEFAULT 0.0")
+            conn.commit()
+        
+        # Migration: Add fee override to entries (for Profile class)
+        cursor.execute("PRAGMA table_info(entries)")
+        entries_columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'fee_override_base' not in entries_columns:
+            print("Running migration: Add fee_override_base to entries")
+            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_base REAL")
+            conn.commit()
+        
+        if 'fee_override_tax_rate' not in entries_columns:
+            print("Running migration: Add fee_override_tax_rate to entries")
+            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_tax_rate REAL")
+            conn.commit()
+        
+        if 'fee_override_total' not in entries_columns:
+            print("Running migration: Add fee_override_total to entries")
+            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_total REAL")
+            conn.commit()
+        
+        # ============================================
+        # GUARDIAN/BILLING MIGRATIONS (Week 3, Session 1)
+        # ============================================
+        
+        # Add guardian/billing fields to entries table
+        guardian_columns = {
+            'is_minor': 'INTEGER DEFAULT 0',
+            'guardian1_name': 'TEXT',
+            'guardian1_email': 'TEXT',
+            'guardian1_phone': 'TEXT',
+            'guardian1_address': 'TEXT',
+            'guardian1_pays_percent': 'INTEGER DEFAULT 100',
+            'has_guardian2': 'INTEGER DEFAULT 0',
+            'guardian2_name': 'TEXT',
+            'guardian2_email': 'TEXT',
+            'guardian2_phone': 'TEXT',
+            'guardian2_address': 'TEXT',
+            'guardian2_pays_percent': 'INTEGER DEFAULT 0'
+        }
+        
+        for column, data_type in guardian_columns.items():
+            if column not in entries_columns:
+                print(f"Running migration: Add {column} to entries")
+                cursor.execute(f"ALTER TABLE entries ADD COLUMN {column} {data_type}")
+                conn.commit()
+        
+        # ============================================
+        # CLEAN UP CLIENT_TYPES TABLE (Week 3, Session 1)
+        # ============================================
+        
+        # Remove file number columns from client_types (they're global settings now)
+        # SQLite doesn't support DROP COLUMN, so we recreate the table
+        
+        cursor.execute("PRAGMA table_info(client_types)")
+        client_types_columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'file_number_style' in client_types_columns:
+            print("Running migration: Remove file number columns from client_types")
+            
+            # Create new table without file number columns
+            cursor.execute("""
+                CREATE TABLE client_types_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    color TEXT NOT NULL,
+                    color_name TEXT,
+                    bubble_color TEXT,
+                    session_fee REAL,
+                    session_base_price REAL,
+                    session_tax_rate REAL DEFAULT 0.0,
+                    session_duration INTEGER,
+                    retention_period INTEGER,
+                    is_system INTEGER DEFAULT 0,
+                    service_description TEXT,
+                    is_system_locked INTEGER DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    modified_at INTEGER NOT NULL
+                )
+            """)
+            
+            # Copy data from old table (excluding file number columns)
+            cursor.execute("""
+                INSERT INTO client_types_new 
+                (id, name, color, color_name, bubble_color, session_fee, session_base_price, 
+                 session_tax_rate, session_duration, retention_period, is_system, 
+                 service_description, is_system_locked, created_at, modified_at)
+                SELECT id, name, color, 
+                       COALESCE(color_name, 'Soft Teal'), 
+                       COALESCE(bubble_color, '#E6F5F1'), 
+                       session_fee, session_base_price, 
+                       COALESCE(session_tax_rate, 0.0), 
+                       session_duration, retention_period, is_system,
+                       service_description, is_system_locked, created_at, modified_at
+                FROM client_types
+            """)
+            
+            # Drop old table and rename new one
+            cursor.execute("DROP TABLE client_types")
+            cursor.execute("ALTER TABLE client_types_new RENAME TO client_types")
+            
+            conn.commit()
+            print("Migration complete: File number columns removed from client_types")
+        
+        # ============================================
+        # LINK GROUP SIMPLIFICATION NOTE
+        # ============================================
+        
+        # Check if link_groups has old billing columns
+        cursor.execute("PRAGMA table_info(link_groups)")
+        link_columns = [col[1] for col in cursor.fetchall()]
+        
+        # Note: SQLite doesn't support DROP COLUMN easily
+        # We'll just leave these columns in place (they won't be used after Session 6)
+        # Future: Could create new table and migrate data if needed
+        
+        if 'billing_type' in link_columns or 'principal_payer_id' in link_columns:
+            print("Note: link_groups still has old billing columns (will be unused after Session 6, safe to ignore)")
+        
+        print("All migrations complete")
+        conn.close()
 
     def _create_default_types(self):
         """Create default client types on first run.
@@ -239,340 +432,148 @@ class Database:
         
         if count > 0:
             conn.close()
-            return  # Types already exist, don't create defaults
+            return
         
-        import time
         now = int(time.time())
         
-        # Create 5 default types (names limited to 9 characters for badge display)
+        # Default types with muted color palette
         default_types = [
-            # Workflow state types (locked, cannot edit/delete)
             {
                 'name': 'Inactive',
-                'color': '#F5DDA9',
-                'color_name': 'Soft Amber',
-                'bubble_color': '#FEF8E8',
-                'service_description': None,
-                'session_fee': None,
-                'session_duration': None,
-                'retention_period': None,
+                'color': '#D9C8A5',  # Warm Amber
+                'color_name': 'Warm Amber',
+                'bubble_color': '#F5F0E9',
+                'file_number_style': 'manual',
+                'session_fee': 0.0,
+                'session_base_price': 0.0,
+                'session_tax_rate': 0.0,
+                'session_duration': 50,
+                'retention_period': 2555,  # 7 years in days
                 'is_system': 1,
-                'is_system_locked': 1
+                'is_system_locked': 1,
+                'service_description': 'Inactive client (no longer in treatment)'
             },
             {
                 'name': 'Deleted',
-                'color': '#F5C2C4',
-                'color_name': 'Soft Rose',
-                'bubble_color': '#FDEEF0',
-                'service_description': None,
-                'session_fee': None,
-                'session_duration': None,
-                'retention_period': None,
+                'color': '#B8B8C5',  # Soft Gray
+                'color_name': 'Soft Gray',
+                'bubble_color': '#EEEEEF',
+                'file_number_style': 'manual',
+                'session_fee': 0.0,
+                'session_base_price': 0.0,
+                'session_tax_rate': 0.0,
+                'session_duration': 50,
+                'retention_period': 0,
                 'is_system': 1,
-                'is_system_locked': 1
+                'is_system_locked': 1,
+                'service_description': 'Deleted client (purged from system)'
             },
-            # Editable therapy types
             {
                 'name': 'Active',
-                'color': '#9FCFC0',
+                'color': '#9FCFC0',  # Soft Teal
                 'color_name': 'Soft Teal',
-                'bubble_color': '#E0F2EE', 
-                'service_description': 'Psychotherapy',
-                'session_fee': 150.00,
+                'bubble_color': '#E6F5F1',
+                'file_number_style': 'date-initials',
+                'session_fee': 200.0,
+                'session_base_price': 200.0,
+                'session_tax_rate': 0.0,
                 'session_duration': 50,
-                'retention_period': 365,  # 1 year in days
-                'is_system': 1,
-                'is_system_locked': 0
+                'retention_period': 2555,  # 7 years
+                'is_system': 0,
+                'is_system_locked': 0,
+                'service_description': 'Psychotherapy'
             },
             {
                 'name': 'Assess',
-                'color': '#B8D4E8',
-                'color_name': 'Soft Blue',
-                'bubble_color': '#EBF3FA',
-                'service_description': 'Assessment',
-                'session_fee': 200.00,
+                'color': '#A8C8D9',  # Powder Blue
+                'color_name': 'Powder Blue',
+                'bubble_color': '#E8F0F5',
+                'file_number_style': 'date-initials',
+                'session_fee': 225.0,
+                'session_base_price': 225.0,
+                'session_tax_rate': 0.0,
                 'session_duration': 90,
-                'retention_period': 365,
+                'retention_period': 2555,
                 'is_system': 0,
-                'is_system_locked': 0
+                'is_system_locked': 0,
+                'service_description': 'Psychological Assessment'
             },
             {
                 'name': 'Low Fee',
-                'color': '#D4C5E0',
-                'color_name': 'Soft Lavender',
-                'bubble_color': '#F3EDF7',
-                'service_description': 'Psychotherapy',
-                'session_fee': 75.00,
-                'session_duration': 45,
-                'retention_period': 365,
+                'color': '#A7D4A4',  # Mint Green
+                'color_name': 'Mint Green',
+                'bubble_color': '#E8F5E7',
+                'file_number_style': 'date-initials',
+                'session_fee': 100.0,
+                'session_base_price': 100.0,
+                'session_tax_rate': 0.0,
+                'session_duration': 50,
+                'retention_period': 2555,
                 'is_system': 0,
-                'is_system_locked': 0
+                'is_system_locked': 0,
+                'service_description': 'Sliding Scale Psychotherapy'
             }
         ]
         
         for type_data in default_types:
-            cursor.execute('''
-                INSERT INTO client_types 
-                (name, color, color_name, bubble_color, file_number_style, service_description, session_fee, session_duration, 
-                retention_period, is_system, is_system_locked, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
+            cursor.execute("""
+                INSERT INTO client_types (
+                    name, color, color_name, bubble_color, file_number_style,
+                    session_fee, session_base_price, session_tax_rate, session_duration,
+                    retention_period, is_system, is_system_locked, service_description,
+                    created_at, modified_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
                 type_data['name'],
                 type_data['color'],
                 type_data['color_name'],
-                type_data.get('bubble_color'),
-                'manual',
-                type_data['service_description'],
+                type_data['bubble_color'],
+                type_data['file_number_style'],
                 type_data['session_fee'],
+                type_data['session_base_price'],
+                type_data['session_tax_rate'],
                 type_data['session_duration'],
                 type_data['retention_period'],
                 type_data['is_system'],
                 type_data['is_system_locked'],
+                type_data['service_description'],
                 now,
                 now
             ))
         
         conn.commit()
         conn.close()
-        print(f"Created 5 default client types: Inactive, Deleted, Active, Assess, Low Fee")
-    
-    def _run_migrations(self):
-        """Check for missing columns and add them if needed."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # Get current columns in entries table
-        cursor.execute("PRAGMA table_info(entries)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
-        
-        # Define required columns with their types
-        required_columns = {
-            'comm_date': 'INTEGER',
-            'comm_time': 'TEXT',
-            'absence_date': 'INTEGER',
-            'absence_time': 'TEXT',
-            'item_date': 'INTEGER',
-            'item_time': 'TEXT',
-            'base_price': 'REAL',
-            'tax_rate': 'REAL'
-        }
-        
-        # Add missing columns to entries table
-        for column, col_type in required_columns.items():
-            if column not in existing_columns:
-                try:
-                    cursor.execute(f"ALTER TABLE entries ADD COLUMN {column} {col_type}")
-                    print(f"Migration: Added column '{column}' to entries table")
-                except sqlite3.OperationalError as e:
-                    print(f"Migration warning: Could not add column '{column}': {e}")
-        
-        # Add session_offset column to clients table
-        cursor.execute("PRAGMA table_info(clients)")
-        client_columns = [col[1] for col in cursor.fetchall()]
-        if 'session_offset' not in client_columns:
-            cursor.execute("ALTER TABLE clients ADD COLUMN session_offset INTEGER DEFAULT 0")
-            print("Migration: Added session_offset column to clients table")
-            
-        # Add columns to client_types table
-        cursor.execute("PRAGMA table_info(client_types)")
-        type_columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'service_description' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN service_description TEXT")
-            print("Migration: Added service_description to client_types")
-        
-        if 'is_system_locked' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN is_system_locked INTEGER DEFAULT 0")
-            print("Migration: Added is_system_locked to client_types")
-            
-            # Lock existing Inactive and Deleted types
-            cursor.execute("UPDATE client_types SET is_system_locked = 1 WHERE name IN ('Inactive', 'Deleted')")
-            print("Migration: Locked Inactive and Deleted types")
-        
-        if 'base_price' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN base_price REAL")
-            print("Migration: Added base_price to client_types")
-        
-        if 'tax_rate' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN tax_rate REAL")
-            print("Migration: Added tax_rate to client_types")
-            
-            # Calculate base_price and tax_rate from existing session_fee (assuming 13% tax)
-            cursor.execute("""
-                UPDATE client_types 
-                SET base_price = session_fee / 1.13,
-                    tax_rate = 13.0
-                WHERE session_fee IS NOT NULL AND session_fee > 0
-            """)
-            print("Migration: Calculated base_price and tax_rate from session_fee")
-            
-        # Add color_name column to client_types table
-        cursor.execute("PRAGMA table_info(client_types)")
-        type_columns = [col[1] for col in cursor.fetchall()]
-
-        if 'color_name' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN color_name TEXT")
-            print("Migration: Added color_name to client_types")
-            
-            # Update existing types with color names based on their hex values
-            color_map = {
-                '#9FCFC0': 'Soft Teal',
-                '#F5DDA9': 'Soft Amber',
-                '#F5C2C4': 'Soft Rose',
-                '#B8D4E8': 'Soft Blue',
-                '#D4C5E0': 'Soft Lavender'
-            }
-            
-            for hex_code, color_name in color_map.items():
-                cursor.execute(
-                    "UPDATE client_types SET color_name = ? WHERE color = ?",
-                    (color_name, hex_code)
-                )
-            print("Migration: Added color names to existing types")
-            
-        # Add bubble_color column to client_types table
-        cursor.execute("PRAGMA table_info(client_types)")
-        type_columns = [col[1] for col in cursor.fetchall()]
-
-        if 'bubble_color' not in type_columns:
-            cursor.execute("ALTER TABLE client_types ADD COLUMN bubble_color TEXT")
-            print("Migration: Added bubble_color to client_types")
-            
-            # Update existing types with bubble colors
-            bubble_map = {
-                '#9FCFC0': '#E0F2EE',  # Soft Teal
-                '#F5DDA9': '#FEF8E8',  # Soft Amber (Inactive)
-                '#F5C2C4': '#FDEEF0',  # Soft Rose (Deleted)
-                '#B8D4E8': '#EBF3FA',  # Soft Blue
-                '#D4C5E0': '#F3EDF7',  # Soft Lavender
-            }
-            
-            for badge_color, bubble_color in bubble_map.items():
-                cursor.execute(
-                    "UPDATE client_types SET bubble_color = ? WHERE color = ?",
-                    (bubble_color, badge_color)
-                )
-            print("Migration: Added bubble colors to existing types")
-            
-        # NEW: Add group_id column to client_links table
-        cursor.execute("PRAGMA table_info(client_links)")
-        link_columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'group_id' not in link_columns:
-            cursor.execute("ALTER TABLE client_links ADD COLUMN group_id INTEGER")
-            print("Migration: Added group_id to client_links")
-        
-        conn.commit()
-        conn.close()
-        
-    # ===== HELPER METHODS =====
-    
-    def get_last_session_date(self, client_id: int) -> Optional[int]:
-        """Get the date of the most recent session for a client."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT session_date FROM entries 
-            WHERE client_id = ? AND class = 'session' AND session_date IS NOT NULL
-            ORDER BY session_date DESC
-            LIMIT 1
-        """, (client_id,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        return row[0] if row else None
-    
-    def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
-        """Get the profile entry for a client."""
-        conn = self.connect()
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM entries 
-            WHERE client_id = ? AND class = 'profile'
-            LIMIT 1
-        """, (client_id,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        return dict(row) if row else None
-    
-    def get_payment_status(self, client_id: int) -> str:
-        """
-        Get payment status for a client.
-        Returns: 'paid', 'pending', or 'overdue'
-        """
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # Get most recent statement
-        cursor.execute("""
-            SELECT payment_status, date_sent FROM entries
-            WHERE client_id = ? AND class = 'statement' AND is_void = 0
-            ORDER BY created_at DESC
-            LIMIT 1
-        """, (client_id,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            return 'paid'  # No statements = up to date
-        
-        payment_status = row[0]
-        date_sent = row[1]
-        
-        if payment_status == 'paid':
-            return 'paid'
-        elif payment_status == 'pending':
-            # Check if overdue (more than 30 days)
-            if date_sent:
-                import time
-                days_since_sent = (int(time.time()) - date_sent) / 86400
-                if days_since_sent > 30:
-                    return 'overdue'
-            return 'pending'
-        
-        return 'paid'
-        
-        conn.close()
+        print("Created 5 default client types")
     
     # ===== CLIENT TYPE OPERATIONS =====
     
-    def add_client_type(self, type_data: Dict) -> int:
-        """Add a new client type.
-        
-        Args:
-            type_data: Dictionary with type fields (name, color, color_name, session_fee, etc.)
-        
-        Returns:
-            ID of newly created type
-        """
-        import time
-        now = int(time.time())
-        
+    def add_client_type(self, type_data: Dict[str, Any]) -> int:
+        """Add new client type."""
         conn = self.connect()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            INSERT INTO client_types 
-            (name, color, color_name, bubble_color, file_number_style, service_description, session_fee, session_duration, 
-            retention_period, is_system, is_system_locked, created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
+        now = int(time.time())
+        
+        cursor.execute("""
+            INSERT INTO client_types (
+                name, color, color_name, bubble_color,
+                session_fee, session_base_price, session_tax_rate, session_duration,
+                retention_period, service_description, is_system, is_system_locked,
+                created_at, modified_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
             type_data['name'],
             type_data['color'],
-            type_data.get('color_name'),
-            type_data.get('bubble_color'),
-            'manual',
-            type_data.get('service_description'),
-            type_data.get('session_fee'),
-            type_data.get('session_duration'),
-            type_data.get('retention_period'),
+            type_data.get('color_name', ''),
+            type_data.get('bubble_color', ''),
+            type_data.get('session_fee', 0.0),
+            type_data.get('session_base_price', 0.0),
+            type_data.get('session_tax_rate', 0.0),
+            type_data.get('session_duration', 50),
+            type_data.get('retention_period', 2555),
+            type_data.get('service_description', ''),
             type_data.get('is_system', 0),
             type_data.get('is_system_locked', 0),
             now,
@@ -584,6 +585,7 @@ class Database:
         conn.close()
         
         return type_id
+
     
     def get_client_type(self, type_id: int) -> Optional[Dict[str, Any]]:
         """Get client type by ID."""
@@ -609,36 +611,31 @@ class Database:
         
         return [dict(row) for row in rows]
     
-    def update_client_type(self, type_id: int, type_data: Dict) -> bool:
-        """Update an existing client type.
-        
-        Args:
-            type_id: ID of type to update
-            type_data: Dictionary with fields to update
-        
-        Returns:
-            True if successful
-        """
-        import time
-        now = int(time.time())
-        
+    def update_client_type(self, type_id: int, type_data: Dict[str, Any]) -> bool:
+        """Update client type."""
         conn = self.connect()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            UPDATE client_types 
-            SET name = ?, color = ?, color_name = ?, bubble_color = ?, service_description = ?, 
-                session_fee = ?, session_duration = ?, retention_period = ?, modified_at = ?
+        now = int(time.time())
+        
+        cursor.execute("""
+            UPDATE client_types
+            SET name = ?, color = ?, color_name = ?, bubble_color = ?,
+                session_fee = ?, session_base_price = ?, session_tax_rate = ?,
+                session_duration = ?, retention_period = ?,
+                service_description = ?, modified_at = ?
             WHERE id = ?
-        ''', (
+        """, (
             type_data['name'],
             type_data['color'],
-            type_data.get('color_name'), 
-            type_data.get('bubble_color'),
-            type_data.get('service_description'),
-            type_data.get('session_fee'),
-            type_data.get('session_duration'),
-            type_data.get('retention_period'),
+            type_data.get('color_name', ''),
+            type_data.get('bubble_color', ''),
+            type_data.get('session_fee', 0.0),
+            type_data.get('session_base_price', 0.0),
+            type_data.get('session_tax_rate', 0.0),
+            type_data.get('session_duration', 50),
+            type_data.get('retention_period', 2555),
+            type_data.get('service_description', ''),
             now,
             type_id
         ))
@@ -648,54 +645,33 @@ class Database:
         
         return True
 
+    
     def delete_client_type(self, type_id: int) -> bool:
-        """Delete a client type.
-        
-        Only succeeds if:
-        - Type is not locked (is_system_locked = 0)
-        - No clients are assigned to this type
-        
-        Args:
-            type_id: ID of type to delete
-        
-        Returns:
-            True if successful, False otherwise
-        """
+        """Delete client type (only if not in use and not system type)."""
         conn = self.connect()
         cursor = conn.cursor()
         
-        try:
-            # Check if type is locked (do it in this connection, don't call get_client_type)
-            cursor.execute(
-                "SELECT is_system_locked FROM client_types WHERE id = ?",
-                (type_id,)
-            )
-            result = cursor.fetchone()
-            
-            if not result or result[0] == 1:
-                conn.close()
-                return False
-            
-            # Check if any clients use this type
-            cursor.execute(
-                "SELECT COUNT(*) FROM clients WHERE type_id = ?",
-                (type_id,)
-            )
-            count = cursor.fetchone()[0]
-            
-            if count > 0:
-                conn.close()
-                return False
-            
-            # Safe to delete
-            cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"Error deleting client type: {e}")
+        # Check if it's a system type
+        cursor.execute("SELECT is_system FROM client_types WHERE id = ?", (type_id,))
+        row = cursor.fetchone()
+        if row and row[0] == 1:
             conn.close()
             return False
+        
+        # Check if any clients use this type
+        cursor.execute("SELECT COUNT(*) FROM clients WHERE type_id = ?", (type_id,))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            conn.close()
+            return False
+        
+        # Safe to delete
+        cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
+        conn.commit()
+        conn.close()
+        
+        return True
     
     # ===== CLIENT OPERATIONS =====
     
@@ -705,10 +681,12 @@ class Database:
         cursor = conn.cursor()
         
         now = int(time.time())
+        
         cursor.execute("""
-            INSERT INTO clients 
-            (file_number, first_name, middle_name, last_name, type_id, 
-            session_offset, created_at, modified_at)
+            INSERT INTO clients (
+                file_number, first_name, middle_name, last_name, type_id,
+                session_offset, created_at, modified_at
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             client_data['file_number'],
@@ -720,7 +698,7 @@ class Database:
             now,
             now
         ))
-    
+        
         client_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -747,11 +725,11 @@ class Database:
         
         if type_id:
             cursor.execute(
-                "SELECT * FROM clients WHERE type_id = ? AND is_deleted = 0 ORDER BY last_name, first_name",
+                "SELECT * FROM clients WHERE type_id = ? AND is_deleted = 0 ORDER BY file_number",
                 (type_id,)
             )
         else:
-            cursor.execute("SELECT * FROM clients WHERE is_deleted = 0 ORDER BY last_name, first_name")
+            cursor.execute("SELECT * FROM clients WHERE is_deleted = 0 ORDER BY file_number")
         
         rows = cursor.fetchall()
         conn.close()
@@ -759,23 +737,30 @@ class Database:
         return [dict(row) for row in rows]
     
     def update_client(self, client_id: int, client_data: Dict[str, Any]) -> bool:
-        """Update client information."""
+        """Update client."""
         conn = self.connect()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        now = int(time.time())
+        
+        # Build UPDATE statement dynamically based on provided fields
+        set_clauses = []
+        values = []
+        
+        for key, value in client_data.items():
+            if key != 'id':
+                set_clauses.append(f"{key} = ?")
+                values.append(value)
+        
+        set_clauses.append("modified_at = ?")
+        values.append(now)
+        values.append(client_id)
+        
+        cursor.execute(f"""
             UPDATE clients 
-            SET first_name = ?, middle_name = ?, last_name = ?, 
-                type_id = ?, modified_at = ?
+            SET {', '.join(set_clauses)}
             WHERE id = ?
-        """, (
-            client_data['first_name'],
-            client_data.get('middle_name', ''),
-            client_data['last_name'],
-            client_data['type_id'],
-            int(time.time()),
-            client_id
-        ))
+        """, values)
         
         conn.commit()
         conn.close()
@@ -783,33 +768,78 @@ class Database:
         return True
     
     def search_clients(self, search_term: str) -> List[Dict[str, Any]]:
-        """Search clients by name or file number."""
+        """Search clients by name, file number, email, or phone."""
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        pattern = f"%{search_term}%"
+        # Search in client table and profile entries
         cursor.execute("""
-            SELECT * FROM clients 
-            WHERE (first_name LIKE ? OR last_name LIKE ? OR file_number LIKE ?)
-              AND is_deleted = 0
-            ORDER BY last_name, first_name
-        """, (pattern, pattern, pattern))
+            SELECT DISTINCT c.* FROM clients c
+            LEFT JOIN entries e ON c.id = e.client_id AND e.class = 'profile'
+            WHERE c.is_deleted = 0 AND (
+                c.file_number LIKE ? OR
+                c.first_name LIKE ? OR
+                c.last_name LIKE ? OR
+                e.email LIKE ? OR
+                e.phone LIKE ?
+            )
+            ORDER BY c.file_number
+        """, (f'%{search_term}%',) * 5)
         
         rows = cursor.fetchall()
         conn.close()
         
         return [dict(row) for row in rows]
     
+    def get_last_session_date(self, client_id: int) -> int:
+        """Get timestamp of client's most recent session."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT session_date FROM entries
+            WHERE client_id = ? AND class = 'session'
+            ORDER BY session_date DESC
+            LIMIT 1
+        """, (client_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        return row[0] if row else 0
+    
+    def get_payment_status(self, client_id: int) -> str:
+        """Get client's payment status (paid/pending/overdue)."""
+        # Placeholder - will implement when Statement generation is done
+        return 'paid'
+    
+    def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
+        """Get client's profile entry."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM entries
+            WHERE client_id = ? AND class = 'profile'
+            LIMIT 1
+        """, (client_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+    
     # ===== CLIENT LINKING OPERATIONS =====
     
-    def create_link_group(self, client_ids: List[int], billing_type: str, principal_payer_id: Optional[int] = None) -> int:
-        """Create a new link group for couples/family therapy.
+    def create_link_group(self, client_ids: List[int], billing_type: str = 'principal', principal_payer_id: Optional[int] = None) -> int:
+        """Create a new link group using star pattern.
         
         Args:
-            client_ids: List of client IDs to link together
-            billing_type: 'principal', 'split', or 'individual'
-            principal_payer_id: Client ID of principal payer (required if billing_type='principal')
+            client_ids: List of client IDs to link (first becomes hub)
+            billing_type: Billing arrangement (unused after Session 6)
+            principal_payer_id: Principal payer ID (unused after Session 6)
         
         Returns:
             Link group ID
@@ -826,15 +856,13 @@ class Database:
         
         group_id = cursor.lastrowid
         
-        # Create pairwise links between all clients in the group
-        # For N clients, create N-1 links (star pattern with first client as hub)
-        # This makes querying simpler - any client ID will return all linked clients
+        # Create links using star pattern (first client is hub)
         hub_client_id = client_ids[0]
         
         for i in range(1, len(client_ids)):
             client_id = client_ids[i]
             
-            # Ensure smaller ID comes first for consistency
+            # Always store smaller ID first (for uniqueness constraint)
             id1, id2 = (hub_client_id, client_id) if hub_client_id < client_id else (client_id, hub_client_id)
             
             cursor.execute("""
@@ -847,149 +875,138 @@ class Database:
         
         return group_id
     
-    def get_all_link_groups(self) -> List[Dict[str, Any]]:
-        """Get all link groups with their members.
+    def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
+        """Get link group with all member details.
+        
+        Args:
+            group_id: Link group ID
         
         Returns:
-            List of dicts with keys: id, billing_type, principal_payer_id, created_at, members
-            members is a list of client dicts
+            Dict with group info and members list
         """
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Get all link groups
-        cursor.execute("SELECT * FROM link_groups ORDER BY created_at DESC")
-        groups = [dict(row) for row in cursor.fetchall()]
+        # Get link group
+        cursor.execute("SELECT * FROM link_groups WHERE id = ?", (group_id,))
+        group_row = cursor.fetchone()
         
-        # For each group, get member clients
-        for group in groups:
+        if not group_row:
+            conn.close()
+            return None
+        
+        group = dict(group_row)
+        
+        # Get all client IDs in this group
+        cursor.execute("""
+            SELECT DISTINCT client_id_1, client_id_2 FROM client_links
+            WHERE group_id = ?
+        """, (group_id,))
+        
+        # Build set of all unique client IDs
+        client_ids = set()
+        for row in cursor.fetchall():
+            client_ids.add(row[0])
+            client_ids.add(row[1])
+        
+        # Get client details for each member
+        members = []
+        for client_id in client_ids:
+            cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+            client_row = cursor.fetchone()
+            if client_row:
+                members.append(dict(client_row))
+        
+        group['members'] = members
+        
+        conn.close()
+        return group
+    
+    def get_all_link_groups(self) -> List[Dict[str, Any]]:
+        """Get all link groups with member details.
+        
+        Returns:
+            List of link groups with members
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM link_groups ORDER BY created_at DESC")
+        group_rows = cursor.fetchall()
+        
+        groups = []
+        for group_row in group_rows:
+            group = dict(group_row)
             group_id = group['id']
             
             # Get all client IDs in this group
             cursor.execute("""
-                SELECT DISTINCT 
-                    CASE 
-                        WHEN client_id_1 IN (SELECT client_id_1 FROM client_links WHERE group_id = ?)
-                            THEN client_id_1
-                        ELSE client_id_2
-                    END as client_id
-                FROM client_links
+                SELECT DISTINCT client_id_1, client_id_2 FROM client_links
                 WHERE group_id = ?
-                UNION
-                SELECT DISTINCT 
-                    CASE 
-                        WHEN client_id_2 IN (SELECT client_id_2 FROM client_links WHERE group_id = ?)
-                            THEN client_id_2
-                        ELSE client_id_1
-                    END as client_id
-                FROM client_links
-                WHERE group_id = ?
-            """, (group_id, group_id, group_id, group_id))
+            """, (group_id,))
             
-            client_ids = [row[0] for row in cursor.fetchall()]
+            # Build set of all unique client IDs
+            client_ids = set()
+            for row in cursor.fetchall():
+                client_ids.add(row[0])
+                client_ids.add(row[1])
             
-            # Get full client data for each ID
+            # Get client details for each member
             members = []
             for client_id in client_ids:
                 cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
-                client = cursor.fetchone()
-                if client:
-                    members.append(dict(client))
+                client_row = cursor.fetchone()
+                if client_row:
+                    members.append(dict(client_row))
             
             group['members'] = members
+            groups.append(group)
         
         conn.close()
         return groups
     
-    def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
-        """Get a link group by ID with its members.
-        
-        Returns:
-            Dict with keys: id, billing_type, principal_payer_id, created_at, members
-            members is a list of client dicts
-        """
-        conn = self.connect()
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT * FROM link_groups WHERE id = ?", (group_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return None
-        
-        group = dict(row)
-        
-        # Get all client IDs in this group (using same query as get_all_link_groups)
-        cursor.execute("""
-            SELECT DISTINCT 
-                CASE 
-                    WHEN client_id_1 IN (SELECT client_id_1 FROM client_links WHERE group_id = ?)
-                        THEN client_id_1
-                    ELSE client_id_2
-                END as client_id
-            FROM client_links
-            WHERE group_id = ?
-            UNION
-            SELECT DISTINCT 
-                CASE 
-                    WHEN client_id_2 IN (SELECT client_id_2 FROM client_links WHERE group_id = ?)
-                        THEN client_id_2
-                    ELSE client_id_1
-                END as client_id
-            FROM client_links
-            WHERE group_id = ?
-        """, (group_id, group_id, group_id, group_id))
-        
-        client_ids = [row[0] for row in cursor.fetchall()]
-        
-        # Get full client data
-        members = []
-        for client_id in client_ids:
-            cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
-            client = cursor.fetchone()
-            if client:
-                members.append(dict(client))
-        
-        group['members'] = members
-        conn.close()
-        return group
-    
     def get_linked_clients(self, client_id: int) -> List[Dict[str, Any]]:
-        """Get all clients linked to a given client.
+        """Get all clients linked to this client.
         
         Args:
             client_id: Client ID to find links for
         
         Returns:
-            List of linked client dicts (empty list if no links)
+            List of linked client dicts
         """
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Find all clients linked to this one (in either direction)
+        # Find all links involving this client
         cursor.execute("""
-            SELECT DISTINCT c.*
-            FROM clients c
-            WHERE c.id IN (
-                SELECT client_id_2 FROM client_links WHERE client_id_1 = ?
-                UNION
-                SELECT client_id_1 FROM client_links WHERE client_id_2 = ?
-            )
-            AND c.is_deleted = 0
-            ORDER BY c.last_name, c.first_name
+            SELECT client_id_1, client_id_2 FROM client_links
+            WHERE client_id_1 = ? OR client_id_2 = ?
         """, (client_id, client_id))
         
-        rows = cursor.fetchall()
-        conn.close()
+        # Collect all linked client IDs
+        linked_ids = set()
+        for row in cursor.fetchall():
+            if row[0] != client_id:
+                linked_ids.add(row[0])
+            if row[1] != client_id:
+                linked_ids.add(row[1])
         
-        return [dict(row) for row in rows]
+        # Get client details for each linked client
+        linked_clients = []
+        for linked_id in linked_ids:
+            cursor.execute("SELECT * FROM clients WHERE id = ?", (linked_id,))
+            client_row = cursor.fetchone()
+            if client_row:
+                linked_clients.append(dict(client_row))
+        
+        conn.close()
+        return linked_clients
     
     def is_client_linked(self, client_id: int) -> bool:
-        """Check if a client is part of any link group.
+        """Check if a client is linked to any other clients.
         
         Args:
             client_id: Client ID to check
@@ -1106,7 +1123,14 @@ class Database:
             'item_date', 'item_time', 'base_price', 'tax_rate',
             'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
-            'locked', 'locked_at'
+            'locked', 'locked_at',
+            # Fee Override fields (NEW)
+            'fee_override_base', 'fee_override_tax_rate', 'fee_override_total',
+            # Guardian fields (NEW)
+            'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone',
+            'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
+            'guardian2_name', 'guardian2_email', 'guardian2_phone',
+            'guardian2_address', 'guardian2_pays_percent'
         ]
         
         for field in optional_fields:
