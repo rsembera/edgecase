@@ -227,99 +227,19 @@ cards.forEach(card => {
     });
 });
 
+// Load saved card order on page load
+loadCardOrder();
 
-// Load saved order on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadCardOrder();
-});
+// ===== FILTER DROPDOWN FUNCTIONALITY =====
 
-// ===== SESSION PERSISTENCE FOR FILTER/SORT/VIEW =====
-
-// Save current settings to sessionStorage whenever the page loads
-function saveCurrentSettings() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const settings = {
-        types: urlParams.getAll('type'),
-        sort: urlParams.get('sort') || 'last_name',
-        order: urlParams.get('order') || 'asc',
-        view: urlParams.get('view') || 'compact',
-        search: urlParams.get('search') || ''
-    };
-    sessionStorage.setItem('viewSettings', JSON.stringify(settings));
-}
-
-// Restore settings from sessionStorage on page load
-function restoreSettings() {
-    const saved = sessionStorage.getItem('viewSettings');
-    
-    // If no saved settings, this is first visit in session - use defaults
-    if (!saved) {
-        return;
-    }
-    
-    // Parse saved settings
-    const settings = JSON.parse(saved);
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Check if URL already has parameters (user clicked something)
-    const hasParams = urlParams.toString().length > 0;
-    
-    // If URL has no parameters, restore from session
-    if (!hasParams) {
-        const newParams = new URLSearchParams();
-        
-        // Restore type filters
-        settings.types.forEach(type => newParams.append('type', type));
-        
-        // Restore sort, order, view
-        newParams.set('sort', settings.sort);
-        newParams.set('order', settings.order);
-        newParams.set('view', settings.view);
-        
-        // Restore search if it exists
-        if (settings.search) {
-            newParams.set('search', settings.search);
-        }
-        
-        // Redirect with restored settings
-        window.location.search = newParams.toString();
-    }
-}
-
-// On page load: restore settings if available, then save current state
-document.addEventListener('DOMContentLoaded', function() {
-    restoreSettings();
-    saveCurrentSettings();
-});
-
-// Auto-switch to compact view on narrow screens (portrait iPad)
-function checkViewMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentView = urlParams.get('view') || 'compact';
-    
-    // If screen is narrow (portrait) and in detailed view, switch to compact
-    if (window.innerWidth < 900 && currentView === 'detailed') {
-        urlParams.set('view', 'compact');
-        window.location.search = urlParams.toString();
-    }
-}
-
-// Check on page load
-checkViewMode();
-
-// Check when device rotates
-window.addEventListener('resize', checkViewMode);
-
-// Handle filter dropdown
 const filterButton = document.getElementById('filter-button');
 const filterDropdown = document.getElementById('filter-dropdown');
 
 if (filterButton && filterDropdown) {
-    // Open/close on button click
-    filterButton.addEventListener('click', function(event) {
-        event.stopPropagation();
+    filterButton.addEventListener('click', function(e) {
+        e.stopPropagation();
         
-        // Close other dropdowns
+        // Close all other dropdowns
         document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
             if (d.id !== 'filter-dropdown') d.style.display = 'none';
         });
@@ -328,11 +248,32 @@ if (filterButton && filterDropdown) {
         filterDropdown.style.display = filterDropdown.style.display === 'none' ? 'block' : 'none';
     });
     
-    // Update button text as checkboxes change
+    // SERVER-SIDE FILTER: Submit to server when checkboxes change
     document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
-            const checkedCount = document.querySelectorAll('#filter-form input[type="checkbox"]:checked').length;
-            filterButton.textContent = `Filter: ${checkedCount} type${checkedCount !== 1 ? 's' : ''} ▾`;
+            // Build URL with selected types
+            const selectedTypes = Array.from(document.querySelectorAll('#filter-form input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            // Get other URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const sort = urlParams.get('sort') || 'last_name';
+            const order = urlParams.get('order') || 'asc';
+            const search = urlParams.get('search') || '';
+            const view = urlParams.get('view') || 'detailed';
+            
+            // Build new URL
+            let newUrl = '?';
+            selectedTypes.forEach(typeId => {
+                newUrl += `type=${typeId}&`;
+            });
+            newUrl += `sort=${sort}&order=${order}&view=${view}`;
+            if (search) {
+                newUrl += `&search=${encodeURIComponent(search)}`;
+            }
+            
+            // Navigate to new URL (server will filter)
+            window.location.href = newUrl;
         });
     });
     
@@ -347,19 +288,20 @@ if (filterButton && filterDropdown) {
     });
 }
 
-// ===== SEARCH FUNCTIONALITY =====
+// ===== SEARCH FUNCTIONALITY (CLIENT-SIDE FOR SPEED) =====
 
-const searchInput = document.querySelector('input[name="search"]');
+const searchInput = document.querySelector('.search-box input[name="search"]');
 const clearSearchBtn = document.querySelector('.clear-search');
-const clientCards = document.querySelectorAll('.client-card');
+const searchForm = document.querySelector('.search-box');
 
 // Strip phone formatting for smart matching
 function stripPhoneFormat(text) {
     return text.replace(/[\s\-\(\)\.\+]/g, '');
 }
 
-// Search function
+// Search function (client-side filtering of visible cards)
 function performSearch() {
+    const clientCards = document.querySelectorAll('.client-card');
     const searchTerm = searchInput.value.toLowerCase().trim();
     
     // Show/hide clear button
@@ -368,7 +310,7 @@ function performSearch() {
     }
     
     if (!searchTerm) {
-        // No search term - show all cards (that pass type filter)
+        // No search term - show all cards
         clientCards.forEach(card => {
             card.style.display = '';
         });
@@ -422,127 +364,21 @@ if (clearSearchBtn) {
     });
 }
 
-// Prevent form submission (we're doing real-time filtering, not server-side search)
-const searchForm = document.querySelector('.search-box');
+// Submit search to server when Enter is pressed (for full search across all types)
 if (searchForm) {
     searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+        // If there's a search term, submit to server for full search
+        // Otherwise prevent submission
+        if (!searchInput.value.trim()) {
+            e.preventDefault();
+        }
+        // If there IS a search term, let it submit to server
     });
 }
 
-// Run search on page load if there's a search term
+// Run search on page load if there's a search term from URL
 document.addEventListener('DOMContentLoaded', function() {
     if (searchInput && searchInput.value) {
         performSearch();
     }
-});
-// Add this to the end of main_view.js
-
-// ===== REAL-TIME TYPE FILTER =====
-
-// Get selected type IDs
-function getSelectedTypes() {
-    const checkboxes = document.querySelectorAll('#filter-form input[type="checkbox"]:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-// Apply type filter
-function applyTypeFilter() {
-    const selectedTypes = getSelectedTypes();
-    const clientCards = document.querySelectorAll('.client-card');
-    
-    // Update button text
-    const filterButton = document.getElementById('filter-button');
-    if (filterButton) {
-        filterButton.textContent = `Filter: ${selectedTypes.length} type${selectedTypes.length !== 1 ? 's' : ''} ▾`;
-    }
-    
-    // If no types selected, hide all cards
-    if (selectedTypes.length === 0) {
-        clientCards.forEach(card => {
-            card.style.display = 'none';
-        });
-        return;
-    }
-    
-    // Show/hide cards based on type
-    clientCards.forEach(card => {
-        // Get the type ID from the card's data or from the hidden input
-        // The card should have a way to identify its type
-        // Looking at the template, we need to add a data-type-id attribute
-        const typeId = card.dataset.typeId;
-        
-        if (!typeId) {
-            // Fallback: try to find it from the card structure
-            card.style.display = '';
-            return;
-        }
-        
-        // Check if this type is selected
-        const isTypeSelected = selectedTypes.includes(typeId);
-        
-        // If search is also active, combine both filters
-        if (searchInput && searchInput.value.trim()) {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const fileNumber = card.querySelector('.file-number')?.textContent || '';
-            const clientName = card.querySelector('.client-name')?.textContent || '';
-            const email = card.querySelector('.contact-link[href^="mailto:"] span')?.textContent || '';
-            const phoneElement = card.querySelector('.contact-link[href^="tel:"] span, .contact-link[href^="sms:"] span');
-            const phone = phoneElement?.textContent || '';
-            
-            const searchableText = `${fileNumber} ${clientName} ${email}`.toLowerCase();
-            
-            const searchTermStripped = stripPhoneFormat(searchTerm);
-            const isPhoneSearch = /^\d+$/.test(searchTermStripped);
-            
-            let phoneMatch = false;
-            if (isPhoneSearch && phone) {
-                const phoneStripped = stripPhoneFormat(phone);
-                phoneMatch = phoneStripped.includes(searchTermStripped);
-            } else {
-                phoneMatch = phone.toLowerCase().includes(searchTerm);
-            }
-            
-            const textMatch = searchableText.includes(searchTerm);
-            const searchMatches = textMatch || phoneMatch;
-            
-            // Must match both type filter AND search
-            card.style.display = (isTypeSelected && searchMatches) ? '' : 'none';
-        } else {
-            // Only type filter, no search
-            card.style.display = isTypeSelected ? '' : 'none';
-        }
-    });
-}
-
-// Add real-time filtering to checkboxes
-document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-        applyTypeFilter();
-    });
-});
-
-// Update search to work with filter
-const originalPerformSearch = performSearch;
-performSearch = function() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    
-    // Show/hide clear button
-    if (clearSearchBtn) {
-        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-    }
-    
-    if (!searchTerm) {
-        // No search term - just apply type filter
-        applyTypeFilter();
-        return;
-    }
-    
-    // Apply type filter which will handle search too
-    applyTypeFilter();
-};
-
-// Apply filter on page load
-document.addEventListener('DOMContentLoaded', function() {
-    applyTypeFilter();
 });
