@@ -254,6 +254,13 @@
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(191,220,220,0.3);
     }
+
+    .link-icon {
+        margin-left: 0.5rem;
+        color: #6B7280;
+        font-size: 0.875rem;
+        cursor: help;
+    }
     
     /* Column headers - CRITICAL: These widths must match client card fields */
     .column-headers {

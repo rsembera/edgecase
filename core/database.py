@@ -151,15 +151,28 @@ class Database:
             )
         """)
         
+        # Link Groups (for couples/family therapy billing arrangement)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS link_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                billing_type TEXT NOT NULL,
+                principal_payer_id INTEGER,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (principal_payer_id) REFERENCES clients(id)
+            )
+        """)
+        
         # Client Linking (for couples/family therapy)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS client_links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id_1 INTEGER NOT NULL,
                 client_id_2 INTEGER NOT NULL,
+                group_id INTEGER,
                 created_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id_1) REFERENCES clients(id),
                 FOREIGN KEY (client_id_2) REFERENCES clients(id),
+                FOREIGN KEY (group_id) REFERENCES link_groups(id),
                 UNIQUE(client_id_1, client_id_2)
             )
         """)
@@ -342,7 +355,7 @@ class Database:
             'item_time': 'TEXT',
             'base_price': 'REAL',
             'tax_rate': 'REAL'
-        }  # <-- CLOSE THE DICTIONARY HERE
+        }
         
         # Add missing columns to entries table
         for column, col_type in required_columns.items():
@@ -360,7 +373,7 @@ class Database:
             cursor.execute("ALTER TABLE clients ADD COLUMN session_offset INTEGER DEFAULT 0")
             print("Migration: Added session_offset column to clients table")
             
-        # NEW: Add columns to client_types table
+        # Add columns to client_types table
         cursor.execute("PRAGMA table_info(client_types)")
         type_columns = [col[1] for col in cursor.fetchall()]
         
@@ -440,6 +453,14 @@ class Database:
                     (bubble_color, badge_color)
                 )
             print("Migration: Added bubble colors to existing types")
+            
+        # NEW: Add group_id column to client_links table
+        cursor.execute("PRAGMA table_info(client_links)")
+        link_columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'group_id' not in link_columns:
+            cursor.execute("ALTER TABLE client_links ADD COLUMN group_id INTEGER")
+            print("Migration: Added group_id to client_links")
         
         conn.commit()
         conn.close()
@@ -588,6 +609,94 @@ class Database:
         
         return [dict(row) for row in rows]
     
+    def update_client_type(self, type_id: int, type_data: Dict) -> bool:
+        """Update an existing client type.
+        
+        Args:
+            type_id: ID of type to update
+            type_data: Dictionary with fields to update
+        
+        Returns:
+            True if successful
+        """
+        import time
+        now = int(time.time())
+        
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE client_types 
+            SET name = ?, color = ?, color_name = ?, bubble_color = ?, service_description = ?, 
+                session_fee = ?, session_duration = ?, retention_period = ?, modified_at = ?
+            WHERE id = ?
+        ''', (
+            type_data['name'],
+            type_data['color'],
+            type_data.get('color_name'), 
+            type_data.get('bubble_color'),
+            type_data.get('service_description'),
+            type_data.get('session_fee'),
+            type_data.get('session_duration'),
+            type_data.get('retention_period'),
+            now,
+            type_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return True
+
+    def delete_client_type(self, type_id: int) -> bool:
+        """Delete a client type.
+        
+        Only succeeds if:
+        - Type is not locked (is_system_locked = 0)
+        - No clients are assigned to this type
+        
+        Args:
+            type_id: ID of type to delete
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            # Check if type is locked (do it in this connection, don't call get_client_type)
+            cursor.execute(
+                "SELECT is_system_locked FROM client_types WHERE id = ?",
+                (type_id,)
+            )
+            result = cursor.fetchone()
+            
+            if not result or result[0] == 1:
+                conn.close()
+                return False
+            
+            # Check if any clients use this type
+            cursor.execute(
+                "SELECT COUNT(*) FROM clients WHERE type_id = ?",
+                (type_id,)
+            )
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                conn.close()
+                return False
+            
+            # Safe to delete
+            cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error deleting client type: {e}")
+            conn.close()
+            return False
+    
     # ===== CLIENT OPERATIONS =====
     
     def add_client(self, client_data: Dict[str, Any]) -> int:
@@ -691,6 +800,285 @@ class Database:
         conn.close()
         
         return [dict(row) for row in rows]
+    
+    # ===== CLIENT LINKING OPERATIONS =====
+    
+    def create_link_group(self, client_ids: List[int], billing_type: str, principal_payer_id: Optional[int] = None) -> int:
+        """Create a new link group for couples/family therapy.
+        
+        Args:
+            client_ids: List of client IDs to link together
+            billing_type: 'principal', 'split', or 'individual'
+            principal_payer_id: Client ID of principal payer (required if billing_type='principal')
+        
+        Returns:
+            Link group ID
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        now = int(time.time())
+        
+        # Create link group
+        cursor.execute("""
+            INSERT INTO link_groups (billing_type, principal_payer_id, created_at)
+            VALUES (?, ?, ?)
+        """, (billing_type, principal_payer_id, now))
+        
+        group_id = cursor.lastrowid
+        
+        # Create pairwise links between all clients in the group
+        # For N clients, create N-1 links (star pattern with first client as hub)
+        # This makes querying simpler - any client ID will return all linked clients
+        hub_client_id = client_ids[0]
+        
+        for i in range(1, len(client_ids)):
+            client_id = client_ids[i]
+            
+            # Ensure smaller ID comes first for consistency
+            id1, id2 = (hub_client_id, client_id) if hub_client_id < client_id else (client_id, hub_client_id)
+            
+            cursor.execute("""
+                INSERT INTO client_links (client_id_1, client_id_2, group_id, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (id1, id2, group_id, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return group_id
+    
+    def get_all_link_groups(self) -> List[Dict[str, Any]]:
+        """Get all link groups with their members.
+        
+        Returns:
+            List of dicts with keys: id, billing_type, principal_payer_id, created_at, members
+            members is a list of client dicts
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get all link groups
+        cursor.execute("SELECT * FROM link_groups ORDER BY created_at DESC")
+        groups = [dict(row) for row in cursor.fetchall()]
+        
+        # For each group, get member clients
+        for group in groups:
+            group_id = group['id']
+            
+            # Get all client IDs in this group
+            cursor.execute("""
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN client_id_1 IN (SELECT client_id_1 FROM client_links WHERE group_id = ?)
+                            THEN client_id_1
+                        ELSE client_id_2
+                    END as client_id
+                FROM client_links
+                WHERE group_id = ?
+                UNION
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN client_id_2 IN (SELECT client_id_2 FROM client_links WHERE group_id = ?)
+                            THEN client_id_2
+                        ELSE client_id_1
+                    END as client_id
+                FROM client_links
+                WHERE group_id = ?
+            """, (group_id, group_id, group_id, group_id))
+            
+            client_ids = [row[0] for row in cursor.fetchall()]
+            
+            # Get full client data for each ID
+            members = []
+            for client_id in client_ids:
+                cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+                client = cursor.fetchone()
+                if client:
+                    members.append(dict(client))
+            
+            group['members'] = members
+        
+        conn.close()
+        return groups
+    
+    def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
+        """Get a link group by ID with its members.
+        
+        Returns:
+            Dict with keys: id, billing_type, principal_payer_id, created_at, members
+            members is a list of client dicts
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM link_groups WHERE id = ?", (group_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return None
+        
+        group = dict(row)
+        
+        # Get all client IDs in this group (using same query as get_all_link_groups)
+        cursor.execute("""
+            SELECT DISTINCT 
+                CASE 
+                    WHEN client_id_1 IN (SELECT client_id_1 FROM client_links WHERE group_id = ?)
+                        THEN client_id_1
+                    ELSE client_id_2
+                END as client_id
+            FROM client_links
+            WHERE group_id = ?
+            UNION
+            SELECT DISTINCT 
+                CASE 
+                    WHEN client_id_2 IN (SELECT client_id_2 FROM client_links WHERE group_id = ?)
+                        THEN client_id_2
+                    ELSE client_id_1
+                END as client_id
+            FROM client_links
+            WHERE group_id = ?
+        """, (group_id, group_id, group_id, group_id))
+        
+        client_ids = [row[0] for row in cursor.fetchall()]
+        
+        # Get full client data
+        members = []
+        for client_id in client_ids:
+            cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+            client = cursor.fetchone()
+            if client:
+                members.append(dict(client))
+        
+        group['members'] = members
+        conn.close()
+        return group
+    
+    def get_linked_clients(self, client_id: int) -> List[Dict[str, Any]]:
+        """Get all clients linked to a given client.
+        
+        Args:
+            client_id: Client ID to find links for
+        
+        Returns:
+            List of linked client dicts (empty list if no links)
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Find all clients linked to this one (in either direction)
+        cursor.execute("""
+            SELECT DISTINCT c.*
+            FROM clients c
+            WHERE c.id IN (
+                SELECT client_id_2 FROM client_links WHERE client_id_1 = ?
+                UNION
+                SELECT client_id_1 FROM client_links WHERE client_id_2 = ?
+            )
+            AND c.is_deleted = 0
+            ORDER BY c.last_name, c.first_name
+        """, (client_id, client_id))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]
+    
+    def is_client_linked(self, client_id: int) -> bool:
+        """Check if a client is part of any link group.
+        
+        Args:
+            client_id: Client ID to check
+        
+        Returns:
+            True if client is linked to others
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM client_links
+            WHERE client_id_1 = ? OR client_id_2 = ?
+        """, (client_id, client_id))
+        
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        return count > 0
+    
+    def update_link_group(self, group_id: int, client_ids: List[int], billing_type: str, principal_payer_id: Optional[int] = None) -> bool:
+        """Update an existing link group.
+        
+        Args:
+            group_id: Link group ID
+            client_ids: Updated list of client IDs
+            billing_type: Updated billing type
+            principal_payer_id: Updated principal payer (if applicable)
+        
+        Returns:
+            True if successful
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        now = int(time.time())
+        
+        # Update link group
+        cursor.execute("""
+            UPDATE link_groups
+            SET billing_type = ?, principal_payer_id = ?
+            WHERE id = ?
+        """, (billing_type, principal_payer_id, group_id))
+        
+        # Delete existing links for this group
+        cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+        
+        # Recreate links with new client list (same star pattern as create_link_group)
+        hub_client_id = client_ids[0]
+        
+        for i in range(1, len(client_ids)):
+            client_id = client_ids[i]
+            id1, id2 = (hub_client_id, client_id) if hub_client_id < client_id else (client_id, hub_client_id)
+            
+            cursor.execute("""
+                INSERT INTO client_links (client_id_1, client_id_2, group_id, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (id1, id2, group_id, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return True
+    
+    def delete_link_group(self, group_id: int) -> bool:
+        """Delete a link group and all its links.
+        
+        Args:
+            group_id: Link group ID to delete
+        
+        Returns:
+            True if successful
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            # Delete all client_links for this group
+            cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+            
+            # Delete the link group
+            cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error deleting link group: {e}")
+            conn.close()
+            return False
     
     # ===== ENTRY OPERATIONS =====
     
@@ -807,93 +1195,7 @@ class Database:
         
         return True
     
-    def update_client_type(self, type_id: int, type_data: Dict) -> bool:
-        """Update an existing client type.
-        
-        Args:
-            type_id: ID of type to update
-            type_data: Dictionary with fields to update
-        
-        Returns:
-            True if successful
-        """
-        import time
-        now = int(time.time())
-        
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE client_types 
-            SET name = ?, color = ?, color_name = ?, bubble_color = ?, service_description = ?, 
-                session_fee = ?, session_duration = ?, retention_period = ?, modified_at = ?
-            WHERE id = ?
-        ''', (
-            type_data['name'],
-            type_data['color'],
-            type_data.get('color_name'), 
-            type_data.get('bubble_color'),
-            type_data.get('service_description'),
-            type_data.get('session_fee'),
-            type_data.get('session_duration'),
-            type_data.get('retention_period'),
-            now,
-            type_id
-        ))
-        
-        conn.commit()
-        conn.close()
-        
-        return True
-
-    def delete_client_type(self, type_id: int) -> bool:
-        """Delete a client type.
-        
-        Only succeeds if:
-        - Type is not locked (is_system_locked = 0)
-        - No clients are assigned to this type
-        
-        Args:
-            type_id: ID of type to delete
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        try:
-            # Check if type is locked (do it in this connection, don't call get_client_type)
-            cursor.execute(
-                "SELECT is_system_locked FROM client_types WHERE id = ?",
-                (type_id,)
-            )
-            result = cursor.fetchone()
-            
-            if not result or result[0] == 1:
-                conn.close()
-                return False
-            
-            # Check if any clients use this type
-            cursor.execute(
-                "SELECT COUNT(*) FROM clients WHERE type_id = ?",
-                (type_id,)
-            )
-            count = cursor.fetchone()[0]
-            
-            if count > 0:
-                conn.close()
-                return False
-            
-            # Safe to delete
-            cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"Error deleting client type: {e}")
-            conn.close()
-            return False
+    # ===== SETTINGS OPERATIONS =====
     
     def set_setting(self, key: str, value: str):
         """Set a setting value."""

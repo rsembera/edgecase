@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Client Links - EdgeCase{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage_links.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="header-row">
+        <div>
+            <h2>Client Links</h2>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Group clients for couples, family, or joint therapy sessions</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('add_link_group') }}" class="btn-add">+ Link Group</a>
+        </div>
+    </div>
+
+    {% if link_groups %}
+    <div class="link-groups">
+        {% for group in link_groups %}
+        <div class="link-group-card">
+            <div class="group-header">
+                <div class="group-info">
+                    <h3>
+                        {% if group.members|length == 2 %}
+                            {{ group.members[0].first_name }} {{ group.members[0].last_name }} & {{ group.members[1].first_name }} {{ group.members[1].last_name }}
+                        {% else %}
+                            {{ group.members[0].last_name }} Family ({{ group.members|length }} clients)
+                        {% endif %}
+                    </h3>
+                    <span class="member-count">{{ group.members|length }} clients</span>
+                    <span class="billing-badge billing-{{ group.billing_type }}">
+                        {% if group.billing_type == 'principal' %}
+                            One Pays
+                        {% elif group.billing_type == 'split' %}
+                            Split Bill
+                        {% else %}
+                            Individual Bills
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="group-actions">
+                    <a href="{{ url_for('edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
+                    <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} & {{ group.members[1].first_name }}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-icon btn-danger" title="Delete group">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="group-members">
+                {% for member in group.members %}
+                <a href="{{ url_for('client_file', client_id=member.id) }}" class="member-card{% if group.billing_type == 'principal' and loop.first %} principal-payer{% endif %}">
+                    <span class="member-badge" style="background-color: {{ member.type.color }}">
+                        {{ member.type.name }}
+                    </span>
+                    <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
+                    <br>
+                    <span class="member-file">{{ member.file_number }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔗</div>
+        <h3 style="margin: 0 0 0.5rem 0; color: #111827;">No Link Groups Yet</h3>
+        <p style="margin: 0 0 0.5rem 0; color: #6B7280;">Link clients together for couples, family, or joint therapy sessions.</p>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #DEE2E6;">
+        <a href="{{ url_for('index') }}" class="btn-add">← Back to Clients</a>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <h3>Delete Link Group?</h3>
+        <p id="deleteMessage"></p>
+        <p class="warning-text">This will unlink all clients in this group. Client files will not be deleted.</p>
+        <div class="modal-actions">
+            <button onclick="closeDeleteModal()" class="btn-secondary">Cancel</button>
+            <button id="confirmDelete" class="btn-danger">Delete Group</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/manage_links.js') }}"></script>
+{% endblock %}
