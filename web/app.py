@@ -150,7 +150,7 @@ def index():
     current_date = now.strftime('%B %d, %Y')  # "November 9, 2025"
     current_time = now.strftime('%I:%M %p')    # "12:45 PM"
     
-    # Add type information and additional data to each client
+    ## Add type information and additional data to each client
     for client in clients:
         client['type'] = db.get_client_type(client['type_id'])
         
@@ -213,14 +213,17 @@ def index():
             client['contact_type'] = 'call'
             client['contact_icon'] = '📞'
         
-        # Get last session date
+        # Get last session date (INDENT THIS!)
         last_session = db.get_last_session_date(client['id'])
         client['last_session'] = last_session
         
-        # Get payment status
+        # Get payment status (INDENT THIS!)
         client['payment_status'] = db.get_payment_status(client['id'])
+        
+        # Check if client is linked to others (INDENT THIS!)
+        client['is_linked'] = db.is_client_linked(client['id'])
     
-    # Sort clients
+    # Sort clients 
     if sort_by == 'file_number':
         clients.sort(key=lambda c: c['file_number'], reverse=(sort_order == 'desc'))
     elif sort_by == 'last_name':
@@ -1194,6 +1197,25 @@ def delete_type(type_id):
     
 # ===========================
 
+@app.route('/links')
+def manage_links():
+    """Manage client linking groups"""
+    link_groups = db.get_all_link_groups()
+    all_clients = db.get_all_clients()
+    
+    # Add type info to all clients for display
+    for client in all_clients:
+        client['type'] = db.get_client_type(client['type_id'])
+    
+    # Add type info to members in each link group
+    for group in link_groups:
+        for member in group.get('members', []):
+            member['type'] = db.get_client_type(member['type_id'])
+    
+    return render_template('manage_links.html', 
+                         link_groups=link_groups,
+                         all_clients=all_clients)
+
 @app.route('/settings')
 def settings_page():
     """Settings page."""
@@ -1648,6 +1670,96 @@ def add_client():
                          file_number_readonly=file_number_readonly,
                          file_number_format=format_type)
 
+@app.route('/links/<int:group_id>/delete', methods=['POST'])
+def delete_link_group(group_id):
+    """Delete a link group"""
+    success = db.delete_link_group(group_id)
+    if success:
+        return '', 204  # No content, success
+    return 'Error deleting group', 500
+
+@app.route('/links/add', methods=['GET', 'POST'])
+def add_link_group():
+    """Add a new link group"""
+    if request.method == 'POST':
+        data = request.json
+        
+        # Validate
+        if not data.get('client_ids'):
+            return 'Missing client IDs', 400
+        
+        if len(data['client_ids']) < 2:
+            return 'At least 2 clients required', 400
+        
+        # Determine principal payer (first client if billing is 'principal')
+        principal_payer = data['client_ids'][0] if data.get('billing_arrangement') == 'principal' else None
+        
+        # Create link group
+        group_id = db.create_link_group(
+            client_ids=data['client_ids'],
+            billing_type=data.get('billing_arrangement', 'principal'),
+            principal_payer_id=principal_payer
+        )
+        
+        return '', 204
+    
+    # GET: Show the form
+    all_clients = db.get_all_clients()
+    
+    # Add type info to clients
+    for client in all_clients:
+        client['type'] = db.get_client_type(client['type_id'])
+    
+    return render_template('add_edit_link_group.html',
+                         all_clients=all_clients,
+                         group=None)
+
+@app.route('/links/<int:group_id>/edit', methods=['GET', 'POST'])
+def edit_link_group(group_id):
+    """Edit an existing link group"""
+    if request.method == 'POST':
+        data = request.json
+        
+        # Validate
+        if not data.get('client_ids'):
+            return 'Missing client IDs', 400
+        
+        if len(data['client_ids']) < 2:
+            return 'At least 2 clients required', 400
+        
+        # Determine principal payer
+        principal_payer = data['client_ids'][0] if data.get('billing_arrangement') == 'principal' else None
+        
+        # Update link group
+        success = db.update_link_group(
+            group_id=group_id,
+            client_ids=data['client_ids'],
+            billing_type=data.get('billing_arrangement', 'principal'),
+            principal_payer_id=principal_payer
+        )
+        
+        if success:
+            return '', 204
+        else:
+            return 'Error updating link group', 500
+    
+    # GET: Show the form
+    group = db.get_link_group(group_id)
+    all_clients = db.get_all_clients()
+    
+    # Add type info to all clients
+    for client in all_clients:
+        client['type'] = db.get_client_type(client['type_id'])
+    
+    # Add type info to group members
+    if group and 'members' in group:
+        for member in group['members']:
+            member['type'] = db.get_client_type(member['type_id'])
+    
+    return render_template('add_edit_link_group.html',
+                         all_clients=all_clients,
+                         group=group)
+    
 
 # Also need to add these helper methods to database.py:
 

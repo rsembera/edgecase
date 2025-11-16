@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{% if group %}Edit{% else %}Add{% endif %} Link Group - EdgeCase{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_link_group.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="header-row">
+        <div>
+            <h2>{% if group %}Edit{% else %}New{% endif %} Link Group</h2>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Group clients for couples, family, or joint therapy</p>
+        </div>
+        <a href="{{ url_for('manage_links') }}" class="btn-secondary-inline">← Back to Links</a>
+    </div>
+
+    <form method="POST" id="link-group-form">
+        <!-- Client Search and Selection -->
+        <div class="form-section">
+            <label>Clients in Group</label>
+            <div class="search-container">
+                <input type="text" id="client-search" placeholder="Search clients by name or file number...">
+                <div id="search-results" class="search-results"></div>
+            </div>
+
+            <div id="selected-clients" class="selected-clients">
+                {% if group %}
+                    {% for member in group.members %}
+                    <div class="selected-client" data-client-id="{{ member.id }}">
+                        <span class="client-badge" style="background-color: {{ member.type.color }}">
+                            {{ member.type.name }}
+                        </span>
+                        <span class="client-name">{{ member.first_name }} {{ member.last_name }}</span>
+                        <span class="client-file">{{ member.file_number }}</span>
+                        <button type="button" class="remove-client" onclick="removeClient({{ member.id }})">×</button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <small style="color: #5B6571;">Search and click to add clients. Minimum 2 clients required.</small>
+        </div>
+
+        <!-- Billing Arrangement -->
+        <div class="form-section">
+            <label>Billing Arrangement</label>
+            <div class="billing-options">
+                <label class="billing-option">
+                    <input type="radio" name="billing_arrangement" value="principal" 
+                        {% if not group or group.billing_type == 'principal' %}checked{% endif %}>
+                    <div class="option-content">
+                        <strong>One Pays</strong>
+                        <small>First client in group pays for everyone</small>
+                    </div>
+                </label>
+                <label class="billing-option">
+                    <input type="radio" name="billing_arrangement" value="split"
+                        {% if group and group.billing_type == 'split' %}checked{% endif %}>
+                    <div class="option-content">
+                        <strong>Split Bill</strong>
+                        <small>Fee divided equally among all clients</small>
+                    </div>
+                </label>
+                <label class="billing-option">
+                    <input type="radio" name="billing_arrangement" value="individual"
+                        {% if group and group.billing_type == 'individual' %}checked{% endif %}>
+                    <div class="option-content">
+                        <strong>Individual Bills</strong>
+                        <small>Each client pays full fee separately</small>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <a href="{{ url_for('manage_links') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div id="all-clients-data" style="display: none;">
+    {{ all_clients | tojson }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/add_edit_link_group.js') }}"></script>
+{% endblock %}
