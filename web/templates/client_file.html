@@ -50,8 +50,22 @@
     {# Profile Entry - Always at top if exists #}
     {% if profile_entry %}
     <div class="profile-entry" onclick="window.location.href='{{ url_for('edit_profile', client_id=client.id) }}'">
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
             <strong style="font-size: 1.125rem; color: #0E5346;">Profile</strong>
+            
+            {# Fee Override Badge #}
+            {% if profile_entry.fee_override_total %}
+            <span style="background: #FEF3C7; color: #92400E; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
+                💰 Fee Override
+            </span>
+            {% endif %}
+            
+            {# Minor Badge #}
+            {% if profile_entry.is_minor %}
+            <span style="background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
+                👶 Minor
+            </span>
+            {% endif %}
         </div>
         
         {# Contact Information - matching main_view.html logic #}
