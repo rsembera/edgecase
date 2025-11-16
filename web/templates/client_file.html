@@ -133,6 +133,45 @@
         <p style="font-size: 0.875rem; color: #5B6571; margin-top: 0.5rem;">Click to add client contact information</p>
     </div>
     {% endif %}
+
+    {# Linked Clients Section - NEW #}
+    {% if linked_groups %}
+    <div style="margin: 1.5rem 0;">
+        <h4 style="color: #111827; font-size: 1rem; margin-bottom: 0.75rem;">Linked Clients</h4>
+        
+        {% for group in linked_groups %}
+        <div style="background: #F9FAFB; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #9FCFC0;">
+            <div style="font-weight: 600; color: #374151; margin-bottom: 0.75rem; font-size: 0.875rem;">
+                {{ group.format_display }} Group
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                {% for member in group.members %}
+                <a href="{{ url_for('client_file', client_id=member.id) }}" 
+                   class="linked-client-card"
+                   onclick="event.stopPropagation();">
+                    <span class="type-badge" 
+                          style="background-color: {{ member.type.color }}; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                        {{ member.type.name }}
+                    </span>
+                    <div style="margin-top: 0.25rem;">
+                        <div style="font-weight: 600; font-size: 0.875rem; color: #111827;">
+                            {{ member.first_name }} 
+                            {% if member.middle_name %}{{ member.middle_name[0] }}.{% endif %} 
+                            {{ member.last_name }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.125rem;">
+                            #{{ member.file_number }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {# End Linked Clients Section #}
     
     <h3 style="color: #111827; margin-bottom: 1rem;">Session History 
         {% if session_count > 0 or consultation_count > 0 or absence_count > 0 %}
