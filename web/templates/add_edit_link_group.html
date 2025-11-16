@@ -78,6 +78,10 @@
 <div id="all-clients-data" style="display: none;">
     {{ all_clients | tojson }}
 </div>
+
+<div id="group-data" style="display: none;">
+    {{ group | tojson if group else 'null' }}
+</div>
 {% endblock %}
 
 {% block extra_js %}
