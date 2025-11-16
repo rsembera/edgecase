@@ -514,6 +514,23 @@ def create_session(client_id):
     
     # Get client type for defaults
     client_type = db.get_client_type(client['type_id'])
+
+    # Check for Profile fee override (ADD THESE LINES)
+    profile = db.get_profile_entry(client_id)
+
+    # Determine which fee to use
+    if profile and profile.get('fee_override_total'):
+        # Use Profile Override
+        default_base = profile['fee_override_base']
+        default_tax_rate = profile['fee_override_tax_rate']
+        default_total = profile['fee_override_total']
+        fee_source = 'Profile Override'
+    else:
+        # Use Client Type
+        default_base = client_type.get('session_base_price')
+        default_tax_rate = client_type.get('session_tax_rate', 0.0)
+        default_total = client_type.get('session_fee')
+        fee_source = 'Client Type'
     
     if request.method == 'POST':
         # Check if consultation
@@ -542,6 +559,8 @@ def create_session(client_id):
             'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
+            'base_fee': float(request.form.get('base_fee')) if request.form.get('base_fee') else None,
+            'tax_rate': float(request.form.get('tax_rate')) if request.form.get('tax_rate') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
             'is_consultation': is_consultation,
             
@@ -605,6 +624,10 @@ def create_session(client_id):
     return render_template('entry_forms/session.html',
                         client=client,
                         client_type=client_type,
+                        default_base=default_base,
+                        default_tax_rate=default_tax_rate,
+                        default_total=default_total,
+                        fee_source=fee_source,
                         today=today,
                         today_year=today_year,
                         today_month=today_month,
