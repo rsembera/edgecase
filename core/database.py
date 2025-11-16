@@ -338,6 +338,23 @@ class Database:
                 print(f"Running migration: Add {column} to entries")
                 cursor.execute(f"ALTER TABLE entries ADD COLUMN {column} {data_type}")
                 conn.commit()
+                
+        # ============================================
+        # SESSION FEE BREAKDOWN MIGRATION (Week 3, Session 1 Part 2)
+        # ============================================
+
+        # Add base_fee and tax_rate to entries for Sessions
+        # (Same pattern as Items, but for Sessions)
+
+        if 'base_fee' not in entries_columns:
+            print("Running migration: Add base_fee to entries")
+            cursor.execute("ALTER TABLE entries ADD COLUMN base_fee REAL")
+            conn.commit()
+
+        if 'tax_rate' not in entries_columns:
+            print("Running migration: Add tax_rate to entries")
+            cursor.execute("ALTER TABLE entries ADD COLUMN tax_rate REAL")
+            conn.commit()
         
         # ============================================
         # CLEAN UP CLIENT_TYPES TABLE (Week 3, Session 1)
