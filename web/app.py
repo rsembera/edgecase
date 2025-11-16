@@ -273,6 +273,57 @@ def client_file(client_id):
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
     
+    # ===== NEW: Get linked clients =====
+    linked_groups = []
+    
+    # Query for all link groups this client is in
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all groups this client belongs to
+    cursor.execute("""
+        SELECT DISTINCT lg.id, lg.format
+        FROM link_groups lg
+        JOIN client_links cl ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+    
+    group_rows = cursor.fetchall()
+    
+    for group_row in group_rows:
+        group_id = group_row['id']
+        format_type = group_row['format']
+        
+        # Get all members of this group (excluding current client)
+        cursor.execute("""
+            SELECT DISTINCT c.id, c.file_number, c.first_name, c.middle_name, c.last_name, c.type_id
+            FROM clients c
+            JOIN client_links cl ON cl.client_id_1 = c.id
+            WHERE cl.group_id = ? AND c.id != ?
+            ORDER BY c.last_name, c.first_name
+        """, (group_id, client_id))
+        
+        member_rows = cursor.fetchall()
+        
+        members = []
+        for member_row in member_rows:
+            member = dict(member_row)
+            # Get type info for each member
+            member['type'] = db.get_client_type(member['type_id'])
+            members.append(member)
+        
+        if members:  # Only add group if it has other members
+            linked_groups.append({
+                'id': group_id,
+                'format': format_type,
+                'format_display': format_type.capitalize() if format_type else 'Unknown',
+                'members': members
+            })
+    
+    conn.close()
+    # ===== END NEW =====
+    
     # Get ALL entries for this client (not just sessions)
     all_entries = db.get_client_entries(client_id)
     
@@ -382,7 +433,8 @@ def client_file(client_id):
                          session_count=session_count,
                          consultation_count=consultation_count,
                          absence_count=absence_count,
-                         class_filter=class_filter)
+                         class_filter=class_filter,
+                         linked_groups=linked_groups)  # NEW: Pass linked groups to template
 
 @app.route('/client/<int:client_id>/change_type', methods=['POST'])
 def change_client_type(client_id):

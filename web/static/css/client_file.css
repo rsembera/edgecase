@@ -234,3 +234,28 @@
         th:nth-child(2), td:nth-child(2) { width: 30%; }  /* Class */
         th:nth-child(3), td:nth-child(3) { width: 50%; }  /* Description */
     }
+
+    /* Linked Clients Section */
+    .linked-client-card {
+        display: inline-block;
+        background: white;
+        border: 2px solid #E5E7EB;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        min-width: 180px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .linked-client-card:hover {
+        border-color: #9FCFC0;
+        box-shadow: 0 2px 8px rgba(159, 207, 192, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .linked-client-card .type-badge {
+        display: inline-block;
+        border-radius: 0.25rem;
+        font-weight: 600;
+    }
