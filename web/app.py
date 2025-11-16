@@ -449,7 +449,26 @@ def edit_profile(client_id):
             'emergency_contact_phone': request.form.get('emergency_contact_phone', ''),
             'emergency_contact_relationship': request.form.get('emergency_contact_relationship', ''),
             'referral_source': request.form.get('referral_source', ''),
-            'additional_info': request.form.get('additional_info', '')
+            'additional_info': request.form.get('additional_info', ''),
+            
+            # Fee Override fields
+            'fee_override_base': float(request.form.get('fee_override_base')) if request.form.get('fee_override_base') else None,
+            'fee_override_tax_rate': float(request.form.get('fee_override_tax_rate')) if request.form.get('fee_override_tax_rate') else None,
+            'fee_override_total': float(request.form.get('fee_override_total')) if request.form.get('fee_override_total') else None,
+            
+            # Guardian/Billing fields
+            'is_minor': 1 if request.form.get('is_minor') else 0,
+            'guardian1_name': request.form.get('guardian1_name', ''),
+            'guardian1_email': request.form.get('guardian1_email', ''),
+            'guardian1_phone': request.form.get('guardian1_phone', ''),
+            'guardian1_address': request.form.get('guardian1_address', ''),
+            'guardian1_pays_percent': float(request.form.get('guardian1_amount')) if request.form.get('guardian1_amount') else 0,
+            'has_guardian2': 1 if request.form.get('has_guardian2') else 0,
+            'guardian2_name': request.form.get('guardian2_name', ''),
+            'guardian2_email': request.form.get('guardian2_email', ''),
+            'guardian2_phone': request.form.get('guardian2_phone', ''),
+            'guardian2_address': request.form.get('guardian2_address', ''),
+            'guardian2_pays_percent': float(request.form.get('guardian2_amount')) if request.form.get('guardian2_amount') else 0
         }
         
         if profile:
