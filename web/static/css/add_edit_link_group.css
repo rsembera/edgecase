@@ -297,3 +297,84 @@
     cursor: not-allowed;
     transform: none;
 }
+
+/* Member Fee Breakdown */
+.member-fee-row {
+    padding: 1rem;
+    background: white;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.member-fee-row:last-child {
+    margin-bottom: 0;
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.member-info strong {
+    color: #111827;
+}
+
+.fee-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.fee-input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.fee-input-group label {
+    margin-bottom: 0.5rem;
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.fee-input-group input[type="number"] {
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.fee-input-group input[type="number"]:focus {
+    outline: none;
+    border-color: #9FCFC0;
+}
+
+/* Format selector */
+#format {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+#format:focus {
+    outline: none;
+    border-color: #9FCFC0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fee-inputs {
+        grid-template-columns: 1fr;
+    }
+}

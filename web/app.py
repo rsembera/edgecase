@@ -1737,14 +1737,17 @@ def add_link_group():
         if len(data['client_ids']) < 2:
             return 'At least 2 clients required', 400
         
-        # Determine principal payer (first client if billing is 'principal')
-        principal_payer = data['client_ids'][0] if data.get('billing_arrangement') == 'principal' else None
+        if not data.get('format'):
+            return 'Missing session format', 400
         
-        # Create link group
+        if not data.get('member_fees'):
+            return 'Missing member fees', 400
+        
+        # Create link group with format and member fees
         group_id = db.create_link_group(
             client_ids=data['client_ids'],
-            billing_type=data.get('billing_arrangement', 'principal'),
-            principal_payer_id=principal_payer
+            format=data['format'],
+            member_fees=data['member_fees']
         )
         
         return '', 204
@@ -1773,15 +1776,18 @@ def edit_link_group(group_id):
         if len(data['client_ids']) < 2:
             return 'At least 2 clients required', 400
         
-        # Determine principal payer
-        principal_payer = data['client_ids'][0] if data.get('billing_arrangement') == 'principal' else None
+        if not data.get('format'):
+            return 'Missing session format', 400
+        
+        if not data.get('member_fees'):
+            return 'Missing member fees', 400
         
         # Update link group
         success = db.update_link_group(
             group_id=group_id,
             client_ids=data['client_ids'],
-            billing_type=data.get('billing_arrangement', 'principal'),
-            principal_payer_id=principal_payer
+            format=data['format'],
+            member_fees=data['member_fees']
         )
         
         if success:

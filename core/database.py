@@ -427,6 +427,73 @@ class Database:
         
         if 'billing_type' in link_columns or 'principal_payer_id' in link_columns:
             print("Note: link_groups still has old billing columns (will be unused after Session 6, safe to ignore)")
+            
+        # ============================================
+        # LINK GROUP BILLING MIGRATION (Week 3, Session 1 Part 3)
+        # ============================================
+
+        # Add format field to link_groups
+        cursor.execute("PRAGMA table_info(link_groups)")
+        link_groups_columns = [col[1] for col in cursor.fetchall()]
+
+        if 'format' not in link_groups_columns:
+            print("Running migration: Add format to link_groups")
+            cursor.execute("ALTER TABLE link_groups ADD COLUMN format TEXT")
+            conn.commit()
+
+        # Add fee breakdown fields to client_links
+        cursor.execute("PRAGMA table_info(client_links)")
+        client_links_columns = [col[1] for col in cursor.fetchall()]
+
+        if 'member_base_fee' not in client_links_columns:
+            print("Running migration: Add member_base_fee to client_links")
+            cursor.execute("ALTER TABLE client_links ADD COLUMN member_base_fee REAL")
+            conn.commit()
+
+        if 'member_tax_rate' not in client_links_columns:
+            print("Running migration: Add member_tax_rate to client_links")
+            cursor.execute("ALTER TABLE client_links ADD COLUMN member_tax_rate REAL")
+            conn.commit()
+
+        if 'member_total_fee' not in client_links_columns:
+            print("Running migration: Add member_total_fee to client_links")
+            cursor.execute("ALTER TABLE client_links ADD COLUMN member_total_fee REAL")
+            conn.commit()
+            
+        # ============================================
+        # CLEAN UP LINK_GROUPS TABLE (Week 3, Session 1 Part 4)
+        # ============================================
+
+        # Remove old billing columns, ensure format column exists
+        cursor.execute("PRAGMA table_info(link_groups)")
+        link_groups_columns = [col[1] for col in cursor.fetchall()]
+
+        if 'billing_type' in link_groups_columns or 'format' not in link_groups_columns:
+            print("Running migration: Clean up link_groups table structure")
+            
+            # Create new table with correct structure
+            cursor.execute("""
+                CREATE TABLE link_groups_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    format TEXT,
+                    created_at INTEGER NOT NULL
+                )
+            """)
+            
+            # Copy data from old table (only if there are existing groups)
+            cursor.execute("SELECT COUNT(*) FROM link_groups")
+            if cursor.fetchone()[0] > 0:
+                cursor.execute("""
+                    INSERT INTO link_groups_new (id, format, created_at)
+                    SELECT id, format, created_at FROM link_groups
+                """)
+            
+            # Drop old table and rename new one
+            cursor.execute("DROP TABLE link_groups")
+            cursor.execute("ALTER TABLE link_groups_new RENAME TO link_groups")
+            
+            conn.commit()
+            print("Migration complete: link_groups table cleaned up")
         
         print("All migrations complete")
         conn.close()
@@ -850,13 +917,13 @@ class Database:
     
     # ===== CLIENT LINKING OPERATIONS =====
     
-    def create_link_group(self, client_ids: List[int], billing_type: str = 'principal', principal_payer_id: Optional[int] = None) -> int:
-        """Create a new link group using star pattern.
+    def create_link_group(self, client_ids: List[int], format: str, member_fees: Dict[int, Dict[str, float]]) -> int:
+        """Create a new link group.
         
         Args:
-            client_ids: List of client IDs to link (first becomes hub)
-            billing_type: Billing arrangement (unused after Session 6)
-            principal_payer_id: Principal payer ID (unused after Session 6)
+            client_ids: List of client IDs to link
+            format: Session format ('couples', 'family', 'group')
+            member_fees: Dict mapping client_id to {base_fee, tax_rate, total_fee}
         
         Returns:
             Link group ID
@@ -865,27 +932,27 @@ class Database:
         cursor = conn.cursor()
         now = int(time.time())
         
-        # Create link group
+        # Create link group with format
         cursor.execute("""
-            INSERT INTO link_groups (billing_type, principal_payer_id, created_at)
-            VALUES (?, ?, ?)
-        """, (billing_type, principal_payer_id, now))
+            INSERT INTO link_groups (format, created_at)
+            VALUES (?, ?)
+        """, (format, now))
         
         group_id = cursor.lastrowid
         
-        # Create links using star pattern (first client is hub)
-        hub_client_id = client_ids[0]
-        
-        for i in range(1, len(client_ids)):
-            client_id = client_ids[i]
-            
-            # Always store smaller ID first (for uniqueness constraint)
-            id1, id2 = (hub_client_id, client_id) if hub_client_id < client_id else (client_id, hub_client_id)
+        # Create a row for each member (self-referential)
+        for client_id in client_ids:
+            # Get fees for this member
+            fees = member_fees.get(str(client_id), {})  # JSON keys are strings
+            base_fee = fees.get('base_fee', 0)
+            tax_rate = fees.get('tax_rate', 0)
+            total_fee = fees.get('total_fee', 0)
             
             cursor.execute("""
-                INSERT INTO client_links (client_id_1, client_id_2, group_id, created_at)
-                VALUES (?, ?, ?, ?)
-            """, (id1, id2, group_id, now))
+                INSERT INTO client_links 
+                (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
         
         conn.commit()
         conn.close()
@@ -893,13 +960,13 @@ class Database:
         return group_id
     
     def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
-        """Get link group with all member details.
+        """Get link group with all member details and fees.
         
         Args:
             group_id: Link group ID
         
         Returns:
-            Dict with group info and members list
+            Dict with group info and members list (including fees)
         """
         conn = self.connect()
         conn.row_factory = sqlite3.Row
@@ -915,25 +982,28 @@ class Database:
         
         group = dict(group_row)
         
-        # Get all client IDs in this group
+        # Get all members with their fees
         cursor.execute("""
-            SELECT DISTINCT client_id_1, client_id_2 FROM client_links
+            SELECT client_id_1 as client_id, member_base_fee, member_tax_rate, member_total_fee
+            FROM client_links
             WHERE group_id = ?
         """, (group_id,))
         
-        # Build set of all unique client IDs
-        client_ids = set()
-        for row in cursor.fetchall():
-            client_ids.add(row[0])
-            client_ids.add(row[1])
-        
-        # Get client details for each member
         members = []
-        for client_id in client_ids:
+        for row in cursor.fetchall():
+            client_id = row['client_id']
+            
+            # Get client details
             cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
             client_row = cursor.fetchone()
+            
             if client_row:
-                members.append(dict(client_row))
+                member = dict(client_row)
+                # Add fee info
+                member['member_base_fee'] = row['member_base_fee']
+                member['member_tax_rate'] = row['member_tax_rate']
+                member['member_total_fee'] = row['member_total_fee']
+                members.append(member)
         
         group['members'] = members
         
@@ -941,10 +1011,10 @@ class Database:
         return group
     
     def get_all_link_groups(self) -> List[Dict[str, Any]]:
-        """Get all link groups with member details.
+        """Get all link groups with member details and fees.
         
         Returns:
-            List of link groups with members
+            List of link groups with members (including fees)
         """
         conn = self.connect()
         conn.row_factory = sqlite3.Row
@@ -958,25 +1028,28 @@ class Database:
             group = dict(group_row)
             group_id = group['id']
             
-            # Get all client IDs in this group
+            # Get all members with their fees
             cursor.execute("""
-                SELECT DISTINCT client_id_1, client_id_2 FROM client_links
+                SELECT client_id_1 as client_id, member_base_fee, member_tax_rate, member_total_fee
+                FROM client_links
                 WHERE group_id = ?
             """, (group_id,))
             
-            # Build set of all unique client IDs
-            client_ids = set()
-            for row in cursor.fetchall():
-                client_ids.add(row[0])
-                client_ids.add(row[1])
-            
-            # Get client details for each member
             members = []
-            for client_id in client_ids:
+            for row in cursor.fetchall():
+                client_id = row['client_id']
+                
+                # Get client details
                 cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
                 client_row = cursor.fetchone()
+                
                 if client_row:
-                    members.append(dict(client_row))
+                    member = dict(client_row)
+                    # Add fee info
+                    member['member_base_fee'] = row['member_base_fee']
+                    member['member_tax_rate'] = row['member_tax_rate']
+                    member['member_total_fee'] = row['member_total_fee']
+                    members.append(member)
             
             group['members'] = members
             groups.append(group)
@@ -997,27 +1070,32 @@ class Database:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Find all links involving this client
+        # Find which group(s) this client belongs to
         cursor.execute("""
-            SELECT client_id_1, client_id_2 FROM client_links
-            WHERE client_id_1 = ? OR client_id_2 = ?
-        """, (client_id, client_id))
+            SELECT DISTINCT group_id FROM client_links
+            WHERE client_id_1 = ?
+        """, (client_id,))
         
-        # Collect all linked client IDs
-        linked_ids = set()
-        for row in cursor.fetchall():
-            if row[0] != client_id:
-                linked_ids.add(row[0])
-            if row[1] != client_id:
-                linked_ids.add(row[1])
+        group_ids = [row['group_id'] for row in cursor.fetchall()]
         
-        # Get client details for each linked client
+        if not group_ids:
+            conn.close()
+            return []
+        
+        # Get all other clients in those groups
         linked_clients = []
-        for linked_id in linked_ids:
-            cursor.execute("SELECT * FROM clients WHERE id = ?", (linked_id,))
-            client_row = cursor.fetchone()
-            if client_row:
-                linked_clients.append(dict(client_row))
+        for group_id in group_ids:
+            cursor.execute("""
+                SELECT client_id_1 as client_id FROM client_links
+                WHERE group_id = ? AND client_id_1 != ?
+            """, (group_id, client_id))
+            
+            for row in cursor.fetchall():
+                other_client_id = row['client_id']
+                cursor.execute("SELECT * FROM clients WHERE id = ?", (other_client_id,))
+                client_row = cursor.fetchone()
+                if client_row:
+                    linked_clients.append(dict(client_row))
         
         conn.close()
         return linked_clients
@@ -1044,14 +1122,14 @@ class Database:
         
         return count > 0
     
-    def update_link_group(self, group_id: int, client_ids: List[int], billing_type: str, principal_payer_id: Optional[int] = None) -> bool:
+    def update_link_group(self, group_id: int, client_ids: List[int], format: str, member_fees: Dict[int, Dict[str, float]]) -> bool:
         """Update an existing link group.
         
         Args:
             group_id: Link group ID
             client_ids: Updated list of client IDs
-            billing_type: Updated billing type
-            principal_payer_id: Updated principal payer (if applicable)
+            format: Updated session format
+            member_fees: Dict mapping client_id to {base_fee, tax_rate, total_fee}
         
         Returns:
             True if successful
@@ -1060,27 +1138,28 @@ class Database:
         cursor = conn.cursor()
         now = int(time.time())
         
-        # Update link group
+        # Update link group format
         cursor.execute("""
             UPDATE link_groups
-            SET billing_type = ?, principal_payer_id = ?
+            SET format = ?
             WHERE id = ?
-        """, (billing_type, principal_payer_id, group_id))
+        """, (format, group_id))
         
         # Delete existing links for this group
         cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
         
-        # Recreate links with new client list (same star pattern as create_link_group)
-        hub_client_id = client_ids[0]
-        
-        for i in range(1, len(client_ids)):
-            client_id = client_ids[i]
-            id1, id2 = (hub_client_id, client_id) if hub_client_id < client_id else (client_id, hub_client_id)
+        # Recreate links with new client list and fees
+        for client_id in client_ids:
+            fees = member_fees.get(str(client_id), {})
+            base_fee = fees.get('base_fee', 0)
+            tax_rate = fees.get('tax_rate', 0)
+            total_fee = fees.get('total_fee', 0)
             
             cursor.execute("""
-                INSERT INTO client_links (client_id_1, client_id_2, group_id, created_at)
-                VALUES (?, ?, ?, ?)
-            """, (id1, id2, group_id, now))
+                INSERT INTO client_links 
+                (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
         
         conn.commit()
         conn.close()

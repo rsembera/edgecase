@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedClients.push(clientId);
         }
     });
+    
+    // Update member fees display if clients already selected
+    if (selectedClients.length > 0) {
+        updateMemberFees();
+    }
 });
 
 // Client search functionality
@@ -87,6 +92,9 @@ function selectClient(clientId) {
     `;
     selectedContainer.appendChild(clientDiv);
     
+    // Update member fees
+    updateMemberFees();
+    
     // Clear search
     searchInput.value = '';
     searchResults.classList.remove('active');
@@ -102,6 +110,109 @@ function removeClient(clientId) {
     if (clientDiv) {
         clientDiv.remove();
     }
+    
+    // Update member fees
+    updateMemberFees();
+}
+
+// Update member fees section
+function updateMemberFees() {
+    const feesSection = document.getElementById('member-fees-section');
+    const feesContainer = document.getElementById('member-fees-container');
+    
+    if (selectedClients.length === 0) {
+        feesSection.style.display = 'none';
+        feesContainer.innerHTML = '';
+        return;
+    }
+    
+    feesSection.style.display = 'block';
+    
+    // Build fee input rows for each selected client
+    feesContainer.innerHTML = selectedClients.map(clientId => {
+        const client = allClientsData.find(c => c.id === clientId);
+        if (!client) return '';
+        
+        // Get default fees from client type
+        const defaultBase = client.type.session_base_price || 0;
+        const defaultTax = client.type.session_tax_rate || 0;
+        const defaultTotal = client.type.session_fee || 0;
+        
+        return `
+            <div class="member-fee-row" data-client-id="${clientId}">
+                <div class="member-info">
+                    <span class="client-badge" style="background-color: ${client.type.color}">
+                        ${client.type.name}
+                    </span>
+                    <strong>${client.first_name} ${client.last_name}</strong>
+                    <span style="color: #718096;">${client.file_number}</span>
+                </div>
+                <div class="fee-inputs">
+                    <div class="fee-input-group">
+                        <label>Base Fee</label>
+                        <input type="number" 
+                               name="base_fee_${clientId}" 
+                               class="base-fee"
+                               step="0.01" 
+                               min="0"
+                               value="${defaultBase.toFixed(2)}"
+                               data-client-id="${clientId}"
+                               onchange="calculateFee(${clientId}, 'base')">
+                    </div>
+                    <div class="fee-input-group">
+                        <label>Tax Rate (%)</label>
+                        <input type="number" 
+                               name="tax_rate_${clientId}" 
+                               class="tax-rate"
+                               step="0.01" 
+                               min="0"
+                               value="${defaultTax.toFixed(2)}"
+                               data-client-id="${clientId}"
+                               onchange="calculateFee(${clientId}, 'tax')">
+                    </div>
+                    <div class="fee-input-group">
+                        <label>Total Fee</label>
+                        <input type="number" 
+                               name="total_fee_${clientId}" 
+                               class="total-fee"
+                               step="0.01" 
+                               min="0"
+                               value="${defaultTotal.toFixed(2)}"
+                               data-client-id="${clientId}"
+                               onchange="calculateFee(${clientId}, 'total')">
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Three-way fee calculation (same logic as Item and Profile)
+function calculateFee(clientId, changedField) {
+    const row = document.querySelector(`.member-fee-row[data-client-id="${clientId}"]`);
+    if (!row) return;
+    
+    const baseInput = row.querySelector('.base-fee');
+    const taxInput = row.querySelector('.tax-rate');
+    const totalInput = row.querySelector('.total-fee');
+    
+    const base = parseFloat(baseInput.value) || 0;
+    const taxRate = parseFloat(taxInput.value) || 0;
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseInput.value = calculatedBase.toFixed(2);
+        } else {
+            baseInput.value = total.toFixed(2);
+        }
+    }
 }
 
 // Form submission
@@ -114,12 +225,31 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
         return;
     }
     
-    const billingArrangement = document.querySelector('input[name="billing_arrangement"]:checked').value;
+    const format = document.getElementById('format').value;
+    if (!format) {
+        alert('Please select a session format');
+        return;
+    }
+    
+    // Collect member fees
+    const memberFees = {};
+    selectedClients.forEach(clientId => {
+        const baseInput = document.querySelector(`input[name="base_fee_${clientId}"]`);
+        const taxInput = document.querySelector(`input[name="tax_rate_${clientId}"]`);
+        const totalInput = document.querySelector(`input[name="total_fee_${clientId}"]`);
+        
+        memberFees[clientId] = {
+            base_fee: parseFloat(baseInput.value) || 0,
+            tax_rate: parseFloat(taxInput.value) || 0,
+            total_fee: parseFloat(totalInput.value) || 0
+        };
+    });
     
     // Submit form data
     const formData = {
         client_ids: selectedClients,
-        billing_arrangement: billingArrangement
+        format: format,
+        member_fees: memberFees
     };
     
     fetch(window.location.href, {
