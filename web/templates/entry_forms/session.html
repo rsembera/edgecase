@@ -136,7 +136,7 @@
         <div style="background: #F7FAFC; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0; font-size: 1rem; color: #2D3748;">Session Fee</h3>
-                <span style="font-size: 0.875rem; color: #718096;">Source: {{ fee_source }}</span>
+                <span id="fee-source" style="font-size: 0.875rem; color: #718096;">Source: Client Type</span>
             </div>
             
             <div class="form-row-thirds">
@@ -240,14 +240,36 @@
             {% else %}
             <button type="submit" class="btn">Save Session</button>
             {% endif %}
+
+            
         </div>
     </form>
+
+    <!-- Modal for missing link group -->
+    <div id="missing-link-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="margin-top: 0; color: #DC2626;">Link Group Required</h3>
+            <p id="missing-link-message" style="color: #374151; line-height: 1.6;"></p>
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; gap: 1rem;">
+                <a href="{{ url_for('manage_links') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">Go to Link Groups</a>
+                <button onclick="closeMissingLinkModal()" class="btn" style="flex: 1;">Stay Here</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<script>
-// Set data attributes for JavaScript to read
-document.body.dataset.isEdit = '{% if is_edit %}true{% else %}false{% endif %}';
-document.body.dataset.nextSessionNumber = '{% if not is_edit %}{{ next_session_number }}{% endif %}';
+<div id="session-data" style="display: none;"
+     data-is-edit="{% if is_edit %}true{% else %}false{% endif %}"
+     data-next-session-number="{% if not is_edit %}{{ next_session_number }}{% endif %}">
+</div>
+
+<script id="fee-sources-data" type="application/json">
+{
+    "profileOverride": {{ profile_override | tojson if profile_override else 'null' }},
+    "clientType": {{ client_type_fees | tojson }},
+    "linkGroups": {{ link_group_fees | tojson }}
+}
 </script>
 
 {% endblock %}
