@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EdgeCase Equalizer{% endblock %}</title>
-    
-    <!-- Import Lexend font from Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Favicons-->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
@@ -17,6 +12,33 @@
     <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicons/favicon-96x96.png') }}">
     
     <style>
+        /* Self-hosted Lexend fonts */
+        @font-face {
+        font-family: 'Lexend';
+        src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf') }}") format('truetype');
+        font-weight: 300;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype');
+            font-weight: 600;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf') }}") format('truetype');
+            font-weight: 700;
+        }
+
         * {
             margin: 0;
             padding: 0;
