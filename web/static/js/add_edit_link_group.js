@@ -55,7 +55,7 @@ searchInput.addEventListener('input', function(e) {
                 <span class="client-badge" style="background-color: ${client.type.color}">
                     ${client.type.name}
                 </span>
-                <span class="client-name">${client.first_name} ${client.last_name}</span>
+                <span class="client-name">${client.first_name} ${client.middle_name || ''} ${client.last_name}</span>
                 <span class="client-file">${client.file_number}</span>
             </div>
         `).join('');
@@ -91,7 +91,7 @@ function selectClient(clientId) {
         <span class="client-badge" style="background-color: ${client.type.color}">
             ${client.type.name}
         </span>
-        <span class="client-name">${client.first_name} ${client.last_name}</span>
+        <span class="client-name">${client.first_name} ${client.middle_name || ''} ${client.last_name}</span>
         <span class="client-file">${client.file_number}</span>
         <button type="button" class="remove-client" onclick="removeClient(${clientId})">×</button>
     `;
@@ -167,7 +167,7 @@ function updateMemberFees() {
                     <span class="client-badge" style="background-color: ${client.type.color}">
                         ${client.type.name}
                     </span>
-                    <strong>${client.first_name} ${client.last_name}</strong>
+                    <strong>${client.first_name} ${client.middle_name || ''} ${client.last_name}</strong>
                     <span style="color: #718096;">${client.file_number}</span>
                 </div>
                 <div class="fee-inputs">

@@ -451,6 +451,9 @@ def change_client_type(client_id):
     if not client:
         return redirect(url_for('index'))
     
+    # Get the new type to check if it's "Inactive"
+    new_type = db.get_client_type(int(type_id))
+    
     # Update client with all fields plus new type
     client_updates = {
         'file_number': client['file_number'],
@@ -462,12 +465,62 @@ def change_client_type(client_id):
     }
     db.update_client(client_id, client_updates)
     
+    # If changing to Inactive, remove from link groups
+    if new_type and new_type['name'] == 'Inactive':
+        cleanup_inactive_client_links(client_id)
+    
     # Redirect back to where they came from (referrer)
     referrer = request.referrer
     if referrer and 'profile' in referrer:
         return redirect(url_for('edit_profile', client_id=client_id))
     else:
         return redirect(url_for('client_file', client_id=client_id))
+
+
+def cleanup_inactive_client_links(client_id):
+    """Remove inactive client from all link groups and delete groups with <2 members."""
+    conn = db.connect()
+    cursor = conn.cursor()
+    
+    # Get all groups this client is in
+    cursor.execute("""
+        SELECT DISTINCT group_id 
+        FROM client_links 
+        WHERE client_id_1 = ?
+    """, (client_id,))
+    
+    group_ids = [row[0] for row in cursor.fetchall()]
+    
+    groups_deleted = 0
+    
+    for group_id in group_ids:
+        # Remove this client from the group
+        cursor.execute("""
+            DELETE FROM client_links 
+            WHERE group_id = ? AND client_id_1 = ?
+        """, (group_id, client_id))
+        
+        # Check how many members remain
+        cursor.execute("""
+            SELECT COUNT(DISTINCT client_id_1) 
+            FROM client_links 
+            WHERE group_id = ?
+        """, (group_id,))
+        
+        remaining_members = cursor.fetchone()[0]
+        
+        # If less than 2 members, delete the entire group
+        if remaining_members < 2:
+            cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+            cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
+            groups_deleted += 1
+    
+    conn.commit()
+    conn.close()
+    
+    # You could add flash message here if you want:
+    # if groups_deleted > 0:
+    #     flash(f"Removed from {len(group_ids)} link group(s). {groups_deleted} group(s) deleted.")
 
 @app.route('/client/<int:client_id>/profile', methods=['GET', 'POST'])
 def edit_profile(client_id):
@@ -1874,15 +1927,19 @@ def add_link_group():
         
         return '', 204
     
-    # GET: Show the form
+    # GET: Show the form - exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
     
-    # Add type info to clients
+    # Filter out Inactive and Deleted clients and add type info
+    active_clients = []
     for client in all_clients:
-        client['type'] = db.get_client_type(client['type_id'])
+        client_type = db.get_client_type(client['type_id'])
+        client['type'] = client_type
+        if client_type['name'] not in ['Inactive', 'Deleted']:
+            active_clients.append(client)
     
     return render_template('add_edit_link_group.html',
-                         all_clients=all_clients,
+                         all_clients=active_clients,
                          group=None)
 
 @app.route('/links/<int:group_id>/edit', methods=['GET', 'POST'])
@@ -1917,13 +1974,19 @@ def edit_link_group(group_id):
         else:
             return 'Error updating link group', 500
     
-    # GET: Show the form
+    # GET: Show the form with existing group data
     group = db.get_link_group(group_id)
+    
+    # Exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
     
-    # Add type info to all clients
+    # Filter out Inactive and Deleted clients and add type info
+    active_clients = []
     for client in all_clients:
-        client['type'] = db.get_client_type(client['type_id'])
+        client_type = db.get_client_type(client['type_id'])
+        client['type'] = client_type
+        if client_type['name'] not in ['Inactive', 'Deleted']:
+            active_clients.append(client)
     
     # Add type info to group members
     if group and 'members' in group:
@@ -1931,10 +1994,9 @@ def edit_link_group(group_id):
             member['type'] = db.get_client_type(member['type_id'])
     
     return render_template('add_edit_link_group.html',
-                         all_clients=all_clients,
+                         all_clients=active_clients,
                          group=group)
     
-
 # Also need to add these helper methods to database.py:
 
 def set_setting(self, key: str, value: str):
