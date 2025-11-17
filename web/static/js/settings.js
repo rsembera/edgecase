@@ -374,7 +374,9 @@ async function loadPracticeInfo() {
             document.getElementById('practice-phone').value = data.info.phone || '';
             document.getElementById('practice-address').value = data.info.address || '';  // CHANGED: single address field
             document.getElementById('website').value = data.info.website || '';
-            document.getElementById('consultation-fee').value = data.info.consultation_fee || '0.00';
+            document.getElementById('consultation-base').value = data.info.consultation_base_price || '0.00';
+            document.getElementById('consultation-tax').value = data.info.consultation_tax_rate || '0.00';
+            document.getElementById('consultation-total').value = data.info.consultation_fee || '0.00';
             document.getElementById('currency').value = data.info.currency || 'CAD';
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
@@ -411,7 +413,9 @@ async function savePracticeInfo() {
         address: document.getElementById('practice-address').value,  // CHANGED: single address field
         website: document.getElementById('website').value,
         currency: document.getElementById('currency').value,
-        consultation_fee: document.getElementById('consultation-fee').value,
+        consultation_base_price: document.getElementById('consultation-base').value,
+        consultation_tax_rate: document.getElementById('consultation-tax').value,
+        consultation_fee: document.getElementById('consultation-total').value,
         consultation_duration: document.getElementById('consultation-duration').value
     };
     
@@ -502,10 +506,49 @@ function validatePhone(phoneValue) {
     const digitsOnly = phoneValue.replace(/\D/g, '');
     return digitsOnly.length >= 10 && digitsOnly.length <= 15;
 }
-// Currency formatting for consultation fee
-const consultationFeeInput = document.getElementById('consultation-fee');
 
-consultationFeeInput.addEventListener('blur', function(e) {
+// Three-way calculation for consultation fee
+function calculateConsultationFee(changedField) {
+    const baseInput = document.getElementById('consultation-base');
+    const taxInput = document.getElementById('consultation-tax');
+    const totalInput = document.getElementById('consultation-total');
+    
+    const base = parseFloat(baseInput.value) || 0;
+    const taxRate = parseFloat(taxInput.value) || 0;
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseInput.value = calculatedBase.toFixed(2);
+        } else {
+            // If no tax, total = base
+            baseInput.value = total.toFixed(2);
+        }
+    }
+}
+
+// Auto-format consultation fee fields on blur
+document.getElementById('consultation-base').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(2);
+    }
+});
+
+document.getElementById('consultation-tax').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(1);
+    }
+});
+
+document.getElementById('consultation-total').addEventListener('blur', function(e) {
     let value = parseFloat(e.target.value);
     if (!isNaN(value)) {
         e.target.value = value.toFixed(2);

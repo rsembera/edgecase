@@ -647,10 +647,9 @@ def create_session(client_id):
     preview_session_number = sessions_before_today + offset + 1
 
     # Get all sessions for navigation
+    # Note: prev/next don't apply when creating new session (only when editing)
     prev_session_id = None
     next_session_id = None
-    if dated_sessions:
-        prev_session_id = dated_sessions[-1]['id']
 
     # Prepare fee sources for JavaScript to use
     # 1. Profile Override (if exists)
@@ -808,9 +807,56 @@ def edit_session(client_id, entry_id):
         session_month = session_dt.month
         session_day = session_dt.day
     
+    # Prepare fee sources for JavaScript (same as create_session)
+    # 1. Profile Override (if exists)
+    profile = db.get_profile_entry(client_id)
+    profile_override = None
+    if profile and profile.get('fee_override_total'):
+        profile_override = {
+            'base': profile['fee_override_base'],
+            'tax': profile['fee_override_tax_rate'],
+            'total': profile['fee_override_total']
+        }
+    
+    # 2. Client Type
+    client_type_fees = {
+        'base': client_type.get('session_base_price') or 0,
+        'tax': client_type.get('session_tax_rate') or 0,
+        'total': client_type.get('session_fee') or 0
+    }
+    
+    # 3. Link Groups (by format)
+    link_group_fees = {}
+    
+    # Get all link groups this client is in
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+    
+    for row in cursor.fetchall():
+        format_type = row['format']
+        if format_type:
+            link_group_fees[format_type] = {
+                'base': row['member_base_fee'] or 0,
+                'tax': row['member_tax_rate'] or 0,
+                'total': row['member_total_fee'] or 0
+            }
+    
+    conn.close()
+
     return render_template('entry_forms/session.html',
                          client=client,
                          client_type=client_type,
+                         profile_override=profile_override,
+                         client_type_fees=client_type_fees,
+                         link_group_fees=link_group_fees,
                          session=session,
                          session_year=session_year,
                          session_month=session_month,
@@ -1451,8 +1497,8 @@ def practice_info():
         # Get all the specific keys we need
         keys = [
             'practice_name', 'therapist_name', 'credentials', 'email', 'phone',
-            'address', 'website',  # CHANGED: single address field
-            'consultation_fee', 'consultation_duration',
+            'address', 'website',
+            'consultation_base_price', 'consultation_tax_rate', 'consultation_fee', 'consultation_duration',
             'logo_filename', 'signature_filename',
             'currency'
         ]
@@ -1484,6 +1530,8 @@ def practice_info():
             'address': data.get('address', ''),  # CHANGED: single address field
             'website': data.get('website', ''),
             'currency': data.get('currency', 'CAD'),
+            'consultation_base_price': data.get('consultation_base_price', '0.00'),
+            'consultation_tax_rate': data.get('consultation_tax_rate', '0.00'),
             'consultation_fee': data.get('consultation_fee', '0.00'),
             'consultation_duration': data.get('consultation_duration', '20')
         }
