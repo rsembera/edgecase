@@ -80,16 +80,12 @@ if (feeOverrideEnabled) {
                 totalInput.value = form.dataset.typeTotal;
             }
             
-            // Recalculate total fee display for guardians
-            updateGuardianTotalFee();
         } else {
             feeOverrideFields.style.display = 'none';
             // Clear override fields when disabled
             document.getElementById('fee_override_base').value = '';
             document.getElementById('fee_override_tax_rate').value = '';
             document.getElementById('fee_override_total').value = '';
-            
-            updateGuardianTotalFee();
         }
     });
 }
@@ -113,9 +109,6 @@ function calculateOverrideFee() {
         const calculatedBase = total / (1 + rate / 100);
         feeOverrideBase.value = calculatedBase.toFixed(2);
     }
-    
-    // Update guardian total fee display
-    updateGuardianTotalFee();
 }
 
 if (feeOverrideBase) {
@@ -212,26 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Update guardian total fee display
-function updateGuardianTotalFee() {
-    const display = document.getElementById('total-session-fee-display');
-    if (!display) return;
-    
-    let total;
-    if (feeOverrideEnabled && feeOverrideEnabled.checked && feeOverrideTotal.value) {
-        total = parseFloat(feeOverrideTotal.value);
-    } else {
-        const form = document.getElementById('profile-form');
-        total = parseFloat(form.dataset.typeTotal);
-    }
-    
-    display.textContent = '$' + total.toFixed(2);
-    
-    // Revalidate guardian amounts
-    validateGuardianAmounts();
-}
-
-// Guardian amount validation
+// Guardian percentage validation
 function validateGuardianAmounts() {
     const validation = document.getElementById('guardian-validation');
     const validationMessage = document.getElementById('guardian-validation-message');
@@ -241,26 +215,18 @@ function validateGuardianAmounts() {
         return true;
     }
     
-    const guardian1Amount = parseFloat(document.getElementById('guardian1_amount').value) || 0;
-    const guardian2Amount = hasGuardian2 && hasGuardian2.checked ? 
-                           (parseFloat(document.getElementById('guardian2_amount').value) || 0) : 0;
+    const guardian1Percent = parseFloat(document.getElementById('guardian1_amount').value) || 0;
+    const guardian2Percent = hasGuardian2 && hasGuardian2.checked ? 
+                            (parseFloat(document.getElementById('guardian2_amount').value) || 0) : 0;
     
-    const total = guardian1Amount + guardian2Amount;
+    const total = guardian1Percent + guardian2Percent;
     
-    // Get expected total
-    let expectedTotal;
-    if (feeOverrideEnabled && feeOverrideEnabled.checked && feeOverrideTotal.value) {
-        expectedTotal = parseFloat(feeOverrideTotal.value);
-    } else {
-        const form = document.getElementById('profile-form');
-        expectedTotal = parseFloat(form.dataset.typeTotal);
-    }
+    // Must add up to 100% (allow small rounding difference)
+    const difference = Math.abs(total - 100);
     
-    const difference = Math.abs(total - expectedTotal);
-    
-    if (difference > 0.01) { // Allow 1 cent rounding difference
-        validation.style.display = 'flex';
-        validationMessage.textContent = `Guardian amounts ($${total.toFixed(2)}) must equal total session fee ($${expectedTotal.toFixed(2)})`;
+    if (difference > 0.1) { // Allow 0.1% rounding difference
+        validation.style.display = 'block';
+        validationMessage.innerHTML = `<br>Guardian percentages (${total.toFixed(1)}%) must equal 100%`;
         return false;
     } else {
         validation.style.display = 'none';
@@ -268,7 +234,7 @@ function validateGuardianAmounts() {
     }
 }
 
-// Add validation to guardian amount inputs
+// Add validation to guardian percentage inputs
 const guardian1Amount = document.getElementById('guardian1_amount');
 const guardian2Amount = document.getElementById('guardian2_amount');
 
@@ -276,7 +242,7 @@ if (guardian1Amount) {
     guardian1Amount.addEventListener('input', validateGuardianAmounts);
     guardian1Amount.addEventListener('blur', function() {
         if (this.value) {
-            this.value = parseFloat(this.value).toFixed(2);
+            this.value = parseFloat(this.value).toFixed(1);
         }
     });
 }
@@ -285,7 +251,7 @@ if (guardian2Amount) {
     guardian2Amount.addEventListener('input', validateGuardianAmounts);
     guardian2Amount.addEventListener('blur', function() {
         if (this.value) {
-            this.value = parseFloat(this.value).toFixed(2);
+            this.value = parseFloat(this.value).toFixed(1);
         }
     });
 }
@@ -339,7 +305,7 @@ document.getElementById('profile-form').addEventListener('submit', function(e) {
     
     // Validate guardian amounts if minor
     if (!validateGuardianAmounts()) {
-        errors.push('• Guardian payment amounts must equal total session fee');
+        errors.push('• Guardian percentages must equal 100%');
     }
     
     if (errors.length > 0) {
