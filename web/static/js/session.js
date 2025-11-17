@@ -86,6 +86,33 @@ function updateFeesForFormat(format) {
     }
 }
 
+// Three-way fee calculation (when user manually edits fees)
+function calculateSessionFee(changedField) {
+    const base = parseFloat(baseFeeInput.value) || 0;
+    const taxRate = parseFloat(taxRateInput.value) || 0;
+    const total = parseFloat(totalFeeInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalFeeInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseFeeInput.value = calculatedBase.toFixed(2);
+        } else {
+            // If no tax, total = base
+            baseFeeInput.value = total.toFixed(2);
+        }
+    }
+}
+
+// Add listeners for manual fee editing
+baseFeeInput.addEventListener('input', () => calculateSessionFee('base'));
+taxRateInput.addEventListener('input', () => calculateSessionFee('tax'));
+totalFeeInput.addEventListener('input', () => calculateSessionFee('total'));
+
 // Date dropdowns → hidden field (same as profile.html)
     const dateYear = document.getElementById('date_year');
     const dateMonth = document.getElementById('date_month');
