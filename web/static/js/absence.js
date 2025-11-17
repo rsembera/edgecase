@@ -12,13 +12,31 @@ function updateAbsenceDate() {
     }
 }
 
-// Currency formatting for fee field
-document.getElementById('fee').addEventListener('blur', function(e) {
-    let value = parseFloat(e.target.value);
-    if (!isNaN(value)) {
-        e.target.value = value.toFixed(2);
+// Three-way fee calculation
+function calculateAbsenceFee(changedField) {
+    const baseInput = document.getElementById('base_price');
+    const taxInput = document.getElementById('tax_rate');
+    const totalInput = document.getElementById('fee');
+    
+    const base = parseFloat(baseInput.value) || 0;
+    const taxRate = parseFloat(taxInput.value) || 0;
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseInput.value = calculatedBase.toFixed(2);
+        } else {
+            // If no tax, total = base
+            baseInput.value = total.toFixed(2);
+        }
     }
-});
+}
 
 dateYear.addEventListener('change', updateAbsenceDate);
 dateMonth.addEventListener('change', updateAbsenceDate);
