@@ -623,6 +623,7 @@ def create_session(client_id):
     if request.method == 'POST':
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
+        is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
         
         # Parse date from dropdowns
         year = request.form.get('year')
@@ -651,6 +652,7 @@ def create_session(client_id):
             'tax_rate': float(request.form.get('tax_rate')) if request.form.get('tax_rate') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
             'is_consultation': is_consultation,
+            'is_pro_bono': is_pro_bono,
             
             # Clinical fields (optional)
             'mood': request.form.get('mood') or None,
@@ -786,6 +788,7 @@ def edit_session(client_id, entry_id):
     if request.method == 'POST':
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
+        is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
         
         # Parse date from dropdowns
         year = request.form.get('year')
@@ -806,6 +809,7 @@ def edit_session(client_id, entry_id):
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
             'is_consultation': is_consultation,
+            'is_pro_bono': is_pro_bono,
             'modified_at': int(time.time()),
             
             # Clinical fields (optional)
@@ -817,10 +821,17 @@ def edit_session(client_id, entry_id):
             'content': request.form.get('content') or None,
         }
         
-        # Update description based on consultation status
+        # Update description based on consultation/pro bono status
         if is_consultation:
             session_data['fee'] = 0
+            session_data['base_fee'] = 0
+            session_data['tax_rate'] = 0
             session_data['description'] = 'Consultation'
+        elif is_pro_bono:
+            session_data['fee'] = 0
+            session_data['base_fee'] = 0
+            session_data['tax_rate'] = 0
+            session_data['description'] = f"Session {session['session_number']} (Pro Bono)"
         else:
             # Keep existing session number
             session_data['description'] = f"Session {session['session_number']}"
