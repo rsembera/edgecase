@@ -141,7 +141,7 @@
             </div>
         </div>
 
-        <!-- Fee Breakdown (Read-only) -->
+        <!-- Fee Breakdown (Editable with three-way calculation) -->
         <div style="background: #F7FAFC; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0; font-size: 1rem; color: #2D3748;">Session Fee</h3>
@@ -152,27 +152,25 @@
                 <div class="form-group">
                     <label for="base_fee">Base Fee</label>
                     <input type="number" id="base_fee" name="base_fee" step="0.01" 
-                        value="{% if is_edit %}{{ '%.2f'|format(session.base_fee or 0) }}{% else %}{{ '%.2f'|format(default_base or 0) }}{% endif %}" 
-                        readonly style="background: #EDF2F7; cursor: not-allowed;">
+                        value="{% if is_edit %}{{ '%.2f'|format(session.base_fee or 0) }}{% else %}{{ '%.2f'|format(default_base or 0) }}{% endif %}">
                 </div>
                 
                 <div class="form-group">
                     <label for="tax_rate">Tax Rate (%)</label>
                     <input type="number" id="tax_rate" name="tax_rate" step="0.01" 
-                        value="{% if is_edit %}{{ '%.2f'|format(session.tax_rate or 0) }}{% else %}{{ '%.2f'|format(default_tax_rate or 0) }}{% endif %}" 
-                        readonly style="background: #EDF2F7; cursor: not-allowed;">
+                        value="{% if is_edit %}{{ '%.2f'|format(session.tax_rate or 0) }}{% else %}{{ '%.2f'|format(default_tax_rate or 0) }}{% endif %}">
                 </div>
                 
                 <div class="form-group">
                     <label for="fee">Total Fee</label>
                     <input type="number" id="fee" name="fee" step="0.01" 
                         value="{% if is_edit %}{{ '%.2f'|format(session.fee or 0) }}{% else %}{{ '%.2f'|format(default_total or 0) }}{% endif %}" 
-                        readonly style="background: #EDF2F7; cursor: not-allowed; font-weight: 600;">
+                        style="font-weight: 600;">
                 </div>
             </div>
             
             <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #718096;">
-                💡 To change fees: Edit Client Type or add Fee Override in Profile
+                💡 Fees auto-populate from format selection but can be manually adjusted. Edit any two fields and the third will calculate automatically.
             </p>
         </div>
         
