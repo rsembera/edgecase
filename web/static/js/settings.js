@@ -374,9 +374,9 @@ async function loadPracticeInfo() {
             document.getElementById('practice-phone').value = data.info.phone || '';
             document.getElementById('practice-address').value = data.info.address || '';  // CHANGED: single address field
             document.getElementById('website').value = data.info.website || '';
-            document.getElementById('consultation-base').value = data.info.consultation_base_price || '0.00';
-            document.getElementById('consultation-tax').value = data.info.consultation_tax_rate || '0.00';
-            document.getElementById('consultation-total').value = data.info.consultation_fee || '0.00';
+            document.getElementById('consultation-base').value = parseFloat(data.info.consultation_base_price || 0).toFixed(2);
+            document.getElementById('consultation-tax').value = parseFloat(data.info.consultation_tax_rate || 0).toFixed(2);
+            document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
             document.getElementById('currency').value = data.info.currency || 'CAD';
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             

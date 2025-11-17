@@ -1109,13 +1109,15 @@ def create_absence(client_id):
             date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
             absence_date_timestamp = int(date_obj.timestamp())
         
-        # Prepare absence data
+        # Prepare absence data with three-way fee calculation
         absence_data = {
             'client_id': client_id,
             'class': 'absence',
             'description': request.form['description'],
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
+            'base_price': float(request.form.get('base_price', 0)),
+            'tax_rate': float(request.form.get('tax_rate', 0)),
             'fee': float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
@@ -1169,6 +1171,8 @@ def edit_absence(client_id, entry_id):
             'description': request.form['description'],
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
+            'base_price': float(request.form.get('base_price', 0)),  # CHANGED
+            'tax_rate': float(request.form.get('tax_rate', 0)),      # CHANGED
             'fee': float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
