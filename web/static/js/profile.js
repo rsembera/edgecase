@@ -164,6 +164,16 @@ const guardianFields = document.getElementById('guardian-fields');
 if (isMinor) {
     isMinor.addEventListener('change', function() {
         guardianFields.style.display = this.checked ? 'block' : 'none';
+        
+        // Disable all guardian inputs when hidden
+        const guardian1Inputs = guardianFields.querySelectorAll('input, textarea');
+        guardian1Inputs.forEach(input => {
+            if (this.checked) {
+                input.removeAttribute('disabled');
+            } else {
+                input.setAttribute('disabled', 'disabled');
+            }
+        });
     });
 }
 
@@ -174,8 +184,33 @@ const guardian2Fields = document.getElementById('guardian2-fields');
 if (hasGuardian2) {
     hasGuardian2.addEventListener('change', function() {
         guardian2Fields.style.display = this.checked ? 'block' : 'none';
+        
+        // Disable all guardian 2 inputs when hidden
+        const guardian2Inputs = guardian2Fields.querySelectorAll('input, textarea');
+        guardian2Inputs.forEach(input => {
+            if (this.checked) {
+                input.removeAttribute('disabled');
+            } else {
+                input.setAttribute('disabled', 'disabled');
+            }
+        });
     });
 }
+
+// Initialize disabled state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Disable guardian fields if not a minor
+    if (isMinor && !isMinor.checked) {
+        const guardian1Inputs = guardianFields.querySelectorAll('input, textarea');
+        guardian1Inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
+    }
+    
+    // Disable guardian 2 fields if not enabled
+    if (hasGuardian2 && !hasGuardian2.checked) {
+        const guardian2Inputs = guardian2Fields.querySelectorAll('input, textarea');
+        guardian2Inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
+    }
+});
 
 // Update guardian total fee display
 function updateGuardianTotalFee() {
