@@ -191,8 +191,37 @@
         </div>
         
         <div class="form-group">
-            <label for="consultation-fee">Consultation Base Fee</label>
-            <input type="number" id="consultation-fee" step="0.01" min="0" placeholder="0.00" style="max-width: 200px;">
+            <label>Consultation Fee</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 600px;">
+                <div>
+                    <label for="consultation-base" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Base Fee ($)</label>
+                    <input type="number" 
+                           id="consultation-base" 
+                           step="0.01" 
+                           min="0" 
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('base')">
+                </div>
+                <div>
+                    <label for="consultation-tax" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Tax Rate (%)</label>
+                    <input type="number" 
+                           id="consultation-tax" 
+                           step="0.01" 
+                           min="0" 
+                           max="100"
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('tax')">
+                </div>
+                <div>
+                    <label for="consultation-total" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Total Fee ($)</label>
+                    <input type="number" 
+                           id="consultation-total" 
+                           step="0.01" 
+                           min="0" 
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('total')">
+                </div>
+            </div>
         </div>
         
         <div class="form-group">

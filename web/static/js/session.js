@@ -32,6 +32,12 @@ if (formatDropdown) {
 }
 
 function updateFeesForFormat(format) {
+    // Don't update fees if consultation is checked
+    const consultationCheckbox = document.getElementById('is_consultation');
+    if (consultationCheckbox && consultationCheckbox.checked) {
+        return; // Exit early, keep consultation fees
+    }
+    
     const feeSources = window.feeSources || {};
     let fees = null;
     let source = '';
@@ -90,14 +96,20 @@ function updateFeesForFormat(format) {
     
     // Consultation checkbox logic with settings from database
     const consultationCheckbox = document.getElementById('is_consultation');
-    const feeInput = document.getElementById('fee');
+    // baseFeeInput, taxRateInput, totalFeeInput already declared above
     const durationInput = document.getElementById('duration');
     const sessionNumberDisplay = document.getElementById('session-number-display');
-    const originalFee = feeInput.value;
+    
+    // Store original values (for unchecking)
+    const originalBaseFee = baseFeeInput.value;
+    const originalTaxRate = taxRateInput.value;
+    const originalTotalFee = totalFeeInput.value;
     const originalDuration = durationInput.value;
 
     // Fetch consultation settings from database
-    let consultationFee = '0.00';
+    let consultationBase = '0.00';
+    let consultationTax = '0.00';
+    let consultationTotal = '0.00';
     let consultationDuration = '20';
     let settingsLoaded = false;
 
@@ -106,13 +118,17 @@ function updateFeesForFormat(format) {
         .then(response => response.json())
         .then(data => {
             if (data.success && data.info) {
-                consultationFee = data.info.consultation_fee || '0.00';
+                consultationBase = data.info.consultation_base_price || '0.00';
+                consultationTax = data.info.consultation_tax_rate || '0.00';
+                consultationTotal = data.info.consultation_fee || '0.00';
                 consultationDuration = data.info.consultation_duration || '20';
             }
             settingsLoaded = true;
             // Apply if checkbox already checked
             if (consultationCheckbox.checked) {
-                feeInput.value = consultationFee;
+                baseFeeInput.value = consultationBase;
+                taxRateInput.value = consultationTax;
+                totalFeeInput.value = consultationTotal;
                 durationInput.value = consultationDuration;
             }
         })
@@ -124,16 +140,30 @@ function updateFeesForFormat(format) {
         const nextSessionNumber = document.body.dataset.nextSessionNumber || '';
         
         if (this.checked) {
-            // Consultation: use settings from database
-            feeInput.value = consultationFee;
+            // Consultation: use settings from database (all three fee fields)
+            baseFeeInput.value = consultationBase;
+            taxRateInput.value = consultationTax;
+            totalFeeInput.value = consultationTotal;
             durationInput.value = consultationDuration;
             
             if (!isEdit) {
                 sessionNumberDisplay.textContent = 'Consultation';
             }
         } else {
-            // Regular session: restore original values
-            feeInput.value = originalFee;
+            // Regular session: check if format is selected
+            const currentFormat = formatDropdown.value;
+            
+            if (currentFormat && currentFormat !== '') {
+                // Format selected: apply fees for that format
+                updateFeesForFormat(currentFormat);
+            } else {
+                // No format selected: set to 0
+                baseFeeInput.value = '0.00';
+                taxRateInput.value = '0.00';
+                totalFeeInput.value = '0.00';
+            }
+            
+            // Restore original duration regardless
             durationInput.value = originalDuration;
             
             if (!isEdit) {
