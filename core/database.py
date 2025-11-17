@@ -494,7 +494,17 @@ class Database:
             
             conn.commit()
             print("Migration complete: link_groups table cleaned up")
+            
+        # ============================================
+        # Add is_pro_bono column for pro bono sessions (Week 3, Day 2)
+        # ============================================
         
+        cursor.execute("PRAGMA table_info(entries)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'is_pro_bono' not in columns:
+            cursor.execute("ALTER TABLE entries ADD COLUMN is_pro_bono INTEGER DEFAULT 0")
+            print("Migration: Added is_pro_bono column to entries table")
+                
         print("All migrations complete")
         conn.close()
 

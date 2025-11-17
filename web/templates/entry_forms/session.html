@@ -44,12 +44,21 @@
         </div>
         {% endif %}
         
-        <!-- Consultation checkbox -->
-        <div class="form-row-full">
-            <label class="checkbox-inline">
-                <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %}>
-                This is a consultation
-            </label>
+      <!-- Consultation and Pro Bono checkboxes -->
+        <div class="form-row">
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %}>
+                    <span>Initial consultation (not numbered)</span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_pro_bono" name="is_pro_bono" {% if is_edit and session.is_pro_bono %}checked{% endif %}>
+                    <span>Pro bono (no charge, numbered)</span>
+                </label>
+            </div>
         </div>
 
         <!-- Date and Time - Date now uses Y/M/D dropdowns -->

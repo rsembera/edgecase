@@ -41,8 +41,8 @@ searchInput.addEventListener('input', function(e) {
         // Skip already selected clients
         if (selectedClients.includes(client.id)) return false;
         
-        // Search in name and file number
-        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+        // Search in name and file number (include middle name)
+        const fullName = `${client.first_name} ${client.middle_name || ''} ${client.last_name}`.toLowerCase();
         const fileNumber = client.file_number.toLowerCase();
         
         return fullName.includes(query) || fileNumber.includes(query);

@@ -32,10 +32,16 @@ if (formatDropdown) {
 }
 
 function updateFeesForFormat(format) {
-    // Don't update fees if consultation is checked
+    // Don't update fees if consultation or pro bono is checked
     const consultationCheckbox = document.getElementById('is_consultation');
+    const proBonoCheckbox = document.getElementById('is_pro_bono');
+    
     if (consultationCheckbox && consultationCheckbox.checked) {
         return; // Exit early, keep consultation fees
+    }
+    
+    if (proBonoCheckbox && proBonoCheckbox.checked) {
+        return; // Exit early, keep pro bono fees (zero)
     }
     
     const feeSources = window.feeSources || {};
@@ -171,6 +177,45 @@ function updateFeesForFormat(format) {
             }
         }
     });
+
+    // Pro bono checkbox logic
+    const proBonoCheckbox = document.getElementById('is_pro_bono');
+    
+    if (proBonoCheckbox) {
+        proBonoCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Pro bono: set fees to 0, keep session numbering
+                baseFeeInput.value = '0.00';
+                taxRateInput.value = '0.00';
+                totalFeeInput.value = '0.00';
+                
+                // Uncheck consultation if it was checked
+                if (consultationCheckbox.checked) {
+                    consultationCheckbox.checked = false;
+                }
+            } else {
+                // Unchecked: restore fees based on format
+                const currentFormat = formatDropdown.value;
+                
+                if (currentFormat && currentFormat !== '') {
+                    updateFeesForFormat(currentFormat);
+                } else {
+                    baseFeeInput.value = '0.00';
+                    taxRateInput.value = '0.00';
+                    totalFeeInput.value = '0.00';
+                }
+            }
+        });
+    }
+    
+    // Prevent both consultation and pro bono being checked at once
+    if (consultationCheckbox && proBonoCheckbox) {
+        consultationCheckbox.addEventListener('change', function() {
+            if (this.checked && proBonoCheckbox.checked) {
+                proBonoCheckbox.checked = false;
+            }
+        });
+    }
 
     // Currency formatting for fee field
     document.getElementById('fee').addEventListener('blur', function(e) {
