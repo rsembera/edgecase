@@ -63,7 +63,7 @@
     body.tutti-frutti .stat-card[data-card-id="pending-invoices"] { background: #E9CFCF; }
     body.tutti-frutti .stat-card[data-card-id="billable-month"] { background: #CFE7DA; }
     body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0; }
-    body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #E8E4DF; }
+    body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
     
     .stat-number {
         font-size: 2.5rem;
@@ -82,7 +82,15 @@
     .nav-card {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        justify-content: center;  /* Center content vertically */
+        padding: 1.5rem !important;  /* Match other cards' padding */
+    }
+
+    /* The grid inside the nav card */
+    .nav-card > div {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;  /* Smaller gap to match card height */
     }
     
     .nav-card h2 {
@@ -111,16 +119,36 @@
     .nav-btn.teal:hover {
         background: #9FCFC0;
     }
-    
-    .nav-btn.rose {
-        background: #E7CFD4;
-        color: #6A243E;
+
+    .nav-btn.purple {
+        background: #DCD3E8;
+        color: #3F3358;
     }
-    
-    .nav-btn.rose:hover {
-        background: #E1B6BF;
+
+    .nav-btn.purple:hover {
+        background: #C9BFE8;
     }
-    
+
+    /* Sage green */
+    .nav-btn.sage {
+        background: #D4DCC8;
+        color: #3D4A2E;
+    }
+
+    .nav-btn.sage:hover {
+        background: #C2CCB3;
+    }
+
+    /* Peach */
+    .nav-btn.peach {
+        background: #F5DEB0;
+        color: #5A4823;
+    }
+
+    .nav-btn.peach:hover {
+        background: #EDD49E;
+    }
+        
     /* Controls area */
     .controls-bar {
         background: #E3E9EE; /* Muted blue */

@@ -1460,6 +1460,16 @@ def financials():
     """Financial tracking - Income and Expense ledger"""
     return render_template('financials.html')
 
+@app.route('/scheduler')
+def scheduler():
+    """Scheduler page - placeholder for future calendar/appointment features"""
+    return render_template('scheduler.html')
+
+@app.route('/billing')
+def billing():
+    """Billing page - placeholder for future invoicing/statement features"""
+    return render_template('billing.html')
+
 @app.route('/api/backgrounds')
 def list_backgrounds():
     """Return list of available backgrounds separated by system and user"""
