@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Billing - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .billing-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .controls-bar {
+        background: #E3E9EE;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .dropdown-btn {
+        padding: 0.75rem 1.25rem;
+        background: #FBFCFD;
+        border: 2px solid #DEE2E6;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #323B45;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    
+    .billing-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .billing-table th {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        background: #f7fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #4a5568;
+    }
+    
+    .billing-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-pending {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+    
+    .status-paid {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+    
+    .placeholder-message {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #718096;
+        background: #f7fafc;
+        border-radius: 0.5rem;
+        margin: 2rem 0;
+    }
+    
+    .placeholder-message h3 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="billing-header">
+        <div>
+            <h2>Billing</h2>
+            <p style="color: #718096; margin-top: 0.5rem;">Generate statements and track payments</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
+    </div>
+    
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+        <div class="filter-group">
+            <div>
+                <button class="dropdown-btn">Status: All ▾</button>
+            </div>
+            <div>
+                <button class="dropdown-btn">Date Range ▾</button>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">Generate Statements</button>
+            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">Export</button>
+        </div>
+    </div>
+    
+    <!-- Placeholder Message -->
+    <div class="placeholder-message">
+        <h3>Billing Coming in Week 3-4</h3>
+        <p>Statement generation and payment tracking will be available soon.</p>
+        <p style="margin-top: 1rem; font-size: 0.875rem;">
+            <strong>Features:</strong> Auto-generate invoices from billable entries • 
+            Track payment status • PDF export • Email statements • 
+            Handle guardian billing splits • Link group billing
+        </p>
+    </div>
+    
+    <!-- Sample Table (disabled) -->
+    <table class="billing-table" style="opacity: 0.5;">
+        <thead>
+            <tr>
+                <th style="width: 15%;">Date</th>
+                <th style="width: 25%;">Client</th>
+                <th style="width: 15%;">Amount</th>
+                <th style="width: 15%;">Status</th>
+                <th style="width: 30%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Nov 1, 2025</td>
+                <td>Smith, John</td>
+                <td>$600.00</td>
+                <td><span class="status-badge status-pending">Pending</span></td>
+                <td style="color: #9CA3AF;">View • Send • Mark Paid</td>
+            </tr>
+            <tr>
+                <td>Oct 28, 2025</td>
+                <td>Doe, Jane</td>
+                <td>$450.00</td>
+                <td><span class="status-badge status-paid">Paid</span></td>
+                <td style="color: #9CA3AF;">View • Export</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
