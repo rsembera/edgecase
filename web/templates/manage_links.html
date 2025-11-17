@@ -26,9 +26,9 @@
                 <div class="group-info">
                     <h3>
                         {% if group.members|length == 2 %}
-                            {{ group.members[0].first_name }} {{ group.members[0].last_name }} & {{ group.members[1].first_name }} {{ group.members[1].last_name }}
+                            {{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}{{ group.members[0].last_name }} & {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{{ group.members[1].last_name }}
                         {% else %}
-                            {{ group.members[0].last_name }} Family ({{ group.members|length }} clients)
+                            {{ group.members[0].last_name }} Group ({{ group.members|length }} clients)
                         {% endif %}
                     </h3>
                     <span class="member-count">{{ group.members|length }} clients</span>
@@ -44,7 +44,7 @@
                 </div>
                 <div class="group-actions">
                     <a href="{{ url_for('edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
-                    <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} & {{ group.members[1].first_name }}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-icon btn-danger" title="Delete group">🗑️</button>
+                    <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}& {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-icon btn-danger" title="Delete group">🗑️</button>
                 </div>
             </div>
             
@@ -54,7 +54,7 @@
                     <span class="member-badge" style="background-color: {{ member.type.color }}">
                         {{ member.type.name }}
                     </span>
-                    <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
+                    <span class="member-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
                     <br>
                     <span class="member-file">{{ member.file_number }}</span>
                 </a>

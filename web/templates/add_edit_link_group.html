@@ -32,7 +32,7 @@
                         <span class="client-badge" style="background-color: {{ member.type.color }}">
                             {{ member.type.name }}
                         </span>
-                        <span class="client-name">{{ member.first_name }} {{ member.last_name }}</span>
+                        <span class="client-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
                         <span class="client-file">{{ member.file_number }}</span>
                         <button type="button" class="remove-client" onclick="removeClient({{ member.id }})">×</button>
                     </div>
