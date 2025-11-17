@@ -27,6 +27,7 @@
                     <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
                         <form method="post" action="{{ url_for('change_client_type', client_id=client.id) }}">
                             {% for type in all_types %}
+                            {% if type.name != 'Deleted' %}
                             <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
                                    onmouseover="if ({{ type.id }} != {{ client.type_id }}) this.style.background='#F3F4F6'" 
                                    onmouseout="if ({{ type.id }} != {{ client.type_id }}) this.style.background='transparent'">
@@ -36,6 +37,7 @@
                                        style="margin-right: 0.5rem;">
                                 <span style="font-size: 0.875rem;">{{ type.name }}</span>
                             </label>
+                            {% endif %}
                             {% endfor %}
                         </form>
                     </div>
@@ -134,7 +136,7 @@
     </div>
     {% endif %}
 
-    {# Linked Clients Section - NEW #}
+{# Linked Clients Section - NEW #}
     {% if linked_groups %}
     <div style="margin: 1.5rem 0;">
         <h4 style="color: #111827; font-size: 1rem; margin-bottom: 0.75rem;">Linked Clients</h4>
@@ -157,7 +159,7 @@
                     <div style="margin-top: 0.25rem;">
                         <div style="font-weight: 600; font-size: 0.875rem; color: #111827;">
                             {{ member.first_name }} 
-                            {% if member.middle_name %}{{ member.middle_name[0] }}.{% endif %} 
+                            {% if member.middle_name %}{{ member.middle_name }}{% endif %} 
                             {{ member.last_name }}
                         </div>
                         <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.125rem;">

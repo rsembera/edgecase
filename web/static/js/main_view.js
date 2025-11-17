@@ -260,14 +260,19 @@ if (filterButton && filterDropdown) {
             const sort = urlParams.get('sort') || 'last_name';
             const order = urlParams.get('order') || 'asc';
             const search = urlParams.get('search') || '';
-            const view = urlParams.get('view') || 'detailed';
+            
+            // Get CURRENT view from URL (don't default to 'detailed')
+            const view = urlParams.get('view') || '';
             
             // Build new URL
             let newUrl = '?';
             selectedTypes.forEach(typeId => {
                 newUrl += `type=${typeId}&`;
             });
-            newUrl += `sort=${sort}&order=${order}&view=${view}`;
+            newUrl += `sort=${sort}&order=${order}`;
+            if (view) {
+                newUrl += `&view=${view}`;
+            }
             if (search) {
                 newUrl += `&search=${encodeURIComponent(search)}`;
             }
