@@ -250,8 +250,22 @@ totalFeeInput.addEventListener('input', () => calculateSessionFee('total'));
         });
     }
 
-    // Currency formatting for fee field
-    document.getElementById('fee').addEventListener('blur', function(e) {
+    // Currency formatting for all fee fields on blur
+    baseFeeInput.addEventListener('blur', function(e) {
+        let value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+            e.target.value = value.toFixed(2);
+        }
+    });
+
+    taxRateInput.addEventListener('blur', function(e) {
+        let value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+            e.target.value = value.toFixed(2);
+        }
+    });
+
+    totalFeeInput.addEventListener('blur', function(e) {
         let value = parseFloat(e.target.value);
         if (!isNaN(value)) {
             e.target.value = value.toFixed(2);
