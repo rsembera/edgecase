@@ -875,15 +875,27 @@ def edit_session(client_id, entry_id):
             if old_session.get('duration') != session_data.get('duration'):
                 changes.append(f"Duration: {old_session.get('duration')}min → {session_data.get('duration')}min")
             
-            # Fee breakdown
+            # Fee breakdown (handle None values explicitly)
             if old_session.get('base_fee') != session_data.get('base_fee'):
-                changes.append(f"Base Fee: ${old_session.get('base_fee', 0):.2f} → ${session_data.get('base_fee', 0):.2f}")
+                old_base = old_session.get('base_fee')
+                new_base = session_data.get('base_fee')
+                old_str = f"${old_base:.2f}" if old_base is not None else "None"
+                new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                changes.append(f"Base Fee: {old_str} → {new_str}")
             
             if old_session.get('tax_rate') != session_data.get('tax_rate'):
-                changes.append(f"Tax Rate: {old_session.get('tax_rate', 0):.2f}% → {session_data.get('tax_rate', 0):.2f}%")
+                old_tax = old_session.get('tax_rate')
+                new_tax = session_data.get('tax_rate')
+                old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
+                new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
+                changes.append(f"Tax Rate: {old_str} → {new_str}")
             
             if old_session.get('fee') != session_data.get('fee'):
-                changes.append(f"Total Fee: ${old_session.get('fee', 0):.2f} → ${session_data.get('fee', 0):.2f}")
+                old_fee = old_session.get('fee')
+                new_fee = session_data.get('fee')
+                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
+                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                changes.append(f"Total Fee: {old_str} → {new_str}")
             
             # Consultation/Pro Bono
             if old_session.get('is_consultation') != session_data.get('is_consultation'):
@@ -894,15 +906,21 @@ def edit_session(client_id, entry_id):
                 status = "Enabled" if session_data.get('is_pro_bono') else "Disabled"
                 changes.append(f"Pro Bono: {status}")
             
-            # Clinical fields
-            if old_session.get('mood') != session_data.get('mood'):
-                changes.append(f"Mood: {old_session.get('mood') or 'None'} → {session_data.get('mood') or 'None'}")
+            # Clinical fields (normalize both old and new to None if empty/None)
+            old_mood = old_session.get('mood') or None
+            new_mood = session_data.get('mood') or None
+            if old_mood != new_mood:
+                changes.append(f"Mood: {old_mood or 'Not Assessed'} → {new_mood or 'Not Assessed'}")
             
-            if old_session.get('affect') != session_data.get('affect'):
-                changes.append(f"Affect: {old_session.get('affect') or 'None'} → {session_data.get('affect') or 'None'}")
+            old_affect = old_session.get('affect') or None
+            new_affect = session_data.get('affect') or None
+            if old_affect != new_affect:
+                changes.append(f"Affect: {old_affect or 'Not Assessed'} → {new_affect or 'Not Assessed'}")
             
-            if old_session.get('risk_assessment') != session_data.get('risk_assessment'):
-                changes.append(f"Risk: {old_session.get('risk_assessment') or 'None'} → {session_data.get('risk_assessment') or 'None'}")
+            old_risk = old_session.get('risk_assessment') or None
+            new_risk = session_data.get('risk_assessment') or None
+            if old_risk != new_risk:
+                changes.append(f"Risk: {old_risk or 'Not Assessed'} → {new_risk or 'Not Assessed'}")
             
             # Notes (with smart truncated diff)
             if old_session.get('content') != session_data.get('content'):
@@ -1022,22 +1040,28 @@ def edit_session(client_id, entry_id):
             }
     
     conn.close()
-
+    
+    # Check if entry is locked
+    is_locked = db.is_entry_locked(entry_id)
+    
+    # Get edit history if locked
+    edit_history = db.get_edit_history(entry_id) if is_locked else []
+    
     return render_template('entry_forms/session.html',
                          client=client,
                          client_type=client_type,
+                         session=session,
                          profile_override=profile_override,
                          client_type_fees=client_type_fees,
                          link_group_fees=link_group_fees,
-                         session=session,
                          session_year=session_year,
                          session_month=session_month,
                          session_day=session_day,
                          is_edit=True,
+                         is_locked=is_locked,
+                         edit_history=edit_history,
                          prev_session_id=prev_session_id,
-                         next_session_id=next_session_id,
-                         edit_history=db.get_edit_history(entry_id),
-                         is_locked=db.is_entry_locked(entry_id))
+                         next_session_id=next_session_id)
 
 @app.route('/client/<int:client_id>/communication', methods=['GET', 'POST'])
 def create_communication(client_id):

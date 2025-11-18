@@ -25,13 +25,19 @@ if (formatDropdown) {
         updateFeesForFormat(this.value);
     });
     
-    // Initialize fees on page load
-    if (formatDropdown.value) {
+    // Initialize fees on page load (NEW SESSIONS ONLY)
+    if (formatDropdown.value && !isEdit) {
         updateFeesForFormat(formatDropdown.value);
     }
 }
 
 function updateFeesForFormat(format) {
+    // DON'T auto-update fees when editing existing sessions
+    // User should see the fees that were saved, not auto-calculated values
+    if (isEdit) {
+        return;
+    }
+    
     // Don't update fees if consultation or pro bono is checked
     const consultationCheckbox = document.getElementById('is_consultation');
     const proBonoCheckbox = document.getElementById('is_pro_bono');

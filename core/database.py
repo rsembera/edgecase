@@ -1282,23 +1282,23 @@ class Database:
         fields = ['client_id', 'class', 'created_at', 'modified_at']
         values = [entry_data['client_id'], entry_data['class'], now, now]
         
-        # Add optional fields if present in entry_data
         optional_fields = [
             'description', 'content', 'email', 'phone', 'home_phone', 'work_phone',
             'text_number', 'address', 'date_of_birth', 'preferred_contact',
             'ok_to_leave_message', 'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship', 'referral_source', 'additional_info',
             'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
-            'duration', 'fee', 'is_consultation', 'mood', 'affect', 'risk_assessment',
+            'duration', 'base_fee', 'tax_rate', 'fee', 'is_consultation', 'is_pro_bono',  # ← ADDED base_fee, tax_rate, is_pro_bono here
+            'mood', 'affect', 'risk_assessment',
             'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
             'absence_date', 'absence_time',
-            'item_date', 'item_time', 'base_price', 'tax_rate',
+            'item_date', 'item_time', 'base_price',  # ← removed tax_rate from here (it's now above)
             'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at',
-            # Fee Override fields (NEW)
+            # Fee Override fields
             'fee_override_base', 'fee_override_tax_rate', 'fee_override_total',
-            # Guardian fields (NEW)
+            # Guardian fields
             'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone',
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
             'guardian2_name', 'guardian2_email', 'guardian2_phone',
