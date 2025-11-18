@@ -50,7 +50,9 @@ def timestamp_to_date(timestamp):
     """Convert Unix timestamp to readable date."""
     if not timestamp:
         return '-'
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+    from datetime import datetime
+    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %I:%M %p')
+
 
 # ===== ROUTES =====
 
@@ -581,7 +583,8 @@ def edit_profile(client_id):
             db.update_entry(profile['id'], profile_data)
         else:
             # Create new profile
-            db.add_entry(profile_data)
+            entry_id = db.add_entry(profile_data)
+            db.lock_entry(entry_id)
         
         # Update client record if names changed
         import time
@@ -676,11 +679,14 @@ def create_session(client_id):
             session_data['description'] = 'Session 999'
         
         # Save session entry
-        db.add_entry(session_data)
-        
+        entry_id = db.add_entry(session_data)
+
+        # Lock the entry immediately after creation
+        db.lock_entry(entry_id)
+
         # Renumber all sessions to maintain chronological order
         renumber_sessions(client_id)
-        
+                
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET - show form
@@ -786,6 +792,9 @@ def edit_session(client_id, entry_id):
         return "Session not found", 404
     
     if request.method == 'POST':
+        # Get the old session data for comparison
+        old_session = session.copy()
+        
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
         is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
@@ -807,6 +816,8 @@ def edit_session(client_id, entry_id):
             'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
+            'base_fee': float(request.form.get('base_fee')) if request.form.get('base_fee') else None,
+            'tax_rate': float(request.form.get('tax_rate')) if request.form.get('tax_rate') else None,
             'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
             'is_consultation': is_consultation,
             'is_pro_bono': is_pro_bono,
@@ -835,6 +846,29 @@ def edit_session(client_id, entry_id):
         else:
             # Keep existing session number
             session_data['description'] = f"Session {session['session_number']}"
+        
+        # Check if entry is locked - if so, log changes to edit history
+        if db.is_entry_locked(entry_id):
+            changes = []
+            
+            # Compare important fields
+            if old_session.get('session_date') != session_date_timestamp:
+                old_date = datetime.fromtimestamp(old_session['session_date']).strftime('%Y-%m-%d') if old_session.get('session_date') else 'None'
+                new_date = datetime.fromtimestamp(session_date_timestamp).strftime('%Y-%m-%d') if session_date_timestamp else 'None'
+                changes.append(f"Date: {old_date} → {new_date}")
+            
+            if old_session.get('fee') != session_data.get('fee'):
+                changes.append(f"Fee: ${old_session.get('fee', 0):.2f} → ${session_data.get('fee', 0):.2f}")
+            
+            if old_session.get('duration') != session_data.get('duration'):
+                changes.append(f"Duration: {old_session.get('duration')}min → {session_data.get('duration')}min")
+            
+            if old_session.get('content') != session_data.get('content'):
+                changes.append("Notes updated")
+            
+            if changes:
+                change_desc = "; ".join(changes)
+                db.add_to_edit_history(entry_id, change_desc)
         
         # Save updated session
         db.update_entry(entry_id, session_data)
@@ -927,7 +961,9 @@ def edit_session(client_id, entry_id):
                          session_day=session_day,
                          is_edit=True,
                          prev_session_id=prev_session_id,
-                         next_session_id=next_session_id)
+                         next_session_id=next_session_id,
+                         edit_history=db.get_edit_history(entry_id),
+                         is_locked=db.is_entry_locked(entry_id))
 
 @app.route('/client/<int:client_id>/communication', methods=['GET', 'POST'])
 def create_communication(client_id):
@@ -963,7 +999,8 @@ def create_communication(client_id):
         }
         
         # Save communication
-        db.add_entry(comm_data)
+        entry_id = db.add_entry(comm_data)
+        db.lock_entry(entry_id)
         
         return redirect(url_for('client_file', client_id=client_id))
     
@@ -1123,7 +1160,8 @@ def create_absence(client_id):
         }
         
         # Save absence
-        db.add_entry(absence_data)
+        entry_id = db.add_entry(absence_data)
+        db.lock_entry(entry_id)
         
         # TODO: Handle link_entry checkbox when linking is implemented
         
@@ -1233,7 +1271,8 @@ def create_item(client_id):
         }
         
         # Save item
-        db.add_entry(item_data)
+        entry_id = db.add_entry(item_data)
+        db.lock_entry(entry_id)
         
         # TODO: Handle link_entry checkbox when linking is implemented
         

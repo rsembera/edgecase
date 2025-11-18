@@ -220,6 +220,11 @@
                 <p class="help-text">Supports Markdown formatting</p>
             </div>
         </div>
+
+        <!-- Edit History (only in edit mode) -->
+        {% if is_edit %}
+            {% include 'components/edit_history.html' %}
+        {% endif %}
         
         <!-- Navigation and Action Buttons -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
