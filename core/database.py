@@ -22,10 +22,10 @@ class Database:
         Args:
             db_path: Path to SQLite database file
         """
-        self.db_path = Path(db_path)
+        self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize_schema()
-    
+        
     def connect(self):
         """Create and return database connection."""
         return sqlite3.connect(str(self.db_path))
@@ -537,7 +537,6 @@ class Database:
                 'color': '#D9C8A5',  # Warm Amber
                 'color_name': 'Warm Amber',
                 'bubble_color': '#F5F0E9',
-                'file_number_style': 'manual',
                 'session_fee': 0.0,
                 'session_base_price': 0.0,
                 'session_tax_rate': 0.0,
@@ -552,7 +551,6 @@ class Database:
                 'color': '#B8B8C5',  # Soft Gray
                 'color_name': 'Soft Gray',
                 'bubble_color': '#EEEEEF',
-                'file_number_style': 'manual',
                 'session_fee': 0.0,
                 'session_base_price': 0.0,
                 'session_tax_rate': 0.0,
@@ -567,7 +565,6 @@ class Database:
                 'color': '#9FCFC0',  # Soft Teal
                 'color_name': 'Soft Teal',
                 'bubble_color': '#E6F5F1',
-                'file_number_style': 'date-initials',
                 'session_fee': 200.0,
                 'session_base_price': 200.0,
                 'session_tax_rate': 0.0,
@@ -582,7 +579,6 @@ class Database:
                 'color': '#A8C8D9',  # Powder Blue
                 'color_name': 'Powder Blue',
                 'bubble_color': '#E8F0F5',
-                'file_number_style': 'date-initials',
                 'session_fee': 225.0,
                 'session_base_price': 225.0,
                 'session_tax_rate': 0.0,
@@ -597,7 +593,6 @@ class Database:
                 'color': '#A7D4A4',  # Mint Green
                 'color_name': 'Mint Green',
                 'bubble_color': '#E8F5E7',
-                'file_number_style': 'date-initials',
                 'session_fee': 100.0,
                 'session_base_price': 100.0,
                 'session_tax_rate': 0.0,
@@ -612,18 +607,17 @@ class Database:
         for type_data in default_types:
             cursor.execute("""
                 INSERT INTO client_types (
-                    name, color, color_name, bubble_color, file_number_style,
+                    name, color, color_name, bubble_color,
                     session_fee, session_base_price, session_tax_rate, session_duration,
                     retention_period, is_system, is_system_locked, service_description,
                     created_at, modified_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 type_data['name'],
                 type_data['color'],
                 type_data['color_name'],
                 type_data['bubble_color'],
-                type_data['file_number_style'],
                 type_data['session_fee'],
                 type_data['session_base_price'],
                 type_data['session_tax_rate'],
@@ -924,6 +918,78 @@ class Database:
         conn.close()
         
         return dict(row) if row else None
+    
+    # ===== EDIT HISTORY SYSTEM ======
+    
+    def lock_entry(self, entry_id):
+        """Lock an entry after first save, making it immutable."""
+        import time
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE entries 
+            SET locked = 1, locked_at = ?
+            WHERE id = ?
+        """, (int(time.time()), entry_id))
+        
+        conn.commit()
+        conn.close()
+
+    def is_entry_locked(self, entry_id):
+        """Check if an entry is locked."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT locked FROM entries WHERE id = ?", (entry_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        return result[0] == 1 if result else False
+
+    def add_to_edit_history(self, entry_id, change_description):
+        """Add an edit to the entry's history."""
+        import time
+        import json
+        
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get current history
+        cursor.execute("SELECT edit_history FROM entries WHERE id = ?", (entry_id,))
+        result = cursor.fetchone()
+        
+        history = json.loads(result[0]) if result and result[0] else []
+        
+        # Add new edit
+        history.append({
+            'timestamp': int(time.time()),
+            'description': change_description
+        })
+        
+        # Save back
+        cursor.execute("""
+            UPDATE entries 
+            SET edit_history = ?, modified_at = ?
+            WHERE id = ?
+        """, (json.dumps(history), int(time.time()), entry_id))
+        
+        conn.commit()
+        conn.close()
+
+    def get_edit_history(self, entry_id):
+        """Get the edit history for an entry."""
+        import json
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT edit_history FROM entries WHERE id = ?", (entry_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result and result[0]:
+            return json.loads(result[0])
+        return []
     
     # ===== CLIENT LINKING OPERATIONS =====
     

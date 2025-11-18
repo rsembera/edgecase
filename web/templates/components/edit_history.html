@@ -1,0 +1,55 @@
+{% if edit_history %}
+<div class="edit-history-section">
+    <h4>Edit History</h4>
+    <div class="history-list">
+        {% for edit in edit_history %}
+        <div class="history-item">
+            <span class="timestamp">{{ edit.timestamp | timestamp_to_date }}</span>
+            <span class="changes">{{ edit.description }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.edit-history-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #E5E7EB;
+}
+
+.edit-history-section h4 {
+    color: #111827;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.history-list {
+    background: #F9FAFB;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.history-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 0.875rem;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.timestamp {
+    color: #6B7280;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.changes {
+    color: #374151;
+}
+</style>
+{% endif %}
