@@ -851,20 +851,94 @@ def edit_session(client_id, entry_id):
         if db.is_entry_locked(entry_id):
             changes = []
             
-            # Compare important fields
+            # Date
             if old_session.get('session_date') != session_date_timestamp:
                 old_date = datetime.fromtimestamp(old_session['session_date']).strftime('%Y-%m-%d') if old_session.get('session_date') else 'None'
                 new_date = datetime.fromtimestamp(session_date_timestamp).strftime('%Y-%m-%d') if session_date_timestamp else 'None'
                 changes.append(f"Date: {old_date} → {new_date}")
             
-            if old_session.get('fee') != session_data.get('fee'):
-                changes.append(f"Fee: ${old_session.get('fee', 0):.2f} → ${session_data.get('fee', 0):.2f}")
+            # Time
+            if old_session.get('session_time') != session_data.get('session_time'):
+                old_time = old_session.get('session_time') or 'None'
+                new_time = session_data.get('session_time') or 'None'
+                changes.append(f"Time: {old_time} → {new_time}")
             
+            # Modality
+            if old_session.get('modality') != session_data.get('modality'):
+                changes.append(f"Modality: {old_session.get('modality')} → {session_data.get('modality')}")
+            
+            # Format
+            if old_session.get('format') != session_data.get('format'):
+                changes.append(f"Format: {old_session.get('format')} → {session_data.get('format')}")
+            
+            # Duration
             if old_session.get('duration') != session_data.get('duration'):
                 changes.append(f"Duration: {old_session.get('duration')}min → {session_data.get('duration')}min")
             
+            # Fee breakdown
+            if old_session.get('base_fee') != session_data.get('base_fee'):
+                changes.append(f"Base Fee: ${old_session.get('base_fee', 0):.2f} → ${session_data.get('base_fee', 0):.2f}")
+            
+            if old_session.get('tax_rate') != session_data.get('tax_rate'):
+                changes.append(f"Tax Rate: {old_session.get('tax_rate', 0):.2f}% → {session_data.get('tax_rate', 0):.2f}%")
+            
+            if old_session.get('fee') != session_data.get('fee'):
+                changes.append(f"Total Fee: ${old_session.get('fee', 0):.2f} → ${session_data.get('fee', 0):.2f}")
+            
+            # Consultation/Pro Bono
+            if old_session.get('is_consultation') != session_data.get('is_consultation'):
+                status = "Enabled" if session_data.get('is_consultation') else "Disabled"
+                changes.append(f"Consultation: {status}")
+            
+            if old_session.get('is_pro_bono') != session_data.get('is_pro_bono'):
+                status = "Enabled" if session_data.get('is_pro_bono') else "Disabled"
+                changes.append(f"Pro Bono: {status}")
+            
+            # Clinical fields
+            if old_session.get('mood') != session_data.get('mood'):
+                changes.append(f"Mood: {old_session.get('mood') or 'None'} → {session_data.get('mood') or 'None'}")
+            
+            if old_session.get('affect') != session_data.get('affect'):
+                changes.append(f"Affect: {old_session.get('affect') or 'None'} → {session_data.get('affect') or 'None'}")
+            
+            if old_session.get('risk_assessment') != session_data.get('risk_assessment'):
+                changes.append(f"Risk: {old_session.get('risk_assessment') or 'None'} → {session_data.get('risk_assessment') or 'None'}")
+            
+            # Notes (with smart truncated diff)
             if old_session.get('content') != session_data.get('content'):
-                changes.append("Notes updated")
+                old_content = old_session.get('content') or ''
+                new_content = session_data.get('content') or ''
+                
+                # Find where they differ
+                if old_content and new_content:
+                    # Find first difference
+                    diff_start = 0
+                    for i in range(min(len(old_content), len(new_content))):
+                        if old_content[i] != new_content[i]:
+                            diff_start = i
+                            break
+                    
+                    # Show context around the change (50 chars before/after)
+                    context_start = max(0, diff_start - 25)
+                    context_end = min(len(old_content), diff_start + 75)
+                    
+                    old_snippet = old_content[context_start:context_end]
+                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    
+                    # Add ellipsis if truncated
+                    if context_start > 0:
+                        old_snippet = '...' + old_snippet
+                        new_snippet = '...' + new_snippet
+                    if context_end < len(old_content):
+                        old_snippet = old_snippet + '...'
+                    if context_start + 100 < len(new_content):
+                        new_snippet = new_snippet + '...'
+                    
+                    changes.append(f"Notes: '{old_snippet}' → '{new_snippet}'")
+                elif old_content:
+                    changes.append("Notes: Cleared")
+                else:
+                    changes.append("Notes: Added")
             
             if changes:
                 change_desc = "; ".join(changes)
