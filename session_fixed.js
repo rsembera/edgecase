@@ -32,12 +32,6 @@ if (formatDropdown) {
 }
 
 function updateFeesForFormat(format) {
-    // DON'T auto-update fees when editing existing sessions
-    // User should see the fees that were saved, not auto-calculated values
-    if (isEdit) {
-        return;
-    }
-    
     // Don't update fees if consultation or pro bono is checked
     const consultationCheckbox = document.getElementById('is_consultation');
     const proBonoCheckbox = document.getElementById('is_pro_bono');
