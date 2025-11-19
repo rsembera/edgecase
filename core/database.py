@@ -661,26 +661,63 @@ class Database:
     
     # ===== CLIENT LINKING OPERATIONS =====
     
-    def create_link_group(self, client_ids: List[int], format: str, member_fees: Dict[int, Dict[str, float]]) -> int:
+    def _get_existing_group_for_clients(self, client_ids: List[int]) -> Optional[int]:
+        """Check if exact same set of clients already exists in a link group.
+        
+        Args:
+            client_ids: List of client IDs to check
+        
+        Returns:
+            group_id if exact match found, None otherwise
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get all link groups
+        cursor.execute("SELECT DISTINCT group_id FROM client_links")
+        group_ids = [row[0] for row in cursor.fetchall()]
+        
+        # Check each group
+        for group_id in group_ids:
+            cursor.execute("""
+                SELECT client_id_1 FROM client_links WHERE group_id = ?
+            """, (group_id,))
+            
+            group_client_ids = sorted([row[0] for row in cursor.fetchall()])
+            
+            if sorted(client_ids) == group_client_ids:
+                conn.close()
+                return group_id
+        
+        conn.close()
+        return None
+    
+    def create_link_group(self, client_ids: List[int], format: str, session_duration: int, member_fees: Dict[int, Dict[str, float]]) -> int:
         """Create a new link group.
         
         Args:
             client_ids: List of client IDs to link
             format: Session format ('couples', 'family', 'group')
+            session_duration: Session duration in minutes for this group
             member_fees: Dict mapping client_id to {base_fee, tax_rate, total_fee}
         
         Returns:
             Link group ID
         """
+        # Check for duplicate group
+        existing_group = self._get_existing_group_for_clients(client_ids)
+        if existing_group:
+            raise ValueError(f"Identical link already exists.")
+        
         conn = self.connect()
         cursor = conn.cursor()
         now = int(time.time())
         
-        # Create link group with format
+        # Create link group with format and duration
         cursor.execute("""
-            INSERT INTO link_groups (format, created_at)
-            VALUES (?, ?)
-        """, (format, now))
+            INSERT INTO link_groups (format, session_duration, created_at)
+            VALUES (?, ?, ?)
+        """, (format, session_duration, now))
         
         group_id = cursor.lastrowid
         
@@ -866,13 +903,14 @@ class Database:
         
         return count > 0
     
-    def update_link_group(self, group_id: int, client_ids: List[int], format: str, member_fees: Dict[int, Dict[str, float]]) -> bool:
+    def update_link_group(self, group_id: int, client_ids: List[int], format: str, session_duration: int, member_fees: Dict[int, Dict[str, float]]) -> bool:
         """Update an existing link group.
         
         Args:
             group_id: Link group ID
             client_ids: Updated list of client IDs
             format: Updated session format
+            session_duration: Updated session duration in minutes
             member_fees: Dict mapping client_id to {base_fee, tax_rate, total_fee}
         
         Returns:
@@ -882,12 +920,12 @@ class Database:
         cursor = conn.cursor()
         now = int(time.time())
         
-        # Update link group format
+        # Update link group format and duration
         cursor.execute("""
             UPDATE link_groups
-            SET format = ?
+            SET format = ?, session_duration = ?
             WHERE id = ?
-        """, (format, group_id))
+        """, (format, session_duration, group_id))
         
         # Delete existing links for this group
         cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
@@ -911,10 +949,10 @@ class Database:
         return True
     
     def delete_link_group(self, group_id: int) -> bool:
-        """Delete a link group and all its links.
+        """Delete a link group and all its member links.
         
         Args:
-            group_id: Link group ID to delete
+            group_id: Link group ID
         
         Returns:
             True if successful
@@ -922,20 +960,16 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         
-        try:
-            # Delete all client_links for this group
-            cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
-            
-            # Delete the link group
-            cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
-            
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"Error deleting link group: {e}")
-            conn.close()
-            return False
+        # Delete all member links
+        cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+        
+        # Delete the group itself
+        cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return True
     
     # ===== ENTRY OPERATIONS =====
     
