@@ -267,12 +267,24 @@
             
             <!-- Save Session (Hard Right) -->
             {% if is_edit %}
-            <button type="submit" class="btn">Save Edits</button>
+                {% if is_locked %}
+                    <!-- Locked entry - only "Save Changes" -->
+                    <button type="submit" class="btn">Save Changes</button>
+                {% else %}
+                    <!-- Unlocked draft - "Save Draft" + "Save & Lock" -->
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" name="save_draft" value="1" class="btn btn-secondary">Save Draft</button>
+                        <button type="submit" class="btn">Save & Lock</button>
+                    </div>
+                {% endif %}
             {% else %}
-            <button type="submit" class="btn">Save Session</button>
+                <!-- New entry - "Save Draft" + "Save Session" -->
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" name="save_draft" value="1" class="btn btn-secondary">Save Draft</button>
+                    <button type="submit" class="btn">Save Session</button>
+                </div>
             {% endif %}
 
-            
         </div>
     </form>
 

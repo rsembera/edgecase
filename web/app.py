@@ -684,8 +684,12 @@ def create_session(client_id):
         # Save session entry
         entry_id = db.add_entry(session_data)
 
-        # Lock the entry immediately after creation
-        db.lock_entry(entry_id)
+        # Check if this is a draft save
+        is_draft_save = request.form.get('save_draft') == '1'
+
+        # Only lock if NOT a draft save
+        if not is_draft_save:
+            db.lock_entry(entry_id)
 
         # Renumber all sessions to maintain chronological order
         renumber_sessions(client_id)
@@ -866,127 +870,135 @@ def edit_session(client_id, entry_id):
             # Keep existing session number
             session_data['description'] = f"Session {session['session_number']}"
         
-        # Check if entry is locked - if so, log changes to edit history
-        if db.is_entry_locked(entry_id):
-            changes = []
+        # Check if this is a draft save
+        is_draft_save = request.form.get('save_draft') == '1'
+
+        # Only lock and track history if NOT a draft save
+        if not is_draft_save:
+            # Lock the entry if not already locked
+            if not db.is_entry_locked(entry_id):
+                db.lock_entry(entry_id)
+            # If already locked, log changes to edit history
+            elif db.is_entry_locked(entry_id):
+                changes = []
             
-            # Date
-            if old_session.get('session_date') != session_date_timestamp:
-                old_date = datetime.fromtimestamp(old_session['session_date']).strftime('%Y-%m-%d') if old_session.get('session_date') else 'None'
-                new_date = datetime.fromtimestamp(session_date_timestamp).strftime('%Y-%m-%d') if session_date_timestamp else 'None'
-                changes.append(f"Date: {old_date} → {new_date}")
-            
-            # Time
-            if old_session.get('session_time') != session_data.get('session_time'):
-                old_time = old_session.get('session_time') or 'None'
-                new_time = session_data.get('session_time') or 'None'
-                changes.append(f"Time: {old_time} → {new_time}")
-            
-            # Modality
-            if old_session.get('modality') != session_data.get('modality'):
-                changes.append(f"Modality: {old_session.get('modality')} → {session_data.get('modality')}")
-            
-            # Format
-            if old_session.get('format') != session_data.get('format'):
-                changes.append(f"Format: {old_session.get('format')} → {session_data.get('format')}")
+                # Date
+                if old_session.get('session_date') != session_date_timestamp:
+                    old_date = datetime.fromtimestamp(old_session['session_date']).strftime('%Y-%m-%d') if old_session.get('session_date') else 'None'
+                    new_date = datetime.fromtimestamp(session_date_timestamp).strftime('%Y-%m-%d') if session_date_timestamp else 'None'
+                    changes.append(f"Date: {old_date} → {new_date}")
                 
-            # Service
-            if old_session.get('service') != session_data.get('service'):
-                old_service = old_session.get('service') or 'Not Set'
-                new_service = session_data.get('service') or 'Not Set'
-                changes.append(f"Service: {old_service} → {new_service}")
-            
-            # Duration
-            if old_session.get('duration') != session_data.get('duration'):
-                changes.append(f"Duration: {old_session.get('duration')}min → {session_data.get('duration')}min")
-            
-            # Fee breakdown (handle None values explicitly)
-            if old_session.get('base_fee') != session_data.get('base_fee'):
-                old_base = old_session.get('base_fee')
-                new_base = session_data.get('base_fee')
-                old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                new_str = f"${new_base:.2f}" if new_base is not None else "None"
-                changes.append(f"Base Fee: {old_str} → {new_str}")
-            
-            if old_session.get('tax_rate') != session_data.get('tax_rate'):
-                old_tax = old_session.get('tax_rate')
-                new_tax = session_data.get('tax_rate')
-                old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
-                new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
-                changes.append(f"Tax Rate: {old_str} → {new_str}")
-            
-            if old_session.get('fee') != session_data.get('fee'):
-                old_fee = old_session.get('fee')
-                new_fee = session_data.get('fee')
-                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
-                changes.append(f"Total Fee: {old_str} → {new_str}")
-            
-            # Consultation/Pro Bono
-            if old_session.get('is_consultation') != session_data.get('is_consultation'):
-                status = "Enabled" if session_data.get('is_consultation') else "Disabled"
-                changes.append(f"Consultation: {status}")
-            
-            if old_session.get('is_pro_bono') != session_data.get('is_pro_bono'):
-                status = "Enabled" if session_data.get('is_pro_bono') else "Disabled"
-                changes.append(f"Pro Bono: {status}")
-            
-            # Clinical fields (normalize both old and new to None if empty/None)
-            old_mood = old_session.get('mood') or None
-            new_mood = session_data.get('mood') or None
-            if old_mood != new_mood:
-                changes.append(f"Mood: {old_mood or 'Not Assessed'} → {new_mood or 'Not Assessed'}")
-            
-            old_affect = old_session.get('affect') or None
-            new_affect = session_data.get('affect') or None
-            if old_affect != new_affect:
-                changes.append(f"Affect: {old_affect or 'Not Assessed'} → {new_affect or 'Not Assessed'}")
-            
-            old_risk = old_session.get('risk_assessment') or None
-            new_risk = session_data.get('risk_assessment') or None
-            if old_risk != new_risk:
-                changes.append(f"Risk: {old_risk or 'Not Assessed'} → {new_risk or 'Not Assessed'}")
-            
-            # Notes (with smart word-level diff)
-            if old_session.get('content') != session_data.get('content'):
-                import difflib
-                old_content = old_session.get('content') or ''
-                new_content = session_data.get('content') or ''
+                # Time
+                if old_session.get('session_time') != session_data.get('session_time'):
+                    old_time = old_session.get('session_time') or 'None'
+                    new_time = session_data.get('session_time') or 'None'
+                    changes.append(f"Time: {old_time} → {new_time}")
                 
-                if old_content and new_content:
-                    # Split into words for word-level diff
-                    old_words = old_content.split()
-                    new_words = new_content.split()
+                # Modality
+                if old_session.get('modality') != session_data.get('modality'):
+                    changes.append(f"Modality: {old_session.get('modality')} → {session_data.get('modality')}")
+                
+                # Format
+                if old_session.get('format') != session_data.get('format'):
+                    changes.append(f"Format: {old_session.get('format')} → {session_data.get('format')}")
                     
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
+                # Service
+                if old_session.get('service') != session_data.get('service'):
+                    old_service = old_session.get('service') or 'Not Set'
+                    new_service = session_data.get('service') or 'Not Set'
+                    changes.append(f"Service: {old_service} → {new_service}")
+                
+                # Duration
+                if old_session.get('duration') != session_data.get('duration'):
+                    changes.append(f"Duration: {old_session.get('duration')}min → {session_data.get('duration')}min")
+                
+                # Fee breakdown (handle None values explicitly)
+                if old_session.get('base_fee') != session_data.get('base_fee'):
+                    old_base = old_session.get('base_fee')
+                    new_base = session_data.get('base_fee')
+                    old_str = f"${old_base:.2f}" if old_base is not None else "None"
+                    new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                    changes.append(f"Base Fee: {old_str} → {new_str}")
+                
+                if old_session.get('tax_rate') != session_data.get('tax_rate'):
+                    old_tax = old_session.get('tax_rate')
+                    new_tax = session_data.get('tax_rate')
+                    old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
+                    new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
+                    changes.append(f"Tax Rate: {old_str} → {new_str}")
+                
+                if old_session.get('fee') != session_data.get('fee'):
+                    old_fee = old_session.get('fee')
+                    new_fee = session_data.get('fee')
+                    old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
+                    new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                    changes.append(f"Total Fee: {old_str} → {new_str}")
+                
+                # Consultation/Pro Bono
+                if old_session.get('is_consultation') != session_data.get('is_consultation'):
+                    status = "Enabled" if session_data.get('is_consultation') else "Disabled"
+                    changes.append(f"Consultation: {status}")
+                
+                if old_session.get('is_pro_bono') != session_data.get('is_pro_bono'):
+                    status = "Enabled" if session_data.get('is_pro_bono') else "Disabled"
+                    changes.append(f"Pro Bono: {status}")
+                
+                # Clinical fields (normalize both old and new to None if empty/None)
+                old_mood = old_session.get('mood') or None
+                new_mood = session_data.get('mood') or None
+                if old_mood != new_mood:
+                    changes.append(f"Mood: {old_mood or 'Not Assessed'} → {new_mood or 'Not Assessed'}")
+                
+                old_affect = old_session.get('affect') or None
+                new_affect = session_data.get('affect') or None
+                if old_affect != new_affect:
+                    changes.append(f"Affect: {old_affect or 'Not Assessed'} → {new_affect or 'Not Assessed'}")
+                
+                old_risk = old_session.get('risk_assessment') or None
+                new_risk = session_data.get('risk_assessment') or None
+                if old_risk != new_risk:
+                    changes.append(f"Risk: {old_risk or 'Not Assessed'} → {new_risk or 'Not Assessed'}")
+                
+                # Notes (with smart word-level diff)
+                if old_session.get('content') != session_data.get('content'):
+                    import difflib
+                    old_content = old_session.get('content') or ''
+                    new_content = session_data.get('content') or ''
                     
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display (keep first ~200 chars of diff)
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 300:
-                        diff_text = diff_text[:300] + '...'
-                    
-                    changes.append(f"Notes: {diff_text}")
-                elif old_content:
-                    changes.append("Notes: Cleared")
-                else:
-                    changes.append("Notes: Added")
+                    if old_content and new_content:
+                        # Split into words for word-level diff
+                        old_words = old_content.split()
+                        new_words = new_content.split()
+                        
+                        # Generate diff
+                        diff = difflib.ndiff(old_words, new_words)
+                        
+                        # Build HTML formatted diff
+                        formatted_parts = []
+                        for item in diff:
+                            if item.startswith('  '):  # Unchanged
+                                formatted_parts.append(item[2:])
+                            elif item.startswith('- '):  # Deleted
+                                formatted_parts.append(f'<del>{item[2:]}</del>')
+                            elif item.startswith('+ '):  # Added
+                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                            # Ignore '?' lines (change indicators)
+                        
+                        # Limit length for display (keep first ~200 chars of diff)
+                        diff_text = ' '.join(formatted_parts)
+                        if len(diff_text) > 150:
+                            diff_text = diff_text[:150] + '...'
+                        
+                        changes.append(f"Notes: {diff_text}")
+                    elif old_content:
+                        changes.append("Notes: Cleared")
+                    else:
+                        changes.append("Notes: Added")
             
-            if changes:
-                change_desc = "; ".join(changes)
-                db.add_to_edit_history(entry_id, change_desc)
-        
+                if changes:
+                    change_desc = "; ".join(changes)
+                    db.add_to_edit_history(entry_id, change_desc)
+            
         # Save updated session
         db.update_entry(entry_id, session_data)
         
