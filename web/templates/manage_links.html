@@ -28,7 +28,7 @@
                         {% if group.members|length == 2 %}
                             {{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}{{ group.members[0].last_name }} & {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{{ group.members[1].last_name }}
                         {% else %}
-                            {{ group.members[0].last_name }} Group ({{ group.members|length }} clients)
+                            {{ group.members[0].last_name }} Link ({{ group.members|length }} clients)
                         {% endif %}
                     </h3>
                     <span class="member-count">{{ group.members|length }} clients</span>

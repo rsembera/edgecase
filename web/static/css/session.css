@@ -116,3 +116,63 @@
         border-radius: 0.75rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     }
+
+    /* Fee grid section - matches profile.html styling */
+.fee-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.fee-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.fee-field label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.fee-field input {
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.fee-field input:focus {
+    outline: none;
+    border-color: #00aa88;
+}
+
+.fee-field small {
+    color: #718096;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* Section dividers and headings */
+.section-divider {
+    height: 2px;
+    background: linear-gradient(to right, #e2e8f0, transparent);
+    margin: 2.5rem 0 1.5rem 0;
+}
+
+.section-heading {
+    color: #2d3748;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fee-grid {
+        grid-template-columns: 1fr;
+    }
+}

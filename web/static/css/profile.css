@@ -133,6 +133,17 @@ textarea[name="additional_info"] {
     margin-top: 0.25rem;
 }
 
+/* Remove spinner arrows from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 /* Guardian section */
 .guardian-heading {
     color: #374151;
