@@ -35,30 +35,23 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         
-        # Client Types table (customizable)
+        # Client Types table (status/organization only, no fees)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS client_types (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 color TEXT NOT NULL,
-                file_number_style TEXT NOT NULL,
-                file_number_prefix TEXT,
-                file_number_suffix TEXT,
-                file_number_counter INTEGER DEFAULT 0,
-                session_fee REAL,
-                session_duration INTEGER,
+                color_name TEXT,
+                bubble_color TEXT,
                 retention_period INTEGER,
                 is_system INTEGER DEFAULT 0,
-                service_description TEXT,
                 is_system_locked INTEGER DEFAULT 0,
-                base_price REAL,
-                tax_rate REAL,
                 created_at INTEGER NOT NULL,
                 modified_at INTEGER NOT NULL
             )
         """)
         
-        # Clients table
+        # Clients table (unchanged)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +68,7 @@ class Database:
             )
         """)
         
-        # Entries table (unified for all entry types)
+        # Entries table (WITH Profile fee fields and default_session_duration)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,6 +97,26 @@ class Database:
                 referral_source TEXT,
                 additional_info TEXT,
                 
+                -- Profile fee fields (primary individual session fees)
+                fee_override_base REAL,
+                fee_override_tax_rate REAL,
+                fee_override_total REAL,
+                default_session_duration INTEGER,
+                
+                -- Profile guardian/billing fields
+                is_minor INTEGER DEFAULT 0,
+                guardian1_name TEXT,
+                guardian1_email TEXT,
+                guardian1_phone TEXT,
+                guardian1_address TEXT,
+                guardian1_pays_percent INTEGER DEFAULT 100,
+                has_guardian2 INTEGER DEFAULT 0,
+                guardian2_name TEXT,
+                guardian2_email TEXT,
+                guardian2_phone TEXT,
+                guardian2_address TEXT,
+                guardian2_pays_percent INTEGER DEFAULT 0,
+                
                 -- Session-specific fields
                 modality TEXT,
                 format TEXT,
@@ -112,8 +125,11 @@ class Database:
                 session_date INTEGER,
                 session_time TEXT,
                 duration INTEGER,
+                base_fee REAL,
+                tax_rate REAL,
                 fee REAL,
                 is_consultation INTEGER DEFAULT 0,
+                is_pro_bono INTEGER DEFAULT 0,
                 mood TEXT,
                 affect TEXT,
                 risk_assessment TEXT,
@@ -132,7 +148,6 @@ class Database:
                 item_date INTEGER,
                 item_time TEXT,
                 base_price REAL,
-                tax_rate REAL,
                 
                 -- Statement-specific fields
                 statement_total REAL,
@@ -151,24 +166,25 @@ class Database:
             )
         """)
         
-        # Link Groups (for couples/family therapy billing arrangement)
+        # Link Groups (for couples/family/group therapy - has format field)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS link_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                billing_type TEXT NOT NULL,
-                principal_payer_id INTEGER,
-                created_at INTEGER NOT NULL,
-                FOREIGN KEY (principal_payer_id) REFERENCES clients(id)
+                format TEXT,
+                created_at INTEGER NOT NULL
             )
         """)
         
-        # Client Linking (for couples/family therapy)
+        # Client Linking (self-referential with per-member fees)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS client_links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id_1 INTEGER NOT NULL,
                 client_id_2 INTEGER NOT NULL,
                 group_id INTEGER,
+                member_base_fee REAL,
+                member_tax_rate REAL,
+                member_total_fee REAL,
                 created_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id_1) REFERENCES clients(id),
                 FOREIGN KEY (client_id_2) REFERENCES clients(id),
@@ -215,308 +231,21 @@ class Database:
         
         conn.commit()
         
-        # Run migrations to add any missing columns
-        self._run_migrations()
-        
         # Create default client types if they don't exist
         self._create_default_types()
     
     def _run_migrations(self):
-        """Run database migrations to add missing columns"""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # ============================================
-        # EXISTING MIGRATIONS (from Week 2)
-        # ============================================
-        
-        # Migration: Add color_name and bubble_color to client_types
-        cursor.execute("PRAGMA table_info(client_types)")
-        columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'color_name' not in columns:
-            print("Running migration: Add color_name to client_types")
-            cursor.execute("ALTER TABLE client_types ADD COLUMN color_name TEXT")
-            
-            # Set default color names based on existing colors
-            cursor.execute("UPDATE client_types SET color_name = 'Soft Teal' WHERE color = '#9FCFC0'")
-            cursor.execute("UPDATE client_types SET color_name = 'Mint Green' WHERE color = '#A7D4A4'")
-            cursor.execute("UPDATE client_types SET color_name = 'Sage' WHERE color = '#B8C5A8'")
-            cursor.execute("UPDATE client_types SET color_name = 'Lavender' WHERE color = '#C8B8D9'")
-            cursor.execute("UPDATE client_types SET color_name = 'Dusty Rose' WHERE color = '#D4A5A5'")
-            cursor.execute("UPDATE client_types SET color_name = 'Peach' WHERE color = '#E8C4A8'")
-            cursor.execute("UPDATE client_types SET color_name = 'Powder Blue' WHERE color = '#A8C8D9'")
-            cursor.execute("UPDATE client_types SET color_name = 'Soft Gray' WHERE color = '#B8B8C5'")
-            cursor.execute("UPDATE client_types SET color_name = 'Warm Amber' WHERE color = '#D9C8A5'")
-            
-            # Default to Soft Teal for any other colors
-            cursor.execute("UPDATE client_types SET color_name = 'Soft Teal' WHERE color_name IS NULL")
-            conn.commit()
-        
-        if 'bubble_color' not in columns:
-            print("Running migration: Add bubble_color to client_types")
-            cursor.execute("ALTER TABLE client_types ADD COLUMN bubble_color TEXT")
-            
-            # Set bubble colors based on existing colors
-            cursor.execute("UPDATE client_types SET bubble_color = '#E6F5F1' WHERE color = '#9FCFC0'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#E8F5E7' WHERE color = '#A7D4A4'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#EEF2E9' WHERE color = '#B8C5A8'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#F1EDF5' WHERE color = '#C8B8D9'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#F5E9E9' WHERE color = '#D4A5A5'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#F9F0E8' WHERE color = '#E8C4A8'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#E8F0F5' WHERE color = '#A8C8D9'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#EEEEEF' WHERE color = '#B8B8C5'")
-            cursor.execute("UPDATE client_types SET bubble_color = '#F5F0E9' WHERE color = '#D9C8A5'")
-            
-            # Default to Soft Teal bubble for any other colors
-            cursor.execute("UPDATE client_types SET bubble_color = '#E6F5F1' WHERE bubble_color IS NULL")
-            conn.commit()
-        
-        # ============================================
-        # FEE OVERRIDE MIGRATIONS (Week 3, Session 1)
-        # ============================================
-        
-        # Re-fetch columns after existing migrations
-        cursor.execute("PRAGMA table_info(client_types)")
-        columns = [col[1] for col in cursor.fetchall()]
-        
-        # Migration: Add fee breakdown to client_types
-        if 'session_base_price' not in columns:
-            print("Running migration: Add session_base_price to client_types")
-            cursor.execute("ALTER TABLE client_types ADD COLUMN session_base_price REAL")
-            
-            # Migrate existing session_fee to base (assume 0% tax initially)
-            cursor.execute("UPDATE client_types SET session_base_price = session_fee WHERE session_fee IS NOT NULL")
-            conn.commit()
-        
-        if 'session_tax_rate' not in columns:
-            print("Running migration: Add session_tax_rate to client_types")
-            cursor.execute("ALTER TABLE client_types ADD COLUMN session_tax_rate REAL DEFAULT 0.0")
-            conn.commit()
-        
-        # Migration: Add fee override to entries (for Profile class)
-        cursor.execute("PRAGMA table_info(entries)")
-        entries_columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'fee_override_base' not in entries_columns:
-            print("Running migration: Add fee_override_base to entries")
-            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_base REAL")
-            conn.commit()
-        
-        if 'fee_override_tax_rate' not in entries_columns:
-            print("Running migration: Add fee_override_tax_rate to entries")
-            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_tax_rate REAL")
-            conn.commit()
-        
-        if 'fee_override_total' not in entries_columns:
-            print("Running migration: Add fee_override_total to entries")
-            cursor.execute("ALTER TABLE entries ADD COLUMN fee_override_total REAL")
-            conn.commit()
-        
-        # ============================================
-        # GUARDIAN/BILLING MIGRATIONS (Week 3, Session 1)
-        # ============================================
-        
-        # Add guardian/billing fields to entries table
-        guardian_columns = {
-            'is_minor': 'INTEGER DEFAULT 0',
-            'guardian1_name': 'TEXT',
-            'guardian1_email': 'TEXT',
-            'guardian1_phone': 'TEXT',
-            'guardian1_address': 'TEXT',
-            'guardian1_pays_percent': 'INTEGER DEFAULT 100',
-            'has_guardian2': 'INTEGER DEFAULT 0',
-            'guardian2_name': 'TEXT',
-            'guardian2_email': 'TEXT',
-            'guardian2_phone': 'TEXT',
-            'guardian2_address': 'TEXT',
-            'guardian2_pays_percent': 'INTEGER DEFAULT 0'
-        }
-        
-        for column, data_type in guardian_columns.items():
-            if column not in entries_columns:
-                print(f"Running migration: Add {column} to entries")
-                cursor.execute(f"ALTER TABLE entries ADD COLUMN {column} {data_type}")
-                conn.commit()
-                
-        # ============================================
-        # SESSION FEE BREAKDOWN MIGRATION (Week 3, Session 1 Part 2)
-        # ============================================
-
-        # Add base_fee and tax_rate to entries for Sessions
-        # (Same pattern as Items, but for Sessions)
-
-        if 'base_fee' not in entries_columns:
-            print("Running migration: Add base_fee to entries")
-            cursor.execute("ALTER TABLE entries ADD COLUMN base_fee REAL")
-            conn.commit()
-
-        if 'tax_rate' not in entries_columns:
-            print("Running migration: Add tax_rate to entries")
-            cursor.execute("ALTER TABLE entries ADD COLUMN tax_rate REAL")
-            conn.commit()
-        
-        # ============================================
-        # CLEAN UP CLIENT_TYPES TABLE (Week 3, Session 1)
-        # ============================================
-        
-        # Remove file number columns from client_types (they're global settings now)
-        # SQLite doesn't support DROP COLUMN, so we recreate the table
-        
-        cursor.execute("PRAGMA table_info(client_types)")
-        client_types_columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'file_number_style' in client_types_columns:
-            print("Running migration: Remove file number columns from client_types")
-            
-            # Create new table without file number columns
-            cursor.execute("""
-                CREATE TABLE client_types_new (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT UNIQUE NOT NULL,
-                    color TEXT NOT NULL,
-                    color_name TEXT,
-                    bubble_color TEXT,
-                    session_fee REAL,
-                    session_base_price REAL,
-                    session_tax_rate REAL DEFAULT 0.0,
-                    session_duration INTEGER,
-                    retention_period INTEGER,
-                    is_system INTEGER DEFAULT 0,
-                    service_description TEXT,
-                    is_system_locked INTEGER DEFAULT 0,
-                    created_at INTEGER NOT NULL,
-                    modified_at INTEGER NOT NULL
-                )
-            """)
-            
-            # Copy data from old table (excluding file number columns)
-            cursor.execute("""
-                INSERT INTO client_types_new 
-                (id, name, color, color_name, bubble_color, session_fee, session_base_price, 
-                 session_tax_rate, session_duration, retention_period, is_system, 
-                 service_description, is_system_locked, created_at, modified_at)
-                SELECT id, name, color, 
-                       COALESCE(color_name, 'Soft Teal'), 
-                       COALESCE(bubble_color, '#E6F5F1'), 
-                       session_fee, session_base_price, 
-                       COALESCE(session_tax_rate, 0.0), 
-                       session_duration, retention_period, is_system,
-                       service_description, is_system_locked, created_at, modified_at
-                FROM client_types
-            """)
-            
-            # Drop old table and rename new one
-            cursor.execute("DROP TABLE client_types")
-            cursor.execute("ALTER TABLE client_types_new RENAME TO client_types")
-            
-            conn.commit()
-            print("Migration complete: File number columns removed from client_types")
-        
-        # ============================================
-        # LINK GROUP SIMPLIFICATION NOTE
-        # ============================================
-        
-        # Check if link_groups has old billing columns
-        cursor.execute("PRAGMA table_info(link_groups)")
-        link_columns = [col[1] for col in cursor.fetchall()]
-        
-        # Note: SQLite doesn't support DROP COLUMN easily
-        # We'll just leave these columns in place (they won't be used after Session 6)
-        # Future: Could create new table and migrate data if needed
-        
-        if 'billing_type' in link_columns or 'principal_payer_id' in link_columns:
-            print("Note: link_groups still has old billing columns (will be unused after Session 6, safe to ignore)")
-            
-        # ============================================
-        # LINK GROUP BILLING MIGRATION (Week 3, Session 1 Part 3)
-        # ============================================
-
-        # Add format field to link_groups
-        cursor.execute("PRAGMA table_info(link_groups)")
-        link_groups_columns = [col[1] for col in cursor.fetchall()]
-
-        if 'format' not in link_groups_columns:
-            print("Running migration: Add format to link_groups")
-            cursor.execute("ALTER TABLE link_groups ADD COLUMN format TEXT")
-            conn.commit()
-
-        # Add fee breakdown fields to client_links
-        cursor.execute("PRAGMA table_info(client_links)")
-        client_links_columns = [col[1] for col in cursor.fetchall()]
-
-        if 'member_base_fee' not in client_links_columns:
-            print("Running migration: Add member_base_fee to client_links")
-            cursor.execute("ALTER TABLE client_links ADD COLUMN member_base_fee REAL")
-            conn.commit()
-
-        if 'member_tax_rate' not in client_links_columns:
-            print("Running migration: Add member_tax_rate to client_links")
-            cursor.execute("ALTER TABLE client_links ADD COLUMN member_tax_rate REAL")
-            conn.commit()
-
-        if 'member_total_fee' not in client_links_columns:
-            print("Running migration: Add member_total_fee to client_links")
-            cursor.execute("ALTER TABLE client_links ADD COLUMN member_total_fee REAL")
-            conn.commit()
-            
-        # ============================================
-        # CLEAN UP LINK_GROUPS TABLE (Week 3, Session 1 Part 4)
-        # ============================================
-
-        # Remove old billing columns, ensure format column exists
-        cursor.execute("PRAGMA table_info(link_groups)")
-        link_groups_columns = [col[1] for col in cursor.fetchall()]
-
-        if 'billing_type' in link_groups_columns or 'format' not in link_groups_columns:
-            print("Running migration: Clean up link_groups table structure")
-            
-            # Create new table with correct structure
-            cursor.execute("""
-                CREATE TABLE link_groups_new (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    format TEXT,
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            
-            # Copy data from old table (only if there are existing groups)
-            cursor.execute("SELECT COUNT(*) FROM link_groups")
-            if cursor.fetchone()[0] > 0:
-                cursor.execute("""
-                    INSERT INTO link_groups_new (id, format, created_at)
-                    SELECT id, format, created_at FROM link_groups
-                """)
-            
-            # Drop old table and rename new one
-            cursor.execute("DROP TABLE link_groups")
-            cursor.execute("ALTER TABLE link_groups_new RENAME TO link_groups")
-            
-            conn.commit()
-            print("Migration complete: link_groups table cleaned up")
-            
-        # ============================================
-        # Add is_pro_bono column for pro bono sessions (Week 3, Day 2)
-        # ============================================
-        
-        cursor.execute("PRAGMA table_info(entries)")
-        columns = [column[1] for column in cursor.fetchall()]
-        if 'is_pro_bono' not in columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN is_pro_bono INTEGER DEFAULT 0")
-            print("Migration: Added is_pro_bono column to entries table")
-                
-        print("All migrations complete")
-        conn.close()
+        """Run database migrations to update schema."""
+        # No migrations needed - clean schema in _initialize_schema()
+        pass
 
     def _create_default_types(self):
         """Create default client types on first run.
         
-        Creates 5 types:
+        Creates 3 system types:
+        - Active (editable, default)
         - Inactive (locked, workflow state)
-        - Deleted (locked, workflow state)  
-        - Active (editable, default therapy type)
-        - Assess (editable, example type)
-        - Low Fee (editable, example type)
+        - Deleted (locked, workflow state)
         """
         # Check if any types exist
         conn = self.connect()
@@ -530,77 +259,34 @@ class Database:
         
         now = int(time.time())
         
-        # Default types with muted color palette
+        # Default types with muted color palette (NO FEE FIELDS)
         default_types = [
+            {
+                'name': 'Active',
+                'color': '#9FCFC0',  # Soft Teal
+                'color_name': 'Soft Teal',
+                'bubble_color': '#E6F5F1',
+                'retention_period': 2555,  # 7 years
+                'is_system': 0,
+                'is_system_locked': 0
+            },
             {
                 'name': 'Inactive',
                 'color': '#D9C8A5',  # Warm Amber
                 'color_name': 'Warm Amber',
                 'bubble_color': '#F5F0E9',
-                'session_fee': 0.0,
-                'session_base_price': 0.0,
-                'session_tax_rate': 0.0,
-                'session_duration': 50,
                 'retention_period': 2555,  # 7 years in days
                 'is_system': 1,
-                'is_system_locked': 1,
-                'service_description': 'Inactive client (no longer in treatment)'
+                'is_system_locked': 1
             },
             {
                 'name': 'Deleted',
                 'color': '#B8B8C5',  # Soft Gray
                 'color_name': 'Soft Gray',
                 'bubble_color': '#EEEEEF',
-                'session_fee': 0.0,
-                'session_base_price': 0.0,
-                'session_tax_rate': 0.0,
-                'session_duration': 50,
                 'retention_period': 0,
                 'is_system': 1,
-                'is_system_locked': 1,
-                'service_description': 'Deleted client (purged from system)'
-            },
-            {
-                'name': 'Active',
-                'color': '#9FCFC0',  # Soft Teal
-                'color_name': 'Soft Teal',
-                'bubble_color': '#E6F5F1',
-                'session_fee': 200.0,
-                'session_base_price': 200.0,
-                'session_tax_rate': 0.0,
-                'session_duration': 50,
-                'retention_period': 2555,  # 7 years
-                'is_system': 0,
-                'is_system_locked': 0,
-                'service_description': 'Psychotherapy'
-            },
-            {
-                'name': 'Assess',
-                'color': '#A8C8D9',  # Powder Blue
-                'color_name': 'Powder Blue',
-                'bubble_color': '#E8F0F5',
-                'session_fee': 225.0,
-                'session_base_price': 225.0,
-                'session_tax_rate': 0.0,
-                'session_duration': 90,
-                'retention_period': 2555,
-                'is_system': 0,
-                'is_system_locked': 0,
-                'service_description': 'Psychological Assessment'
-            },
-            {
-                'name': 'Low Fee',
-                'color': '#A7D4A4',  # Mint Green
-                'color_name': 'Mint Green',
-                'bubble_color': '#E8F5E7',
-                'session_fee': 100.0,
-                'session_base_price': 100.0,
-                'session_tax_rate': 0.0,
-                'session_duration': 50,
-                'retention_period': 2555,
-                'is_system': 0,
-                'is_system_locked': 0,
-                'service_description': 'Sliding Scale Psychotherapy'
+                'is_system_locked': 1
             }
         ]
         
@@ -608,34 +294,28 @@ class Database:
             cursor.execute("""
                 INSERT INTO client_types (
                     name, color, color_name, bubble_color,
-                    session_fee, session_base_price, session_tax_rate, session_duration,
-                    retention_period, is_system, is_system_locked, service_description,
+                    retention_period, is_system, is_system_locked,
                     created_at, modified_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 type_data['name'],
                 type_data['color'],
                 type_data['color_name'],
                 type_data['bubble_color'],
-                type_data['session_fee'],
-                type_data['session_base_price'],
-                type_data['session_tax_rate'],
-                type_data['session_duration'],
                 type_data['retention_period'],
                 type_data['is_system'],
                 type_data['is_system_locked'],
-                type_data['service_description'],
                 now,
                 now
             ))
         
         conn.commit()
         conn.close()
-        print("Created 5 default client types")
+        print("Created 3 default client types (Active, Inactive, Deleted)")
     
     # ===== CLIENT TYPE OPERATIONS =====
-    
+
     def add_client_type(self, type_data: Dict[str, Any]) -> int:
         """Add new client type."""
         conn = self.connect()
@@ -646,22 +326,16 @@ class Database:
         cursor.execute("""
             INSERT INTO client_types (
                 name, color, color_name, bubble_color,
-                session_fee, session_base_price, session_tax_rate, session_duration,
-                retention_period, service_description, is_system, is_system_locked,
+                retention_period, is_system, is_system_locked,
                 created_at, modified_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             type_data['name'],
             type_data['color'],
             type_data.get('color_name', ''),
             type_data.get('bubble_color', ''),
-            type_data.get('session_fee', 0.0),
-            type_data.get('session_base_price', 0.0),
-            type_data.get('session_tax_rate', 0.0),
-            type_data.get('session_duration', 50),
             type_data.get('retention_period', 2555),
-            type_data.get('service_description', ''),
             type_data.get('is_system', 0),
             type_data.get('is_system_locked', 0),
             now,
@@ -674,7 +348,7 @@ class Database:
         
         return type_id
 
-    
+
     def get_client_type(self, type_id: int) -> Optional[Dict[str, Any]]:
         """Get client type by ID."""
         conn = self.connect()
@@ -686,7 +360,7 @@ class Database:
         conn.close()
         
         return dict(row) if row else None
-    
+
     def get_all_client_types(self) -> List[Dict[str, Any]]:
         """Get all client types."""
         conn = self.connect()
@@ -698,7 +372,7 @@ class Database:
         conn.close()
         
         return [dict(row) for row in rows]
-    
+
     def update_client_type(self, type_id: int, type_data: Dict[str, Any]) -> bool:
         """Update client type."""
         conn = self.connect()
@@ -709,21 +383,14 @@ class Database:
         cursor.execute("""
             UPDATE client_types
             SET name = ?, color = ?, color_name = ?, bubble_color = ?,
-                session_fee = ?, session_base_price = ?, session_tax_rate = ?,
-                session_duration = ?, retention_period = ?,
-                service_description = ?, modified_at = ?
+                retention_period = ?, modified_at = ?
             WHERE id = ?
         """, (
             type_data['name'],
             type_data['color'],
             type_data.get('color_name', ''),
             type_data.get('bubble_color', ''),
-            type_data.get('session_fee', 0.0),
-            type_data.get('session_base_price', 0.0),
-            type_data.get('session_tax_rate', 0.0),
-            type_data.get('session_duration', 50),
             type_data.get('retention_period', 2555),
-            type_data.get('service_description', ''),
             now,
             type_id
         ))
@@ -733,7 +400,7 @@ class Database:
         
         return True
 
-    
+
     def delete_client_type(self, type_id: int) -> bool:
         """Delete client type (only if not in use and not system type)."""
         conn = self.connect()
@@ -760,7 +427,7 @@ class Database:
         conn.close()
         
         return True
-    
+
     # ===== CLIENT OPERATIONS =====
     
     def add_client(self, client_data: Dict[str, Any]) -> int:
