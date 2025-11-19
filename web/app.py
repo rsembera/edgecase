@@ -1478,17 +1478,23 @@ def manage_types():
 def add_type():
     """Add a new client type"""
     if request.method == 'POST':
+        # Convert retention value + unit to days
+        retention_value = int(request.form.get('retention_value', 0))
+        retention_unit = request.form.get('retention_unit', 'months')
+        
+        if retention_unit == 'days':
+            retention_days = retention_value
+        elif retention_unit == 'months':
+            retention_days = retention_value * 30
+        else:  # years
+            retention_days = retention_value * 365
+        
         type_data = {
             'name': request.form['name'],
             'color': request.form['color'],
             'color_name': request.form['color_name'],
             'bubble_color': request.form['bubble_color'],
-            'service_description': request.form.get('service_description') or None,
-            'session_base_price': float(request.form['session_base_price']) if request.form.get('session_base_price') else None,
-            'session_tax_rate': float(request.form['session_tax_rate']) if request.form.get('session_tax_rate') else None,
-            'session_fee': float(request.form['session_total']) if request.form.get('session_total') else None,
-            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
-            'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None,
+            'retention_period': retention_days,
             'is_system': 0,
             'is_system_locked': 0
         }
@@ -1526,24 +1532,46 @@ def edit_type(type_id):
             db.delete_client_type(type_id)
             return redirect(url_for('manage_types'))
         
+        # Convert retention value + unit to days
+        retention_value = int(request.form.get('retention_value', 0))
+        retention_unit = request.form.get('retention_unit', 'months')
+        
+        if retention_unit == 'days':
+            retention_days = retention_value
+        elif retention_unit == 'months':
+            retention_days = retention_value * 30
+        else:  # years
+            retention_days = retention_value * 365
+        
         # Regular update
         type_data = {
             'name': request.form['name'],
             'color': request.form['color'],
             'color_name': request.form['color_name'],
             'bubble_color': request.form['bubble_color'],
-            'service_description': request.form.get('service_description') or None,
-            'session_base_price': float(request.form['session_base_price']) if request.form.get('session_base_price') else None,
-            'session_tax_rate': float(request.form['session_tax_rate']) if request.form.get('session_tax_rate') else None,
-            'session_fee': float(request.form['session_total']) if request.form.get('session_total') else None,
-            'session_duration': int(request.form['session_duration']) if request.form.get('session_duration') else None,
-            'retention_period': int(request.form['retention_period']) if request.form.get('retention_period') else None
+            'retention_period': retention_days
         }
         
         db.update_client_type(type_id, type_data)
         return redirect(url_for('manage_types'))
     
-    return render_template('add_edit_type.html', type=type_obj, colors=COLOR_PALETTE)
+    # Calculate retention_value and retention_unit for display
+    retention_days = type_obj.get('retention_period') or 0
+    if retention_days >= 365 and retention_days % 365 == 0:
+        retention_value = retention_days // 365
+        retention_unit = 'years'
+    elif retention_days >= 30 and retention_days % 30 == 0:
+        retention_value = retention_days // 30
+        retention_unit = 'months'
+    else:
+        retention_value = retention_days
+        retention_unit = 'days'
+    
+    return render_template('add_edit_type.html', 
+                         type=type_obj, 
+                         colors=COLOR_PALETTE,
+                         retention_value=retention_value,
+                         retention_unit=retention_unit)
 
 
 @app.route('/types/<int:type_id>/delete', methods=['POST'])
