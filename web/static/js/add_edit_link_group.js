@@ -268,10 +268,14 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
         };
     });
     
+   // Get session duration
+    const sessionDuration = parseInt(document.getElementById('session_duration').value) || 50;
+
     // Submit form data
     const formData = {
         client_ids: selectedClients,
         format: format,
+        session_duration: sessionDuration,
         member_fees: memberFees
     };
     
@@ -293,6 +297,17 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving link group: ' + error.message);
+        showErrorModal(error.message);
     });
 });
+
+// Show error modal
+function showErrorModal(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-modal').style.display = 'flex';
+}
+
+// Close error modal
+function closeErrorModal() {
+    document.getElementById('error-modal').style.display = 'none';
+}

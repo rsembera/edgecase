@@ -2085,14 +2085,23 @@ def add_link_group():
         if not data.get('member_fees'):
             return 'Missing member fees', 400
         
-        # Create link group with format and member fees
-        group_id = db.create_link_group(
-            client_ids=data['client_ids'],
-            format=data['format'],
-            member_fees=data['member_fees']
-        )
-        
-        return '', 204
+        # Get duration (default to 50 if not provided)
+        session_duration = int(data.get('session_duration', 50))
+
+        # Create link group with format, duration, and member fees
+        try:
+            group_id = db.create_link_group(
+                client_ids=data['client_ids'],
+                format=data['format'],
+                session_duration=session_duration,
+                member_fees=data['member_fees']
+            )
+            return '', 204
+            
+        except sqlite3.IntegrityError:
+            return 'Database error. Please try again.', 400
+        except ValueError as e:
+            return str(e), 400
     
     # GET: Show the form - exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
@@ -2128,11 +2137,15 @@ def edit_link_group(group_id):
         if not data.get('member_fees'):
             return 'Missing member fees', 400
         
+        # Get duration (default to 50 if not provided)
+        session_duration = int(data.get('session_duration', 50))
+        
         # Update link group
         success = db.update_link_group(
             group_id=group_id,
             client_ids=data['client_ids'],
             format=data['format'],
+            session_duration=session_duration,
             member_fees=data['member_fees']
         )
         

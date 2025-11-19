@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if group %}Edit{% else %}Add{% endif %} Link Group - EdgeCase{% endblock %}
+{% block title %}{% if group %}Edit{% else %}Add{% endif %} Link - EdgeCase{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_link_group.css') }}">
@@ -10,8 +10,8 @@
 <div class="card">
     <div class="header-row">
         <div>
-            <h2>{% if group %}Edit{% else %}New{% endif %} Link Group</h2>
-            <p style="color: #5B6571; margin-top: 0.5rem;">Group clients for couples, family, or joint therapy</p>
+            <h2>{% if group %}Edit{% else %}New{% endif %} Link</h2>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Link clients for couples, family, or group therapy</p>
         </div>
         <a href="{{ url_for('manage_links') }}" class="btn-secondary-inline">← Back to Links</a>
     </div>
@@ -19,7 +19,7 @@
     <form method="POST" id="link-group-form">
         <!-- Client Search and Selection -->
         <div class="form-section">
-            <label>Clients in Group</label>
+            <label>Linked Clients</label>
             <div class="search-container">
                 <input type="text" id="client-search" placeholder="Search clients by name or file number...">
                 <div id="search-results" class="search-results"></div>
@@ -54,6 +54,17 @@
             <small style="color: #5B6571;">This determines which sessions will use these fees</small>
         </div>
 
+        <!-- Session Duration -->
+        <div class="form-section">
+            <label for="session_duration">Session Duration (minutes) *</label>
+            <input type="number" id="session_duration" name="session_duration" 
+                min="5" step="5" required
+                style="font-size: 1rem;"
+                value="{{ group.session_duration if group and group.session_duration else '50' }}"
+                placeholder="50">
+            <small style="color: #5B6571;">Default duration for all members in this group</small>
+        </div>
+
         <!-- Member Fee Breakdown -->
         <div class="form-section" id="member-fees-section" style="display: none;">
             <label>Member Fees</label>
@@ -72,6 +83,17 @@
             <button type="submit" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
         </div>
     </form>
+</div>
+
+<!-- Error Modal -->
+<div id="error-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
+        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">⚠️ Cannot Save Link Group</h3>
+        <p id="error-message" style="color: #4B5563; margin-bottom: 1.5rem; line-height: 1.6;"></p>
+        <button onclick="closeErrorModal()" style="padding: 0.625rem 1.25rem; background: #DC2626; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer; width: 100%;">
+            OK
+        </button>
+    </div>
 </div>
 
 <!-- Hidden data for JavaScript -->

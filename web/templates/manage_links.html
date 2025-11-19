@@ -11,10 +11,10 @@
     <div class="header-row">
         <div>
             <h2>Client Links</h2>
-            <p style="color: #5B6571; margin-top: 0.5rem;">Group clients for couples, family, or joint therapy sessions</p>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Review and create arrangements for couples, family, or group therapy</p>
         </div>
         <div style="display: flex; gap: 0.75rem;">
-            <a href="{{ url_for('add_link_group') }}" class="btn-add">+ Link Group</a>
+            <a href="{{ url_for('add_link_group') }}" class="btn-add">+ Link</a>
         </div>
     </div>
 
@@ -32,15 +32,6 @@
                         {% endif %}
                     </h3>
                     <span class="member-count">{{ group.members|length }} clients</span>
-                    <span class="billing-badge billing-{{ group.billing_type }}">
-                        {% if group.billing_type == 'principal' %}
-                            One Pays
-                        {% elif group.billing_type == 'split' %}
-                            Split Bill
-                        {% else %}
-                            Individual Bills
-                        {% endif %}
-                    </span>
                 </div>
                 <div class="group-actions">
                     <a href="{{ url_for('edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
