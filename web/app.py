@@ -1167,6 +1167,9 @@ def edit_communication(client_id, entry_id):
         return "Communication not found", 404
     
     if request.method == 'POST':
+        # Get the old communication data for comparison
+        old_comm = communication.copy()
+        
         # Parse date from dropdowns
         year = request.form.get('year')
         month = request.form.get('month')
@@ -1187,6 +1190,74 @@ def edit_communication(client_id, entry_id):
             'comm_time': request.form.get('comm_time', ''),
             'content': request.form['content']
         }
+        
+        # Check if entry is locked - if so, log changes to edit history
+        if db.is_entry_locked(entry_id):
+            changes = []
+            
+            # Description
+            if old_comm.get('description') != comm_data.get('description'):
+                changes.append(f"Description: {old_comm.get('description')} → {comm_data.get('description')}")
+            
+            # Recipient
+            if old_comm.get('comm_recipient') != comm_data.get('comm_recipient'):
+                changes.append(f"Recipient: {old_comm.get('comm_recipient')} → {comm_data.get('comm_recipient')}")
+            
+            # Type
+            if old_comm.get('comm_type') != comm_data.get('comm_type'):
+                changes.append(f"Type: {old_comm.get('comm_type')} → {comm_data.get('comm_type')}")
+            
+            # Date
+            if old_comm.get('comm_date') != comm_date_timestamp:
+                from datetime import datetime
+                old_date = datetime.fromtimestamp(old_comm['comm_date']).strftime('%Y-%m-%d') if old_comm.get('comm_date') else 'None'
+                new_date = datetime.fromtimestamp(comm_date_timestamp).strftime('%Y-%m-%d') if comm_date_timestamp else 'None'
+                changes.append(f"Date: {old_date} → {new_date}")
+            
+            # Time
+            if old_comm.get('comm_time') != comm_data.get('comm_time'):
+                old_time = old_comm.get('comm_time') or 'None'
+                new_time = comm_data.get('comm_time') or 'None'
+                changes.append(f"Time: {old_time} → {new_time}")
+            
+            # Content (with smart truncated diff)
+            if old_comm.get('content') != comm_data.get('content'):
+                old_content = old_comm.get('content') or ''
+                new_content = comm_data.get('content') or ''
+                
+                if old_content and new_content:
+                    # Find first difference
+                    diff_start = 0
+                    for i in range(min(len(old_content), len(new_content))):
+                        if old_content[i] != new_content[i]:
+                            diff_start = i
+                            break
+                    
+                    # Show context around the change
+                    context_start = max(0, diff_start - 25)
+                    context_end = min(len(old_content), diff_start + 75)
+                    
+                    old_snippet = old_content[context_start:context_end]
+                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    
+                    # Add ellipsis if truncated
+                    if context_start > 0:
+                        old_snippet = '...' + old_snippet
+                        new_snippet = '...' + new_snippet
+                    if context_end < len(old_content):
+                        old_snippet = old_snippet + '...'
+                    if context_start + 100 < len(new_content):
+                        new_snippet = new_snippet + '...'
+                    
+                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                elif old_content:
+                    changes.append("Content: Cleared")
+                else:
+                    changes.append("Content: Added")
+            
+            if changes:
+                change_desc = "; ".join(changes)
+                db.add_to_edit_history(entry_id, change_desc)
         
         # Update the existing communication
         db.update_entry(entry_id, comm_data)
@@ -1215,17 +1286,6 @@ def edit_communication(client_id, entry_id):
     # - "Next" (newer) is at lower index (further up the list)
     prev_comm_id = dated_communications[current_index + 1]['id'] if current_index is not None and current_index < len(dated_communications) - 1 else None
     next_comm_id = dated_communications[current_index - 1]['id'] if current_index and current_index > 0 else None
-
-    # DEBUG: Print navigation info
-    print(f"\n=== COMMUNICATION NAVIGATION DEBUG ===")
-    print(f"Current entry_id: {entry_id}")
-    print(f"Current index: {current_index}")
-    print(f"Total dated communications: {len(dated_communications)}")
-    print(f"All comm IDs in order: {[c['id'] for c in dated_communications]}")
-    print(f"All comm dates: {[c['comm_date'] for c in dated_communications]}")
-    print(f"Previous comm_id (older): {prev_comm_id}")
-    print(f"Next comm_id (newer): {next_comm_id}")
-    print(f"=====================================\n")
     
     # Parse communication date into year, month, day for dropdowns
     from datetime import datetime
@@ -1322,6 +1382,9 @@ def edit_absence(client_id, entry_id):
         return "Absence not found", 404
     
     if request.method == 'POST':
+        # Get the old absence data for comparison
+        old_absence = absence.copy()
+        
         # Convert date string to Unix timestamp
         absence_date_str = request.form.get('absence_date')
         absence_date_timestamp = None
@@ -1335,16 +1398,96 @@ def edit_absence(client_id, entry_id):
             'description': request.form['description'],
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_price': float(request.form.get('base_price', 0)),  # CHANGED
-            'tax_rate': float(request.form.get('tax_rate', 0)),      # CHANGED
+            'base_price': float(request.form.get('base_price', 0)),
+            'tax_rate': float(request.form.get('tax_rate', 0)),
             'fee': float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
         
+        # Check if entry is locked - if so, log changes to edit history
+        if db.is_entry_locked(entry_id):
+            changes = []
+            
+            # Description
+            if old_absence.get('description') != absence_data.get('description'):
+                changes.append(f"Description: {old_absence.get('description')} → {absence_data.get('description')}")
+            
+            # Date
+            if old_absence.get('absence_date') != absence_date_timestamp:
+                from datetime import datetime
+                old_date = datetime.fromtimestamp(old_absence['absence_date']).strftime('%Y-%m-%d') if old_absence.get('absence_date') else 'None'
+                new_date = datetime.fromtimestamp(absence_date_timestamp).strftime('%Y-%m-%d') if absence_date_timestamp else 'None'
+                changes.append(f"Date: {old_date} → {new_date}")
+            
+            # Time
+            if old_absence.get('absence_time') != absence_data.get('absence_time'):
+                old_time = old_absence.get('absence_time') or 'None'
+                new_time = absence_data.get('absence_time') or 'None'
+                changes.append(f"Time: {old_time} → {new_time}")
+            
+            # Fee breakdown
+            if old_absence.get('base_price') != absence_data.get('base_price'):
+                old_base = old_absence.get('base_price')
+                new_base = absence_data.get('base_price')
+                old_str = f"${old_base:.2f}" if old_base is not None else "None"
+                new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                changes.append(f"Base Price: {old_str} → {new_str}")
+            
+            if old_absence.get('tax_rate') != absence_data.get('tax_rate'):
+                old_tax = old_absence.get('tax_rate')
+                new_tax = absence_data.get('tax_rate')
+                old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
+                new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
+                changes.append(f"Tax Rate: {old_str} → {new_str}")
+            
+            if old_absence.get('fee') != absence_data.get('fee'):
+                old_fee = old_absence.get('fee')
+                new_fee = absence_data.get('fee')
+                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
+                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                changes.append(f"Total Fee: {old_str} → {new_str}")
+            
+            # Content
+            if old_absence.get('content') != absence_data.get('content'):
+                old_content = old_absence.get('content') or ''
+                new_content = absence_data.get('content') or ''
+                
+                if old_content and new_content:
+                    # Find first difference
+                    diff_start = 0
+                    for i in range(min(len(old_content), len(new_content))):
+                        if old_content[i] != new_content[i]:
+                            diff_start = i
+                            break
+                    
+                    # Show context around the change
+                    context_start = max(0, diff_start - 25)
+                    context_end = min(len(old_content), diff_start + 75)
+                    
+                    old_snippet = old_content[context_start:context_end]
+                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    
+                    # Add ellipsis if truncated
+                    if context_start > 0:
+                        old_snippet = '...' + old_snippet
+                        new_snippet = '...' + new_snippet
+                    if context_end < len(old_content):
+                        old_snippet = old_snippet + '...'
+                    if context_start + 100 < len(new_content):
+                        new_snippet = new_snippet + '...'
+                    
+                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                elif old_content:
+                    changes.append("Content: Cleared")
+                else:
+                    changes.append("Content: Added")
+            
+            if changes:
+                change_desc = "; ".join(changes)
+                db.add_to_edit_history(entry_id, change_desc)
+        
         # Save updated absence
         db.update_entry(entry_id, absence_data)
-        
-        # TODO: Handle link_entry checkbox when linking is implemented
         
         return redirect(url_for('client_file', client_id=client_id))
     
@@ -1433,6 +1576,9 @@ def edit_item(client_id, entry_id):
         return "Item not found", 404
     
     if request.method == 'POST':
+        # Get the old item data for comparison
+        old_item = item.copy()
+        
         # Convert date string to Unix timestamp (optional for items)
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
@@ -1448,14 +1594,94 @@ def edit_item(client_id, entry_id):
             'item_time': request.form.get('item_time', ''),
             'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
             'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
-            'fee': float(request.form.get('total_price', 0)),  # Total price = fee
+            'fee': float(request.form.get('total_price', 0)),
             'content': request.form.get('content', '')
         }
         
+        # Check if entry is locked - if so, log changes to edit history
+        if db.is_entry_locked(entry_id):
+            changes = []
+            
+            # Description
+            if old_item.get('description') != item_data.get('description'):
+                changes.append(f"Description: {old_item.get('description')} → {item_data.get('description')}")
+            
+            # Date
+            if old_item.get('item_date') != item_date_timestamp:
+                from datetime import datetime
+                old_date = datetime.fromtimestamp(old_item['item_date']).strftime('%Y-%m-%d') if old_item.get('item_date') else 'None'
+                new_date = datetime.fromtimestamp(item_date_timestamp).strftime('%Y-%m-%d') if item_date_timestamp else 'None'
+                changes.append(f"Date: {old_date} → {new_date}")
+            
+            # Time
+            if old_item.get('item_time') != item_data.get('item_time'):
+                old_time = old_item.get('item_time') or 'None'
+                new_time = item_data.get('item_time') or 'None'
+                changes.append(f"Time: {old_time} → {new_time}")
+            
+            # Fee breakdown
+            if old_item.get('base_price') != item_data.get('base_price'):
+                old_base = old_item.get('base_price')
+                new_base = item_data.get('base_price')
+                old_str = f"${old_base:.2f}" if old_base is not None else "None"
+                new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                changes.append(f"Base Price: {old_str} → {new_str}")
+            
+            if old_item.get('tax_rate') != item_data.get('tax_rate'):
+                old_tax = old_item.get('tax_rate')
+                new_tax = item_data.get('tax_rate')
+                old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
+                new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
+                changes.append(f"Tax Rate: {old_str} → {new_str}")
+            
+            if old_item.get('fee') != item_data.get('fee'):
+                old_fee = old_item.get('fee')
+                new_fee = item_data.get('fee')
+                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
+                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                changes.append(f"Total Fee: {old_str} → {new_str}")
+            
+            # Content
+            if old_item.get('content') != item_data.get('content'):
+                old_content = old_item.get('content') or ''
+                new_content = item_data.get('content') or ''
+                
+                if old_content and new_content:
+                    # Find first difference
+                    diff_start = 0
+                    for i in range(min(len(old_content), len(new_content))):
+                        if old_content[i] != new_content[i]:
+                            diff_start = i
+                            break
+                    
+                    # Show context around the change
+                    context_start = max(0, diff_start - 25)
+                    context_end = min(len(old_content), diff_start + 75)
+                    
+                    old_snippet = old_content[context_start:context_end]
+                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    
+                    # Add ellipsis if truncated
+                    if context_start > 0:
+                        old_snippet = '...' + old_snippet
+                        new_snippet = '...' + new_snippet
+                    if context_end < len(old_content):
+                        old_snippet = old_snippet + '...'
+                    if context_start + 100 < len(new_content):
+                        new_snippet = new_snippet + '...'
+                    
+                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                elif old_content:
+                    changes.append("Content: Cleared")
+                else:
+                    changes.append("Content: Added")
+            
+            if changes:
+                change_desc = "; ".join(changes)
+                db.add_to_edit_history(entry_id, change_desc)
+        
         # Save updated item
         db.update_entry(entry_id, item_data)
-        
-        # TODO: Handle link_entry checkbox when linking is implemented
         
         return redirect(url_for('client_file', client_id=client_id))
     
