@@ -166,11 +166,12 @@ class Database:
             )
         """)
         
-        # Link Groups (for couples/family/group therapy - has format field)
+        # Link Groups (for couples/family/group therapy - WITH session_duration)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS link_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 format TEXT,
+                session_duration INTEGER,
                 created_at INTEGER NOT NULL
             )
         """)
