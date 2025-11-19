@@ -132,46 +132,53 @@
             </div>
         </div>
         
-        <!-- Duration and Fee -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="duration">Duration (minutes) *</label>
-                <input type="number" id="duration" name="duration" 
-                    value="{% if is_edit %}{{ session.duration }}{% else %}{{ client_type.session_duration or 50 }}{% endif %}" min="1" required>
-            </div>
+        <!-- Session Fee -->
+        <div class="section-divider"></div>
+        <h3 class="section-heading">Session Fee</h3>
+        
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <span id="fee-source" style="font-size: 0.875rem; color: #718096;">Source: Client Type</span>
         </div>
 
-        <!-- Fee Breakdown (Editable with three-way calculation) -->
-        <div style="background: #F7FAFC; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin: 0; font-size: 1rem; color: #2D3748;">Session Fee</h3>
-                <span id="fee-source" style="font-size: 0.875rem; color: #718096;">Source: Client Type</span>
+        <div class="fee-grid">
+            <div class="fee-field">
+                <label for="base_fee">Base Price</label>
+                <input type="number" id="base_fee" name="base_fee" 
+                    step="0.01" min="0"
+                    value="{% if is_edit %}{{ '%.2f'|format(session.base_fee if session.base_fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_base or 0) }}{% endif %}"
+                    placeholder="100.00">
+                <small>Before tax</small>
             </div>
             
-            <div class="form-row-thirds">
-                <div class="form-group">
-                    <label for="base_fee">Base Fee</label>
-                    <input type="number" id="base_fee" name="base_fee" step="0.01" 
-                        value="{% if is_edit %}{{ '%.2f'|format(session.base_fee if session.base_fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_base or 0) }}{% endif %}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="tax_rate">Tax Rate (%)</label>
-                    <input type="number" id="tax_rate" name="tax_rate" step="0.01" 
-                        value="{% if is_edit %}{{ '%.2f'|format(session.tax_rate if session.tax_rate is not none else 0) }}{% else %}{{ '%.2f'|format(default_tax_rate or 0) }}{% endif %}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="fee">Total Fee</label>
-                    <input type="number" id="fee" name="fee" step="0.01" 
-                        value="{% if is_edit %}{{ '%.2f'|format(session.fee if session.fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_total or 0) }}{% endif %}" 
-                        style="font-weight: 600;">
-                </div>
+            <div class="fee-field">
+                <label for="tax_rate">Tax Rate</label>
+                <input type="number" id="tax_rate" name="tax_rate" 
+                    step="0.01" min="0" max="100"
+                    value="{% if is_edit %}{{ '%.2f'|format(session.tax_rate if session.tax_rate is not none else 0) }}{% else %}{{ '%.2f'|format(default_tax_rate or 0) }}{% endif %}"
+                    placeholder="13.00">
+                <small>Percentage (%)</small>
             </div>
             
-            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #718096;">
-                💡 Fees auto-populate from format selection but can be manually adjusted. Edit any two fields and the third will calculate automatically.
-            </p>
+            <div class="fee-field">
+                <label for="fee">Total</label>
+                <input type="number" id="fee" name="fee" 
+                    step="0.01" min="0"
+                    value="{% if is_edit %}{{ '%.2f'|format(session.fee if session.fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_total or 0) }}{% endif %}" 
+                    placeholder="113.00">
+                <small>With tax</small>
+            </div>
+        </div>
+        <p class="help-text">Fees auto-populate from format selection but can be adjusted. Fill any two fields and the third calculates automatically.</p>
+
+        <!-- Duration -->
+        <div class="form-row-full" style="margin-top: 1rem;">
+            <div class="form-group">
+                <label for="duration">Session Duration (minutes) *</label>
+                <input type="number" id="duration" name="duration" 
+                    step="5" min="1" required
+                    value="{% if is_edit %}{{ session.duration }}{% else %}{{ client_type.session_duration or 50 }}{% endif %}"
+                    placeholder="50">
+            </div>
         </div>
         
         <!-- Clinical assessments -->
