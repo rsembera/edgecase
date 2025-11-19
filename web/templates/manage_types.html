@@ -160,7 +160,7 @@
     <div class="header-row">
         <div>
             <h2>Client Types</h2>
-            <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types, session fees, and retention periods</p>
+            <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types for filtering and organization</p>
         </div>
         <a href="{{ url_for('add_type') }}" class="btn-add">+ Type</a>
     </div>
@@ -198,15 +198,13 @@
     </small>
     
     <!-- Editable therapy types -->
-    <div class="section-header">Client Types</div>
+    <div class="section-header">Custom Types</div>
     <table>
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Color</th>
-                <th>Service</th>
-                <th>Fee</th>
-                <th>Duration</th>
+                <th>Colour</th>
+                <th style="text-align: center;">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -220,15 +218,15 @@
                         {{ type.color_name or type.color }}
                     </span>
                 </td>
-                <td>{{ type.service_description or '-' }}</td>
-                <td>${{ '%.2f'|format(type.session_fee) if type.session_fee else '0.00' }}</td>
-                <td>{{ type.session_duration or 0 }} min</td>
+                <td style="text-align: center;">
+                    <span class="locked-indicator" style="background: #D1FAE5; color: #065F46;">✓ EDITABLE</span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     <small style="color: #5B6571; display: block; margin-top: 0.5rem;">
-        Click any row to edit. All therapy types can be customized or deleted (if no clients assigned).
+        Click any row to edit. Custom types can be renamed, recoloured, or deleted (if no clients assigned).
     </small>
     
     <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>

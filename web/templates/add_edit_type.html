@@ -9,6 +9,7 @@
 {% block content %}
 <div class="card">
     <h2>{{ 'Edit' if type else 'Add' }} Client Type</h2>
+    <p style="color: #5B6571; margin-top: 0.5rem;">Client types are for filtering and organizing your client list</p>
 
     {% if error %}
     <div style="background: #FEE2E2; border: 2px solid #EF4444; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
@@ -27,12 +28,12 @@
                    maxlength="9" required
                    placeholder="Max 9 characters">
             <small style="color: #5B6571; display: block; margin-top: 0.25rem;">
-                Keep it short for clean badge display (e.g., "Active", "Low Fee", "Assess")
+                Keep it short for clean badge display (e.g., "Active", "Reduced", "Waitlist")
             </small>
         </div>
         
         <div class="form-group">
-            <label>Color</label>
+            <label>Colour</label>
             <div class="color-picker">
                 {% for color in colors %}
                 <div class="color-option {% if type and type.color == color.hex %}selected{% endif %}" 
@@ -52,61 +53,6 @@
         </div>
         
         <div class="form-group">
-            <label for="service_description">Service Description</label>
-            <input type="text" id="service_description" name="service_description" 
-                   value="{{ type.service_description if type else '' }}"
-                   placeholder="e.g., Psychotherapy, Assessment, Counseling"
-                   required>
-        </div>
-        
-        <div class="form-group">
-            <label style="font-weight: 600; color: #374151; margin-bottom: 0.75rem; display: block;">Session Fee</label>
-            <div class="fee-grid">
-                <div class="fee-field">
-                    <label for="session_base_price">Base Price</label>
-                    <input type="number" id="session_base_price" name="session_base_price" 
-                           step="0.01" min="0"
-                           value="{{ '%.2f' | format(type.session_base_price) if type and type.session_base_price else '' }}"
-                           placeholder="100.00"
-                           required>
-                    <small>Before tax</small>
-                </div>
-                
-                <div class="fee-field">
-                    <label for="session_tax_rate">Tax Rate</label>
-                    <input type="number" id="session_tax_rate" name="session_tax_rate" 
-                           step="0.01" min="0" max="100"
-                           value="{{ '%.2f' | format(type.session_tax_rate) if type and type.session_tax_rate else '' }}"
-                           placeholder="13.00"
-                           required>
-                    <small>Percentage (%)</small>
-                </div>
-                
-                <div class="fee-field">
-                    <label for="session_total">Total</label>
-                    <input type="number" id="session_total" name="session_total" 
-                           step="0.01" min="0"
-                           value="{{ '%.2f' | format(type.session_fee) if type and type.session_fee else '' }}"
-                           placeholder="113.00"
-                           required>
-                    <small>With tax</small>
-                </div>
-            </div>
-            <div class="helper-text">
-                Fill any two fields and the third calculates automatically
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label for="session_duration">Session Duration (minutes)</label>
-            <input type="number" id="session_duration" name="session_duration" 
-                   min="5" step="5"
-                   value="{{ type.session_duration if type else '' }}"
-                   placeholder="50"
-                   required>
-        </div>
-        
-        <div class="form-group">
             <label for="retention_value">Retention Period</label>
             <div style="display: flex; gap: 0.5rem;">
                 <input type="number" id="retention_value" name="retention_value" 
@@ -121,7 +67,7 @@
                 </select>
             </div>
             <small style="color: #5B6571; display: block; margin-top: 0.25rem;">
-                How long to keep inactive client records (e.g., 12 months, 1 year)
+                How long to keep inactive client records (e.g., 12 months, 7 years)
             </small>
         </div>
         
