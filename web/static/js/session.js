@@ -68,6 +68,11 @@ function updateFeesForFormat(format) {
         if (feeSources.linkGroups && feeSources.linkGroups[format]) {
             fees = feeSources.linkGroups[format];
             source = `Link Group (${format.charAt(0).toUpperCase() + format.slice(1)})`;
+            
+            // Also set duration from link group
+            if (feeSources.linkGroups[format].duration) {
+                durationInput.value = feeSources.linkGroups[format].duration;
+            }
         } else {
             // No link group found - show modal
             const formatName = format.charAt(0).toUpperCase() + format.slice(1);

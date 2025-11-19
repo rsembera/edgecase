@@ -742,19 +742,20 @@ def create_session(client_id):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format, lg.session_duration
         FROM client_links cl
         JOIN link_groups lg ON cl.group_id = lg.id
         WHERE cl.client_id_1 = ?
     """, (client_id,))
-    
+
     for row in cursor.fetchall():
         format_type = row['format']
         if format_type:  # Only if format is set
             link_group_fees[format_type] = {
                 'base': row['member_base_fee'] or 0,
                 'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0
+                'total': row['member_total_fee'] or 0,
+                'duration': row['session_duration'] or 50
             }
     
     conn.close()
@@ -1029,19 +1030,20 @@ def edit_session(client_id, entry_id):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format, lg.session_duration
         FROM client_links cl
         JOIN link_groups lg ON cl.group_id = lg.id
         WHERE cl.client_id_1 = ?
     """, (client_id,))
-    
+
     for row in cursor.fetchall():
         format_type = row['format']
-        if format_type:
+        if format_type:  # Only if format is set
             link_group_fees[format_type] = {
                 'base': row['member_base_fee'] or 0,
                 'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0
+                'total': row['member_total_fee'] or 0,
+                'duration': row['session_duration'] or 50
             }
     
     conn.close()
