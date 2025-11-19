@@ -177,7 +177,7 @@
         color: #323B45;
     }
     
-    /* Session/Consultation badges */
+   /* Session/Consultation badges */
     .session-badge {
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
@@ -193,6 +193,11 @@
     .session-badge.session {
         background: #CFE7DA;
         color: #0E5346;
+    }
+    
+    .session-badge.draft {
+        background: #FED7D7;
+        color: #C53030;
     }
     
     /* Links */
