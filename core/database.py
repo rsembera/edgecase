@@ -28,7 +28,10 @@ class Database:
         
     def connect(self):
         """Create and return database connection."""
-        return sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        # Enable WAL mode for better concurrent access
+        conn.execute('PRAGMA journal_mode=WAL')
+        return conn
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
@@ -189,8 +192,7 @@ class Database:
                 created_at INTEGER NOT NULL,
                 FOREIGN KEY (client_id_1) REFERENCES clients(id),
                 FOREIGN KEY (client_id_2) REFERENCES clients(id),
-                FOREIGN KEY (group_id) REFERENCES link_groups(id),
-                UNIQUE(client_id_1, client_id_2)
+                FOREIGN KEY (group_id) REFERENCES link_groups(id)
             )
         """)
         
@@ -661,37 +663,6 @@ class Database:
     
     # ===== CLIENT LINKING OPERATIONS =====
     
-    def _get_existing_group_for_clients(self, client_ids: List[int]) -> Optional[int]:
-        """Check if exact same set of clients already exists in a link group.
-        
-        Args:
-            client_ids: List of client IDs to check
-        
-        Returns:
-            group_id if exact match found, None otherwise
-        """
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # Get all link groups
-        cursor.execute("SELECT DISTINCT group_id FROM client_links")
-        group_ids = [row[0] for row in cursor.fetchall()]
-        
-        # Check each group
-        for group_id in group_ids:
-            cursor.execute("""
-                SELECT client_id_1 FROM client_links WHERE group_id = ?
-            """, (group_id,))
-            
-            group_client_ids = sorted([row[0] for row in cursor.fetchall()])
-            
-            if sorted(client_ids) == group_client_ids:
-                conn.close()
-                return group_id
-        
-        conn.close()
-        return None
-    
     def create_link_group(self, client_ids: List[int], format: str, session_duration: int, member_fees: Dict[int, Dict[str, float]]) -> int:
         """Create a new link group.
         
@@ -704,14 +675,25 @@ class Database:
         Returns:
             Link group ID
         """
-        # Check for duplicate group
-        existing_group = self._get_existing_group_for_clients(client_ids)
-        if existing_group:
-            raise ValueError(f"Identical link already exists.")
-        
         conn = self.connect()
         cursor = conn.cursor()
         now = int(time.time())
+        
+        # Check for duplicate group - simpler approach
+        # Get all groups and their members in one query
+        cursor.execute("""
+            SELECT group_id, GROUP_CONCAT(client_id_1) as members
+            FROM client_links
+            GROUP BY group_id
+        """)
+        
+        sorted_new_ids = ','.join(map(str, sorted(client_ids)))
+        
+        for row in cursor.fetchall():
+            existing_members = ','.join(map(str, sorted(map(int, row[1].split(',')))))
+            if sorted_new_ids == existing_members:
+                conn.close()
+                raise ValueError("Link duplicates an existing arrangement. Please edit or delete the existing link.")
         
         # Create link group with format and duration
         cursor.execute("""
@@ -739,7 +721,7 @@ class Database:
         conn.close()
         
         return group_id
-    
+
     def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
         """Get link group with all member details and fees.
         

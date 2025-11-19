@@ -7,6 +7,7 @@ Main web interface for EdgeCase Equalizer
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pathlib import Path
 import sys, sqlite3
+import time
 
 # Add parent directory to path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -2091,19 +2092,26 @@ def add_link_group():
         session_duration = int(data.get('session_duration', 50))
 
         # Create link group with format, duration, and member fees
-        try:
-            group_id = db.create_link_group(
-                client_ids=data['client_ids'],
-                format=data['format'],
-                session_duration=session_duration,
-                member_fees=data['member_fees']
-            )
-            return '', 204
-            
-        except sqlite3.IntegrityError:
-            return 'Database error. Please try again.', 400
-        except ValueError as e:
-            return str(e), 400
+        # Retry once if database is locked
+        for attempt in range(2):
+            try:
+                group_id = db.create_link_group(
+                    client_ids=data['client_ids'],
+                    format=data['format'],
+                    session_duration=session_duration,
+                    member_fees=data['member_fees']
+                )
+                return '', 204
+                
+            except sqlite3.OperationalError as e:
+                if attempt == 0:
+                    time.sleep(0.1)  # Wait 100ms and retry
+                    continue
+                return 'Database is temporarily locked. Please try again.', 503
+            except sqlite3.IntegrityError as e:
+                return f'Database error: {str(e)}', 400
+            except ValueError as e:
+                return str(e), 400
     
     # GET: Show the form - exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
