@@ -155,10 +155,10 @@ function updateMemberFees() {
                 defaultTotal = client.type.session_fee || 0;
             }
         } else {
-            // Creating new: use client type defaults
-            defaultBase = client.type.session_base_price || 0;
-            defaultTax = client.type.session_tax_rate || 0;
-            defaultTotal = client.type.session_fee || 0;
+            // Creating new: use Profile individual session fees
+            defaultBase = client.profile_base_fee || 0;
+            defaultTax = client.profile_tax_rate || 0;
+            defaultTotal = client.profile_total_fee || 0;
         }
         
         return `
