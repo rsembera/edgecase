@@ -130,27 +130,13 @@
                 Supports Markdown formatting
             </div>
         </div>
-        
-        <!-- Link Toggle (only show if client has links) -->
-        {% if has_links %}
-        <div class="form-group">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="checkbox" 
-                       name="link_entry" 
-                       value="1"
-                       {% if entry and entry.is_linked %}checked{% endif %}
-                       style="width: auto; margin-right: 0.5rem;">
-                <span>Create copy in linked client files</span>
-            </label>
-            <div class="helper-text">
-                This client is linked to: {{ linked_clients|join(', ') }}
-            </div>
-        </div>
+
+        <!-- Edit History (only in edit mode) -->
+        {% if is_edit %}
+            {% include 'components/edit_history.html' %}
         {% endif %}
 
     </form>
-
-    </form> <!-- CLOSE FORM HERE -->
     
     <!-- Navigation buttons OUTSIDE the form -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
@@ -178,7 +164,5 @@
     </div>
 
 </div>
-
-
 
 {% endblock %}

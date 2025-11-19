@@ -46,13 +46,56 @@ COLOR_PALETTE = [
     {'hex': '#E1BEE7', 'name': 'Soft Mauve', 'bubble': '#F7EFF9'},
 ]
 
+def parse_time_to_seconds(time_str):
+    """
+    Parse various time formats into seconds since midnight for sorting.
+    Supports: "2:00 PM", "2:00 p.m.", "2:00pm", "14:00", "2 PM", "2pm", "14:30", "1:00" (assumes AM), etc.
+    Returns None if parsing fails.
+    """
+    if not time_str or not isinstance(time_str, str):
+        return None
+    
+    # Normalize: uppercase, remove spaces and periods
+    time_str = time_str.strip().upper().replace('.', '').replace(' ', '')
+    
+    try:
+        # Check for AM/PM
+        is_pm = 'PM' in time_str
+        is_am = 'AM' in time_str
+        
+        # Remove AM/PM markers
+        time_str = time_str.replace('AM', '').replace('PM', '')
+        
+        # Split hours and minutes
+        if ':' in time_str:
+            parts = time_str.split(':')
+            hours = int(parts[0])
+            minutes = int(parts[1]) if len(parts) > 1 else 0
+        else:
+            hours = int(time_str)
+            minutes = 0
+        
+        # Convert to 24-hour format
+        if is_pm and hours != 12:
+            hours += 12
+        elif is_am and hours == 12:
+            hours = 0
+        # If no AM/PM and time is 1-11, assume it's meant as entered (ambiguous)
+        # If no AM/PM and time is 12-23, treat as 24-hour format
+        
+        return hours * 3600 + minutes * 60
+            
+    except (ValueError, IndexError):
+        # If parsing fails, return None (will sort with no-time entries)
+        return None
+
 @app.template_filter('timestamp_to_date')
 def timestamp_to_date(timestamp):
     """Convert Unix timestamp to readable date."""
     if not timestamp:
         return '-'
     from datetime import datetime
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %I:%M %p')
+    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
 
 
 # ===== ROUTES =====
@@ -325,7 +368,6 @@ def client_file(client_id):
             })
     
     conn.close()
-    # ===== END NEW =====
     
     # Get ALL entries for this client (not just sessions)
     all_entries = db.get_client_entries(client_id)
@@ -394,20 +436,46 @@ def client_file(client_id):
         year_total = 0
         
         for month in sorted(year_dict[year].keys(), reverse=True):  # Most recent month first
-            # Sort entries by their respective date fields
-            def get_entry_date(e):
+            # Sort entries by date, then manual time (if exists), then created_at
+            def get_entry_sort_key(e):
+                # Primary sort: date field
+                date_val = 0
                 if e['class'] == 'session':
-                    return e.get('session_date', 0)
+                    date_val = e.get('session_date', 0)
                 elif e['class'] == 'communication':
-                    return e.get('comm_date', 0)
+                    date_val = e.get('comm_date', 0)
                 elif e['class'] == 'absence':
-                    return e.get('absence_date', 0)
+                    date_val = e.get('absence_date', 0)
                 elif e['class'] == 'item':
-                    return e.get('item_date', 0)
-                return 0
+                    date_val = e.get('item_date', 0)
+                
+                # Secondary sort: manual time (if provided)
+                time_val = None
+                time_str = None
+                
+                if e['class'] == 'session':
+                    time_str = e.get('session_time')
+                elif e['class'] == 'communication':
+                    time_str = e.get('comm_time')
+                elif e['class'] == 'absence':
+                    time_str = e.get('absence_time')
+                elif e['class'] == 'item':
+                    time_str = e.get('item_time')
+                
+                if time_str:
+                    time_val = parse_time_to_seconds(time_str)
+                
+                # Tertiary sort: created_at
+                created_val = e.get('created_at', 0)
+                
+                # Return tuple: entries with time sort before entries without
+                if time_val is not None:
+                    return (date_val, 0, time_val, created_val)  # 0 ensures times sort first
+                else:
+                    return (date_val, 1, 0, created_val)  # 1 ensures no-time entries sort after
             
             month_entries = sorted(year_dict[year][month], 
-                                 key=get_entry_date, 
+                                 key=get_entry_sort_key, 
                                  reverse=True)
             
             month_name = datetime(year, month, 1).strftime('%B')
@@ -1150,10 +1218,6 @@ def create_communication(client_id):
     today_month = today_dt.month
     today_day = today_dt.day
 
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
-
     return render_template('entry_forms/communication.html',
                         client=client,
                         client_type=client_type,
@@ -1161,9 +1225,7 @@ def create_communication(client_id):
                         today_year=today_year,
                         today_month=today_month,
                         today_day=today_day,
-                        is_edit=False,
-                        has_links=has_links,
-                        linked_clients=linked_clients)
+                        is_edit=False)
 
 @app.route('/client/<int:client_id>/communication/<int:entry_id>', methods=['GET', 'POST'])
 def edit_communication(client_id, entry_id):
@@ -1205,11 +1267,43 @@ def edit_communication(client_id, entry_id):
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
+            import difflib
             changes = []
             
-            # Description
+            # Description (with smart word-level diff)
             if old_comm.get('description') != comm_data.get('description'):
-                changes.append(f"Description: {old_comm.get('description')} → {comm_data.get('description')}")
+                old_desc = old_comm.get('description') or ''
+                new_desc = comm_data.get('description') or ''
+                
+                if old_desc and new_desc:
+                    # Split into words for word-level diff
+                    old_words = old_desc.split()
+                    new_words = new_desc.split()
+                    
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
+                    
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
+                    
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
+                    
+                    changes.append(f"Description: {diff_text}")
+                elif old_desc:
+                    changes.append("Description: Cleared")
+                else:
+                    changes.append("Description: Added")
             
             # Recipient
             if old_comm.get('comm_recipient') != comm_data.get('comm_recipient'):
@@ -1232,36 +1326,36 @@ def edit_communication(client_id, entry_id):
                 new_time = comm_data.get('comm_time') or 'None'
                 changes.append(f"Time: {old_time} → {new_time}")
             
-            # Content (with smart truncated diff)
+            # Content (with smart word-level diff)
             if old_comm.get('content') != comm_data.get('content'):
                 old_content = old_comm.get('content') or ''
                 new_content = comm_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Find first difference
-                    diff_start = 0
-                    for i in range(min(len(old_content), len(new_content))):
-                        if old_content[i] != new_content[i]:
-                            diff_start = i
-                            break
+                    # Split into words for word-level diff
+                    old_words = old_content.split()
+                    new_words = new_content.split()
                     
-                    # Show context around the change
-                    context_start = max(0, diff_start - 25)
-                    context_end = min(len(old_content), diff_start + 75)
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
                     
-                    old_snippet = old_content[context_start:context_end]
-                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
                     
-                    # Add ellipsis if truncated
-                    if context_start > 0:
-                        old_snippet = '...' + old_snippet
-                        new_snippet = '...' + new_snippet
-                    if context_end < len(old_content):
-                        old_snippet = old_snippet + '...'
-                    if context_start + 100 < len(new_content):
-                        new_snippet = new_snippet + '...'
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
                     
-                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                    changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
                 else:
@@ -1310,19 +1404,25 @@ def edit_communication(client_id, entry_id):
         comm_month = comm_dt.month
         comm_day = comm_dt.day
     
+    # Get lock status and edit history
+    is_locked = db.is_entry_locked(entry_id)
+    edit_history = db.get_edit_history(entry_id) if is_locked else []
+    
     return render_template('entry_forms/communication.html',
                         client=client,
                         client_type=client_type,
-                        entry=communication,  # Changed from 'entry'
+                        entry=communication,
                         comm_year=comm_year,
                         comm_month=comm_month,
                         comm_day=comm_day,
-                        comm_time=communication.get('comm_time', ''),  # Added
-                        description=communication.get('description', ''),  # Added
-                        comm_recipient=communication.get('comm_recipient', ''),  # Added
-                        comm_type=communication.get('comm_type', ''),  # Added
-                        content=communication.get('content', ''),  # Added
+                        comm_time=communication.get('comm_time', ''),
+                        description=communication.get('description', ''),
+                        comm_recipient=communication.get('comm_recipient', ''),
+                        comm_type=communication.get('comm_type', ''),
+                        content=communication.get('content', ''),
                         is_edit=True,
+                        is_locked=is_locked,
+                        edit_history=edit_history,
                         prev_comm_id=prev_comm_id,
                         next_comm_id=next_comm_id)
     
@@ -1369,16 +1469,10 @@ def create_absence(client_id):
     from datetime import date
     today = date.today().strftime('%Y-%m-%d')
     
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
-    
     return render_template('entry_forms/absence.html',
                          client=client,
                          client_type=client_type,
-                         today=today,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
+                         today=today)
 
 @app.route('/client/<int:client_id>/absence/<int:entry_id>', methods=['GET', 'POST'])
 def edit_absence(client_id, entry_id):
@@ -1418,11 +1512,43 @@ def edit_absence(client_id, entry_id):
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
+            import difflib
             changes = []
             
-            # Description
+            # Description (with smart word-level diff)
             if old_absence.get('description') != absence_data.get('description'):
-                changes.append(f"Description: {old_absence.get('description')} → {absence_data.get('description')}")
+                old_desc = old_absence.get('description') or ''
+                new_desc = absence_data.get('description') or ''
+                
+                if old_desc and new_desc:
+                    # Split into words for word-level diff
+                    old_words = old_desc.split()
+                    new_words = new_desc.split()
+                    
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
+                    
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
+                    
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
+                    
+                    changes.append(f"Description: {diff_text}")
+                elif old_desc:
+                    changes.append("Description: Cleared")
+                else:
+                    changes.append("Description: Added")
             
             # Date
             if old_absence.get('absence_date') != absence_date_timestamp:
@@ -1459,36 +1585,36 @@ def edit_absence(client_id, entry_id):
                 new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
                 changes.append(f"Total Fee: {old_str} → {new_str}")
             
-            # Content
+            # Content (with smart word-level diff)
             if old_absence.get('content') != absence_data.get('content'):
                 old_content = old_absence.get('content') or ''
                 new_content = absence_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Find first difference
-                    diff_start = 0
-                    for i in range(min(len(old_content), len(new_content))):
-                        if old_content[i] != new_content[i]:
-                            diff_start = i
-                            break
+                    # Split into words for word-level diff
+                    old_words = old_content.split()
+                    new_words = new_content.split()
                     
-                    # Show context around the change
-                    context_start = max(0, diff_start - 25)
-                    context_end = min(len(old_content), diff_start + 75)
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
                     
-                    old_snippet = old_content[context_start:context_end]
-                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
                     
-                    # Add ellipsis if truncated
-                    if context_start > 0:
-                        old_snippet = '...' + old_snippet
-                        new_snippet = '...' + new_snippet
-                    if context_end < len(old_content):
-                        old_snippet = old_snippet + '...'
-                    if context_start + 100 < len(new_content):
-                        new_snippet = new_snippet + '...'
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
                     
-                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                    changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
                 else:
@@ -1508,71 +1634,87 @@ def edit_absence(client_id, entry_id):
     from datetime import datetime
     absence_date = datetime.fromtimestamp(absence['absence_date']).strftime('%Y-%m-%d') if absence.get('absence_date') else None
     
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
+    # Get lock status and edit history
+    is_locked = db.is_entry_locked(entry_id)
+    edit_history = db.get_edit_history(entry_id) if is_locked else []
     
     return render_template('entry_forms/absence.html',
                          client=client,
                          client_type=client_type,
                          entry=absence,
                          absence_date=absence_date,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
-
+                         is_edit=True,
+                         is_locked=is_locked,
+                         edit_history=edit_history)
+    
 @app.route('/client/<int:client_id>/item', methods=['GET', 'POST'])
 def create_item(client_id):
     """Create a new item entry for a client."""
+    import time
+    from datetime import datetime
+    
+    # Get client info
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
     
+    # Get client type
     client_type = db.get_client_type(client['type_id'])
     
     if request.method == 'POST':
-        # Convert date string to Unix timestamp (optional for items)
-        item_date_str = request.form.get('item_date')
-        item_date_timestamp = None
-        if item_date_str:
-            from datetime import datetime
-            date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
-            item_date_timestamp = int(date_obj.timestamp())
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
         
-        # Prepare item data
+        item_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            item_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Get form data
         item_data = {
             'client_id': client_id,
             'class': 'item',
+            'created_at': int(time.time()),
+            'modified_at': int(time.time()),
+            
+            # Item fields
             'description': request.form['description'],
             'item_date': item_date_timestamp,
-            'item_time': request.form.get('item_time', ''),
-            'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
-            'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
-            'fee': float(request.form.get('total_price', 0)),  # Total price = fee
-            'content': request.form.get('content', '')
+            'item_time': request.form.get('item_time') or None,
+            'base_price': float(request.form.get('base_price', 0)),
+            'tax_rate': float(request.form.get('tax_rate', 0)),
+            'fee': float(request.form.get('fee', 0)),
+            
+            # Content
+            'content': request.form.get('content') or None,
         }
         
-        # Save item
+        # Save item entry
         entry_id = db.add_entry(item_data)
-        db.lock_entry(entry_id)
         
-        # TODO: Handle link_entry checkbox when linking is implemented
+        # Lock entry immediately (items are always locked on creation)
+        db.lock_entry(entry_id)
         
         return redirect(url_for('client_file', client_id=client_id))
     
     # GET - show form
-    from datetime import date
-    today = date.today().strftime('%Y-%m-%d')
-    
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
+    # Get today's date for defaults
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
     
     return render_template('entry_forms/item.html',
-                         client=client,
-                         client_type=client_type,
-                         today=today,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
+                        client=client,
+                        client_type=client_type,
+                        today=today,
+                        today_year=today_year,
+                        today_month=today_month,
+                        today_day=today_day,
+                        is_edit=False)
 
 @app.route('/client/<int:client_id>/item/<int:entry_id>', methods=['GET', 'POST'])
 def edit_item(client_id, entry_id):
@@ -1702,17 +1844,11 @@ def edit_item(client_id, entry_id):
     from datetime import datetime
     item_date = datetime.fromtimestamp(item['item_date']).strftime('%Y-%m-%d') if item.get('item_date') else None
     
-    # TODO: Check if client has links
-    has_links = False
-    linked_clients = []
-    
     return render_template('entry_forms/item.html',
                          client=client,
                          client_type=client_type,
                          entry=item,
-                         item_date=item_date,
-                         has_links=has_links,
-                         linked_clients=linked_clients)
+                         item_date=item_date,)
 
 # ===== CLIENT TYPE MANAGEMENT =====
 

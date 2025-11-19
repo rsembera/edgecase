@@ -38,27 +38,35 @@ function calculateAbsenceFee(changedField) {
     }
 }
 
+// Auto-format to 2 decimal places on blur
+function formatToTwoDecimals(input) {
+    const value = parseFloat(input.value);
+    if (!isNaN(value)) {
+        input.value = value.toFixed(2);
+    }
+}
+
 dateYear.addEventListener('change', updateAbsenceDate);
 dateMonth.addEventListener('change', updateAbsenceDate);
 dateDay.addEventListener('change', updateAbsenceDate);
 
 // Auto-expanding textarea
-const textarea = document.getElementById('content');
+const contentTextarea = document.getElementById('content');
 const maxHeight = 600; // About 30-35 lines
 
 function autoResize() {
     // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
+    contentTextarea.style.height = 'auto';
     
     // Set new height, but don't exceed maxHeight
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = newHeight + 'px';
+    const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
+    contentTextarea.style.height = newHeight + 'px';
     
     // Add scrollbar if content exceeds maxHeight
-    if (textarea.scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'scroll';
+    if (contentTextarea.scrollHeight > maxHeight) {
+        contentTextarea.style.overflowY = 'scroll';
     } else {
-        textarea.style.overflowY = 'hidden';
+        contentTextarea.style.overflowY = 'hidden';
     }
 }
 
@@ -66,4 +74,4 @@ function autoResize() {
 autoResize();
 
 // Run on input
-textarea.addEventListener('input', autoResize);
+contentTextarea.addEventListener('input', autoResize);
