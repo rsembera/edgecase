@@ -449,7 +449,7 @@ def client_file(client_id):
                 elif e['class'] == 'item':
                     date_val = e.get('item_date', 0)
                 
-                # Secondary sort: manual time (if provided)
+                # Secondary sort: manual time (if provided), otherwise use created_at time
                 time_val = None
                 time_str = None
                 
@@ -465,14 +465,18 @@ def client_file(client_id):
                 if time_str:
                     time_val = parse_time_to_seconds(time_str)
                 
-                # Tertiary sort: created_at
+                # If no manual time, use the time portion of created_at timestamp
+                if time_val is None:
+                    created_timestamp = e.get('created_at', 0)
+                    # Extract time-of-day from timestamp (seconds since midnight)
+                    created_dt = datetime.fromtimestamp(created_timestamp)
+                    time_val = created_dt.hour * 3600 + created_dt.minute * 60 + created_dt.second
+                
+                # Tertiary sort: full created_at timestamp (for entries at exact same time)
                 created_val = e.get('created_at', 0)
                 
-                # Return tuple: entries with time sort before entries without
-                if time_val is not None:
-                    return (date_val, 0, time_val, created_val)  # 0 ensures times sort first
-                else:
-                    return (date_val, 1, 0, created_val)  # 1 ensures no-time entries sort after
+                # Return tuple: date, time (manual or from created_at), full timestamp
+                return (date_val, time_val, created_val)
             
             month_entries = sorted(year_dict[year][month], 
                                  key=get_entry_sort_key, 
