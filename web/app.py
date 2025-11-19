@@ -650,6 +650,7 @@ def create_session(client_id):
             # Session fields
             'modality': request.form.get('modality'),
             'format': request.form.get('format'),
+            'service': request.form.get('service') or None, 
             'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
@@ -759,6 +760,17 @@ def create_session(client_id):
                 'duration': row['session_duration'] or 50
             }
     
+    # 4. Get last session's service value for auto-population
+    cursor.execute("""
+        SELECT service FROM entries
+        WHERE client_id = ? AND class = 'session' AND service IS NOT NULL
+        ORDER BY session_date DESC, created_at DESC
+        LIMIT 1
+    """, (client_id,))
+    
+    last_service_row = cursor.fetchone()
+    last_service = last_service_row['service'] if last_service_row else None
+    
     conn.close()
 
     return render_template('entry_forms/session.html',
@@ -767,6 +779,7 @@ def create_session(client_id):
                         profile_override=profile_override,
                         profile_fees=profile_fees,
                         link_group_fees=link_group_fees,
+                        last_service=last_service,
                         today=today,
                         today_year=today_year,
                         today_month=today_month,
@@ -818,6 +831,7 @@ def edit_session(client_id, entry_id):
         session_data = {
             'modality': request.form.get('modality'),
             'format': request.form.get('format'),
+            'service': request.form.get('service') or None,
             'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
@@ -875,6 +889,12 @@ def edit_session(client_id, entry_id):
             # Format
             if old_session.get('format') != session_data.get('format'):
                 changes.append(f"Format: {old_session.get('format')} → {session_data.get('format')}")
+                
+            # Service
+            if old_session.get('service') != session_data.get('service'):
+                old_service = old_session.get('service') or 'Not Set'
+                new_service = session_data.get('service') or 'Not Set'
+                changes.append(f"Service: {old_service} → {new_service}")
             
             # Duration
             if old_session.get('duration') != session_data.get('duration'):
