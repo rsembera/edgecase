@@ -93,6 +93,14 @@
         color: #718096;
         margin-top: 0.25rem;
     }
+
+    /* Help text - extra spacing after fee section */
+    p.help-text {
+        font-size: 0.875rem;
+        color: #718096;
+        margin-top: 0.5rem;
+        margin-bottom: 2.5rem;  /* Extra space before Notes */
+    }
     
     .type-badge {
         display: inline-block;
@@ -110,4 +118,58 @@
 
 input[type="number"] {
     -moz-appearance: textfield;
+}
+
+/* Section divider */
+.section-divider {
+    height: 2px;
+    background: #E5E7EB;
+    margin: 2rem 0 1.5rem 0;
+}
+
+/* Section heading - override h3 defaults */
+h3.section-heading {
+    font-size: 1.2rem !important;  /* Same size as regular labels */
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.75rem 0;  /* Reset h3 margins */
+}
+
+ /* Fee grid section - matches profile.html styling */
+.fee-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.fee-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.fee-field label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.fee-field input {
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.fee-field input:focus {
+    outline: none;
+    border-color: #00aa88;
+}
+
+.fee-field small {
+    color: #718096;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
 }

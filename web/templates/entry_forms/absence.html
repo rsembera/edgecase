@@ -78,48 +78,44 @@
             <div class="helper-text">Short description that appears in the entry list</div>
         </div>
         
-        <!-- Fee (three-way calculation) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="base_price">Base Fee ($)</label>
-                <input type="number" 
-                    id="base_price" 
-                    name="base_price" 
+        <!-- Cancellation Fee -->
+        <h3 class="section-heading">Cancellation Fee</h3>
+        
+        <div class="fee-grid">
+            <div class="fee-field">
+                <label for="base_price">Base Price</label>
+                <input type="number" id="base_price" name="base_price" 
+                    step="0.01" min="0"
                     value="{{ '%.2f'|format(entry.base_price) if entry and entry.base_price else '0.00' }}"
-                    step="0.01"
-                    min="0"
                     placeholder="0.00"
-                    oninput="calculateAbsenceFee('base')">
+                    oninput="calculateAbsenceFee('base')"
+                    onblur="formatToTwoDecimals(this)">
+                <small>Before tax</small>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="tax_rate">Tax Rate (%)</label>
-                <input type="number" 
-                    id="tax_rate" 
-                    name="tax_rate" 
+            <div class="fee-field">
+                <label for="tax_rate">Tax Rate</label>
+                <input type="number" id="tax_rate" name="tax_rate" 
+                    step="0.01" min="0" max="100"
                     value="{{ '%.2f'|format(entry.tax_rate) if entry and entry.tax_rate else '0.00' }}"
-                    step="0.01"
-                    min="0"
-                    max="100"
                     placeholder="0.00"
-                    oninput="calculateAbsenceFee('tax')">
+                    oninput="calculateAbsenceFee('tax')"
+                    onblur="formatToTwoDecimals(this)">
+                <small>Percentage (%)</small>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="fee">Total Fee ($)</label>
-                <input type="number" 
-                    id="fee" 
-                    name="fee" 
+            <div class="fee-field">
+                <label for="fee">Total</label>
+                <input type="number" id="fee" name="fee" 
+                    step="0.01" min="0"
                     value="{{ '%.2f'|format(entry.fee) if entry and entry.fee else '0.00' }}"
-                    step="0.01"
-                    min="0"
                     placeholder="0.00"
-                    oninput="calculateAbsenceFee('total')">
+                    oninput="calculateAbsenceFee('total')"
+                    onblur="formatToTwoDecimals(this)">
+                <small>With tax</small>
             </div>
         </div>
-        <div class="helper-text" style="margin-top: -1rem; margin-bottom: 1.5rem;">
-            Cancellation fee (if applicable). Edit any two fields and the third will auto-calculate.
-        </div>
+        <p style="margin-bottom:2em" class="helper-text">Cancellation fee (if applicable). Edit any two fields and the third will auto-calculate.</p>
         
         <!-- Content -->
         <div class="form-group">
@@ -132,21 +128,9 @@
             </div>
         </div>
         
-        <!-- Link Toggle (only show if client has links) -->
-        {% if has_links %}
-        <div class="form-group">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="checkbox" 
-                       name="link_entry" 
-                       value="1"
-                       {% if entry and entry.is_linked %}checked{% endif %}
-                       style="width: auto; margin-right: 0.5rem;">
-                <span>Create copy in linked client files</span>
-            </label>
-            <div class="helper-text">
-                This client is linked to: {{ linked_clients|join(', ') }}
-            </div>
-        </div>
+        <!-- Edit History (only in edit mode) -->
+        {% if is_edit %}
+            {% include 'components/edit_history.html' %}
         {% endif %}
         
         <!-- Form Actions -->

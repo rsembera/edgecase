@@ -132,23 +132,6 @@
             </div>
         </div>
         
-        <!-- Link Toggle (only show if client has links) -->
-        {% if has_links %}
-        <div class="form-group">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="checkbox" 
-                       name="link_entry" 
-                       value="1"
-                       {% if entry and entry.is_linked %}checked{% endif %}
-                       style="width: auto; margin-right: 0.5rem;">
-                <span>Create copy in linked client files</span>
-            </label>
-            <div class="helper-text">
-                This client is linked to: {{ linked_clients|join(', ') }}
-            </div>
-        </div>
-        {% endif %}
-        
         <!-- Form Actions -->
         <div class="form-actions" style="justify-content: space-between;">
             <a href="{{ url_for('client_file', client_id=client['id']) }}" class="btn-cancel">Cancel</a>
