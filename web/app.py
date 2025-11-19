@@ -947,37 +947,37 @@ def edit_session(client_id, entry_id):
             if old_risk != new_risk:
                 changes.append(f"Risk: {old_risk or 'Not Assessed'} → {new_risk or 'Not Assessed'}")
             
-            # Notes (with smart truncated diff)
+            # Notes (with smart word-level diff)
             if old_session.get('content') != session_data.get('content'):
+                import difflib
                 old_content = old_session.get('content') or ''
                 new_content = session_data.get('content') or ''
                 
-                # Find where they differ
                 if old_content and new_content:
-                    # Find first difference
-                    diff_start = 0
-                    for i in range(min(len(old_content), len(new_content))):
-                        if old_content[i] != new_content[i]:
-                            diff_start = i
-                            break
+                    # Split into words for word-level diff
+                    old_words = old_content.split()
+                    new_words = new_content.split()
                     
-                    # Show context around the change (50 chars before/after)
-                    context_start = max(0, diff_start - 25)
-                    context_end = min(len(old_content), diff_start + 75)
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
                     
-                    old_snippet = old_content[context_start:context_end]
-                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
                     
-                    # Add ellipsis if truncated
-                    if context_start > 0:
-                        old_snippet = '...' + old_snippet
-                        new_snippet = '...' + new_snippet
-                    if context_end < len(old_content):
-                        old_snippet = old_snippet + '...'
-                    if context_start + 100 < len(new_content):
-                        new_snippet = new_snippet + '...'
+                    # Limit length for display (keep first ~200 chars of diff)
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 300:
+                        diff_text = diff_text[:300] + '...'
                     
-                    changes.append(f"Notes: '{old_snippet}' → '{new_snippet}'")
+                    changes.append(f"Notes: {diff_text}")
                 elif old_content:
                     changes.append("Notes: Cleared")
                 else:
