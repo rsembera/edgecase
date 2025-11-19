@@ -12,98 +12,66 @@ function updateItemDate() {
     }
 }
 
-dateYear.addEventListener('change', updateItemDate);
-dateMonth.addEventListener('change', updateItemDate);
-dateDay.addEventListener('change', updateItemDate);
-
-// Auto-expanding textarea
-const textarea = document.getElementById('content');
-const maxHeight = 600;
-
-function autoResize() {
-    textarea.style.height = 'auto';
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = newHeight + 'px';
+// Three-way fee calculation
+function calculateItemFee(changedField) {
+    const baseInput = document.getElementById('base_price');
+    const taxInput = document.getElementById('tax_rate');
+    const totalInput = document.getElementById('fee');
     
-    if (textarea.scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'scroll';
-    } else {
-        textarea.style.overflowY = 'hidden';
+    const base = parseFloat(baseInput.value) || 0;
+    const taxRate = parseFloat(taxInput.value) || 0;
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseInput.value = calculatedBase.toFixed(2);
+        } else {
+            // If no tax, total = base
+            baseInput.value = total.toFixed(2);
+        }
     }
 }
 
-autoResize();
-textarea.addEventListener('input', autoResize);
-
-// Tax calculation logic
-const basePrice = document.getElementById('base_price');
-const taxRate = document.getElementById('tax_rate');
-const totalPrice = document.getElementById('total_price'); // Correct ID
-
-let lastEdited = null;
-
-function calculateTax() {
-    const base = parseFloat(basePrice.value) || 0;
-    const rate = parseFloat(taxRate.value) || 0;
-    const total = parseFloat(totalPrice.value) || 0;
-    
-    // If user just edited base or tax rate, calculate total
-    if (lastEdited === 'base' || lastEdited === 'rate') {
-        const calculatedTotal = base * (1 + rate / 100);
-        totalPrice.value = calculatedTotal.toFixed(2);
-    }
-    // If user just edited total, calculate base (keeping tax rate)
-    else if (lastEdited === 'total') {
-        const calculatedBase = total / (1 + rate / 100);
-        basePrice.value = calculatedBase.toFixed(2);
-    }
-}
-
-basePrice.addEventListener('input', function() {
-    lastEdited = 'base';
-    calculateTax();
-});
-
-taxRate.addEventListener('input', function() {
-    lastEdited = 'rate';
-    calculateTax();
-});
-
-totalPrice.addEventListener('input', function() {
-    lastEdited = 'total';
-    calculateTax();
-});
-
-// Currency formatting functions
-function formatCurrency(input) {
-    let value = parseFloat(input.value);
+// Auto-format to 2 decimal places on blur
+function formatToTwoDecimals(input) {
+    const value = parseFloat(input.value);
     if (!isNaN(value)) {
         input.value = value.toFixed(2);
     }
 }
 
-function formatTaxRate(input) {
-    let value = parseFloat(input.value);
-    if (!isNaN(value)) {
-        input.value = value.toFixed(1); // Tax rate to 1 decimal (e.g., 13.0%)
+dateYear.addEventListener('change', updateItemDate);
+dateMonth.addEventListener('change', updateItemDate);
+dateDay.addEventListener('change', updateItemDate);
+
+// Auto-expanding textarea
+const contentTextarea = document.getElementById('content');
+const maxHeight = 600; // About 30-35 lines
+
+function autoResize() {
+    // Reset height to auto to get the correct scrollHeight
+    contentTextarea.style.height = 'auto';
+    
+    // Set new height, but don't exceed maxHeight
+    const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
+    contentTextarea.style.height = newHeight + 'px';
+    
+    // Add scrollbar if content exceeds maxHeight
+    if (contentTextarea.scrollHeight > maxHeight) {
+        contentTextarea.style.overflowY = 'scroll';
+    } else {
+        contentTextarea.style.overflowY = 'hidden';
     }
 }
 
-// Format on blur
-basePrice.addEventListener('blur', function() {
-    formatCurrency(this);
-});
+// Run on page load (for edit mode with existing content)
+autoResize();
 
-totalPrice.addEventListener('blur', function() {
-    formatCurrency(this);
-});
-
-taxRate.addEventListener('blur', function() {
-    formatTaxRate(this);
-});
-
-// On page load, if editing existing item with values, set lastEdited to make calculations work
-const hasEntry = document.getElementById('has-entry');
-if (hasEntry && hasEntry.value === 'true') {
-    lastEdited = 'base';
-}
+// Run on input
+contentTextarea.addEventListener('input', autoResize);

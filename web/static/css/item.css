@@ -112,3 +112,42 @@
 input[type="number"] {
     -moz-appearance: textfield;
 }
+
+/* Fee grid section - matches profile.html styling */
+.fee-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.fee-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.fee-field label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.fee-field input {
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.fee-field input:focus {
+    outline: none;
+    border-color: #00aa88;
+}
+
+.fee-field small {
+    color: #718096;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}

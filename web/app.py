@@ -1662,15 +1662,11 @@ def create_item(client_id):
     client_type = db.get_client_type(client['type_id'])
     
     if request.method == 'POST':
-        # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
+        # Parse date from hidden field (set by JavaScript)
+        item_date_str = request.form.get('item_date')
         item_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            item_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        if item_date_str:
+            item_date_timestamp = int(datetime.strptime(item_date_str, '%Y-%m-%d').timestamp())
         
         # Get form data
         item_data = {
@@ -1703,19 +1699,13 @@ def create_item(client_id):
     # Get today's date for defaults
     today_dt = datetime.now()
     today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
     
     return render_template('entry_forms/item.html',
                         client=client,
                         client_type=client_type,
                         today=today,
-                        today_year=today_year,
-                        today_month=today_month,
-                        today_day=today_day,
                         is_edit=False)
-
+    
 @app.route('/client/<int:client_id>/item/<int:entry_id>', methods=['GET', 'POST'])
 def edit_item(client_id, entry_id):
     """Edit existing item entry."""
@@ -1748,17 +1738,49 @@ def edit_item(client_id, entry_id):
             'item_time': request.form.get('item_time', ''),
             'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
             'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
-            'fee': float(request.form.get('total_price', 0)),
+            'fee': float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
+            import difflib
             changes = []
             
-            # Description
+            # Description (with smart word-level diff)
             if old_item.get('description') != item_data.get('description'):
-                changes.append(f"Description: {old_item.get('description')} → {item_data.get('description')}")
+                old_desc = old_item.get('description') or ''
+                new_desc = item_data.get('description') or ''
+                
+                if old_desc and new_desc:
+                    # Split into words for word-level diff
+                    old_words = old_desc.split()
+                    new_words = new_desc.split()
+                    
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
+                    
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
+                    
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
+                    
+                    changes.append(f"Description: {diff_text}")
+                elif old_desc:
+                    changes.append("Description: Cleared")
+                else:
+                    changes.append("Description: Added")
             
             # Date
             if old_item.get('item_date') != item_date_timestamp:
@@ -1795,36 +1817,36 @@ def edit_item(client_id, entry_id):
                 new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
                 changes.append(f"Total Fee: {old_str} → {new_str}")
             
-            # Content
+            # Content (with smart word-level diff)
             if old_item.get('content') != item_data.get('content'):
                 old_content = old_item.get('content') or ''
                 new_content = item_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Find first difference
-                    diff_start = 0
-                    for i in range(min(len(old_content), len(new_content))):
-                        if old_content[i] != new_content[i]:
-                            diff_start = i
-                            break
+                    # Split into words for word-level diff
+                    old_words = old_content.split()
+                    new_words = new_content.split()
                     
-                    # Show context around the change
-                    context_start = max(0, diff_start - 25)
-                    context_end = min(len(old_content), diff_start + 75)
+                    # Generate diff
+                    diff = difflib.ndiff(old_words, new_words)
                     
-                    old_snippet = old_content[context_start:context_end]
-                    new_snippet = new_content[context_start:min(len(new_content), context_start + 100)]
+                    # Build HTML formatted diff
+                    formatted_parts = []
+                    for item in diff:
+                        if item.startswith('  '):  # Unchanged
+                            formatted_parts.append(item[2:])
+                        elif item.startswith('- '):  # Deleted
+                            formatted_parts.append(f'<del>{item[2:]}</del>')
+                        elif item.startswith('+ '):  # Added
+                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                        # Ignore '?' lines (change indicators)
                     
-                    # Add ellipsis if truncated
-                    if context_start > 0:
-                        old_snippet = '...' + old_snippet
-                        new_snippet = '...' + new_snippet
-                    if context_end < len(old_content):
-                        old_snippet = old_snippet + '...'
-                    if context_start + 100 < len(new_content):
-                        new_snippet = new_snippet + '...'
+                    # Limit length for display
+                    diff_text = ' '.join(formatted_parts)
+                    if len(diff_text) > 150:
+                        diff_text = diff_text[:150] + '...'
                     
-                    changes.append(f"Content: '{old_snippet}' → '{new_snippet}'")
+                    changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
                 else:
@@ -1844,11 +1866,18 @@ def edit_item(client_id, entry_id):
     from datetime import datetime
     item_date = datetime.fromtimestamp(item['item_date']).strftime('%Y-%m-%d') if item.get('item_date') else None
     
+    # Get lock status and edit history
+    is_locked = db.is_entry_locked(entry_id)
+    edit_history = db.get_edit_history(entry_id) if is_locked else []
+    
     return render_template('entry_forms/item.html',
                          client=client,
                          client_type=client_type,
                          entry=item,
-                         item_date=item_date,)
+                         item_date=item_date,
+                         is_edit=True,
+                         is_locked=is_locked,
+                         edit_history=edit_history)
 
 # ===== CLIENT TYPE MANAGEMENT =====
 
