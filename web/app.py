@@ -50,7 +50,7 @@ def parse_time_to_seconds(time_str):
     """
     Parse various time formats into seconds since midnight for sorting.
     Supports: "2:00 PM", "2:00 p.m.", "2:00pm", "14:00", "2 PM", "2pm", "14:30", "1:00" (assumes AM), etc.
-    Returns None if parsing fails.
+    Returns None if parsing fails or time is invalid.
     """
     if not time_str or not isinstance(time_str, str):
         return None
@@ -75,6 +75,10 @@ def parse_time_to_seconds(time_str):
             hours = int(time_str)
             minutes = 0
         
+        # Validate bounds
+        if hours < 0 or hours > 23 or minutes < 0 or minutes > 59:
+            return None  # Invalid time, will fall back to creation timestamp
+        
         # Convert to 24-hour format
         if is_pm and hours != 12:
             hours += 12
@@ -86,7 +90,7 @@ def parse_time_to_seconds(time_str):
         return hours * 3600 + minutes * 60
             
     except (ValueError, IndexError):
-        # If parsing fails, return None (will sort with no-time entries)
+        # If parsing fails, return None (will sort with creation timestamp)
         return None
 
 @app.template_filter('timestamp_to_date')
