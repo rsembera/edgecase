@@ -55,13 +55,6 @@
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <strong style="font-size: 1.125rem; color: #0E5346;">Profile</strong>
             
-            {# Fee Override Badge #}
-            {% if profile_entry.fee_override_total %}
-            <span style="background: #FEF3C7; color: #92400E; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
-                💰 Fee Override
-            </span>
-            {% endif %}
-            
             {# Minor Badge #}
             {% if profile_entry.is_minor %}
             <span style="background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">

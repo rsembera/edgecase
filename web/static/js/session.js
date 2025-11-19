@@ -55,14 +55,14 @@ function updateFeesForFormat(format) {
     let source = '';
     
     if (format === 'individual') {
-        // Individual: Check Profile Override, else Client Type
-        if (feeSources.profileOverride) {
-            fees = feeSources.profileOverride;
-            source = 'Profile Override';
-        } else {
-            fees = feeSources.clientType;
-            source = 'Client Type';
+        fees = feeSources.profileFees;
+        source = 'Profile';
+        
+        // Also set duration from profile
+        if (feeSources.profileFees.duration) {
+            durationInput.value = feeSources.profileFees.duration;
         }
+
     } else if (format === 'couples' || format === 'family' || format === 'group') {
         // Couples/Family/Group: Check Link Group
         if (feeSources.linkGroups && feeSources.linkGroups[format]) {

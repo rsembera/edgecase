@@ -562,6 +562,7 @@ def edit_profile(client_id):
             'fee_override_base': float(request.form.get('fee_override_base')) if request.form.get('fee_override_base') else None,
             'fee_override_tax_rate': float(request.form.get('fee_override_tax_rate')) if request.form.get('fee_override_tax_rate') else None,
             'fee_override_total': float(request.form.get('fee_override_total')) if request.form.get('fee_override_total') else None,
+            'default_session_duration': int(request.form.get('default_session_duration')) if request.form.get('default_session_duration') else None,
             
             # Guardian/Billing fields
             'is_minor': 1 if request.form.get('is_minor') else 0,
@@ -723,13 +724,15 @@ def create_session(client_id):
             'total': profile['fee_override_total']
         }
     
-    # 2. Client Type
-    client_type_fees = {
-        'base': client_type.get('session_base_price') or 0,
-        'tax': client_type.get('session_tax_rate') or 0,
-        'total': client_type.get('session_fee') or 0
+    # 2. Get individual session fees from Profile
+    profile = db.get_profile_entry(client_id)
+    profile_fees = {
+        'base': profile.get('fee_override_base') or 0,
+        'tax': profile.get('fee_override_tax_rate') or 0,
+        'total': profile.get('fee_override_total') or 0,
+        'duration': profile.get('default_session_duration') or 50  # Default to 50 if not set
     }
-    
+        
     # 3. Link Groups (by format)
     link_group_fees = {}  # Format: {'couples': {...}, 'family': {...}, 'group': {...}}
     
@@ -760,7 +763,7 @@ def create_session(client_id):
                         client=client,
                         client_type=client_type,
                         profile_override=profile_override,
-                        client_type_fees=client_type_fees,
+                        profile_fees=profile_fees,
                         link_group_fees=link_group_fees,
                         today=today,
                         today_year=today_year,
@@ -1008,11 +1011,13 @@ def edit_session(client_id, entry_id):
             'total': profile['fee_override_total']
         }
     
-    # 2. Client Type
-    client_type_fees = {
-        'base': client_type.get('session_base_price') or 0,
-        'tax': client_type.get('session_tax_rate') or 0,
-        'total': client_type.get('session_fee') or 0
+    # 2. Get individual session fees from Profile
+    profile = db.get_profile_entry(client_id)
+    profile_fees = {
+        'base': profile.get('fee_override_base') or 0,
+        'tax': profile.get('fee_override_tax_rate') or 0,
+        'total': profile.get('fee_override_total') or 0,
+        'duration': profile.get('default_session_duration') or 50
     }
     
     # 3. Link Groups (by format)
@@ -1052,7 +1057,7 @@ def edit_session(client_id, entry_id):
                          client_type=client_type,
                          session=session,
                          profile_override=profile_override,
-                         client_type_fees=client_type_fees,
+                         profile_fees=profile_fees,
                          link_group_fees=link_group_fees,
                          session_year=session_year,
                          session_month=session_month,
