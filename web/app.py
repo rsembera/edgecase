@@ -2116,12 +2116,28 @@ def add_link_group():
     # GET: Show the form - exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
     
-    # Filter out Inactive and Deleted clients and add type info
+    # GET: Show the form - exclude Inactive and Deleted clients
+    all_clients = db.get_all_clients()
+    
+    # Filter out Inactive and Deleted clients and add type info + Profile fees
     active_clients = []
     for client in all_clients:
         client_type = db.get_client_type(client['type_id'])
         client['type'] = client_type
         if client_type['name'] not in ['Inactive', 'Deleted']:
+            # Get Profile entry for fee defaults
+            profile = db.get_profile_entry(client['id'])
+            if profile:
+                client['profile_base_fee'] = profile.get('fee_override_base', 0)
+                client['profile_tax_rate'] = profile.get('fee_override_tax_rate', 0)
+                client['profile_total_fee'] = profile.get('fee_override_total', 0)
+                client['profile_duration'] = profile.get('default_session_duration', 50)
+            else:
+                # Defaults if no profile
+                client['profile_base_fee'] = 0
+                client['profile_tax_rate'] = 0
+                client['profile_total_fee'] = 0
+                client['profile_duration'] = 50
             active_clients.append(client)
     
     return render_template('add_edit_link_group.html',
