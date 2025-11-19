@@ -131,6 +131,18 @@
                 </select>
             </div>
         </div>
+
+        <!-- Service -->
+        <div class="form-row-full">
+            <div class="form-group">
+                <label for="service">Service *</label>
+                <input type="text" id="service" name="service" 
+                    value="{% if is_edit %}{{ session.service }}{% else %}{{ last_service or '' }}{% endif %}" 
+                    placeholder="e.g., Psychotherapy, Psychoanalysis, Counselling" 
+                    required>
+                <p class="help-text">Type of therapeutic service provided (auto-fills from your last session)</p>
+            </div>
+        </div>
         
         <!-- Session Fee -->
         <div class="section-divider"></div>
@@ -175,8 +187,8 @@
             <div class="form-group">
                 <label for="duration">Session Duration (minutes) *</label>
                 <input type="number" id="duration" name="duration" 
-                    step="5" min="1" required
-                    value="{% if is_edit %}{{ session.duration }}{% else %}{{ client_type.session_duration or 50 }}{% endif %}"
+                    min="1" required
+                    value="{% if is_edit %}{{ session.duration }}{% else %}50{% endif %}"
                     placeholder="50">
             </div>
         </div>
