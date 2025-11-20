@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from pathlib import Path
 import sys, sqlite3
 import time
+from werkzeug.utils import secure_filename
 
 # Add parent directory to path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -325,7 +326,7 @@ def client_file(client_id):
     
     # Default: show all classes if none selected
     if not class_filter:
-        class_filter = ['session', 'consultation', 'communication', 'absence', 'item']
+        class_filter = ['session', 'consultation', 'communication', 'absence', 'item', 'upload']
     
     # Get profile entry separately (pinned at top)
     profile_entry = db.get_profile_entry(client_id)
@@ -432,6 +433,8 @@ def client_file(client_id):
             date_field = entry['absence_date']
         elif entry['class'] == 'item' and entry.get('item_date'):
             date_field = entry['item_date']
+        elif entry['class'] == 'upload' and entry.get('upload_date'):
+            date_field = entry['upload_date']
         # Add more entry types here as we implement them
         
         if date_field:
@@ -459,6 +462,8 @@ def client_file(client_id):
                     date_val = e.get('absence_date', 0)
                 elif e['class'] == 'item':
                     date_val = e.get('item_date', 0)
+                elif e['class'] == 'upload':
+                    date_val = e.get('upload_date', 0)
                 
                 # Secondary sort: manual time (if provided), otherwise use created_at time
                 time_val = None
@@ -2174,6 +2179,352 @@ def edit_item(client_id, entry_id):
                          is_edit=True,
                          is_locked=is_locked,
                          edit_history=edit_history)
+    
+@app.route('/client/<int:client_id>/upload', methods=['GET', 'POST'])
+def create_upload(client_id):
+    """Create new upload entry with file attachments."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    
+    if request.method == 'POST':
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        upload_date_timestamp = None
+        if year and month and day:
+            from datetime import datetime
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            upload_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare upload entry data
+        upload_data = {
+            'client_id': client_id,
+            'class': 'upload',
+            'description': request.form['description'],
+            'upload_date': upload_date_timestamp,
+            'upload_time': request.form.get('upload_time', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Save upload entry first to get entry_id
+        entry_id = db.add_entry(upload_data)
+        
+        # Handle file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:  # Check if at least one file was selected
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            # Create upload directory for this client and entry
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Process each file
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    # Secure the filename
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    # Save file to disk
+                    file.save(filepath)
+                    
+                    # Get file size
+                    filesize = os.path.getsize(filepath)
+                    
+                    # Get description (use filename if not provided)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    # Save attachment record to database
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form
+    from datetime import datetime
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
+
+    return render_template('entry_forms/upload.html',
+                        client=client,
+                        client_type=client_type,
+                        today=today,
+                        today_year=today_year,
+                        today_month=today_month,
+                        today_day=today_day,
+                        is_edit=False)
+
+@app.route('/client/<int:client_id>/upload/<int:entry_id>', methods=['GET', 'POST'])
+def edit_upload(client_id, entry_id):
+    """Edit existing upload entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    upload = db.get_entry(entry_id)
+    
+    if not upload or upload['class'] != 'upload':
+        return "Upload not found", 404
+    
+    if request.method == 'POST':
+        # Get the old upload data for comparison
+        old_upload = upload.copy()
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        upload_date_timestamp = None
+        if year and month and day:
+            from datetime import datetime
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            upload_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare updated upload data
+        upload_data = {
+            'description': request.form['description'],
+            'upload_date': upload_date_timestamp,
+            'upload_time': request.form.get('upload_time', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Generate edit history (Upload entries are NOT locked, but we still track changes)
+        import difflib
+        changes = []
+        
+        # Description (with smart word-level diff)
+        if old_upload.get('description') != upload_data.get('description'):
+            old_desc = old_upload.get('description') or ''
+            new_desc = upload_data.get('description') or ''
+            
+            if old_desc and new_desc:
+                old_words = old_desc.split()
+                new_words = new_desc.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 150:
+                    diff_text = diff_text[:150] + '...'
+                
+                changes.append(f"Description: {diff_text}")
+            elif old_desc:
+                changes.append("Description: Cleared")
+            else:
+                changes.append("Description: Added")
+        
+        # Date
+        if old_upload.get('upload_date') != upload_date_timestamp:
+            from datetime import datetime
+            old_date = datetime.fromtimestamp(old_upload['upload_date']).strftime('%Y-%m-%d') if old_upload.get('upload_date') else 'None'
+            new_date = datetime.fromtimestamp(upload_date_timestamp).strftime('%Y-%m-%d') if upload_date_timestamp else 'None'
+            changes.append(f"Date: {old_date} → {new_date}")
+        
+        # Time
+        if old_upload.get('upload_time') != upload_data.get('upload_time'):
+            old_time = old_upload.get('upload_time') or 'None'
+            new_time = upload_data.get('upload_time') or 'None'
+            changes.append(f"Time: {old_time} → {new_time}")
+        
+        # Content (with smart word-level diff)
+        if old_upload.get('content') != upload_data.get('content'):
+            old_content = old_upload.get('content') or ''
+            new_content = upload_data.get('content') or ''
+            
+            if old_content and new_content:
+                old_words = old_content.split()
+                new_words = new_content.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 150:
+                    diff_text = diff_text[:150] + '...'
+                
+                changes.append(f"Content: {diff_text}")
+            elif old_content:
+                changes.append("Content: Cleared")
+            else:
+                changes.append("Content: Added")
+        
+        # Handle new file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:  # Check if at least one file was selected
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            # Create upload directory for this client and entry (if doesn't exist)
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Track added files for edit history
+            added_files = []
+            
+            # Process each file
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    file.save(filepath)
+                    filesize = os.path.getsize(filepath)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+                    
+                    added_files.append(filename)
+            
+            if added_files:
+                changes.append(f"Added files: {', '.join(added_files)}")
+        
+        if changes:
+            change_desc = "; ".join(changes)
+            db.add_to_edit_history(entry_id, change_desc)
+        
+        # Update the upload entry
+        db.update_entry(entry_id, upload_data)
+        
+        return redirect(url_for('client_file', client_id=client_id))
+    
+    # GET - show form with existing data
+    
+    # Parse upload date into year, month, day for dropdowns
+    from datetime import datetime
+    upload_year = None
+    upload_month = None
+    upload_day = None
+    if upload.get('upload_date'):
+        upload_dt = datetime.fromtimestamp(upload['upload_date'])
+        upload_year = upload_dt.year
+        upload_month = upload_dt.month
+        upload_day = upload_dt.day
+    
+    # Get attachments for this entry
+    attachments = db.get_attachments(entry_id)
+    
+    # Get edit history (Upload entries are NOT locked, but we still show history)
+    edit_history = db.get_edit_history(entry_id)
+    
+    return render_template('entry_forms/upload.html',
+                        client=client,
+                        client_type=client_type,
+                        entry=upload,
+                        upload_year=upload_year,
+                        upload_month=upload_month,
+                        upload_day=upload_day,
+                        attachments=attachments,
+                        is_edit=True,
+                        is_locked=False,  # Upload entries are never locked
+                        edit_history=edit_history)
+    
+@app.route('/attachment/<int:attachment_id>/download')
+def download_attachment(attachment_id):
+    """Download an attachment file."""
+    import sqlite3
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
+    attachment = cursor.fetchone()
+    conn.close()
+    
+    if not attachment:
+        return "Attachment not found", 404
+    
+    from flask import send_file
+    return send_file(attachment['filepath'], 
+                     as_attachment=True, 
+                     download_name=attachment['filename'])
+
+
+@app.route('/attachment/<int:attachment_id>/delete', methods=['POST'])
+def delete_attachment(attachment_id):
+    """Delete an attachment file and database record."""
+    import sqlite3
+    import os
+    
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get attachment info
+    cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
+    attachment = cursor.fetchone()
+    
+    if not attachment:
+        conn.close()
+        return "Attachment not found", 404
+    
+    # Get entry info for edit history
+    cursor.execute("SELECT * FROM entries WHERE id = ?", (attachment['entry_id'],))
+    entry = cursor.fetchone()
+    
+    # Delete file from disk
+    if os.path.exists(attachment['filepath']):
+        os.remove(attachment['filepath'])
+    
+    # Delete from database
+    cursor.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
+    conn.commit()
+    
+    # Add to edit history (for Upload entries)
+    if entry and entry['class'] == 'upload':
+        change_desc = f"Deleted file: {attachment['filename']}"
+        db.add_to_edit_history(attachment['entry_id'], change_desc)
+    
+    conn.close()
+    
+    # Return success for AJAX call
+    return '', 200
+
 
 # ===== CLIENT TYPE MANAGEMENT =====
 

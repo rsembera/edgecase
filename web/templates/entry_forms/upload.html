@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{% if entry %}Edit{% else %}Create{% endif %} Upload - {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+        <div>
+            <h2>Upload Entry</h2>
+            <div style="color: #718096;">
+                <div style="margin-bottom: 0.25rem;">
+                    <span class="type-badge" style="background-color: {{ client_type['color'] }}">
+                        {{ client_type['name'] }}
+                    </span>
+                </div>
+                <div style="margin-bottom: 0.25rem;">
+                    {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }}{% endif %} {{ client['last_name'] }}
+                </div>
+                <div>
+                    File #{{ client['file_number'] }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="POST" id="upload-form" enctype="multipart/form-data">
+        <!-- Date and Time -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+            <div class="form-group">
+                <label for="upload_date">Date *</label>
+                <div class="date-input-group">
+                    <select id="year" name="year" required>
+                        <option value="">Year</option>
+                        {% for year in range(2025, 2019, -1) %}
+                        <option value="{{ year }}" 
+                                {% if is_edit and upload_year == year %}selected
+                                {% elif not is_edit and today_year == year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select id="month" name="month" required>
+                        <option value="">Month</option>
+                        {% for month in range(1, 13) %}
+                        <option value="{{ month }}" 
+                                {% if is_edit and upload_month == month %}selected
+                                {% elif not is_edit and today_month == month %}selected{% endif %}>
+                            {{ '%02d'|format(month) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select id="day" name="day" required>
+                        <option value="">Day</option>
+                        {% for day in range(1, 32) %}
+                        <option value="{{ day }}" 
+                                {% if is_edit and upload_day == day %}selected
+                                {% elif not is_edit and today_day == day %}selected{% endif %}>
+                            {{ '%02d'|format(day) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="upload_time">Time</label>
+                <input type="text" 
+                       id="upload_time" 
+                       name="upload_time" 
+                       value="{% if entry %}{{ entry.upload_time or '' }}{% endif %}"
+                       placeholder="e.g., 2:00 PM or 14:00">
+                <p class="helper-text">Optional - use any format you prefer</p>
+            </div>
+        </div>
+        
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description *</label>
+            <input type="text" 
+                   id="description" 
+                   name="description" 
+                   value="{{ entry.description if entry else '' }}"
+                   placeholder="Brief summary (e.g., 'Consent and intake forms')"
+                   required>
+            <div class="helper-text">Short description that appears in the entry list</div>
+        </div>
+        
+        <!-- Content (optional notes) -->
+        <div class="form-group">
+            <label for="content">Notes (optional)</label>
+            <textarea id="content" 
+                      name="content" 
+                      placeholder="Additional notes about these files...">{{ entry.content if entry else '' }}</textarea>
+            <div class="helper-text">
+                Supports Markdown formatting
+            </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="form-group" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E5E7EB;">
+            <label style="font-size: 1.125rem; margin-bottom: 1rem; display: block;">Files</label>
+            
+            {% if is_edit and attachments %}
+            <!-- Existing attachments (edit mode only) -->
+            <div class="attachment-list" style="margin-bottom: 1.5rem;">
+                {% for attachment in attachments %}
+                <div class="attachment-item" style="display: flex; align-items: center; padding: 0.75rem; background: #F9FAFB; border-radius: 0.375rem; margin-bottom: 0.5rem;">
+                    <span style="flex: 1;">
+                        📄 <strong>{{ attachment.filename }}</strong>
+                        {% if attachment.description and attachment.description != attachment.filename %}
+                        <span style="color: #6B7280; font-size: 0.875rem; margin-left: 0.5rem;">{{ attachment.description }}</span>
+                        {% endif %}
+                        <span style="color: #9CA3AF; font-size: 0.875rem; margin-left: 0.5rem;">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
+                    </span>
+                    <a href="{{ url_for('download_attachment', attachment_id=attachment.id) }}" 
+                       class="btn-small" style="margin-right: 0.5rem;">Download</a>
+                    <button type="button" 
+                            class="btn-small btn-danger" 
+                            onclick="deleteAttachment({{ attachment.id }})">Delete</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Upload new files -->
+            <div class="upload-section">
+                <div id="file-inputs">
+                    <div class="file-input-row" style="margin-bottom: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: end;">
+                            <div style="flex: 2;">
+                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
+                                    Choose file
+                                </label>
+                                <input type="file" 
+                                       name="files[]" 
+                                       class="file-input"
+                                       {% if not is_edit %}required{% endif %}
+                                       style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                            </div>
+                            <div style="flex: 2;">
+                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
+                                    Description (optional)
+                                </label>
+                                <input type="text" 
+                                       name="file_descriptions[]" 
+                                       placeholder="Brief description"
+                                       style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                            </div>
+                            <button type="button" 
+                                    class="btn-small btn-danger remove-file-btn" 
+                                    style="display: none; white-space: nowrap;">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" 
+                        id="add-file-btn" 
+                        class="btn"
+                        style="margin-top: 0.5rem;">Add Another File</button>
+                
+                <div class="helper-text" style="margin-top: 1rem;">
+                    Maximum file size: 50MB per file. All file types accepted.
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit History (only in edit mode) -->
+        {% if is_edit %}
+            {% include 'components/edit_history.html' %}
+        {% endif %}
+
+    </form>
+    
+    <!-- Navigation buttons OUTSIDE the form -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+        <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+        
+        {% if is_edit %}
+        <button type="submit" form="upload-form" class="btn">Save Edits</button>
+        {% else %}
+        <button type="submit" form="upload-form" class="btn">Save Upload</button>
+        {% endif %}
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem;">Delete File?</h3>
+            <p id="delete-message" style="margin-bottom: 2rem; color: #4A5568;">
+                Are you sure you want to delete this file? This cannot be undone.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeDeleteModal()" class="btn">Cancel</button>
+                <button onclick="confirmDelete()" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

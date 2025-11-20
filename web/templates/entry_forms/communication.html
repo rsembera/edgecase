@@ -23,7 +23,7 @@
                     </span>
                 </div>
                 <div style="margin-bottom: 0.25rem;">
-                    {{ client['first_name'] }} {{ client['middle_name'] }} {{ client['last_name'] }}
+                    {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }}{% endif %} {{ client['last_name'] }}
                 </div>
                 <div>
                     File #{{ client['file_number'] }}
