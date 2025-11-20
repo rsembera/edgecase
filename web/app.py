@@ -2298,6 +2298,16 @@ def delete_type(type_id):
     if type_obj.get('is_system_locked'):
         return jsonify({'success': False, 'error': 'Cannot delete locked system types'}), 403
     
+    # Check if this is the last editable type
+    all_types = db.get_all_client_types()
+    editable_types = [t for t in all_types if not t.get('is_system_locked')]
+    
+    if len(editable_types) <= 1:
+        return jsonify({
+            'success': False,
+            'error': 'Cannot delete: At least one editable client type must exist'
+        }), 400
+    
     # Check if any clients are assigned to this type
     clients = db.get_all_clients(type_id=type_id)
     if clients:
