@@ -18,72 +18,6 @@ document.querySelectorAll('.color-option').forEach(option => {
     });
 });
 
-// Three-way fee calculation (same logic as item.js)
-const basePrice = document.getElementById('session_base_price');
-const taxRate = document.getElementById('session_tax_rate');
-const totalPrice = document.getElementById('session_total');
-
-let lastEdited = null;
-
-function calculateFee() {
-    const base = parseFloat(basePrice.value) || 0;
-    const rate = parseFloat(taxRate.value) || 0;
-    const total = parseFloat(totalPrice.value) || 0;
-    
-    // If user just edited base or tax rate, calculate total
-    if (lastEdited === 'base' || lastEdited === 'rate') {
-        const calculatedTotal = base * (1 + rate / 100);
-        totalPrice.value = calculatedTotal.toFixed(2);
-    }
-    // If user just edited total, calculate base (keeping tax rate)
-    else if (lastEdited === 'total') {
-        const calculatedBase = total / (1 + rate / 100);
-        basePrice.value = calculatedBase.toFixed(2);
-    }
-}
-
-basePrice.addEventListener('input', function() {
-    lastEdited = 'base';
-    calculateFee();
-});
-
-taxRate.addEventListener('input', function() {
-    lastEdited = 'rate';
-    calculateFee();
-});
-
-totalPrice.addEventListener('input', function() {
-    lastEdited = 'total';
-    calculateFee();
-});
-
-// Currency formatting
-function formatCurrency(input) {
-    let value = parseFloat(input.value);
-    if (!isNaN(value)) {
-        input.value = value.toFixed(2);
-    }
-}
-
-function formatTaxRate(input) {
-    let value = parseFloat(input.value);
-    if (!isNaN(value)) {
-        input.value = value.toFixed(2);
-    }
-}
-
-basePrice.addEventListener('blur', function() {
-    formatCurrency(this);
-});
-
-totalPrice.addEventListener('blur', function() {
-    formatCurrency(this);
-});
-
-taxRate.addEventListener('blur', function() {
-    formatTaxRate(this);
-});
-
 // Retention period conversion on page load
 const form = document.getElementById('type-form');
 const retentionDays = parseInt(form.dataset.retentionDays) || 0;
@@ -131,6 +65,11 @@ const deleteModal = document.getElementById('deleteModal');
 const cancelDelete = document.getElementById('cancel-delete');
 const confirmDelete = document.getElementById('confirm-delete');
 
+// Error modal elements
+const errorModal = document.getElementById('errorModal');
+const errorMessage = document.getElementById('error-message');
+const closeError = document.getElementById('close-error');
+
 if (deleteBtn) {
     deleteBtn.addEventListener('click', function() {
         deleteModal.classList.add('active');
@@ -143,29 +82,41 @@ if (cancelDelete) {
     });
 }
 
-if (confirmDelete) {
-    confirmDelete.addEventListener('click', function() {
-        // Create a form to submit DELETE request
-        const deleteForm = document.createElement('form');
-        deleteForm.method = 'POST';
-        
-        const typeId = form.dataset.typeId;
-        if (typeId) {
-            deleteForm.action = `/edit_type/${typeId}`;
-        }
-        
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = '_method';
-        input.value = 'DELETE';
-        deleteForm.appendChild(input);
-        
-        document.body.appendChild(deleteForm);
-        deleteForm.submit();
+if (closeError) {
+    closeError.addEventListener('click', function() {
+        errorModal.classList.remove('active');
     });
 }
 
-// On page load, if editing existing type, set lastEdited to make calculations work
-if (form.dataset.typeId) {
-    lastEdited = 'base';
+if (confirmDelete) {
+    confirmDelete.addEventListener('click', function() {
+        const typeId = form.dataset.typeId;
+        if (!typeId) return;
+        
+        // Send AJAX DELETE request
+        fetch(`/types/${typeId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Success - redirect to types page
+                window.location.href = '/types';
+            } else {
+                // Error - close delete modal, show error modal
+                deleteModal.classList.remove('active');
+                errorMessage.textContent = data.error || 'Failed to delete type';
+                errorModal.classList.add('active');
+            }
+        })
+        .catch(error => {
+            deleteModal.classList.remove('active');
+            errorMessage.textContent = 'Network error: Could not delete type';
+            errorModal.classList.add('active');
+            console.error('Delete error:', error);
+        });
+    });
 }

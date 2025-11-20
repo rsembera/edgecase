@@ -98,6 +98,17 @@
     </div>
 </div>
 
+<!-- Error Modal -->
+<div id="errorModal" class="modal-overlay">
+    <div class="modal" style="border-top: 4px solid #e53e3e;">
+        <h3 style="color: #2d3748; margin-bottom: 1rem;">Cannot Delete Type</h3>
+        <p id="error-message" style="color: #4a5568; margin-bottom: 1.5rem; line-height: 1.6;"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn" id="close-error" style="width: 100%;">OK</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
