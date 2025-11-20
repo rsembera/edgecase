@@ -387,3 +387,85 @@ document.addEventListener('DOMContentLoaded', function() {
         performSearch();
     }
 });
+
+// ===== IPAD LANDSCAPE VIEW TOGGLE MANAGEMENT =====
+// Disable detailed view on iPad landscape (too wide for screen)
+
+// Track if we've already added the click prevention listener
+let detailedClickListenerAdded = false;
+
+function manageViewToggleForDevice() {
+    // Detect if device is touch-enabled
+    const isTouchDevice = ('ontouchstart' in window) || 
+                         (navigator.maxTouchPoints > 0) || 
+                         (navigator.msMaxTouchPoints > 0);
+    
+    if (!isTouchDevice) {
+        return; // Desktop, do nothing
+    }
+    
+    // Check if in portrait mode (taller than wide)
+    const isPortrait = window.innerHeight > window.innerWidth;
+    
+    // Check if width is in iPad range (700-1366px)
+    const isIPadWidth = window.innerWidth >= 700 && window.innerWidth <= 1366;
+    
+    // Find the Detailed button
+    const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
+    let detailedBtn = null;
+    
+    viewToggleBtns.forEach(btn => {
+        if (btn.textContent.trim() === 'Detailed') {
+            detailedBtn = btn;
+        }
+    });
+    
+    if (!detailedBtn) {
+        return; // Button not found
+    }
+    
+    // iPad in portrait mode - disable Detailed button (too narrow for wide layout)
+    if (isPortrait && isIPadWidth) {
+        detailedBtn.style.opacity = '0.5';
+        detailedBtn.style.cursor = 'not-allowed';
+        detailedBtn.style.pointerEvents = 'none';
+        
+        // Add click prevention listener (only once)
+        if (!detailedClickListenerAdded) {
+            detailedBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+            detailedClickListenerAdded = true;
+        }
+        
+        // Check if currently in Detailed view and redirect to Compact
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentView = urlParams.get('view');
+        
+        if (currentView === 'detailed') {
+            // Build new URL with compact view
+            urlParams.set('view', 'compact');
+            const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+            window.location.href = newUrl;
+        }
+    } else {
+        // Landscape or desktop - enable Detailed button
+        detailedBtn.style.opacity = '1';
+        detailedBtn.style.cursor = 'pointer';
+        detailedBtn.style.pointerEvents = 'auto';
+    }
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', manageViewToggleForDevice);
+
+// Run on orientation change
+window.addEventListener('orientationchange', function() {
+    // Small delay to let browser update dimensions
+    setTimeout(manageViewToggleForDevice, 100);
+});
+
+// Also run on resize (catches all cases)
+window.addEventListener('resize', manageViewToggleForDevice);
