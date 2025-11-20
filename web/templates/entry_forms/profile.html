@@ -69,8 +69,7 @@
             <div class="form-group">
                 <label for="file_number">File Number</label>
                 <input type="text" id="file_number" name="file_number" 
-                       value="{{ client.file_number }}" readonly
-                       style="background: #f7fafc; cursor: not-allowed;">
+                       value="{{ client.file_number }}">
             </div>
         </div>
         
@@ -232,7 +231,7 @@
         
         <!-- Individual Session Fee Section (renamed from Fee Override) -->
         <div class="section-divider"></div>
-        <h3 class="section-heading">Individual Session Fee</h3>
+        <h3 class="section-heading" style="font-size: 15pt">Individual Session Fee</h3>
 
         <div class="fee-grid">
             <div class="fee-field">
@@ -417,6 +416,11 @@
                 <div id="guardian-validation-message" style="color: #7F1D1D; font-size: 0.875rem;"></div>
             </div>
         </div>
+
+         <!-- Edit History (only shows if profile exists and is locked) -->
+        {% if profile %}
+            {% include 'components/edit_history.html' %}
+        {% endif %}
         
         <!-- Form Buttons (INSIDE form, OUTSIDE guardian-fields) -->
         <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
