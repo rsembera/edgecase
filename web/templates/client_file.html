@@ -234,11 +234,44 @@
         </div>
         
         <!-- Action Buttons (right-aligned) -->
-        <div style="margin-left: auto; display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="{{ url_for('create_session', client_id=client.id) }}" class="btn">Add Session</a>
-            <a href="{{ url_for('create_communication', client_id=client.id) }}" class="btn">Add Communication</a>
-            <a href="{{ url_for('create_absence', client_id=client.id) }}" class="btn">Add Absence</a>
-            <a href="{{ url_for('create_item', client_id=client.id) }}" class="btn">Add Item</a>
+        <div style="margin-left: auto; display: flex; gap: 1rem;">
+            <!-- Add Entry Dropdown -->
+            <div style="position: relative;">
+                <button class="dropdown-btn" onclick="toggleDropdown('add-entry-dropdown')">
+                    + Add Entry ▾
+                </button>
+                <div id="add-entry-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 200px; z-index: 100;">
+                    <a href="{{ url_for('create_session', client_id=client.id) }}" 
+                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                       onmouseover="this.style.background='#F3F4F6'" 
+                       onmouseout="this.style.background='transparent'">
+                        📝 Session
+                    </a>
+                    <a href="{{ url_for('create_communication', client_id=client.id) }}" 
+                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                       onmouseover="this.style.background='#F3F4F6'" 
+                       onmouseout="this.style.background='transparent'">
+                        💬 Communication
+                    </a>
+                    <a href="{{ url_for('create_absence', client_id=client.id) }}" 
+                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                       onmouseover="this.style.background='#F3F4F6'" 
+                       onmouseout="this.style.background='transparent'">
+                        🚫 Absence
+                    </a>
+                    <a href="{{ url_for('create_item', client_id=client.id) }}" 
+                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                       onmouseover="this.style.background='#F3F4F6'" 
+                       onmouseout="this.style.background='transparent'">
+                        📦 Item
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Export Button (placeholder for future) -->
+            <button class="btn" style="background: #718096; opacity: 0.6; cursor: not-allowed;" disabled>
+                Export
+            </button>
         </div>
     </div>
     
