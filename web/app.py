@@ -4,7 +4,7 @@ EdgeCase Flask Application
 Main web interface for EdgeCase Equalizer
 """
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from pathlib import Path
 import sys, sqlite3
 import time
@@ -133,7 +133,14 @@ def index():
     sort_by = request.args.get('sort', 'last_name')  # Default sort by last name
     sort_order = request.args.get('order', 'asc')  # Default ascending
     search = request.args.get('search', '')
-    view_mode = request.args.get('view', 'compact')  # 'detailed' or 'compact'
+    # Get view preference - check URL first, then session, then default
+    view_mode = request.args.get('view')
+    if view_mode:
+        # User explicitly changed view - save to session
+        session['view_preference'] = view_mode
+    else:
+        # No URL parameter - use saved preference or default to compact
+        view_mode = session.get('view_preference', 'compact')
     
     # Get all client types for filter
     all_types = db.get_all_client_types()
