@@ -130,10 +130,32 @@
             <button type="button" class="clear-search" style="display: none;">✕</button>
         </form>
         
-        <!-- Add Client Button -->
-        <a href="{{ url_for('manage_links') }}" class="btn-primary">Edit Links</a>
-        <a href="{{ url_for('manage_types') }}" class="btn-primary">Edit Types</a>
-        <a href="{{ url_for('add_client') }}" class="btn-primary">Add Client</a>
+        <!-- Manage Dropdown -->
+        <div style="position: relative;">
+            <button class="dropdown-btn" onclick="toggleDropdown('manage-dropdown')">
+                ⚙️ Manage ▾
+            </button>
+            <div id="manage-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
+                <a href="{{ url_for('add_client') }}" 
+                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                   onmouseover="this.style.background='#F3F4F6'" 
+                   onmouseout="this.style.background='transparent'">
+                    ➕ Add Client
+                </a>
+                <a href="{{ url_for('manage_types') }}" 
+                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                   onmouseover="this.style.background='#F3F4F6'" 
+                   onmouseout="this.style.background='transparent'">
+                    🏷️ Edit Types
+                </a>
+                <a href="{{ url_for('manage_links') }}" 
+                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                   onmouseover="this.style.background='#F3F4F6'" 
+                   onmouseout="this.style.background='transparent'">
+                    🔗 Edit Links
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
