@@ -152,6 +152,10 @@ class Database:
                 item_time TEXT,
                 base_price REAL,
                 
+                -- Upload-specific fields
+                upload_date INTEGER,
+                upload_time TEXT,
+                
                 -- Statement-specific fields
                 statement_total REAL,
                 payment_status TEXT,
@@ -977,6 +981,7 @@ class Database:
             'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
             'absence_date', 'absence_time',
             'item_date', 'item_time', 'base_price',  # ← removed tax_rate from here (it's now above)
+            'upload_date', 'upload_time',
             'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at',
@@ -1075,6 +1080,23 @@ class Database:
         
         return True
     
+    def get_attachments(self, entry_id):
+        """Get all attachments for an entry."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM attachments 
+            WHERE entry_id = ? 
+            ORDER BY uploaded_at DESC
+        """, (entry_id,))
+        
+        attachments = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return attachments
+        
     # ===== SETTINGS OPERATIONS =====
     
     def set_setting(self, key: str, value: str):

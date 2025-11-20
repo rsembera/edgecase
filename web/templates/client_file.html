@@ -192,13 +192,6 @@
                     <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
                         onmouseover="this.style.background='#F3F4F6'" 
                         onmouseout="this.style.background='transparent'">
-                        <input type="checkbox" name="class" value="consultation" 
-                            {% if 'consultation' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
-                    </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
                         <input type="checkbox" name="class" value="communication" 
                             {% if 'communication' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Communication</span>
@@ -216,6 +209,20 @@
                         <input type="checkbox" name="class" value="item" 
                             {% if 'item' in class_filter %}checked{% endif %}>
                         <span style="margin-left: 0.5rem; font-size: 0.875rem;">Item</span>
+                    </label>
+                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="class" value="upload" 
+                            {% if 'upload' in class_filter %}checked{% endif %}>
+                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Upload</span>
+                    </label>
+                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
+                        onmouseover="this.style.background='#F3F4F6'" 
+                        onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="class" value="consultation" 
+                            {% if 'consultation' in class_filter %}checked{% endif %}>
+                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
                     </label>
                 </div>
             </div>
@@ -264,6 +271,12 @@
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
                         📦 Item
+                    </a>
+                    <a href="{{ url_for('create_upload', client_id=client.id) }}" 
+                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                    onmouseover="this.style.background='#F3F4F6'" 
+                    onmouseout="this.style.background='transparent'">
+                        📎 Upload
                     </a>
                 </div>
             </div>
@@ -320,7 +333,7 @@
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('edit_item', client_id=client.id, entry_id=entry.id) }}{% endif %}'" 
+                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('edit_item', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'upload' %}{{ url_for('edit_upload', client_id=client.id, entry_id=entry.id) }}{% endif %}'"
                                     data-description="{{ entry.description|e }}" 
                                     data-content="{{ entry.content|e if entry.content else '' }}">
                                     <td>
@@ -332,6 +345,8 @@
                                             {{ entry.absence_date|timestamp_to_date }}
                                         {% elif entry.class == 'item' %}
                                             {{ entry.item_date|timestamp_to_date if entry.item_date else '-' }}
+                                        {% elif entry.class == 'upload' %}
+                                            {{ entry.upload_date|timestamp_to_date if entry.upload_date else '-' }}
                                         {% endif %}
                                     </td>
                                     <td>
@@ -357,6 +372,10 @@
                                             <span class="session-badge" style="background: #F5E6D3; color: #7A5C3E;">
                                                 Item
                                             </span>
+                                        {% elif entry.class == 'upload' %}
+                                            <span class="session-badge" style="background: #D3E4F5; color: #1E4D7B;">
+                                                Upload
+                                            </span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -375,6 +394,8 @@
                                             {{ entry.absence_time or '-' }}
                                         {% elif entry.class == 'item' %}
                                             {{ entry.item_time or '-' }}
+                                        {% elif entry.class == 'upload' %}
+                                            {{ entry.upload_time or '-' }}
                                         {% endif %}
                                     </td>
                                     <td style="color: #5B6571;">
@@ -387,6 +408,8 @@
                                         {% elif entry.class == 'item' %}
                                             {% if entry.base_price and entry.tax_rate %}
                                                 ${{ "%.2f"|format(entry.base_price) }} + {{ "%.1f"|format(entry.tax_rate) }}% tax
+                                        {% elif entry.class == 'upload' %}
+                                                📎 Files
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -403,6 +426,8 @@
                                             ${{ "%.2f"|format(entry.fee) if entry.fee else '0.00' }}
                                         {% elif entry.class == 'item' %}
                                             ${{ "%.2f"|format(entry.fee) if entry.fee else '0.00' }}
+                                        {% elif entry.class == 'upload' %}
+                                            -
                                         {% else %}
                                             -
                                         {% endif %}
