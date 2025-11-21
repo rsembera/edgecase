@@ -384,6 +384,12 @@ def client_file(client_id):
     # Get ALL entries for this client (not just sessions)
     all_entries = db.get_client_entries(client_id)
     
+    # Add attachment counts to upload entries
+    for entry in all_entries:
+        if entry['class'] == 'upload':
+            attachments = db.get_attachments(entry['id'])
+            entry['attachment_count'] = len(attachments)
+    
     # Get current time for calculations
     from datetime import datetime
     now = datetime.now()
@@ -2483,7 +2489,25 @@ def download_attachment(attachment_id):
     return send_file(attachment['filepath'], 
                      as_attachment=True, 
                      download_name=attachment['filename'])
-
+    
+@app.route('/attachment/<int:attachment_id>/view')
+def view_attachment(attachment_id):
+    """View an attachment file in browser."""
+    import sqlite3
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
+    attachment = cursor.fetchone()
+    conn.close()
+    
+    if not attachment:
+        return "Attachment not found", 404
+    
+    from flask import send_file
+    return send_file(attachment['filepath'], 
+                     as_attachment=False)  # Opens in browser
 
 @app.route('/attachment/<int:attachment_id>/delete', methods=['POST'])
 def delete_attachment(attachment_id):
