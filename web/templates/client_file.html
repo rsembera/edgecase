@@ -408,11 +408,11 @@
                                         {% elif entry.class == 'item' %}
                                             {% if entry.base_price and entry.tax_rate %}
                                                 ${{ "%.2f"|format(entry.base_price) }} + {{ "%.1f"|format(entry.tax_rate) }}% tax
-                                        {% elif entry.class == 'upload' %}
-                                                📎 Files
                                             {% else %}
                                                 -
                                             {% endif %}
+                                        {% elif entry.class == 'upload' %}
+                                            {{ entry.attachment_count }} file{{ 's' if entry.attachment_count != 1 else '' }}
                                         {% else %}
                                             -
                                         {% endif %}
