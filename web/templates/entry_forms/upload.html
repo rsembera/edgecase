@@ -160,7 +160,7 @@
                             </div>
                             <button type="button" 
                                     class="btn-small btn-danger remove-file-btn" 
-                                    style="display: none; white-space: nowrap;">Remove</button>
+                                    style="white-space: nowrap;">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -192,6 +192,19 @@
         {% else %}
         <button type="submit" form="upload-form" class="btn">Save Upload</button>
         {% endif %}
+    </div>
+
+    <!-- File Validation Modal (instead of alert) -->
+    <div id="file-validation-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem;">No File Selected</h3>
+            <p style="margin-bottom: 2rem; color: #4A5568;">
+                Please select a file before adding another upload row.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeFileValidationModal()" class="btn">OK</button>
+            </div>
+        </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
