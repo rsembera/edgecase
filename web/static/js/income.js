@@ -21,13 +21,52 @@ if (textarea) {
     textarea.addEventListener('input', autoResize);
 }
 
-// Multiple file upload management (same as Upload entry)
+// Format to 2 decimal places on blur for amount fields
+const totalAmountInput = document.getElementById('total_amount');
+const taxAmountInput = document.getElementById('tax_amount');
+
+if (totalAmountInput) {
+    totalAmountInput.addEventListener('blur', function() {
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+    });
+}
+
+if (taxAmountInput) {
+    taxAmountInput.addEventListener('blur', function() {
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+    });
+}
+
+// File validation modal functions
+function showFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'flex';
+}
+
+function closeFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'none';
+}
+
+// Multiple file upload management
 const fileInputsContainer = document.getElementById('file-inputs');
 const addFileBtn = document.getElementById('add-file-btn');
 let fileInputCount = 1;
 
-// Add another file input row
+// Add another file input row (only if current row has a file selected)
 addFileBtn.addEventListener('click', function() {
+    // Check if the last file input has a file selected
+    const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
+    const lastRow = allRows[allRows.length - 1];
+    const lastFileInput = lastRow.querySelector('.file-input');
+    
+    if (!lastFileInput.files || lastFileInput.files.length === 0) {
+        showFileValidationModal();
+        return;
+    }
+    
     fileInputCount++;
     
     const newRow = document.createElement('div');
@@ -61,44 +100,33 @@ addFileBtn.addEventListener('click', function() {
     
     fileInputsContainer.appendChild(newRow);
     
-    // Update remove button visibility
-    updateRemoveButtons();
-    
     // Add event listener to new remove button
     const removeBtn = newRow.querySelector('.remove-file-btn');
     removeBtn.addEventListener('click', function() {
         newRow.remove();
         fileInputCount--;
-        updateRemoveButtons();
     });
 });
-
-// Show/hide remove buttons (only show if more than one file input)
-function updateRemoveButtons() {
-    const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-    allRows.forEach(row => {
-        const removeBtn = row.querySelector('.remove-file-btn');
-        if (allRows.length > 1) {
-            removeBtn.style.display = 'block';
-        } else {
-            removeBtn.style.display = 'none';
-        }
-    });
-}
 
 // Add remove functionality to initial row
 const initialRemoveBtn = document.querySelector('.remove-file-btn');
 if (initialRemoveBtn) {
     initialRemoveBtn.addEventListener('click', function() {
         const row = this.closest('.file-input-row');
-        row.remove();
-        fileInputCount--;
-        updateRemoveButtons();
+        const fileInput = row.querySelector('.file-input');
+        const descInput = row.querySelector('input[name="file_descriptions[]"]');
+        
+        // Clear the inputs instead of removing if it's the only row
+        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
+        if (allRows.length === 1) {
+            fileInput.value = '';
+            descInput.value = '';
+        } else {
+            row.remove();
+            fileInputCount--;
+        }
     });
 }
-
-// Initial state
-updateRemoveButtons();
 
 // Delete attachment (for edit mode)
 let deleteAttachmentId = null;
@@ -131,5 +159,40 @@ function confirmDelete() {
         console.error('Error:', error);
         alert('Error deleting attachment');
         closeDeleteModal();
+    });
+}
+
+// Delete entire income entry (edit mode only)
+function confirmDeleteEntry() {
+    document.getElementById('delete-entry-modal').style.display = 'flex';
+}
+
+function closeDeleteEntryModal() {
+    document.getElementById('delete-entry-modal').style.display = 'none';
+}
+
+function deleteEntry() {
+    // Get entry ID from URL (e.g., /ledger/income/123)
+    const pathParts = window.location.pathname.split('/');
+    const entryId = pathParts[3]; // /ledger/income/[ID]
+    
+    fetch(`/ledger/income/${entryId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.href = '/ledger';
+        } else {
+            return response.text().then(text => {
+                console.error('Server response:', text);
+                alert('Error deleting income entry');
+                closeDeleteEntryModal();
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting income entry');
+        closeDeleteEntryModal();
     });
 }

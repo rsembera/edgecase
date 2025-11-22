@@ -1,14 +1,15 @@
 /* Income Entry Form Styles */
 
-/* Date input group - three dropdowns in a row */
+/* Date input group - constrained width, NOT full page */
 .date-input-group {
     display: flex;
     gap: 0.75rem;
+    max-width: 48%; /* Slightly less than 50% to match Total Amount field */
 }
 
 .date-input-group select {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem; /* Same as text inputs */
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
     font-size: 0.875rem;
@@ -17,6 +18,9 @@
     background: #FBFCFD;
     cursor: pointer;
     transition: all 0.2s;
+    height: 50px; /* Explicit height to match Total Amount exactly */
+    line-height: normal;
+    box-sizing: border-box;
 }
 
 .date-input-group select:focus {
@@ -49,6 +53,8 @@
     color: #323B45;
     background: #FBFCFD;
     transition: all 0.2s;
+    height: 50px; /* Match date fields */
+    box-sizing: border-box;
 }
 
 .form-group input[type="text"]:focus,
@@ -60,6 +66,7 @@
 }
 
 .form-group textarea {
+    height: auto; /* Override for textarea */
     min-height: 100px;
     resize: vertical;
     font-family: inherit;
@@ -87,6 +94,13 @@
     width: 100%;
 }
 
+/* File description input - match Remove button height */
+.file-input-row input[type="text"] {
+    height: 38px; /* Match .btn-small height */
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
 /* Attachment list */
 .attachment-list {
     margin-bottom: 1.5rem;
@@ -101,23 +115,23 @@
     margin-bottom: 0.5rem;
 }
 
-/* Buttons */
-.btn {
+/* Buttons - FIXED COLORS AND HEIGHTS */
+ .btn {
+    display: inline-block;
     padding: 0.75rem 1.5rem;
-    background: #1F8F74;
-    color: white;
-    border: none;
+    background: #BFDCDC;
+    color: #115D4F;
+    text-decoration: none;
     border-radius: 0.75rem;
+    border: none;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
 }
 
 .btn:hover {
-    background: #196A57;
+    background: #9FCFC0;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(31,143,116,0.2);
 }
@@ -134,8 +148,8 @@
 
 .btn-small {
     padding: 0.5rem 1rem;
-    background: #1F8F74;
-    color: white;
+    background: #BFDCDC;
+    color: #115D4F;
     border: none;
     border-radius: 0.375rem;
     font-size: 0.75rem;
@@ -143,15 +157,22 @@
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    display: inline-block;
+    height: 38px; /* Explicit height */
+    line-height: 1;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
 }
 
 .btn-small:hover {
-    background: #196A57;
+    background: #9FCFC0;
 }
 
 .btn-danger {
     background: #DC2626;
+    color: white;
 }
 
 .btn-danger:hover {
