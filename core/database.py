@@ -75,7 +75,7 @@ class Database:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id INTEGER NOT NULL,
+                client_id INTEGER,
                 class TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
                 modified_at INTEGER NOT NULL,
@@ -156,6 +156,17 @@ class Database:
                 upload_date INTEGER,
                 upload_time TEXT,
                 
+                 -- Ledger-specific fields (Income/Expense entries)
+                ledger_date INTEGER,
+                ledger_type TEXT,
+                source TEXT,
+                payee_id INTEGER,
+                category_id INTEGER,
+                base_amount REAL,
+                tax_amount REAL,
+                total_amount REAL,
+                statement_id INTEGER,
+                
                 -- Statement-specific fields
                 statement_total REAL,
                 payment_status TEXT,
@@ -233,6 +244,24 @@ class Database:
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
                 modified_at INTEGER NOT NULL
+            )
+        """)
+        
+        # Payees table (for expense entries)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS payees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+        """)
+        
+        # Expense Categories table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS expense_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                created_at INTEGER NOT NULL
             )
         """)
         
@@ -991,7 +1020,10 @@ class Database:
             'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone',
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
             'guardian2_name', 'guardian2_email', 'guardian2_phone',
-            'guardian2_address', 'guardian2_pays_percent'
+            'guardian2_address', 'guardian2_pays_percent',
+            # Ledger fields  ← ADD THIS SECTION
+            'ledger_date', 'ledger_type', 'source', 'payee_id', 'category_id',
+            'base_amount', 'tax_amount', 'total_amount', 'statement_id'
         ]
         
         for field in optional_fields:
@@ -1126,3 +1158,329 @@ class Database:
         conn.close()
         
         return row[0] if row else default
+    
+    # EdgeCase Ledger - Database Methods
+    # Add these methods to the Database class in ~/edgecase/core/database.py
+
+    # ============================================================================
+    # PAYEE OPERATIONS
+    # ============================================================================
+
+    def add_payee(self, name: str) -> int:
+        """Add a new payee to the payees table."""
+        import time
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO payees (name, created_at)
+            VALUES (?, ?)
+        """, (name, int(time.time())))
+        
+        payee_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return payee_id
+
+    def get_payee(self, payee_id: int) -> dict:
+        """Get a single payee by ID."""
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM payees WHERE id = ?", (payee_id,))
+        payee = cursor.fetchone()
+        conn.close()
+        
+        return dict(payee) if payee else None
+
+    def get_all_payees(self) -> list:
+        """Get all payees ordered by name."""
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM payees ORDER BY name ASC")
+        payees = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return payees
+
+    def update_payee(self, payee_id: int, name: str) -> bool:
+        """Update a payee's name."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE payees
+            SET name = ?
+            WHERE id = ?
+        """, (name, payee_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+
+    def delete_payee(self, payee_id: int) -> bool:
+        """Delete a payee (only if no expenses reference it)."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Check if any expenses use this payee
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE payee_id = ?", (payee_id,))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            conn.close()
+            return False  # Cannot delete - has expenses
+        
+        cursor.execute("DELETE FROM payees WHERE id = ?", (payee_id,))
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+
+
+    # ============================================================================
+    # EXPENSE CATEGORY OPERATIONS
+    # ============================================================================
+
+    def add_expense_category(self, name: str) -> int:
+        """Add a new expense category."""
+        import time
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO expense_categories (name, created_at)
+            VALUES (?, ?)
+        """, (name, int(time.time())))
+        
+        category_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return category_id
+
+    def get_expense_category(self, category_id: int) -> dict:
+        """Get a single expense category by ID."""
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM expense_categories WHERE id = ?", (category_id,))
+        category = cursor.fetchone()
+        conn.close()
+        
+        return dict(category) if category else None
+
+    def get_all_expense_categories(self) -> list:
+        """Get all expense categories ordered by name."""
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM expense_categories ORDER BY name ASC")
+        categories = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return categories
+
+    def update_expense_category(self, category_id: int, name: str) -> bool:
+        """Update an expense category's name."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE expense_categories
+            SET name = ?
+            WHERE id = ?
+        """, (name, category_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+
+    def delete_expense_category(self, category_id: int) -> bool:
+        """Delete an expense category (only if no expenses reference it)."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Check if any expenses use this category
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE category_id = ?", (category_id,))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            conn.close()
+            return False  # Cannot delete - has expenses
+        
+        cursor.execute("DELETE FROM expense_categories WHERE id = ?", (category_id,))
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+
+
+    # ============================================================================
+    # LEDGER ENTRY OPERATIONS
+    # ============================================================================
+
+    def get_all_ledger_entries(self, ledger_type: str = None) -> list:
+        """
+        Get all ledger entries (income and/or expense).
+        
+        Args:
+            ledger_type: Optional filter - 'income' or 'expense' or None for both
+        
+        Returns:
+            List of ledger entries sorted by date (newest first), then created_at
+        """
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        if ledger_type:
+            cursor.execute("""
+                SELECT * FROM entries 
+                WHERE ledger_type = ?
+                ORDER BY ledger_date DESC, created_at DESC
+            """, (ledger_type,))
+        else:
+            cursor.execute("""
+                SELECT * FROM entries 
+                WHERE ledger_type IN ('income', 'expense')
+                ORDER BY ledger_date DESC, created_at DESC
+            """)
+        
+        entries = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return entries
+
+    def get_ledger_entry(self, entry_id: int) -> dict:
+        """Get a single ledger entry (same as get_entry, just for clarity)."""
+        return self.get_entry(entry_id)
+
+    def get_ledger_entries_by_date_range(self, start_date: int, end_date: int, 
+                                        ledger_type: str = None) -> list:
+        """
+        Get ledger entries within a date range.
+        
+        Args:
+            start_date: Unix timestamp for start of range
+            end_date: Unix timestamp for end of range
+            ledger_type: Optional filter - 'income' or 'expense' or None for both
+        
+        Returns:
+            List of ledger entries in date range
+        """
+        import sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        if ledger_type:
+            cursor.execute("""
+                SELECT * FROM entries 
+                WHERE ledger_type = ?
+                AND ledger_date BETWEEN ? AND ?
+                ORDER BY ledger_date ASC, created_at ASC
+            """, (ledger_type, start_date, end_date))
+        else:
+            cursor.execute("""
+                SELECT * FROM entries 
+                WHERE ledger_type IN ('income', 'expense')
+                AND ledger_date BETWEEN ? AND ?
+                ORDER BY ledger_date ASC, created_at ASC
+            """, (start_date, end_date))
+        
+        entries = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return entries
+
+    def get_ledger_totals(self, start_date: int = None, end_date: int = None) -> dict:
+        """
+        Calculate total income, expenses, and net for a date range.
+        
+        Args:
+            start_date: Optional Unix timestamp for start (None = all time)
+            end_date: Optional Unix timestamp for end (None = all time)
+        
+        Returns:
+            Dict with: total_income, total_expenses, total_tax_collected, 
+                    total_tax_paid, net_income, net_tax_owing
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Build WHERE clause for date range
+        date_filter = ""
+        params = []
+        if start_date and end_date:
+            date_filter = "AND ledger_date BETWEEN ? AND ?"
+            params = [start_date, end_date]
+        elif start_date:
+            date_filter = "AND ledger_date >= ?"
+            params = [start_date]
+        elif end_date:
+            date_filter = "AND ledger_date <= ?"
+            params = [end_date]
+        
+        # Total income and tax collected
+        cursor.execute(f"""
+            SELECT 
+                COALESCE(SUM(total_amount), 0) as total_income,
+                COALESCE(SUM(tax_amount), 0) as total_tax_collected
+            FROM entries 
+            WHERE ledger_type = 'income' {date_filter}
+        """, params)
+        income_row = cursor.fetchone()
+        
+        # Total expenses and tax paid
+        cursor.execute(f"""
+            SELECT 
+                COALESCE(SUM(total_amount), 0) as total_expenses,
+                COALESCE(SUM(tax_amount), 0) as total_tax_paid
+            FROM entries 
+            WHERE ledger_type = 'expense' {date_filter}
+        """, params)
+        expense_row = cursor.fetchone()
+        
+        conn.close()
+        
+        total_income = income_row[0]
+        total_tax_collected = income_row[1]
+        total_expenses = expense_row[0]
+        total_tax_paid = expense_row[1]
+        
+        return {
+            'total_income': total_income,
+            'total_expenses': total_expenses,
+            'total_tax_collected': total_tax_collected,
+            'total_tax_paid': total_tax_paid,
+            'net_income': total_income - total_expenses,
+            'net_tax_owing': total_tax_collected - total_tax_paid
+        }
+
+
+    # ============================================================================
+    # NOTES
+    # ============================================================================
+
+    # These methods integrate with existing Database class methods:
+    # - add_entry() - works for ledger entries (class='income' or 'expense')
+    # - update_entry() - works for editing ledger entries
+    # - get_entry() - works for getting single ledger entry
+    # - add_to_edit_history() - tracks changes to ledger entries
+    # - get_edit_history() - retrieves edit history
+    # - get_attachments() - gets attachments for ledger entries
+
+    # Ledger entries use client_id = NULL since they're practice-wide
+    # Attachments are stored in ~/edgecase/attachments/ledger/{entry_id}/
