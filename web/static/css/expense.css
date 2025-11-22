@@ -1,9 +1,10 @@
 /* Expense Entry Form Styles */
 
-/* Date input group - three dropdowns in a row */
+/* Date input group - three dropdowns in a row, matching Total Amount width */
 .date-input-group {
     display: flex;
     gap: 0.75rem;
+    max-width: calc(50% - 0.75rem); /* Match half of two-column grid (same as Total Amount) */
 }
 
 .date-input-group select {
@@ -17,6 +18,7 @@
     background: #FBFCFD;
     cursor: pointer;
     transition: all 0.2s;
+    height: 48px; /* Match text input height */
 }
 
 .date-input-group select:focus {
@@ -50,6 +52,8 @@
     color: #323B45;
     background: #FBFCFD;
     transition: all 0.2s;
+    height: 48px; /* Consistent height for all inputs */
+    box-sizing: border-box;
 }
 
 .form-group input[type="text"]:focus,
@@ -67,8 +71,14 @@
 
 .form-group textarea {
     min-height: 100px;
+    height: auto; /* Override for textarea */
     resize: vertical;
     font-family: inherit;
+}
+
+/* Expense Category dropdown - match Payee width */
+#category_id {
+    max-width: calc(50% - 0.75rem); /* Match half of two-column grid (same as Payee) */
 }
 
 /* Helper text */
@@ -107,23 +117,23 @@
     margin-bottom: 0.5rem;
 }
 
-/* Buttons */
-.btn {
+/* Buttons - FIXED COLORS AND HEIGHTS */
+ .btn {
+    display: inline-block;
     padding: 0.75rem 1.5rem;
-    background: #1F8F74;
-    color: white;
-    border: none;
+    background: #BFDCDC;
+    color: #115D4F;
+    text-decoration: none;
     border-radius: 0.75rem;
+    border: none;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
 }
 
 .btn:hover {
-    background: #196A57;
+    background: #9FCFC0;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(31,143,116,0.2);
 }
@@ -140,8 +150,8 @@
 
 .btn-small {
     padding: 0.5rem 1rem;
-    background: #1F8F74;
-    color: white;
+    background: #BFDCDC;
+    color: #115D4F;
     border: none;
     border-radius: 0.375rem;
     font-size: 0.75rem;
@@ -149,15 +159,22 @@
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    display: inline-block;
+    height: 38px; /* Explicit height */
+    line-height: 1;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
 }
 
 .btn-small:hover {
-    background: #196A57;
+    background: #9FCFC0;
 }
 
 .btn-danger {
     background: #DC2626;
+    color: white;
 }
 
 .btn-danger:hover {
