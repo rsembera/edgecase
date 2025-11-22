@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ledger.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/ledger.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="ledger-header">
+        <div>
+            <h2>Ledger</h2>
+            <p style="color: #718096; margin-top: 0.5rem;">Track income and expenses for your practice</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn">← Back to Clients</a>
+    </div>
+    
+    <!-- Controls Bar: Search and Action Buttons -->
+    <div class="controls-bar">
+        <div class="filter-search-group">
+            <!-- Search Box -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" 
+                       id="search-input" 
+                       placeholder="Search amount or description..."
+                       onkeyup="searchEntries()">
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <!-- Add Entry Dropdown -->
+            <div class="dropdown-container" style="position: relative;">
+                <button class="dropdown-btn" id="add-entry-btn" onclick="toggleAddDropdown()">
+                    + Add Entry ▾
+                </button>
+                <div id="add-dropdown" class="dropdown-menu" style="display: none;">
+                    <a href="{{ url_for('create_income') }}" class="dropdown-item">💰 Income</a>
+                    <a href="{{ url_for('create_expense') }}" class="dropdown-item">💸 Expense</a>
+                </div>
+            </div>
+            
+            <button class="btn" disabled>📊 Report</button>
+        </div>
+    </div>
+    
+    {% if not years %}
+    <!-- Empty State -->
+    <div class="placeholder-message">
+        <h3>No Ledger Entries Yet</h3>
+        <p>Start tracking your practice income and expenses.</p>
+        <p style="margin-top: 1rem;">
+            <a href="{{ url_for('create_income') }}" class="btn" style="margin-right: 0.5rem;">+ Add Income</a>
+            <a href="{{ url_for('create_expense') }}" class="btn">+ Add Expense</a>
+        </p>
+    </div>
+    {% else %}
+    
+    <!-- Year/Month Structure with Entries -->
+    {% for year in years %}
+    {# Calculate total entries for this year #}
+    {% set year_total = namespace(count=0) %}
+    {% for month_num, month_data in entries_by_year_month[year].items() %}
+        {% set year_total.count = year_total.count + month_data.entries|length %}
+    {% endfor %}
+    
+    <div class="year-header" onclick="toggleYear('year-{{ year }}')">
+        <span style="font-size: 1.125rem; font-weight: 600;">
+            <span id="year-{{ year }}-icon">▼</span>
+            {{ year }}
+        </span>
+        <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_total.count }} Entr{{ 'y' if year_total.count == 1 else 'ies' }}</span>
+    </div>
+    
+    <div id="year-{{ year }}-content" class="year-content expanded">
+        {% for month_num, month_data in entries_by_year_month[year].items() %}
+        <div class="month-header" onclick="toggleMonth('month-{{ year }}-{{ month_num }}')">
+            <span style="font-weight: 600;">
+                <span id="month-{{ year }}-{{ month_num }}-icon">▼</span>
+                {{ month_data.name }}
+            </span>
+            <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_data.entries|length }} Entr{{ 'y' if month_data.entries|length == 1 else 'ies' }}</span>
+        </div>
+        
+        <div id="month-{{ year }}-{{ month_num }}-content" class="month-content expanded">
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Party</th>
+                        <th>Category</th>
+                        <th>Files</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in month_data.entries %}
+                    <tr class="entry-row" 
+                        data-description="{{ entry.description or '' }}" 
+                        data-amount="{{ entry.total_amount }}"
+                        onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('edit_income', entry_id=entry.id) }}{% else %}{{ url_for('edit_expense', entry_id=entry.id) }}{% endif %}';"
+                        style="cursor: pointer;">
+                        <td>
+                            {% set entry_dt = entry.ledger_date | timestamp_to_datetime %}
+                            {{ entry_dt.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td>
+                            {% if entry.ledger_type == 'income' %}
+                            <span class="type-badge income-badge">Income</span>
+                            {% else %}
+                            <span class="type-badge expense-badge">Expense</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.ledger_type == 'income' %}
+                            <span class="income-amount">{{ currency }}{{ '%.2f'|format(entry.total_amount) }}</span>
+                            {% else %}
+                            <span class="expense-amount">{{ currency }}{{ '%.2f'|format(entry.total_amount) }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ entry.description if entry.description else '' }}
+                        </td>
+                        <td>
+                            {% if entry.ledger_type == 'income' %}
+                            {{ entry.source }}
+                            {% else %}
+                            {{ entry.payee_name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.ledger_type == 'income' %}
+                            -
+                            {% else %}
+                            {{ entry.category_name }}
+                            {% endif %}
+                        </td>
+                        <td style="color: #5B6571;">
+                            {# Placeholder for attachment count - will be implemented later #}
+                            -
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    
+    {% endif %}
+</div>
+
+{% endblock %}

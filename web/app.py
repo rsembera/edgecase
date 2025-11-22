@@ -2550,6 +2550,752 @@ def delete_attachment(attachment_id):
     return '', 200
 
 
+# EdgeCase Ledger - Flask Routes
+# Add these routes to ~/edgecase/web/app.py
+
+# ============================================================================
+# LEDGER MAIN VIEW
+# ============================================================================
+
+@app.route('/ledger')
+def ledger():
+    """Display the ledger with all income and expense entries."""
+    from datetime import datetime
+    
+    # Get all ledger entries
+    entries = db.get_all_ledger_entries()
+    
+    # Get currency from settings
+    currency = db.get_setting('currency', '$')
+    
+    # Organize entries by year and month
+    entries_by_year_month = {}
+    
+    for entry in entries:
+        if entry.get('ledger_date'):
+            entry_dt = datetime.fromtimestamp(entry['ledger_date'])
+            year = entry_dt.year
+            month = entry_dt.month
+            month_name = entry_dt.strftime('%B')  # "November"
+            
+            if year not in entries_by_year_month:
+                entries_by_year_month[year] = {}
+            
+            if month not in entries_by_year_month[year]:
+                entries_by_year_month[year][month] = {
+                    'name': month_name,
+                    'entries': []
+                }
+            
+            # Get payee and category names for expenses
+            if entry['ledger_type'] == 'expense':
+                if entry.get('payee_id'):
+                    payee = db.get_payee(entry['payee_id'])
+                    entry['payee_name'] = payee['name'] if payee else 'Unknown'
+                
+                if entry.get('category_id'):
+                    category = db.get_expense_category(entry['category_id'])
+                    entry['category_name'] = category['name'] if category else 'Unknown'
+            
+            entries_by_year_month[year][month]['entries'].append(entry)
+    
+    # Sort years (newest first) and months (newest first within year)
+    years = sorted(entries_by_year_month.keys(), reverse=True)
+    for year in years:
+        entries_by_year_month[year] = dict(
+            sorted(entries_by_year_month[year].items(), reverse=True)
+        )
+    
+    return render_template('ledger.html',
+                         entries_by_year_month=entries_by_year_month,
+                         years=years,
+                         currency=currency)
+
+
+# ============================================================================
+# INCOME ENTRY ROUTES
+# ============================================================================
+
+@app.route('/ledger/income', methods=['GET', 'POST'])
+def create_income():
+    """Create new income entry."""
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        ledger_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare income entry data
+        income_data = {
+            'client_id': None,  # Ledger entries are not tied to clients
+            'class': 'income',
+            'ledger_type': 'income',
+            'ledger_date': ledger_date_timestamp,
+            'source': request.form.get('source'),
+            'total_amount': float(request.form.get('total_amount', 0)),
+            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'description': request.form.get('description', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Save income entry first to get entry_id
+        entry_id = db.add_entry(income_data)
+        
+        # Handle file uploads (same as Upload entry)
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            # Create upload directory for ledger entry
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Process each file
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    file.save(filepath)
+                    filesize = os.path.getsize(filepath)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+        
+        return redirect(url_for('ledger'))
+    
+    # GET - show form
+    from datetime import datetime
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
+    
+    currency = db.get_setting('currency', '$')
+    
+    return render_template('entry_forms/income.html',
+                         today=today,
+                         today_year=today_year,
+                         today_month=today_month,
+                         today_day=today_day,
+                         currency=currency,
+                         is_edit=False)
+
+
+@app.route('/ledger/income/<int:entry_id>', methods=['GET', 'POST'])
+def edit_income(entry_id):
+    """Edit existing income entry."""
+    income = db.get_entry(entry_id)
+    
+    if not income or income['ledger_type'] != 'income':
+        return "Income entry not found", 404
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        # Get old entry for edit history comparison
+        old_income = income.copy()
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        ledger_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare updated income data
+        income_data = {
+            'ledger_date': ledger_date_timestamp,
+            'source': request.form.get('source'),
+            'total_amount': float(request.form.get('total_amount', 0)),
+            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'description': request.form.get('description', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Generate edit history (Income entries NOT locked, but track changes)
+        import difflib
+        changes = []
+        
+        # Date
+        if old_income.get('ledger_date') != ledger_date_timestamp:
+            old_date = datetime.fromtimestamp(old_income['ledger_date']).strftime('%Y-%m-%d') if old_income.get('ledger_date') else 'None'
+            new_date = datetime.fromtimestamp(ledger_date_timestamp).strftime('%Y-%m-%d') if ledger_date_timestamp else 'None'
+            changes.append(f"Date: {old_date} → {new_date}")
+        
+        # Source
+        if old_income.get('source') != income_data.get('source'):
+            old_src = old_income.get('source') or 'None'
+            new_src = income_data.get('source') or 'None'
+            changes.append(f"Source: {old_src} → {new_src}")
+        
+        # Total Amount
+        old_total = float(old_income.get('total_amount') or 0)
+        new_total = float(income_data.get('total_amount') or 0)
+        if old_total != new_total:
+            changes.append(f"Total Amount: ${old_total:.2f} → ${new_total:.2f}")
+        
+        # Tax Amount
+        old_tax = float(old_income.get('tax_amount') or 0)
+        new_tax = float(income_data.get('tax_amount') or 0)
+        if old_tax != new_tax:
+            changes.append(f"Tax: ${old_tax:.2f} → ${new_tax:.2f}")
+        
+        # Description (with smart diff if both exist)
+        if old_income.get('description') != income_data.get('description'):
+            old_desc = old_income.get('description') or ''
+            new_desc = income_data.get('description') or ''
+            
+            if old_desc and new_desc:
+                old_words = old_desc.split()
+                new_words = new_desc.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 100:
+                    diff_text = diff_text[:100] + '...'
+                
+                changes.append(f"Description: {diff_text}")
+            elif old_desc:
+                changes.append("Description: Cleared")
+            else:
+                changes.append("Description: Added")
+        
+        # Content (with smart diff if both exist)
+        if old_income.get('content') != income_data.get('content'):
+            old_content = old_income.get('content') or ''
+            new_content = income_data.get('content') or ''
+            
+            if old_content and new_content:
+                old_words = old_content.split()
+                new_words = new_content.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 150:
+                    diff_text = diff_text[:150] + '...'
+                
+                changes.append(f"Content: {diff_text}")
+            elif old_content:
+                changes.append("Content: Cleared")
+            else:
+                changes.append("Content: Added")
+        
+        # Handle new file uploads (same as Upload entry)
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            added_files = []
+            
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    file.save(filepath)
+                    filesize = os.path.getsize(filepath)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+                    
+                    added_files.append(filename)
+            
+            if added_files:
+                changes.append(f"Added files: {', '.join(added_files)}")
+        
+        if changes:
+            change_desc = "; ".join(changes)
+            db.add_to_edit_history(entry_id, change_desc)
+        
+        # Update the income entry
+        db.update_entry(entry_id, income_data)
+        
+        return redirect(url_for('ledger'))
+    
+    # GET - show form with existing data
+    from datetime import datetime
+    
+    # Parse income date into year, month, day for dropdowns
+    income_year = None
+    income_month = None
+    income_day = None
+    if income.get('ledger_date'):
+        income_dt = datetime.fromtimestamp(income['ledger_date'])
+        income_year = income_dt.year
+        income_month = income_dt.month
+        income_day = income_dt.day
+    
+    # Get attachments for this entry
+    attachments = db.get_attachments(entry_id)
+    
+    # Get edit history
+    edit_history_raw = db.get_edit_history(entry_id)
+    edit_history = []
+    for edit in edit_history_raw:
+        edit_dt = datetime.fromtimestamp(edit['timestamp'])
+        edit['timestamp_formatted'] = edit_dt.strftime('%B %d, %Y at %I:%M %p')
+        edit_history.append(edit)
+    
+    currency = db.get_setting('currency', '$')
+    
+    return render_template('entry_forms/income.html',
+                         entry=income,
+                         income_year=income_year,
+                         income_month=income_month,
+                         income_day=income_day,
+                         attachments=attachments,
+                         edit_history=edit_history,
+                         currency=currency,
+                         is_edit=True)
+
+
+# ============================================================================
+# EXPENSE ENTRY ROUTES
+# ============================================================================
+
+@app.route('/ledger/expense', methods=['GET', 'POST'])
+def create_expense():
+    """Create new expense entry."""
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        # Handle new payee creation
+        payee_id = request.form.get('payee_id')
+        if payee_id == 'new':
+            new_payee_name = request.form.get('new_payee_name')
+            if new_payee_name:
+                payee_id = db.add_payee(new_payee_name)
+        else:
+            payee_id = int(payee_id)
+        
+        # Handle new category creation
+        category_id = request.form.get('category_id')
+        if category_id == 'new':
+            new_category_name = request.form.get('new_category_name')
+            if new_category_name:
+                category_id = db.add_expense_category(new_category_name)
+        else:
+            category_id = int(category_id)
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        ledger_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare expense entry data
+        expense_data = {
+            'client_id': None,  # Ledger entries are not tied to clients
+            'class': 'expense',
+            'ledger_type': 'expense',
+            'ledger_date': ledger_date_timestamp,
+            'payee_id': payee_id,
+            'category_id': category_id,
+            'total_amount': float(request.form.get('total_amount', 0)),
+            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'description': request.form.get('description', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Save expense entry first to get entry_id
+        entry_id = db.add_entry(expense_data)
+        
+        # Handle file uploads (same as Upload/Income)
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    file.save(filepath)
+                    filesize = os.path.getsize(filepath)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+        
+        return redirect(url_for('ledger'))
+    
+    # GET - show form
+    from datetime import datetime
+    today_dt = datetime.now()
+    today = today_dt.strftime('%Y-%m-%d')
+    today_year = today_dt.year
+    today_month = today_dt.month
+    today_day = today_dt.day
+    
+    # Get payees and categories for dropdowns
+    payees = db.get_all_payees()
+    categories = db.get_all_expense_categories()
+    
+    currency = db.get_setting('currency', '$')
+    
+    return render_template('entry_forms/expense.html',
+                         today=today,
+                         today_year=today_year,
+                         today_month=today_month,
+                         today_day=today_day,
+                         payees=payees,
+                         categories=categories,
+                         currency=currency,
+                         is_edit=False)
+
+
+@app.route('/ledger/expense/<int:entry_id>', methods=['GET', 'POST'])
+def edit_expense(entry_id):
+    """Edit existing expense entry."""
+    expense = db.get_entry(entry_id)
+    
+    if not expense or expense['ledger_type'] != 'expense':
+        return "Expense entry not found", 404
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        # Get old entry for edit history comparison
+        old_expense = expense.copy()
+        
+        # Handle new payee creation
+        payee_id = request.form.get('payee_id')
+        if payee_id == 'new':
+            new_payee_name = request.form.get('new_payee_name')
+            if new_payee_name:
+                payee_id = db.add_payee(new_payee_name)
+        else:
+            payee_id = int(payee_id)
+        
+        # Handle new category creation
+        category_id = request.form.get('category_id')
+        if category_id == 'new':
+            new_category_name = request.form.get('new_category_name')
+            if new_category_name:
+                category_id = db.add_expense_category(new_category_name)
+        else:
+            category_id = int(category_id)
+        
+        # Parse date from dropdowns
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        ledger_date_timestamp = None
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        
+        # Prepare updated expense data
+        expense_data = {
+            'ledger_date': ledger_date_timestamp,
+            'payee_id': payee_id,
+            'category_id': category_id,
+            'total_amount': float(request.form.get('total_amount', 0)),
+            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'description': request.form.get('description', ''),
+            'content': request.form.get('content', '')
+        }
+        
+        # Generate edit history (Expense entries NOT locked, but track changes)
+        import difflib
+        changes = []
+        
+        # Date
+        if old_expense.get('ledger_date') != ledger_date_timestamp:
+            old_date = datetime.fromtimestamp(old_expense['ledger_date']).strftime('%Y-%m-%d') if old_expense.get('ledger_date') else 'None'
+            new_date = datetime.fromtimestamp(ledger_date_timestamp).strftime('%Y-%m-%d') if ledger_date_timestamp else 'None'
+            changes.append(f"Date: {old_date} → {new_date}")
+        
+        # Payee
+        if old_expense.get('payee_id') != payee_id:
+            old_payee = db.get_payee(old_expense['payee_id']) if old_expense.get('payee_id') else None
+            new_payee = db.get_payee(payee_id)
+            old_name = old_payee['name'] if old_payee else 'None'
+            new_name = new_payee['name'] if new_payee else 'None'
+            changes.append(f"Payee: {old_name} → {new_name}")
+        
+        # Category
+        if old_expense.get('category_id') != category_id:
+            old_cat = db.get_expense_category(old_expense['category_id']) if old_expense.get('category_id') else None
+            new_cat = db.get_expense_category(category_id)
+            old_name = old_cat['name'] if old_cat else 'None'
+            new_name = new_cat['name'] if new_cat else 'None'
+            changes.append(f"Category: {old_name} → {new_name}")
+        
+        # Total Amount
+        old_total = float(old_expense.get('total_amount') or 0)
+        new_total = float(expense_data.get('total_amount') or 0)
+        if old_total != new_total:
+            changes.append(f"Total Amount: ${old_total:.2f} → ${new_total:.2f}")
+        
+        # Tax Amount
+        old_tax = float(old_expense.get('tax_amount') or 0)
+        new_tax = float(expense_data.get('tax_amount') or 0)
+        if old_tax != new_tax:
+            changes.append(f"Tax: ${old_tax:.2f} → ${new_tax:.2f}")
+        
+        # Description (with smart diff)
+        if old_expense.get('description') != expense_data.get('description'):
+            old_desc = old_expense.get('description') or ''
+            new_desc = expense_data.get('description') or ''
+            
+            if old_desc and new_desc:
+                old_words = old_desc.split()
+                new_words = new_desc.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 100:
+                    diff_text = diff_text[:100] + '...'
+                
+                changes.append(f"Description: {diff_text}")
+            elif old_desc:
+                changes.append("Description: Cleared")
+            else:
+                changes.append("Description: Added")
+        
+        # Content (with smart diff)
+        if old_expense.get('content') != expense_data.get('content'):
+            old_content = old_expense.get('content') or ''
+            new_content = expense_data.get('content') or ''
+            
+            if old_content and new_content:
+                old_words = old_content.split()
+                new_words = new_content.split()
+                diff = difflib.ndiff(old_words, new_words)
+                
+                formatted_parts = []
+                for item in diff:
+                    if item.startswith('  '):
+                        formatted_parts.append(item[2:])
+                    elif item.startswith('- '):
+                        formatted_parts.append(f'<del>{item[2:]}</del>')
+                    elif item.startswith('+ '):
+                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
+                
+                diff_text = ' '.join(formatted_parts)
+                if len(diff_text) > 150:
+                    diff_text = diff_text[:150] + '...'
+                
+                changes.append(f"Content: {diff_text}")
+            elif old_content:
+                changes.append("Content: Cleared")
+            else:
+                changes.append("Content: Added")
+        
+        # Handle new file uploads (same as Upload/Income)
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        
+        if files and files[0].filename:
+            from werkzeug.utils import secure_filename
+            import os
+            import time
+            
+            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            added_files = []
+            
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    file.save(filepath)
+                    filesize = os.path.getsize(filepath)
+                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+                    
+                    conn = db.connect()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+                    conn.commit()
+                    conn.close()
+                    
+                    added_files.append(filename)
+            
+            if added_files:
+                changes.append(f"Added files: {', '.join(added_files)}")
+        
+        if changes:
+            change_desc = "; ".join(changes)
+            db.add_to_edit_history(entry_id, change_desc)
+        
+        # Update the expense entry
+        db.update_entry(entry_id, expense_data)
+        
+        return redirect(url_for('ledger'))
+    
+    # GET - show form with existing data
+    from datetime import datetime
+    
+    # Parse expense date into year, month, day for dropdowns
+    expense_year = None
+    expense_month = None
+    expense_day = None
+    if expense.get('ledger_date'):
+        expense_dt = datetime.fromtimestamp(expense['ledger_date'])
+        expense_year = expense_dt.year
+        expense_month = expense_dt.month
+        expense_day = expense_dt.day
+    
+    # Get payees and categories for dropdowns
+    payees = db.get_all_payees()
+    categories = db.get_all_expense_categories()
+    
+    # Get attachments for this entry
+    attachments = db.get_attachments(entry_id)
+    
+    # Get edit history
+    edit_history_raw = db.get_edit_history(entry_id)
+    edit_history = []
+    for edit in edit_history_raw:
+        edit_dt = datetime.fromtimestamp(edit['timestamp'])
+        edit['timestamp_formatted'] = edit_dt.strftime('%B %d, %Y at %I:%M %p')
+        edit_history.append(edit)
+    
+    currency = db.get_setting('currency', '$')
+    
+    return render_template('entry_forms/expense.html',
+                         entry=expense,
+                         expense_year=expense_year,
+                         expense_month=expense_month,
+                         expense_day=expense_day,
+                         payees=payees,
+                         categories=categories,
+                         attachments=attachments,
+                         edit_history=edit_history,
+                         currency=currency,
+                         is_edit=True)
+
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+# These routes integrate with existing attachment routes:
+# - /attachment/<id>/download (already exists)
+# - /attachment/<id>/view (already exists)
+# - /attachment/<id>/delete (already exists)
+
+# Attachment storage:
+# - Income/Expense: ~/edgecase/attachments/ledger/{entry_id}/
+# - Upload entries: ~/edgecase/attachments/{client_id}/{entry_id}/
+
+# Edit history:
+# - Uses existing edit_history functions in database.py
+# - Income/Expense entries NOT locked (editable accounting records)
+# - All changes tracked with smart word-level diff
+
+# EdgeCase Ledger - Jinja2 Filter for Timestamp Conversion
+# Add this code to ~/edgecase/web/app.py after the Flask app initialization
+
+# Add this AFTER the line: app = Flask(__name__)
+
+# ============================================================================
+# JINJA2 CUSTOM FILTERS
+# ============================================================================
+
+@app.template_filter('timestamp_to_datetime')
+def timestamp_to_datetime_filter(timestamp):
+    """Convert Unix timestamp to datetime object for Jinja2 templates."""
+    from datetime import datetime
+    if timestamp:
+        return datetime.fromtimestamp(timestamp)
+    return None
+
+# Now you can use this filter in templates like:
+# {{ entry.ledger_date | timestamp_to_datetime }}
+# And then call strftime on it:
+# {% set entry_dt = entry.ledger_date | timestamp_to_datetime %}
+# {{ entry_dt.strftime('%b %d') }}
+
+
 # ===== CLIENT TYPE MANAGEMENT =====
 
 @app.route('/types')
