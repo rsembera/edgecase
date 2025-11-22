@@ -2597,6 +2597,13 @@ def ledger():
                     category = db.get_expense_category(entry['category_id'])
                     entry['category_name'] = category['name'] if category else 'Unknown'
             
+            # Get attachment count for this entry
+            conn = db.connect()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM attachments WHERE entry_id = ?", (entry['id'],))
+            entry['attachment_count'] = cursor.fetchone()[0]
+            conn.close()
+            
             entries_by_year_month[year][month]['entries'].append(entry)
     
     # Sort years (newest first) and months (newest first within year)
@@ -3067,32 +3074,39 @@ def edit_expense(entry_id):
 
 
 @app.route('/ledger/expense/<int:entry_id>/delete', methods=['POST'])
-def delete_expense(entry_id):
-    """Delete an expense entry and all its attachments."""
+def delete_expense_entry(entry_id):
+    """Delete expense entry and all its attachments."""
     import os
     import shutil
     
-    # Get the entry to verify it exists and is an expense
-    expense = db.get_entry(entry_id)
-    if not expense or expense['ledger_type'] != 'expense':
+    # Get the entry
+    entry = db.get_entry(entry_id)
+    
+    if not entry or entry['ledger_type'] != 'expense':
         return "Expense entry not found", 404
     
-    # Delete attachment files from disk
-    upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
-    if os.path.exists(upload_dir):
-        shutil.rmtree(upload_dir)
+    try:
+        # Delete attachments from disk first
+        upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+        if os.path.exists(upload_dir):
+            shutil.rmtree(upload_dir)
+        
+        # Delete attachment records from database
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
+        
+        # Delete the entry itself
+        cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return "", 200
     
-    # Delete attachment records from database
-    conn = db.connect()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
-    conn.commit()
-    conn.close()
-    
-    # Delete the entry itself
-    db.delete_entry(entry_id)
-    
-    return redirect(url_for('ledger'))
+    except Exception as e:
+        print(f"Error deleting expense entry: {e}")
+        return f"Error: {str(e)}", 500
 
 
 # ============================================================================

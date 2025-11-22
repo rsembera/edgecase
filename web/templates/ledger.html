@@ -143,8 +143,13 @@
                             {% endif %}
                         </td>
                         <td style="color: #5B6571;">
-                            {# Placeholder for attachment count - will be implemented later #}
+                            {% if entry.attachment_count == 0 %}
                             -
+                            {% elif entry.attachment_count == 1 %}
+                            1 file
+                            {% else %}
+                            {{ entry.attachment_count }} files
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
