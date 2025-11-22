@@ -23,7 +23,7 @@
     </div>
     
     <form method="POST" id="expense-form" enctype="multipart/form-data">
-        <!-- Date -->
+        <!-- Date fields on one line, NOT full width -->
         <div class="form-group">
             <label for="ledger_date">Date *</label>
             <div class="date-input-group">
@@ -60,8 +60,44 @@
             </div>
         </div>
         
-        <!-- Payee and Category -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+        <!-- Total Amount and Tax Paid on same line -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="total_amount">Total Amount *</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency|currency_symbol }}</span>
+                    <input type="number" 
+                           id="total_amount" 
+                           name="total_amount" 
+                           value="{{ '%.2f'|format(entry.total_amount) if entry and entry.total_amount else '' }}"
+                           step="0.01"
+                           min="0"
+                           placeholder="0.00"
+                           style="padding-left: 2.5rem;"
+                           required>
+                </div>
+                <div class="helper-text">Total amount paid</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="tax_amount">Tax Paid</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency|currency_symbol }}</span>
+                    <input type="number" 
+                           id="tax_amount" 
+                           name="tax_amount" 
+                           value="{{ '%.2f'|format(entry.tax_amount) if entry and entry.tax_amount else '' }}"
+                           step="0.01"
+                           min="0"
+                           placeholder="0.00"
+                           style="padding-left: 2.5rem;">
+                </div>
+                <div class="helper-text">Tax portion (0 if tax-exempt)</div>
+            </div>
+        </div>
+        
+        <!-- Payee and Description on same line -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div class="form-group">
                 <label for="payee_id">Payee *</label>
                 <select id="payee_id" name="payee_id" required>
@@ -78,18 +114,14 @@
             </div>
             
             <div class="form-group">
-                <label for="category_id">Category *</label>
-                <select id="category_id" name="category_id" required>
-                    <option value="">Select category...</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id }}" 
-                            {% if entry and entry.category_id == category.id %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
-                    {% endfor %}
-                    <option value="new">+ Add New Category</option>
-                </select>
-                <div class="helper-text">Expense category for tax purposes</div>
+                <label for="description">Description *</label>
+                <input type="text" 
+                       id="description" 
+                       name="description" 
+                       value="{{ entry.description if entry else '' }}"
+                       placeholder="e.g., 'Monthly rent' or 'Office supplies'"
+                       required>
+                <div class="helper-text">What this expense was for</div>
             </div>
         </div>
         
@@ -103,6 +135,22 @@
             <div class="helper-text">This will be added to your payee list</div>
         </div>
         
+        <!-- Expense Category (full width below) -->
+        <div class="form-group">
+            <label for="category_id">Expense Category *</label>
+            <select id="category_id" name="category_id" required>
+                <option value="">Select category...</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" 
+                        {% if entry and entry.category_id == category.id %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+                <option value="new">+ Add New Category</option>
+            </select>
+            <div class="helper-text">Expense category for tax purposes</div>
+        </div>
+        
         <!-- New Category Input (hidden by default) -->
         <div id="new-category-section" class="form-group" style="display: none;">
             <label for="new_category_name">New Category Name *</label>
@@ -111,53 +159,6 @@
                    name="new_category_name" 
                    placeholder="Enter category name">
             <div class="helper-text">This will be added to your category list</div>
-        </div>
-        
-        <!-- Amount Fields (Total and Tax Paid) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
-            <div class="form-group">
-                <label for="total_amount">Total Amount *</label>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency }}</span>
-                    <input type="number" 
-                           id="total_amount" 
-                           name="total_amount" 
-                           value="{{ '%.2f'|format(entry.total_amount) if entry and entry.total_amount else '' }}"
-                           step="0.01"
-                           min="0"
-                           placeholder="0.00"
-                           style="padding-left: 2rem;"
-                           required>
-                </div>
-                <div class="helper-text">Total amount paid</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="tax_amount">Tax Paid</label>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency }}</span>
-                    <input type="number" 
-                           id="tax_amount" 
-                           name="tax_amount" 
-                           value="{{ '%.2f'|format(entry.tax_amount) if entry and entry.tax_amount else '' }}"
-                           step="0.01"
-                           min="0"
-                           placeholder="0.00"
-                           style="padding-left: 2rem;">
-                </div>
-                <div class="helper-text">Tax portion (leave blank if tax-exempt)</div>
-            </div>
-        </div>
-        
-        <!-- Description -->
-        <div class="form-group">
-            <label for="description">Description</label>
-            <input type="text" 
-                   id="description" 
-                   name="description" 
-                   value="{{ entry.description if entry else '' }}"
-                   placeholder="Optional notes (e.g., 'Monthly rent' or 'Office supplies')">
-            <div class="helper-text">Additional details about this expense</div>
         </div>
         
         <!-- Content (optional notes) -->
@@ -171,7 +172,7 @@
             </div>
         </div>
 
-        <!-- File Upload Section (same as Upload/Income) -->
+        <!-- File Upload Section -->
         <div class="form-group" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E5E7EB;">
             <label style="font-size: 1.125rem; margin-bottom: 1rem; display: block;">Receipts</label>
             <div class="helper-text" style="margin-bottom: 1rem;">Upload receipts or invoices for this expense</div>
@@ -227,7 +228,7 @@
                             </div>
                             <button type="button" 
                                     class="btn-small btn-danger remove-file-btn" 
-                                    style="display: none; white-space: nowrap;">Remove</button>
+                                    style="white-space: nowrap;">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -271,14 +272,33 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
         <a href="{{ url_for('ledger') }}" class="btn btn-secondary">Cancel</a>
         
-        {% if is_edit %}
-        <button type="submit" form="expense-form" class="btn">Save Changes</button>
-        {% else %}
-        <button type="submit" form="expense-form" class="btn">Save Expense</button>
-        {% endif %}
+        <div style="display: flex; gap: 1rem;">
+            {% if is_edit %}
+            <button type="button" onclick="confirmDeleteEntry()" class="btn btn-danger">Delete Entry</button>
+            {% endif %}
+            
+            {% if is_edit %}
+            <button type="submit" form="expense-form" class="btn">Save Changes</button>
+            {% else %}
+            <button type="submit" form="expense-form" class="btn">Save Expense</button>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Delete Confirmation Modal (same as Upload/Income) -->
+    <!-- File Validation Modal (instead of alert) -->
+    <div id="file-validation-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem;">No File Selected</h3>
+            <p style="margin-bottom: 2rem; color: #4A5568;">
+                Please select a file before adding another upload row.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeFileValidationModal()" class="btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete File Confirmation Modal -->
     <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
         <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
             <h3 style="margin-top: 0; margin-bottom: 1rem;">Delete File?</h3>
@@ -288,6 +308,20 @@
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                 <button onclick="closeDeleteModal()" class="btn">Cancel</button>
                 <button onclick="confirmDelete()" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Entry Confirmation Modal -->
+    <div id="delete-entry-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem;">Delete Expense Entry?</h3>
+            <p style="margin-bottom: 2rem; color: #4A5568;">
+                Are you sure you want to delete this entire expense entry? This will remove the entry and all its attachments. This cannot be undone.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeDeleteEntryModal()" class="btn">Cancel</button>
+                <button onclick="deleteEntry()" class="btn btn-danger">Delete Entry</button>
             </div>
         </div>
     </div>
