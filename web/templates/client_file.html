@@ -298,7 +298,7 @@
                     <span id="year-{{ year_group.year }}-icon">{{ '▼' if year_group.is_current else '▶' }}</span>
                     {{ year_group.year }}
                 </span>
-                <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_group.total }} Entries</span>
+                <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_group.total }} Entr{{ 'y' if year_group.total == 1 else 'ies' }}</span>
             </div>
             
             {# Year Content (collapsible) #}
@@ -314,7 +314,7 @@
                             <span id="month-{{ year_group.year }}-{{ month_group.month_num }}-icon">{{ '▼' if month_group.is_current else '▶' }}</span>
                             {{ month_group.month_name }}
                         </span>
-                        <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_group.entries|length }} Entries</span>
+                        <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_group.entries|length }} Entr{{ 'y' if month_group.entries|length == 1 else 'ies' }}</span>
                     </div>
                     
                     {# Month Content - Table #}
