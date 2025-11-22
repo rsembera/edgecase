@@ -95,7 +95,7 @@
                         <th>Transaction</th>
                         <th>Amount</th>
                         <th>Description</th>
-                        <th>Party</th>
+                        <th>Source</th>
                         <th>Category</th>
                         <th>Files</th>
                     </tr>
@@ -120,9 +120,9 @@
                         </td>
                         <td>
                             {% if entry.ledger_type == 'income' %}
-                            <span class="income-amount">{{ currency }}{{ '%.2f'|format(entry.total_amount) }}</span>
+                            <span class="income-amount">{{ currency|currency_symbol }}{{ '%.2f'|format(entry.total_amount) }}</span>
                             {% else %}
-                            <span class="expense-amount">{{ currency }}{{ '%.2f'|format(entry.total_amount) }}</span>
+                            <span class="expense-amount">{{ currency|currency_symbol }}{{ '%.2f'|format(entry.total_amount) }}</span>
                             {% endif %}
                         </td>
                         <td>

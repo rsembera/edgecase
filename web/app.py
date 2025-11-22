@@ -3295,6 +3295,21 @@ def timestamp_to_datetime_filter(timestamp):
 # {% set entry_dt = entry.ledger_date | timestamp_to_datetime %}
 # {{ entry_dt.strftime('%b %d') }}
 
+# Add this near line 3280 in app.py with other Jinja2 filters
+
+@app.template_filter('currency_symbol')
+def currency_symbol_filter(currency_code):
+    """Convert currency code to symbol"""
+    symbols = {
+        'CAD': '$',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'AUD': '$',
+        'INR': '₹',
+        'JPY': '¥'
+    }
+    return symbols.get(currency_code, currency_code)
 
 # ===== CLIENT TYPE MANAGEMENT =====
 
