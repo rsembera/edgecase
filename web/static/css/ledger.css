@@ -310,10 +310,9 @@ table {
 }
 
 .btn:hover {
-    background: #196A57;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(31,143,116,0.2);
-}
+            background: #9FCFC0;
+            transform: translateY(-1px);
+        }
 
 /* Disabled button styling */
 .btn:disabled,
