@@ -21,13 +21,32 @@ if (textarea) {
     textarea.addEventListener('input', autoResize);
 }
 
+// File validation modal functions
+function showFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'flex';
+}
+
+function closeFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'none';
+}
+
 // Multiple file upload management
 const fileInputsContainer = document.getElementById('file-inputs');
 const addFileBtn = document.getElementById('add-file-btn');
 let fileInputCount = 1;
 
-// Add another file input row
+// Add another file input row (only if current row has a file selected)
 addFileBtn.addEventListener('click', function() {
+    // Check if the last file input has a file selected
+    const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
+    const lastRow = allRows[allRows.length - 1];
+    const lastFileInput = lastRow.querySelector('.file-input');
+    
+    if (!lastFileInput.files || lastFileInput.files.length === 0) {
+        showFileValidationModal();
+        return;
+    }
+    
     fileInputCount++;
     
     const newRow = document.createElement('div');
@@ -61,43 +80,34 @@ addFileBtn.addEventListener('click', function() {
     
     fileInputsContainer.appendChild(newRow);
     
-    // Update remove button visibility
-    updateRemoveButtons();
-    
     // Add event listener to new remove button
     const removeBtn = newRow.querySelector('.remove-file-btn');
     removeBtn.addEventListener('click', function() {
         newRow.remove();
         fileInputCount--;
-        updateRemoveButtons();
     });
 });
 
-// Show/hide remove buttons (only show if more than one file input)
-function updateRemoveButtons() {
-    const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-    allRows.forEach(row => {
-        const removeBtn = row.querySelector('.remove-file-btn');
-        if (allRows.length > 1) {
-            removeBtn.style.display = 'block';
+// Add remove functionality to initial row
+const initialRemoveBtn = document.querySelector('.remove-file-btn');
+if (initialRemoveBtn) {
+    initialRemoveBtn.addEventListener('click', function() {
+        const row = this.closest('.file-input-row');
+        const fileInput = row.querySelector('.file-input');
+        const descInput = row.querySelector('input[name="file_descriptions[]"]');
+        
+        // Clear the inputs instead of removing if it's the only row
+        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
+        if (allRows.length === 1) {
+            fileInput.value = '';
+            descInput.value = '';
         } else {
-            removeBtn.style.display = 'none';
+            row.remove();
+            fileInputCount--;
         }
     });
 }
 
-// Add remove functionality to initial row
-document.querySelector('.remove-file-btn').addEventListener('click', function() {
-    const row = this.closest('.file-input-row');
-    row.remove();
-    fileInputCount--;
-    updateRemoveButtons();
-});
-
-// Initial state
-updateRemoveButtons();
-
-// Delete attachment (for edit mode)
 // Delete attachment (for edit mode)
 let deleteAttachmentId = null;
 
