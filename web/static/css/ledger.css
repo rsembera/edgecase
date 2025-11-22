@@ -231,12 +231,13 @@ table {
     white-space: nowrap;
 }
 
-/* Allow Description, Source, and Category columns to wrap */
+/* Change these columns from wrapping to truncating */
 .ledger-table td:nth-child(4),
 .ledger-table td:nth-child(5),
 .ledger-table td:nth-child(6) {
-    white-space: normal;
-    word-wrap: break-word;
+    white-space: nowrap;           /* Changed from 'normal' */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ledger-table tbody tr {

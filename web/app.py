@@ -2701,6 +2701,8 @@ def create_income():
                          is_edit=False)
 
 
+# Replace the edit_income route in app.py with this version (NO EDIT HISTORY)
+
 @app.route('/ledger/income/<int:entry_id>', methods=['GET', 'POST'])
 def edit_income(entry_id):
     """Edit existing income entry."""
@@ -2711,9 +2713,6 @@ def edit_income(entry_id):
     
     if request.method == 'POST':
         from datetime import datetime
-        
-        # Get old entry for edit history comparison
-        old_income = income.copy()
         
         # Parse date from dropdowns
         year = request.form.get('year')
@@ -2735,93 +2734,7 @@ def edit_income(entry_id):
             'content': request.form.get('content', '')
         }
         
-        # Generate edit history (Income entries NOT locked, but track changes)
-        import difflib
-        changes = []
-        
-        # Date
-        if old_income.get('ledger_date') != ledger_date_timestamp:
-            old_date = datetime.fromtimestamp(old_income['ledger_date']).strftime('%Y-%m-%d') if old_income.get('ledger_date') else 'None'
-            new_date = datetime.fromtimestamp(ledger_date_timestamp).strftime('%Y-%m-%d') if ledger_date_timestamp else 'None'
-            changes.append(f"Date: {old_date} → {new_date}")
-        
-        # Source
-        if old_income.get('source') != income_data.get('source'):
-            old_src = old_income.get('source') or 'None'
-            new_src = income_data.get('source') or 'None'
-            changes.append(f"Source: {old_src} → {new_src}")
-        
-        # Total Amount
-        old_total = float(old_income.get('total_amount') or 0)
-        new_total = float(income_data.get('total_amount') or 0)
-        if old_total != new_total:
-            changes.append(f"Total Amount: ${old_total:.2f} → ${new_total:.2f}")
-        
-        # Tax Amount
-        old_tax = float(old_income.get('tax_amount') or 0)
-        new_tax = float(income_data.get('tax_amount') or 0)
-        if old_tax != new_tax:
-            changes.append(f"Tax: ${old_tax:.2f} → ${new_tax:.2f}")
-        
-        # Description (with smart diff if both exist)
-        if old_income.get('description') != income_data.get('description'):
-            old_desc = old_income.get('description') or ''
-            new_desc = income_data.get('description') or ''
-            
-            if old_desc and new_desc:
-                old_words = old_desc.split()
-                new_words = new_desc.split()
-                diff = difflib.ndiff(old_words, new_words)
-                
-                formatted_parts = []
-                for item in diff:
-                    if item.startswith('  '):
-                        formatted_parts.append(item[2:])
-                    elif item.startswith('- '):
-                        formatted_parts.append(f'<del>{item[2:]}</del>')
-                    elif item.startswith('+ '):
-                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                
-                diff_text = ' '.join(formatted_parts)
-                if len(diff_text) > 100:
-                    diff_text = diff_text[:100] + '...'
-                
-                changes.append(f"Description: {diff_text}")
-            elif old_desc:
-                changes.append("Description: Cleared")
-            else:
-                changes.append("Description: Added")
-        
-        # Content (with smart diff if both exist)
-        if old_income.get('content') != income_data.get('content'):
-            old_content = old_income.get('content') or ''
-            new_content = income_data.get('content') or ''
-            
-            if old_content and new_content:
-                old_words = old_content.split()
-                new_words = new_content.split()
-                diff = difflib.ndiff(old_words, new_words)
-                
-                formatted_parts = []
-                for item in diff:
-                    if item.startswith('  '):
-                        formatted_parts.append(item[2:])
-                    elif item.startswith('- '):
-                        formatted_parts.append(f'<del>{item[2:]}</del>')
-                    elif item.startswith('+ '):
-                        formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                
-                diff_text = ' '.join(formatted_parts)
-                if len(diff_text) > 150:
-                    diff_text = diff_text[:150] + '...'
-                
-                changes.append(f"Content: {diff_text}")
-            elif old_content:
-                changes.append("Content: Cleared")
-            else:
-                changes.append("Content: Added")
-        
-        # Handle new file uploads (same as Upload entry)
+        # Handle new file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         
@@ -2832,8 +2745,6 @@ def edit_income(entry_id):
             
             upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
             os.makedirs(upload_dir, exist_ok=True)
-            
-            added_files = []
             
             for i, file in enumerate(files):
                 if file and file.filename:
@@ -2852,15 +2763,6 @@ def edit_income(entry_id):
                     """, (entry_id, filename, description, filepath, filesize, int(time.time())))
                     conn.commit()
                     conn.close()
-                    
-                    added_files.append(filename)
-            
-            if added_files:
-                changes.append(f"Added files: {', '.join(added_files)}")
-        
-        if changes:
-            change_desc = "; ".join(changes)
-            db.add_to_edit_history(entry_id, change_desc)
         
         # Update the income entry
         db.update_entry(entry_id, income_data)
@@ -2883,14 +2785,6 @@ def edit_income(entry_id):
     # Get attachments for this entry
     attachments = db.get_attachments(entry_id)
     
-    # Get edit history
-    edit_history_raw = db.get_edit_history(entry_id)
-    edit_history = []
-    for edit in edit_history_raw:
-        edit_dt = datetime.fromtimestamp(edit['timestamp'])
-        edit['timestamp_formatted'] = edit_dt.strftime('%B %d, %Y at %I:%M %p')
-        edit_history.append(edit)
-    
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/income.html',
@@ -2899,9 +2793,45 @@ def edit_income(entry_id):
                          income_month=income_month,
                          income_day=income_day,
                          attachments=attachments,
-                         edit_history=edit_history,
                          currency=currency,
                          is_edit=True)
+
+# Add this route to app.py after the edit_income route
+
+@app.route('/ledger/income/<int:entry_id>/delete', methods=['POST'])
+def delete_income_entry(entry_id):
+    """Delete income entry and all its attachments."""
+    import os
+    import shutil
+    
+    # Get the entry
+    entry = db.get_entry(entry_id)
+    
+    if not entry or entry['ledger_type'] != 'income':
+        return "Income entry not found", 404
+    
+    try:
+        # Delete attachments from disk first
+        upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+        if os.path.exists(upload_dir):
+            shutil.rmtree(upload_dir)
+        
+        # Delete attachment records from database
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
+        
+        # Delete the entry itself
+        cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return "", 200
+    
+    except Exception as e:
+        print(f"Error deleting income entry: {e}")
+        return f"Error: {str(e)}", 500
 
 
 # ============================================================================
