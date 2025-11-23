@@ -109,7 +109,7 @@
             <label style="font-size: 1.125rem; margin-bottom: 1rem; display: block;">Files</label>
             
             {% if is_edit and attachments %}
-            <!-- Existing attachments (edit mode only) -->
+            <!-- Existing attachments (always visible) -->
             <div class="attachment-list" style="margin-bottom: 1.5rem;">
                 {% for attachment in attachments %}
                 <div class="attachment-item" style="display: flex; align-items: center; padding: 0.75rem; background: #F9FAFB; border-radius: 0.375rem; margin-bottom: 0.5rem;">
@@ -134,44 +134,58 @@
             </div>
             {% endif %}
             
-            <!-- Upload new files -->
-            <div class="upload-section">
-                <div id="file-inputs">
-                    <div class="file-input-row" style="margin-bottom: 1rem;">
-                        <div style="display: flex; gap: 1rem; align-items: end;">
-                            <div style="flex: 2;">
-                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                                    Choose file
-                                </label>
-                                <input type="file" 
-                                       name="files[]" 
-                                       class="file-input"
-                                       {% if not is_edit %}required{% endif %}
-                                       style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+            <!-- Collapsible Upload Section -->
+            <div style="margin-bottom: 1rem;">
+                <button type="button" 
+                        class="upload-toggle-btn" 
+                        onclick="toggleUploadSection()">
+                    <span id="upload-toggle-icon">▶</span>
+                    <span>Upload New Files</span>
+                </button>
+            </div>
+            
+            <div id="upload-section" style="display: none;">
+                <div class="helper-text" style="margin-bottom: 1rem;">Upload documents related to this client</div>
+                
+                <div class="upload-section">
+                    <div id="file-inputs">
+                        <div class="file-input-row" style="margin-bottom: 1rem;">
+                            <div style="display: flex; gap: 1rem; align-items: end;">
+                                <div style="flex: 2;">
+                                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
+                                        Choose file
+                                    </label>
+                                    <input type="file" 
+                                           name="files[]" 
+                                           class="file-input"
+                                           onchange="handleFileSelected()"
+                                           {% if not is_edit %}required{% endif %}
+                                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                                </div>
+                                <div style="flex: 2;">
+                                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
+                                        Description (optional)
+                                    </label>
+                                    <input type="text" 
+                                           name="file_descriptions[]" 
+                                           placeholder="Brief description"
+                                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                                </div>
+                                <button type="button" 
+                                        class="btn-small btn-danger remove-file-btn" 
+                                        style="white-space: nowrap;">Remove</button>
                             </div>
-                            <div style="flex: 2;">
-                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                                    Description (optional)
-                                </label>
-                                <input type="text" 
-                                       name="file_descriptions[]" 
-                                       placeholder="Brief description"
-                                       style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                            </div>
-                            <button type="button" 
-                                    class="btn-small btn-danger remove-file-btn" 
-                                    style="white-space: nowrap;">Remove</button>
                         </div>
                     </div>
-                </div>
-                
-                <button type="button" 
-                        id="add-file-btn" 
-                        class="btn"
-                        style="margin-top: 0.5rem;">Add Another File</button>
-                
-                <div class="helper-text" style="margin-top: 1rem;">
-                    Maximum file size: 50MB per file. All file types accepted.
+                    
+                    <button type="button" 
+                            id="add-file-btn" 
+                            class="btn"
+                            style="margin-top: 0.5rem; display: none;">Add Another File</button>
+                    
+                    <div class="helper-text" style="margin-top: 1rem;">
+                        Maximum file size: 50MB per file. All file types accepted.
+                    </div>
                 </div>
             </div>
         </div>
