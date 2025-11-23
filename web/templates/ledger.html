@@ -40,8 +40,8 @@
                     + Add Entry ▾
                 </button>
                 <div id="add-dropdown" class="dropdown-menu" style="display: none;">
-                    <a href="{{ url_for('create_income') }}" class="dropdown-item">💰 Income</a>
-                    <a href="{{ url_for('create_expense') }}" class="dropdown-item">💸 Expense</a>
+                    <a href="{{ url_for('ledger.create_income') }}" class="dropdown-item">💰 Income</a>
+                    <a href="{{ url_for('ledger.create_expense') }}" class="dropdown-item">💸 Expense</a>
                 </div>
             </div>
             
@@ -55,8 +55,8 @@
         <h3>No Ledger Entries Yet</h3>
         <p>Start tracking your practice income and expenses.</p>
         <p style="margin-top: 1rem;">
-            <a href="{{ url_for('create_income') }}" class="btn" style="margin-right: 0.5rem;">+ Add Income</a>
-            <a href="{{ url_for('create_expense') }}" class="btn">+ Add Expense</a>
+            <a href="{{ url_for('ledger.create_income') }}" class="btn" style="margin-right: 0.5rem;">+ Add Income</a>
+            <a href="{{ url_for('ledger.create_expense') }}" class="btn">+ Add Expense</a>
         </p>
     </div>
     {% else %}
@@ -105,7 +105,7 @@
                     <tr class="entry-row" 
                         data-description="{{ entry.description or '' }}" 
                         data-amount="{{ entry.total_amount }}"
-                        onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('edit_income', entry_id=entry.id) }}{% else %}{{ url_for('edit_expense', entry_id=entry.id) }}{% endif %}';"
+                        onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('ledger.edit_income', entry_id=entry.id) }}{% else %}{{ url_for('ledger.edit_expense', entry_id=entry.id) }}{% endif %}';"
                         style="cursor: pointer;">
                         <td>
                             {% set entry_dt = entry.ledger_date | timestamp_to_datetime %}
