@@ -135,7 +135,7 @@
         
         <!-- Form Actions -->
         <div class="form-actions" style="justify-content: space-between;">
-            <a href="{{ url_for('client_file', client_id=client['id']) }}" class="btn-cancel">Cancel</a>
+            <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn-cancel">Cancel</a>
             <button type="submit" class="btn-save">Save Absence</button>
         </div>
     </form>

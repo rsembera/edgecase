@@ -136,7 +136,7 @@
                 ⚙️ Manage ▾
             </button>
             <div id="manage-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
-                <a href="{{ url_for('add_client') }}" 
+                <a href="{{ url_for('clients.add_client') }}" 
                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                    onmouseover="this.style.background='#F3F4F6'" 
                    onmouseout="this.style.background='transparent'">
@@ -178,7 +178,7 @@
         <div class="client-card {{ view_mode }}-view" 
             style="background-color: {{ client.type.bubble_color or '#FBFCFD' }}"
             data-type-id="{{ client.type_id }}"
-            onclick="window.location='{{ url_for('client_file', client_id=client.id) }}'">
+            onclick="window.location='{{ url_for('clients.client_file', client_id=client.id) }}'">
             {% if view_mode == 'detailed' %}
                 <!-- Detailed View: Single horizontal line with EXACT column alignment -->
                 <div class="payment-dot {{ client.payment_status }}"></div>

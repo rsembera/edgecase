@@ -23,7 +23,7 @@
                 </span>
                 <!-- Type change dropdown -->
                 <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
-                    <form method="post" action="{{ url_for('change_client_type', client_id=client.id) }}">
+                    <form method="post" action="{{ url_for('clients.change_client_type', client_id=client.id) }}">
                         {% for type in all_types %}
                         {% if type.name != 'Deleted' %}
                         <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
@@ -424,7 +424,7 @@
         
         <!-- Form Buttons (INSIDE form, OUTSIDE guardian-fields) -->
         <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-            <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn">Save Profile</button>
         </div>
     </form>

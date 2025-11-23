@@ -199,7 +199,7 @@
     
     <!-- Navigation buttons OUTSIDE the form -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
-        <a href="{{ url_for('client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
         
         {% if is_edit %}
         <button type="submit" form="upload-form" class="btn">Save Edits</button>
