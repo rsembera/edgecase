@@ -5,6 +5,7 @@ Handles income and expense tracking
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import sqlite3
@@ -126,14 +127,7 @@ def create_income():
     
     if request.method == 'POST':
         # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        ledger_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         # Prepare income entry data
         income_data = {
@@ -151,52 +145,22 @@ def create_income():
         # Save income entry first to get entry_id
         entry_id = db.add_entry(income_data)
         
-        # Handle file uploads (same as Upload entry)
+        # Handle file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
-        
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            # Process each file
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
+        save_uploaded_files(files, descriptions, entry_id, db)
         
         return redirect(url_for('ledger.ledger'))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
+    date_parts = get_today_date_parts()
     
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/income.html',
-                         today=today,
-                         today_year=today_year,
-                         today_month=today_month,
-                         today_day=today_day,
+                         **date_parts,
                          currency=currency,
                          is_edit=False)
-
 
 @ledger_bp.route('/ledger/income/<int:entry_id>', methods=['GET', 'POST'])
 def edit_income(entry_id):
@@ -208,14 +172,7 @@ def edit_income(entry_id):
     
     if request.method == 'POST':
         # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        ledger_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         # Prepare updated income data
         income_data = {
@@ -231,27 +188,7 @@ def edit_income(entry_id):
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
+        save_uploaded_files(files, descriptions, entry_id, db)
         
         # Update the income entry
         db.update_entry(entry_id, income_data)
@@ -346,14 +283,7 @@ def create_expense():
             category_id = int(category_id)
         
         # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        ledger_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         # Prepare expense entry data
         expense_data = {
@@ -376,36 +306,12 @@ def create_expense():
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
+        save_uploaded_files(files, descriptions, entry_id, db)
         
         return redirect(url_for('ledger.ledger'))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
+    date_parts = get_today_date_parts()
     
     # Get payees and categories for dropdowns
     payees = db.get_all_payees()
@@ -414,10 +320,7 @@ def create_expense():
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/expense.html',
-                         today=today,
-                         today_year=today_year,
-                         today_month=today_month,
-                         today_day=today_day,
+                         **date_parts,
                          payees=payees,
                          categories=categories,
                          currency=currency,
@@ -452,14 +355,7 @@ def edit_expense(entry_id):
             category_id = int(category_id)
         
         # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        ledger_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            ledger_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         # Prepare updated expense data
         expense_data = {
@@ -476,27 +372,7 @@ def edit_expense(entry_id):
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
+        save_uploaded_files(files, descriptions, entry_id, db)
         
         # Update the expense entry
         db.update_entry(entry_id, expense_data)
