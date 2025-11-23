@@ -72,7 +72,7 @@
         </div>
         
         <div class="form-actions">
-            <a href="{{ url_for('manage_types') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('types.manage_types') }}" class="btn btn-secondary">Cancel</a>
             
             <div style="display: flex; gap: 1rem;">
                 {% if type and not type.is_system_locked %}

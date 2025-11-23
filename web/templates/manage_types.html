@@ -162,7 +162,7 @@
             <h2>Client Types</h2>
             <p style="color: #5B6571; margin-top: 0.5rem;">Manage client types for filtering and organization</p>
         </div>
-        <a href="{{ url_for('add_type') }}" class="btn-add">Add Type</a>
+        <a href="{{ url_for('types.add_type') }}" class="btn-add">Add Type</a>
     </div>
     
     <!-- Locked system types -->
@@ -209,7 +209,7 @@
         </thead>
         <tbody>
             {% for type in editable_types %}
-            <tr onclick="window.location='{{ url_for('edit_type', type_id=type.id) }}'">
+            <tr onclick="window.location='{{ url_for('types.edit_type', type_id=type.id) }}'">
                 <td>
                     <strong>{{ type.name }}</strong>
                 </td>
