@@ -120,11 +120,11 @@
                         {% endif %}
                         <span style="color: #9CA3AF; font-size: 0.875rem; margin-left: 0.5rem;">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
                     </span>
-                    <a href="{{ url_for('view_attachment', attachment_id=attachment.id) }}" 
+                    <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
                         target="_blank" 
                         class="btn-small" 
                         style="margin-right: 0.5rem;">View</a>
-                    <a href="{{ url_for('download_attachment', attachment_id=attachment.id) }}" 
+                    <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
                        class="btn-small" style="margin-right: 0.5rem;">Download</a>
                     <button type="button" 
                             class="btn-small btn-danger" 

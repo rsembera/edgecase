@@ -1,83 +1,5 @@
 // Settings page JavaScript - EdgeCase Equalizer
 
-// Phone number auto-formatting (supports 10-12 digits) - same as profile.js
-function formatPhoneNumber(value) {
-    // Remove all non-digit characters
-    let cleaned = value.replace(/\D/g, '');
-    
-    // Limit to 12 digits (international support)
-    cleaned = cleaned.substring(0, 12);
-    
-    // Only format if exactly 10 digits (North American format)
-    if (cleaned.length === 10) {
-        return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
-    }
-    
-    // For 11-12 digits or incomplete, just return digits as-is
-    return cleaned;
-}
-
-// Section toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up section toggles
-    const sectionToggleBtns = document.querySelectorAll('.section-toggle-btn');
-    
-    sectionToggleBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const sectionName = this.dataset.section;
-            const sectionContent = document.getElementById(`${sectionName}-section`);
-            const icon = this.querySelector('.toggle-icon');
-            
-            if (sectionContent.style.display === 'none') {
-                sectionContent.style.display = 'block';
-                icon.textContent = '▼';
-            } else {
-                sectionContent.style.display = 'none';
-                icon.textContent = '▶';
-            }
-        });
-    });
-    
-    // Initialize other components
-    loadBackgroundOptions();
-    loadPracticeInfo();
-    loadFileNumberSettings();
-    
-    // Add phone number formatting
-    const phoneInput = document.getElementById('practice-phone');
-    if (phoneInput) {
-        // Format on page load if value exists
-        if (phoneInput.value) {
-            phoneInput.value = formatPhoneNumber(phoneInput.value);
-        }
-        
-        // Format as user types (with cursor position handling)
-        phoneInput.addEventListener('input', function(e) {
-            const cursorPos = this.selectionStart;
-            const oldValue = this.value;
-            const oldLength = oldValue.length;
-            
-            this.value = formatPhoneNumber(this.value);
-            
-            const newLength = this.value.length;
-            if (newLength > oldLength) {
-                this.setSelectionRange(cursorPos + (newLength - oldLength), cursorPos + (newLength - oldLength));
-            } else {
-                this.setSelectionRange(cursorPos, cursorPos);
-            }
-        });
-    }
-    
-    // Add event listeners for file number preview
-    const prefixInput = document.getElementById('file-number-prefix');
-    const suffixInput = document.getElementById('file-number-suffix');
-    const startInput = document.getElementById('file-number-start');
-    
-    if (prefixInput) prefixInput.addEventListener('input', updateFileNumberPreview);
-    if (suffixInput) suffixInput.addEventListener('input', updateFileNumberPreview);
-    if (startInput) startInput.addEventListener('input', updateFileNumberPreview);
-});
-
 // Load current settings on page load
 function loadCurrentSettings() {
     const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
@@ -295,13 +217,13 @@ async function deleteBackground() {
     const filename = selectedValue.replace('user:', '');
     console.log('Filename to delete:', filename);
     
-    showConfirmModal('Delete Background', `Delete "${filename}"?`, async function() {
+    showConfirmModal('Delete Background', `Delete background "${filename}"?`, async function() {
         console.log('Delete confirmed, making API call');
         try {
             const response = await fetch('/delete_background', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ filename: filename })
             });
@@ -315,12 +237,12 @@ async function deleteBackground() {
                 statusDiv.textContent = '✓ Background deleted successfully!';
                 statusDiv.style.display = 'block';
                 
-                // Switch to default background
-                localStorage.setItem('backgroundStyle', 'suit-grey');
-                document.getElementById('background-style').value = 'suit-grey';
-                applyTheme();
+                const backgroundStyle = localStorage.getItem('backgroundStyle');
+                if (backgroundStyle === selectedValue) {
+                    localStorage.setItem('backgroundStyle', 'suit-grey');
+                    applyTheme();
+                }
                 
-                // Reload background options
                 await loadBackgroundOptions();
                 
                 setTimeout(() => {
@@ -336,15 +258,16 @@ async function deleteBackground() {
     });
 }
 
-// Background upload functionality
+// Show filename when file is selected
 document.getElementById('background-upload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        document.getElementById('upload-filename').textContent = file.name;
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('upload-filename').textContent = filename;
         document.getElementById('upload-button').style.display = 'inline-block';
     }
 });
 
+// Upload background image
 async function uploadBackground() {
     const fileInput = document.getElementById('background-upload');
     const file = fileInput.files[0];
@@ -354,6 +277,13 @@ async function uploadBackground() {
         return;
     }
     
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
     const formData = new FormData();
     formData.append('background', file);
     
@@ -376,13 +306,14 @@ async function uploadBackground() {
             document.getElementById('upload-filename').textContent = '';
             document.getElementById('upload-button').style.display = 'none';
             
-            // Reload background options and switch to the new background
+            // Reload background options to include the new one
             await loadBackgroundOptions();
-            const newValue = 'user:' + result.filename;
-            localStorage.setItem('backgroundStyle', newValue);
-            document.getElementById('background-style').value = newValue;
-            applyTheme();
-            updateDeleteButton();
+            
+            // Auto-select the newly uploaded background
+            document.getElementById('background-style').value = 'user:' + result.filename;
+            
+            // Apply the background immediately
+            saveAndApplyBackground();
             
             // Hide success message after 3 seconds
             setTimeout(() => {
@@ -396,38 +327,74 @@ async function uploadBackground() {
     }
 }
 
-// Practice information management
+// Save settings
+// Save settings
+async function saveSettings() {
+    // Validate phone number FIRST
+    const practicePhone = document.getElementById('practice-phone').value;
+
+    if (practicePhone && !validatePhone(practicePhone)) {
+        alert('Practice phone must be 10-15 digits');
+        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
+        return; // Stop here, don't save
+    }
+    
+    // Reset border color
+    document.getElementById('practice-phone').style.borderColor = '';
+    
+    // Save practice info to database
+    await savePracticeInfo();
+    
+    // Save file number settings
+    await saveFileNumberSettings();
+    
+    // Show success message and redirect
+    const successMsg = document.getElementById('success-message');
+    successMsg.classList.add('show');
+    setTimeout(() => {
+        successMsg.classList.remove('show');
+        // Redirect to main view after saving
+        window.location.href = '/';
+    }, 1000);
+}
+
+// Load practice information from database
 async function loadPracticeInfo() {
     try {
         const response = await fetch('/api/practice_info');
-        const result = await response.json();
+        const data = await response.json();
         
-        if (result.success && result.info) {
-            const data = result.info;  // Info is nested in result
+        if (data.success && data.info) {
+            console.log('Practice info loaded:', data.info);
+            // Populate form fields
+            document.getElementById('practice-name').value = data.info.practice_name || '';
+            document.getElementById('therapist-name').value = data.info.therapist_name || '';
+            document.getElementById('credentials').value = data.info.credentials || '';
+            document.getElementById('practice-email').value = data.info.email || '';
+            document.getElementById('practice-phone').value = data.info.phone || '';
+            document.getElementById('practice-address').value = data.info.address || '';  // CHANGED: single address field
+            document.getElementById('website').value = data.info.website || '';
+            document.getElementById('consultation-base').value = parseFloat(data.info.consultation_base_price || 0).toFixed(2);
+            document.getElementById('consultation-tax').value = parseFloat(data.info.consultation_tax_rate || 0).toFixed(2);
+            document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
+            document.getElementById('currency').value = data.info.currency || 'CAD';
+            document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
-            document.getElementById('practice-name').value = data.practice_name || '';
-            document.getElementById('therapist-name').value = data.therapist_name || '';
-            document.getElementById('credentials').value = data.credentials || '';
-            document.getElementById('practice-phone').value = data.phone || '';
-            document.getElementById('practice-email').value = data.email || '';
-            document.getElementById('practice-address').value = data.address || '';
-            document.getElementById('practice-website').value = data.website || '';
-            document.getElementById('default-session-duration').value = data.consultation_duration || '20';
-            
-            // Format phone after loading
-            const phoneInput = document.getElementById('practice-phone');
-            if (phoneInput.value) {
-                phoneInput.value = formatPhoneNumber(phoneInput.value);
-            }
-            
-            // Show current logo/signature if they exist
-            if (data.logo_filename) {
-                document.getElementById('logo-current').textContent = '✓ ' + data.logo_filename;
+            // Show current logo/signature status
+            if (data.info.logo_filename) {
+                document.getElementById('logo-current').textContent = '✓ ' + data.info.logo_filename;
                 document.getElementById('logo-delete-button').style.display = 'inline-block';
+            } else {
+                document.getElementById('logo-current').textContent = '';
+                document.getElementById('logo-delete-button').style.display = 'none';
             }
-            if (data.signature_filename) {
-                document.getElementById('signature-current').textContent = '✓ ' + data.signature_filename;
+            
+            if (data.info.signature_filename) {
+                document.getElementById('signature-current').textContent = '✓ ' + data.info.signature_filename;
                 document.getElementById('signature-delete-button').style.display = 'inline-block';
+            } else {
+                document.getElementById('signature-current').textContent = '';
+                document.getElementById('signature-delete-button').style.display = 'none';
             }
         }
     } catch (error) {
@@ -435,55 +402,178 @@ async function loadPracticeInfo() {
     }
 }
 
-async function saveSettings() {
-    const practiceInfo = {
+// Save practice information to database
+async function savePracticeInfo() {
+    const practiceData = {
         practice_name: document.getElementById('practice-name').value,
         therapist_name: document.getElementById('therapist-name').value,
         credentials: document.getElementById('credentials').value,
-        phone: document.getElementById('practice-phone').value,
         email: document.getElementById('practice-email').value,
-        address: document.getElementById('practice-address').value,
-        website: document.getElementById('practice-website').value,
-        consultation_duration: parseInt(document.getElementById('default-session-duration').value)
+        phone: document.getElementById('practice-phone').value,
+        address: document.getElementById('practice-address').value,  // CHANGED: single address field
+        website: document.getElementById('website').value,
+        currency: document.getElementById('currency').value,
+        consultation_base_price: document.getElementById('consultation-base').value,
+        consultation_tax_rate: document.getElementById('consultation-tax').value,
+        consultation_fee: document.getElementById('consultation-total').value,
+        consultation_duration: document.getElementById('consultation-duration').value
     };
     
     try {
         const response = await fetch('/api/practice_info', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(practiceInfo)
+            body: JSON.stringify(practiceData)
         });
         
-        if (response.ok) {
-            // Also save file number settings
-            await saveFileNumberSettings();
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('practice-info-status');
+            statusDiv.textContent = '✓ Practice information saved successfully!';
+            statusDiv.style.display = 'block';
             
-            // Show success message briefly, then redirect
-            const successMsg = document.getElementById('success-message');
-            successMsg.classList.add('show');
+            // Hide after 3 seconds
             setTimeout(() => {
-                window.location.href = '/';  // Redirect to main view
-            }, 1000);
+                statusDiv.style.display = 'none';
+            }, 3000);
         } else {
-            alert('Failed to save settings');
+            alert('Failed to save practice information');
         }
     } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('Error saving settings: ' + error.message);
+        alert('Failed to save practice information: ' + error.message);
     }
 }
 
-// Logo upload functionality
+// Phone number formatting with extension support (up to 5 digits) and international bypass
+const practicePhoneInput = document.getElementById('practice-phone');
+
+practicePhoneInput.addEventListener('input', function(e) {
+    let rawValue = e.target.value;
+    
+    // If starts with +, it's international - don't format, just limit length
+    if (rawValue.startsWith('+')) {
+        // Allow + and up to 20 digits
+        let cleaned = '+' + rawValue.slice(1).replace(/\D/g, '');
+        e.target.value = cleaned.substring(0, 21); // + plus 20 digits
+        return;
+    }
+    
+    let value = rawValue.replace(/\D/g, ''); // Remove non-digits
+    
+    if (value.length <= 10) {
+        // Format as (123) 456-7890
+        if (value.length > 6) {
+            value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
+        } else if (value.length > 3) {
+            value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+        } else if (value.length > 0) {
+            value = `(${value}`;
+        }
+    } else if (value.length <= 15) {
+        // Allow up to 15 digits (10 + 5 digit extension)
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+    } else {
+        // Truncate at 15 digits
+        value = value.slice(0, 15);
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+    }
+    
+    e.target.value = value;
+});
+
+// Validate phone number has 10-15 digits (or international format)
+function validatePhone(phoneValue) {
+    if (!phoneValue) return true; // Empty is okay
+    
+    // International format: starts with + and has 10-20 digits after it
+    if (phoneValue.startsWith('+')) {
+        const digitsOnly = phoneValue.slice(1).replace(/\D/g, '');
+        return digitsOnly.length >= 10 && digitsOnly.length <= 20;
+    }
+    
+    // North American format: 10-15 digits
+    const digitsOnly = phoneValue.replace(/\D/g, '');
+    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+}
+
+// Validate phone number has 10-15 digits
+function validatePhone(phoneValue) {
+    if (!phoneValue) return true; // Empty is okay
+    const digitsOnly = phoneValue.replace(/\D/g, '');
+    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+}
+
+// Three-way calculation for consultation fee
+function calculateConsultationFee(changedField) {
+    const baseInput = document.getElementById('consultation-base');
+    const taxInput = document.getElementById('consultation-tax');
+    const totalInput = document.getElementById('consultation-total');
+    
+    const base = parseFloat(baseInput.value) || 0;
+    const taxRate = parseFloat(taxInput.value) || 0;
+    const total = parseFloat(totalInput.value) || 0;
+    
+    if (changedField === 'base' || changedField === 'tax') {
+        // Calculate total from base + tax
+        const calculatedTotal = base * (1 + taxRate / 100);
+        totalInput.value = calculatedTotal.toFixed(2);
+    } else if (changedField === 'total') {
+        // Calculate base from total - tax
+        if (taxRate > 0) {
+            const calculatedBase = total / (1 + taxRate / 100);
+            baseInput.value = calculatedBase.toFixed(2);
+        } else {
+            // If no tax, total = base
+            baseInput.value = total.toFixed(2);
+        }
+    }
+}
+
+// Auto-format consultation fee fields on blur
+document.getElementById('consultation-base').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(2);
+    }
+});
+
+document.getElementById('consultation-tax').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(1);
+    }
+});
+
+document.getElementById('consultation-total').addEventListener('blur', function(e) {
+    let value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+        e.target.value = value.toFixed(2);
+    }
+});
+
+// Show filename when logo is selected
 document.getElementById('logo-upload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        document.getElementById('logo-filename').textContent = file.name;
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('logo-filename').textContent = filename;
         document.getElementById('logo-upload-button').style.display = 'inline-block';
     }
 });
 
+// Show filename when signature is selected
+document.getElementById('signature-upload').addEventListener('change', function(e) {
+    const filename = e.target.files[0]?.name;
+    if (filename) {
+        document.getElementById('signature-filename').textContent = filename;
+        document.getElementById('signature-upload-button').style.display = 'inline-block';
+    }
+});
+
+// Upload logo
 async function uploadLogo() {
     const fileInput = document.getElementById('logo-upload');
     const file = fileInput.files[0];
@@ -493,6 +583,13 @@ async function uploadLogo() {
         return;
     }
     
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
     const formData = new FormData();
     formData.append('logo', file);
     
@@ -531,15 +628,7 @@ async function uploadLogo() {
     }
 }
 
-// Signature upload functionality
-document.getElementById('signature-upload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        document.getElementById('signature-filename').textContent = file.name;
-        document.getElementById('signature-upload-button').style.display = 'inline-block';
-    }
-});
-
+// Upload signature
 async function uploadSignature() {
     const fileInput = document.getElementById('signature-upload');
     const file = fileInput.files[0];
@@ -549,6 +638,13 @@ async function uploadSignature() {
         return;
     }
     
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    // Create form data
     const formData = new FormData();
     formData.append('signature', file);
     
@@ -695,6 +791,13 @@ function updateFileNumberPreview() {
     }
 }
 
+// Add event listeners for preview updates
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('file-number-prefix').addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-suffix').addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-start').addEventListener('input', updateFileNumberPreview);
+});
+
 // Load file number settings
 function loadFileNumberSettings() {
     fetch('/settings/file-number')
@@ -725,7 +828,7 @@ function saveFileNumberSettings() {
         counter: format === 'prefix-counter' ? parseInt(document.getElementById('file-number-start').value) : 1
     };
     
-    return fetch('/settings/file-number', {
+    fetch('/settings/file-number', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(settings)
@@ -738,7 +841,6 @@ function saveFileNumberSettings() {
             status.style.display = 'block';
             setTimeout(() => status.style.display = 'none', 3000);
         }
-        return data;
     })
     .catch(error => console.error('Error saving file number settings:', error));
 }
@@ -757,6 +859,13 @@ function saveAndApplyBackground() {
     applyTheme();
     updateDeleteButton();
 }
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadBackgroundOptions();
+    loadPracticeInfo();
+    loadFileNumberSettings();  // ADD THIS LINE
+});
 
 function showAboutModal() {
     document.getElementById('about-modal').style.display = 'flex';
