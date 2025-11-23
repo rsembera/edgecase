@@ -144,13 +144,13 @@
         
         <div style="display: flex; gap: 1rem;">
             {% if prev_comm_id %}
-            <a href="{{ url_for('edit_communication', client_id=client.id, entry_id=prev_comm_id) }}" class="btn">← Prev</a>
+            <a href="{{ url_for('entries.edit_communication', client_id=client.id, entry_id=prev_comm_id) }}" class="btn">← Prev</a>
             {% else %}
             <span class="btn" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">← Prev</span>
             {% endif %}
             
             {% if next_comm_id %}
-            <a href="{{ url_for('edit_communication', client_id=client.id, entry_id=next_comm_id) }}" class="btn">Next →</a>
+            <a href="{{ url_for('entries.edit_communication', client_id=client.id, entry_id=next_comm_id) }}" class="btn">Next →</a>
             {% else %}
             <span class="btn" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Next →</span>
             {% endif %}

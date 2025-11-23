@@ -253,13 +253,13 @@
             <!-- Previous/Next (Center) -->
             <div style="display: flex; gap: 1rem;">
                 {% if prev_session_id %}
-                <a href="{{ url_for('edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
+                <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
                 {% else %}
                 <button disabled class="btn" style="opacity: 0.5; cursor: not-allowed;">← Prev</button>
                 {% endif %}
                 
                 {% if next_session_id %}
-                <a href="{{ url_for('edit_session', client_id=client.id, entry_id=next_session_id) }}" class="btn">Next →</a>
+                <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=next_session_id) }}" class="btn">Next →</a>
                 {% else %}
                 <button disabled class="btn" style="opacity: 0.5; cursor: not-allowed;">Next →</button>
                 {% endif %}

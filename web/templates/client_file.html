@@ -51,7 +51,7 @@
     
     {# Profile Entry - Always at top if exists #}
     {% if profile_entry %}
-    <div class="profile-entry" onclick="window.location.href='{{ url_for('edit_profile', client_id=client.id) }}'">
+    <div class="profile-entry" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <strong style="font-size: 1.125rem; color: #0E5346;">Profile</strong>
             
@@ -123,7 +123,7 @@
     </div>
     {% else %}
     {# No profile - make it clickable to create one #}
-    <div class="profile-entry" onclick="window.location.href='{{ url_for('edit_profile', client_id=client.id) }}'" style="text-align: center;">
+    <div class="profile-entry" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'" style="text-align: center;">
         <strong style="font-size: 1.125rem; color: #0E5346;">+ Create Profile</strong>
         <p style="font-size: 0.875rem; color: #5B6571; margin-top: 0.5rem;">Click to add client contact information</p>
     </div>
@@ -248,31 +248,31 @@
                     + Add Entry ▾
                 </button>
                 <div id="add-entry-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 200px; z-index: 100;">
-                    <a href="{{ url_for('create_session', client_id=client.id) }}" 
+                    <a href="{{ url_for('entries.create_session', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
                         📝 Session
                     </a>
-                    <a href="{{ url_for('create_communication', client_id=client.id) }}" 
+                    <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
                         💬 Communication
                     </a>
-                    <a href="{{ url_for('create_absence', client_id=client.id) }}" 
+                    <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
                         🚫 Absence
                     </a>
-                    <a href="{{ url_for('create_item', client_id=client.id) }}" 
+                    <a href="{{ url_for('entries.create_item', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
                         📦 Item
                     </a>
-                    <a href="{{ url_for('create_upload', client_id=client.id) }}" 
+                    <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" 
                     style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                     onmouseover="this.style.background='#F3F4F6'" 
                     onmouseout="this.style.background='transparent'">
@@ -333,7 +333,7 @@
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('edit_item', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'upload' %}{{ url_for('edit_upload', client_id=client.id, entry_id=entry.id) }}{% endif %}'"
+                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('entries.edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('entries.edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('entries.edit_item', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'upload' %}{{ url_for('entries.edit_upload', client_id=client.id, entry_id=entry.id) }}{% endif %}'"
                                     data-description="{{ entry.description|e }}" 
                                     data-content="{{ entry.content|e if entry.content else '' }}">
                                     <td>

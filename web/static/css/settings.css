@@ -12,7 +12,7 @@ h2 {
 }
 
 .settings-section {
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
     padding-bottom: 2rem;
     border-bottom: 1px solid #DEE2E6;
 }
@@ -21,47 +21,6 @@ h2 {
     border-bottom: none;
     margin-bottom: 0;
     padding-bottom: 0;
-}
-
-/* Section toggle button - looks like a form section header */
-.section-toggle-btn {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: #F7FAFC;
-    border: 2px solid #E5E7EB;
-    border-radius: 0.75rem;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #111827;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.section-toggle-btn:hover {
-    background: #EDF2F7;
-    border-color: #CBD5E0;
-}
-
-.toggle-icon {
-    font-size: 0.875rem;
-    color: #6B7280;
-    transition: transform 0.2s;
-}
-
-.section-content {
-    padding-left: 2rem;
-}
-
-.section-description {
-    color: #5B6571;
-    margin-bottom: 1.5rem;
-    font-size: 0.875rem;
 }
 
 .settings-section h3 {
