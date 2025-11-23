@@ -13,6 +13,7 @@ import sqlite3
 import time
 import os
 import shutil
+from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -392,7 +393,6 @@ def edit_profile(client_id):
             # Note: Profile entries are NOT locked on creation (they're meant to be updated)
         
         # Update client record if names or file number changed
-        import time
         client_updates = {}
         
         if request.form.get('first_name') != client['first_name']:
@@ -446,15 +446,7 @@ def create_session(client_id):
         is_consultation = 1 if request.form.get('is_consultation') else 0
         is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
         
-        # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        session_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            session_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        session_date_timestamp = parse_date_from_form(request.form)
         
         # Get form data
         session_data = {
@@ -509,11 +501,7 @@ def create_session(client_id):
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
+    date_parts = get_today_date_parts()
 
     # Calculate preview session number
     all_sessions = db.get_client_entries(client_id, 'session')
@@ -521,7 +509,7 @@ def create_session(client_id):
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
 
     offset = client.get('session_offset', 0)
-    today_timestamp = int(today_dt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    today_timestamp = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     sessions_before_today = sum(1 for s in dated_sessions if s['session_date'] <= today_timestamp)
     preview_session_number = sessions_before_today + offset + 1
 
@@ -537,13 +525,21 @@ def create_session(client_id):
             'tax': profile['fee_override_tax_rate'],
             'total': profile['fee_override_total']
         }
-    
-    profile_fees = {
-        'base': profile.get('fee_override_base') or 0,
-        'tax': profile.get('fee_override_tax_rate') or 0,
-        'total': profile.get('fee_override_total') or 0,
-        'duration': profile.get('default_session_duration') or 50
-    }
+
+    if profile:
+        profile_fees = {
+            'base': profile.get('fee_override_base') or 0,
+            'tax': profile.get('fee_override_tax_rate') or 0,
+            'total': profile.get('fee_override_total') or 0,
+            'duration': profile.get('default_session_duration') or 50
+        }
+    else:
+        profile_fees = {
+            'base': 0,
+            'tax': 0,
+            'total': 0,
+            'duration': 50
+        }
         
     link_group_fees = {}
     
@@ -587,10 +583,7 @@ def create_session(client_id):
                         profile_fees=profile_fees,
                         link_group_fees=link_group_fees,
                         last_service=last_service,
-                        today=today,
-                        today_year=today_year,
-                        today_month=today_month,
-                        today_day=today_day,
+                        **date_parts,
                         next_session_number=preview_session_number,
                         is_edit=False,
                         prev_session_id=prev_session_id,
@@ -600,8 +593,6 @@ def create_session(client_id):
 @entries_bp.route('/client/<int:client_id>/session/<int:entry_id>', methods=['GET', 'POST'])
 def edit_session(client_id, entry_id):
     """Edit an existing session entry."""
-    import time
-    from datetime import datetime
     
     # Get client info
     client = db.get_client(client_id)
@@ -625,15 +616,7 @@ def edit_session(client_id, entry_id):
         is_consultation = 1 if request.form.get('is_consultation') else 0
         is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
         
-        # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        session_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            session_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        session_date_timestamp = parse_date_from_form(request.form)
         
         # Update session data
         session_data = {
@@ -848,15 +831,22 @@ def edit_session(client_id, entry_id):
             'tax': profile['fee_override_tax_rate'],
             'total': profile['fee_override_total']
         }
-    
+
     # 2. Get individual session fees from Profile
-    profile = db.get_profile_entry(client_id)
-    profile_fees = {
-        'base': profile.get('fee_override_base') or 0,
-        'tax': profile.get('fee_override_tax_rate') or 0,
-        'total': profile.get('fee_override_total') or 0,
-        'duration': profile.get('default_session_duration') or 50
-    }
+    if profile:
+        profile_fees = {
+            'base': profile.get('fee_override_base') or 0,
+            'tax': profile.get('fee_override_tax_rate') or 0,
+            'total': profile.get('fee_override_total') or 0,
+            'duration': profile.get('default_session_duration') or 50
+        }
+    else:
+        profile_fees = {
+            'base': 0,
+            'tax': 0,
+            'total': 0,
+            'duration': 50
+        }
     
     # 3. Link Groups (by format)
     link_group_fees = {}
@@ -922,15 +912,7 @@ def create_communication(client_id):
     client_type = db.get_client_type(client['type_id'])
     
     if request.method == 'POST':
-        # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        comm_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            comm_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        comm_date_timestamp = parse_date_from_form(request.form)
         
         comm_data = {
             'client_id': client_id,
@@ -949,19 +931,12 @@ def create_communication(client_id):
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
+    date_parts = get_today_date_parts()
 
     return render_template('entry_forms/communication.html',
                         client=client,
                         client_type=client_type,
-                        today=today,
-                        today_year=today_year,
-                        today_month=today_month,
-                        today_day=today_day,
+                        **date_parts,
                         is_edit=False)
 
 
@@ -982,16 +957,7 @@ def edit_communication(client_id, entry_id):
         # Get the old communication data for comparison
         old_comm = communication.copy()
         
-        # Parse date from dropdowns
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        comm_date_timestamp = None
-        if year and month and day:
-            from datetime import datetime
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            comm_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        comm_date_timestamp = parse_date_from_form(request.form)
         
         # Prepare updated communication data
         comm_data = {
@@ -1053,7 +1019,6 @@ def edit_communication(client_id, entry_id):
             
             # Date
             if old_comm.get('comm_date') != comm_date_timestamp:
-                from datetime import datetime
                 old_date = datetime.fromtimestamp(old_comm['comm_date']).strftime('%Y-%m-%d') if old_comm.get('comm_date') else 'None'
                 new_date = datetime.fromtimestamp(comm_date_timestamp).strftime('%Y-%m-%d') if comm_date_timestamp else 'None'
                 changes.append(f"Date: {old_date} → {new_date}")
@@ -1132,7 +1097,6 @@ def edit_communication(client_id, entry_id):
     next_comm_id = dated_communications[current_index - 1]['id'] if current_index and current_index > 0 else None
     
     # Parse communication date into year, month, day for dropdowns
-    from datetime import datetime
     comm_year = None
     comm_month = None
     comm_day = None
@@ -1233,7 +1197,6 @@ def edit_absence(client_id, entry_id):
         absence_date_str = request.form.get('absence_date')
         absence_date_timestamp = None
         if absence_date_str:
-            from datetime import datetime
             date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
             absence_date_timestamp = int(date_obj.timestamp())
         
@@ -1290,7 +1253,6 @@ def edit_absence(client_id, entry_id):
             
             # Date
             if old_absence.get('absence_date') != absence_date_timestamp:
-                from datetime import datetime
                 old_date = datetime.fromtimestamp(old_absence['absence_date']).strftime('%Y-%m-%d') if old_absence.get('absence_date') else 'None'
                 new_date = datetime.fromtimestamp(absence_date_timestamp).strftime('%Y-%m-%d') if absence_date_timestamp else 'None'
                 changes.append(f"Date: {old_date} → {new_date}")
@@ -1369,7 +1331,6 @@ def edit_absence(client_id, entry_id):
     
     # GET - show form with existing data
     # Convert timestamp back to date string
-    from datetime import datetime
     absence_date = datetime.fromtimestamp(absence['absence_date']).strftime('%Y-%m-%d') if absence.get('absence_date') else None
     
     # Get lock status and edit history
@@ -1427,15 +1388,13 @@ def create_item(client_id):
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    
+    date_parts = get_today_date_parts()
+
     return render_template('entry_forms/item.html',
                         client=client,
                         client_type=client_type,
-                        today=today,
+                        **date_parts,
                         is_edit=False)
-
 
 @entries_bp.route('/client/<int:client_id>/item/<int:entry_id>', methods=['GET', 'POST'])
 def edit_item(client_id, entry_id):
@@ -1458,7 +1417,6 @@ def edit_item(client_id, entry_id):
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
         if item_date_str:
-            from datetime import datetime
             date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
             item_date_timestamp = int(date_obj.timestamp())
         
@@ -1515,7 +1473,6 @@ def edit_item(client_id, entry_id):
             
             # Date
             if old_item.get('item_date') != item_date_timestamp:
-                from datetime import datetime
                 old_date = datetime.fromtimestamp(old_item['item_date']).strftime('%Y-%m-%d') if old_item.get('item_date') else 'None'
                 new_date = datetime.fromtimestamp(item_date_timestamp).strftime('%Y-%m-%d') if item_date_timestamp else 'None'
                 changes.append(f"Date: {old_date} → {new_date}")
@@ -1594,7 +1551,6 @@ def edit_item(client_id, entry_id):
     
     # GET - show form with existing data
     # Convert timestamp back to date string
-    from datetime import datetime
     item_date = datetime.fromtimestamp(item['item_date']).strftime('%Y-%m-%d') if item.get('item_date') else None
     
     # Get lock status and edit history
@@ -1626,14 +1582,7 @@ def create_upload(client_id):
     
     if request.method == 'POST':
         # Parse date
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        upload_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            upload_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        upload_date_timestamp = parse_date_from_form(request.form)
         
         upload_data = {
             'client_id': client_id,
@@ -1649,46 +1598,17 @@ def create_upload(client_id):
         # Handle file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
-        
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
-        
+        save_uploaded_files(files, descriptions, entry_id, db, client_id=client_id)
+
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form
-    today_dt = datetime.now()
-    today = today_dt.strftime('%Y-%m-%d')
-    today_year = today_dt.year
-    today_month = today_dt.month
-    today_day = today_dt.day
+    date_parts = get_today_date_parts()
 
     return render_template('entry_forms/upload.html',
                         client=client,
                         client_type=client_type,
-                        today=today,
-                        today_year=today_year,
-                        today_month=today_month,
-                        today_day=today_day,
+                        **date_parts,
                         is_edit=False)
 
 
@@ -1709,14 +1629,7 @@ def edit_upload(client_id, entry_id):
         old_upload = upload.copy()
         
         # Parse date
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        upload_date_timestamp = None
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-            upload_date_timestamp = int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        upload_date_timestamp = parse_date_from_form(request.form)
         
         upload_data = {
             'description': request.form['description'],
@@ -1729,40 +1642,15 @@ def edit_upload(client_id, entry_id):
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         
-        if files and files[0].filename:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            added_files = []
-            
-            for i, file in enumerate(files):
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    file.save(filepath)
-                    filesize = os.path.getsize(filepath)
-                    description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
-                    
-                    conn = db.connect()
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (entry_id, filename, description, filepath, filesize, int(time.time())))
-                    conn.commit()
-                    conn.close()
-                    
-                    added_files.append(filename)
-            
-            if added_files:
-                import difflib
-                changes = []
-                changes.append(f"Added files: {', '.join(added_files)}")
-                db.add_to_edit_history(entry_id, "; ".join(changes))
-        
+        added_files = save_uploaded_files(files, descriptions, entry_id, db, client_id=client_id)
+
+        if added_files:
+            changes = []
+            changes.append(f"Added files: {', '.join(added_files)}")
+            db.add_to_edit_history(entry_id, "; ".join(changes))
+
         db.update_entry(entry_id, upload_data)
-        
+
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form

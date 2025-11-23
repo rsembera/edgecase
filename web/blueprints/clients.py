@@ -554,6 +554,8 @@ def client_file(client_id):
                     time_str = e.get('absence_time')
                 elif e['class'] == 'item':
                     time_str = e.get('item_time')
+                elif e['class'] == 'upload':
+                    time_str = e.get('upload_time')
                 
                 if time_str:
                     time_val = parse_time_to_seconds(time_str)
