@@ -41,7 +41,7 @@
             
             <div class="group-members">
                 {% for member in group.members %}
-                <a href="{{ url_for('client_file', client_id=member.id) }}" class="member-card{% if group.billing_type == 'principal' and loop.first %} principal-payer{% endif %}">
+                <a href="{{ url_for('clients.client_file', client_id=member.id) }}" class="member-card{% if group.billing_type == 'principal' and loop.first %} principal-payer{% endif %}">
                     <span class="member-badge" style="background-color: {{ member.type.color }}">
                         {{ member.type.name }}
                     </span>
@@ -63,7 +63,7 @@
     {% endif %}
     
     <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #DEE2E6;">
-        <a href="{{ url_for('index') }}" class="btn-add">← Back to Clients</a>
+        <a href="{{ url_for('clients.index') }}" class="btn-add">← Back to Clients</a>
     </div>
 </div>
 
