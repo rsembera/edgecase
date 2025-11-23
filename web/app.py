@@ -18,6 +18,7 @@ from core.database import Database
 # Import blueprints
 from web.blueprints.settings import settings_bp, init_blueprint as init_settings
 from web.blueprints.types import types_bp, init_blueprint as init_types
+from web.blueprints.links import links_bp, init_blueprint as init_links
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -35,10 +36,12 @@ db = Database(str(db_path))
 # Initialize blueprints with database
 init_settings(db)
 init_types(db)
+init_links(db)
 
 # Register blueprints
 app.register_blueprint(settings_bp)
 app.register_blueprint(types_bp)
+app.register_blueprint(links_bp)
 
 # Add custom Jinja filters
 from datetime import datetime
@@ -3336,24 +3339,24 @@ def currency_symbol_filter(currency_code):
     
 # ===========================
 
-@app.route('/links')
-def manage_links():
-    """Manage client linking groups"""
-    link_groups = db.get_all_link_groups()
-    all_clients = db.get_all_clients()
+# @app.route('/links')
+# def manage_links():
+#     """Manage client linking groups"""
+#     link_groups = db.get_all_link_groups()
+#     all_clients = db.get_all_clients()
     
-    # Add type info to all clients for display
-    for client in all_clients:
-        client['type'] = db.get_client_type(client['type_id'])
+#     # Add type info to all clients for display
+#     for client in all_clients:
+#         client['type'] = db.get_client_type(client['type_id'])
     
-    # Add type info to members in each link group
-    for group in link_groups:
-        for member in group.get('members', []):
-            member['type'] = db.get_client_type(member['type_id'])
+#     # Add type info to members in each link group
+#     for group in link_groups:
+#         for member in group.get('members', []):
+#             member['type'] = db.get_client_type(member['type_id'])
     
-    return render_template('manage_links.html', 
-                         link_groups=link_groups,
-                         all_clients=all_clients)
+#     return render_template('manage_links.html', 
+#                          link_groups=link_groups,
+#                          all_clients=all_clients)
 
 # @app.route('/settings')
 # def settings_page():
@@ -3821,149 +3824,149 @@ def add_client():
                          file_number_readonly=file_number_readonly,
                          file_number_format=format_type)
 
-@app.route('/links/<int:group_id>/delete', methods=['POST'])
-def delete_link_group(group_id):
-    """Delete a link group"""
-    success = db.delete_link_group(group_id)
-    if success:
-        return '', 204  # No content, success
-    return 'Error deleting group', 500
+# @app.route('/links/<int:group_id>/delete', methods=['POST'])
+# def delete_link_group(group_id):
+#     """Delete a link group"""
+#     success = db.delete_link_group(group_id)
+#     if success:
+#         return '', 204  # No content, success
+#     return 'Error deleting group', 500
 
-@app.route('/links/add', methods=['GET', 'POST'])
-def add_link_group():
-    """Add a new link group"""
-    if request.method == 'POST':
-        data = request.json
+# @app.route('/links/add', methods=['GET', 'POST'])
+# def add_link_group():
+#     """Add a new link group"""
+#     if request.method == 'POST':
+#         data = request.json
         
-        # Validate
-        if not data.get('client_ids'):
-            return 'Missing client IDs', 400
+#         # Validate
+#         if not data.get('client_ids'):
+#             return 'Missing client IDs', 400
         
-        if len(data['client_ids']) < 2:
-            return 'At least 2 clients required', 400
+#         if len(data['client_ids']) < 2:
+#             return 'At least 2 clients required', 400
         
-        if not data.get('format'):
-            return 'Missing session format', 400
+#         if not data.get('format'):
+#             return 'Missing session format', 400
         
-        if not data.get('member_fees'):
-            return 'Missing member fees', 400
+#         if not data.get('member_fees'):
+#             return 'Missing member fees', 400
         
-        # Get duration (default to 50 if not provided)
-        session_duration = int(data.get('session_duration', 50))
+#         # Get duration (default to 50 if not provided)
+#         session_duration = int(data.get('session_duration', 50))
 
-        # Create link group with format, duration, and member fees
-        # Retry once if database is locked
-        for attempt in range(2):
-            try:
-                group_id = db.create_link_group(
-                    client_ids=data['client_ids'],
-                    format=data['format'],
-                    session_duration=session_duration,
-                    member_fees=data['member_fees']
-                )
-                return '', 204
+#         # Create link group with format, duration, and member fees
+#         # Retry once if database is locked
+#         for attempt in range(2):
+#             try:
+#                 group_id = db.create_link_group(
+#                     client_ids=data['client_ids'],
+#                     format=data['format'],
+#                     session_duration=session_duration,
+#                     member_fees=data['member_fees']
+#                 )
+#                 return '', 204
                 
-            except sqlite3.OperationalError as e:
-                if attempt == 0:
-                    time.sleep(0.1)  # Wait 100ms and retry
-                    continue
-                return 'Database is temporarily locked. Please try again.', 503
-            except sqlite3.IntegrityError as e:
-                return f'Database error: {str(e)}', 400
-            except ValueError as e:
-                return str(e), 400
+#             except sqlite3.OperationalError as e:
+#                 if attempt == 0:
+#                     time.sleep(0.1)  # Wait 100ms and retry
+#                     continue
+#                 return 'Database is temporarily locked. Please try again.', 503
+#             except sqlite3.IntegrityError as e:
+#                 return f'Database error: {str(e)}', 400
+#             except ValueError as e:
+#                 return str(e), 400
     
-    # GET: Show the form - exclude Inactive and Deleted clients
-    all_clients = db.get_all_clients()
+#     # GET: Show the form - exclude Inactive and Deleted clients
+#     all_clients = db.get_all_clients()
     
-    # GET: Show the form - exclude Inactive and Deleted clients
-    all_clients = db.get_all_clients()
+#     # GET: Show the form - exclude Inactive and Deleted clients
+#     all_clients = db.get_all_clients()
     
-    # Filter out Inactive and Deleted clients and add type info + Profile fees
-    active_clients = []
-    for client in all_clients:
-        client_type = db.get_client_type(client['type_id'])
-        client['type'] = client_type
-        if client_type['name'] not in ['Inactive', 'Deleted']:
-            # Get Profile entry for fee defaults
-            profile = db.get_profile_entry(client['id'])
-            if profile:
-                client['profile_base_fee'] = profile.get('fee_override_base', 0)
-                client['profile_tax_rate'] = profile.get('fee_override_tax_rate', 0)
-                client['profile_total_fee'] = profile.get('fee_override_total', 0)
-                client['profile_duration'] = profile.get('default_session_duration', 50)
-            else:
-                # Defaults if no profile
-                client['profile_base_fee'] = 0
-                client['profile_tax_rate'] = 0
-                client['profile_total_fee'] = 0
-                client['profile_duration'] = 50
-            active_clients.append(client)
+#     # Filter out Inactive and Deleted clients and add type info + Profile fees
+#     active_clients = []
+#     for client in all_clients:
+#         client_type = db.get_client_type(client['type_id'])
+#         client['type'] = client_type
+#         if client_type['name'] not in ['Inactive', 'Deleted']:
+#             # Get Profile entry for fee defaults
+#             profile = db.get_profile_entry(client['id'])
+#             if profile:
+#                 client['profile_base_fee'] = profile.get('fee_override_base', 0)
+#                 client['profile_tax_rate'] = profile.get('fee_override_tax_rate', 0)
+#                 client['profile_total_fee'] = profile.get('fee_override_total', 0)
+#                 client['profile_duration'] = profile.get('default_session_duration', 50)
+#             else:
+#                 # Defaults if no profile
+#                 client['profile_base_fee'] = 0
+#                 client['profile_tax_rate'] = 0
+#                 client['profile_total_fee'] = 0
+#                 client['profile_duration'] = 50
+#             active_clients.append(client)
     
-    return render_template('add_edit_link_group.html',
-                         all_clients=active_clients,
-                         group=None)
+#     return render_template('add_edit_link_group.html',
+#                          all_clients=active_clients,
+#                          group=None)
 
-@app.route('/links/<int:group_id>/edit', methods=['GET', 'POST'])
-def edit_link_group(group_id):
-    """Edit an existing link group"""
-    if request.method == 'POST':
-        data = request.json
+# @app.route('/links/<int:group_id>/edit', methods=['GET', 'POST'])
+# def edit_link_group(group_id):
+#     """Edit an existing link group"""
+#     if request.method == 'POST':
+#         data = request.json
         
-        # Validate
-        if not data.get('client_ids'):
-            return 'Missing client IDs', 400
+#         # Validate
+#         if not data.get('client_ids'):
+#             return 'Missing client IDs', 400
         
-        if len(data['client_ids']) < 2:
-            return 'At least 2 clients required', 400
+#         if len(data['client_ids']) < 2:
+#             return 'At least 2 clients required', 400
         
-        if not data.get('format'):
-            return 'Missing session format', 400
+#         if not data.get('format'):
+#             return 'Missing session format', 400
         
-        if not data.get('member_fees'):
-            return 'Missing member fees', 400
+#         if not data.get('member_fees'):
+#             return 'Missing member fees', 400
         
-        # Get duration (default to 50 if not provided)
-        session_duration = int(data.get('session_duration', 50))
+#         # Get duration (default to 50 if not provided)
+#         session_duration = int(data.get('session_duration', 50))
         
-        # Update link group
-        success = db.update_link_group(
-            group_id=group_id,
-            client_ids=data['client_ids'],
-            format=data['format'],
-            session_duration=session_duration,
-            member_fees=data['member_fees']
-        )
+#         # Update link group
+#         success = db.update_link_group(
+#             group_id=group_id,
+#             client_ids=data['client_ids'],
+#             format=data['format'],
+#             session_duration=session_duration,
+#             member_fees=data['member_fees']
+#         )
         
-        if success:
-            return '', 204
-        else:
-            return 'Error updating link group', 500
+#         if success:
+#             return '', 204
+#         else:
+#             return 'Error updating link group', 500
     
-    # GET: Show the form with existing group data
-    group = db.get_link_group(group_id)
+#     # GET: Show the form with existing group data
+#     group = db.get_link_group(group_id)
     
-    # Exclude Inactive and Deleted clients
-    all_clients = db.get_all_clients()
+#     # Exclude Inactive and Deleted clients
+#     all_clients = db.get_all_clients()
     
-    # Filter out Inactive and Deleted clients and add type info
-    active_clients = []
-    for client in all_clients:
-        client_type = db.get_client_type(client['type_id'])
-        client['type'] = client_type
-        if client_type['name'] not in ['Inactive', 'Deleted']:
-            active_clients.append(client)
+#     # Filter out Inactive and Deleted clients and add type info
+#     active_clients = []
+#     for client in all_clients:
+#         client_type = db.get_client_type(client['type_id'])
+#         client['type'] = client_type
+#         if client_type['name'] not in ['Inactive', 'Deleted']:
+#             active_clients.append(client)
     
-    # Add type info to group members
-    if group and 'members' in group:
-        for member in group['members']:
-            member['type'] = db.get_client_type(member['type_id'])
+#     # Add type info to group members
+#     if group and 'members' in group:
+#         for member in group['members']:
+#             member['type'] = db.get_client_type(member['type_id'])
     
-    return render_template('add_edit_link_group.html',
-                         all_clients=active_clients,
-                         group=group)
+#     return render_template('add_edit_link_group.html',
+#                          all_clients=active_clients,
+#                          group=group)
     
-# Also need to add these helper methods to database.py:
+# # Also need to add these helper methods to database.py:
 
 def set_setting(self, key: str, value: str):
     """Set a setting value."""

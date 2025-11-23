@@ -14,7 +14,7 @@
             <p style="color: #5B6571; margin-top: 0.5rem;">Review and create arrangements for couples, family, or group therapy</p>
         </div>
         <div style="display: flex; gap: 0.75rem;">
-            <a href="{{ url_for('add_link_group') }}" class="btn-add">Add Link</a>
+            <a href="{{ url_for('links.add_link_group') }}" class="btn-add">Add Link</a>
         </div>
     </div>
 
@@ -34,7 +34,7 @@
                     <span class="member-count">{{ group.members|length }} clients</span>
                 </div>
                 <div class="group-actions">
-                    <a href="{{ url_for('edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
+                    <a href="{{ url_for('links.edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
                     <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}& {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-icon btn-danger" title="Delete group">🗑️</button>
                 </div>
             </div>

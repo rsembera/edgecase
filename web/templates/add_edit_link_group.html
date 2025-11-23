@@ -79,7 +79,7 @@
 
         <!-- Form Actions -->
         <div class="form-actions" style="justify-content: space-between;">
-            <a href="{{ url_for('manage_links') }}" class="btn-secondary">Cancel</a>
+            <a href="{{ url_for('links.manage_links') }}" class="btn-secondary">Cancel</a>
             <button type="submit" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
         </div>
     </form>
