@@ -18,312 +18,281 @@
     
     <!-- Theme Settings Section -->
     <div class="settings-section">
-        <h3>Appearance</h3>
-        <p>Customize how EdgeCase looks</p>
-        
-        <div class="form-group">
-            <label for="card-style">Info Card Style</label>
-            <select id="card-style" onchange="saveAndApplyCardStyle()">
-                <option value="strait-laced">Strait-Laced (White cards)</option>
-                <option value="tutti-frutti">Tutti-Frutti (Colored cards)</option>
-            </select>
+        <button type="button" class="section-toggle-btn" data-section="appearance">
+            <span class="toggle-icon">▶</span>
+            <span>Appearance</span>
+        </button>
+        <div class="section-content" id="appearance-section" style="display: none;">
+            <p class="section-description">Customize how EdgeCase looks</p>
+            
+            <div class="form-group">
+                <label for="card-style">Info Card Style</label>
+                <select id="card-style" onchange="saveAndApplyCardStyle()">
+                    <option value="strait-laced">Strait-Laced (White cards)</option>
+                    <option value="tutti-frutti">Tutti-Frutti (Colored cards)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="background-style">Background</label>
+                <select id="background-style" onchange="saveAndApplyBackground()">
+                    <option value="suit-grey">Suit Grey (Solid)</option>
+                    <!-- Background images will be added by JavaScript -->
+                </select>
+                <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none; background: #E7CFD4; color: #6A243E;">
+                    🗑️ Delete
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label for="background-upload">Upload New Background</label>
+                <input type="file" id="background-upload" accept="image/*" style="display: none;">
+                <button onclick="document.getElementById('background-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    Choose Image
+                </button>
+                <span id="upload-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
+                <button onclick="uploadBackground()" id="upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+                    Upload
+                </button>
+            </div>
+            
+            <div id="upload-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
         </div>
-        
-        <div class="form-group">
-            <label for="background-style">Background</label>
-            <select id="background-style" onchange="saveAndApplyBackground()">
-                <option value="suit-grey">Suit Grey (Solid)</option>
-                <!-- Background images will be added by JavaScript -->
-            </select>
-            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
-            </button>
-        </div>
-        
-        <div class="form-group">
-            <label for="background-upload">Upload New Background</label>
-            <input type="file" id="background-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('background-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                Choose Image
-            </button>
-            <span id="upload-filename" style="margin-left: 1rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadBackground()" id="upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
-                Upload
-            </button>
-        </div>
-        
-        <div id="upload-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
     
     <!-- Card Layout Section -->
     <div class="settings-section">
-        <h3>Card Layout</h3>
-        <p>Arrange your info cards in your preferred order</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-1">Position 1 (Top Left)</label>
-                <select id="position-1" onchange="handleCardSwap(0)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
+        <button type="button" class="section-toggle-btn" data-section="card-layout">
+            <span class="toggle-icon">▶</span>
+            <span>Card Layout</span>
+        </button>
+        <div class="section-content" id="card-layout-section" style="display: none;">
+            <p class="section-description">Arrange your info cards in your preferred order</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-1">Position 1 (Top Left)</label>
+                    <select id="position-1" onchange="handleCardSwap(0)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-2">Position 2 (Top Center)</label>
+                    <select id="position-2" onchange="handleCardSwap(1)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-3">Position 3 (Top Right)</label>
+                    <select id="position-3" onchange="handleCardSwap(2)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-2">Position 2 (Top Center)</label>
-                <select id="position-2" onchange="handleCardSwap(1)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-3">Position 3 (Top Right)</label>
-                <select id="position-3" onchange="handleCardSwap(2)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
-            </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-4">Position 4 (Bottom Left)</label>
-                <select id="position-4" onchange="handleCardSwap(3)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-5">Position 5 (Bottom Center)</label>
-                <select id="position-5" onchange="handleCardSwap(4)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="position-6">Position 6 (Bottom Right)</label>
-                <select id="position-6" onchange="handleCardSwap(5)">
-                    <option value="active-clients">Active Clients</option>
-                    <option value="sessions-week">Sessions This Week</option>
-                    <option value="pending-invoices">Pending Invoices</option>
-                    <option value="billable-month">Billable This Month</option>
-                    <option value="current-time">Current Time</option>
-                    <option value="navigation">Navigation</option>
-                </select>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-4">Position 4 (Bottom Left)</label>
+                    <select id="position-4" onchange="handleCardSwap(3)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-5">Position 5 (Bottom Center)</label>
+                    <select id="position-5" onchange="handleCardSwap(4)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="position-6">Position 6 (Bottom Right)</label>
+                    <select id="position-6" onchange="handleCardSwap(5)">
+                        <option value="active-clients">Active Clients</option>
+                        <option value="sessions-week">Sessions This Week</option>
+                        <option value="pending-invoices">Pending Invoices</option>
+                        <option value="billable-month">Billable This Month</option>
+                        <option value="current-time">Current Time</option>
+                        <option value="navigation">Navigation</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Practice Information Section -->
     <div class="settings-section">
-        <h3>Practice Information</h3>
-        <p>Your contact details and branding (used on invoices)</p>
-        
-        <div class="form-group">
-            <label for="practice-name">Practice Name</label>
-            <input type="text" id="practice-name" placeholder="e.g., Mindful Pathways Counselling">
-        </div>
-        
-        <div class="form-group">
-            <label for="therapist-name">Therapist Name</label>
-            <input type="text" id="therapist-name" placeholder="e.g., Dr. Jane Smith">
-        </div>
-        
-        <div class="form-group">
-            <label for="credentials">Credentials</label>
-            <input type="text" id="credentials" placeholder="e.g., MSW, RSW, PhD">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-email">Email</label>
-            <input type="email" id="practice-email" placeholder="e.g., contact@practice.com">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-phone">Phone</label>
-            <input type="tel" id="practice-phone" placeholder="(123) 456-7890">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-address">Practice Address</label>
-            <textarea id="practice-address" rows="5" placeholder="123 Main Street&#10;Suite 200&#10;Ottawa, ON K1A 0B1&#10;Canada"></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="website">Website (optional)</label>
-            <input type="url" id="website" placeholder="e.g., https://practice.com">
-        </div>
-
-        <div class="form-group">
-            <label for="currency">Currency</label>
-            <select id="currency">
-                <option value="CAD">$ CAD - Canadian Dollar</option>
-                <option value="USD">$ USD - US Dollar</option>
-                <option value="EUR">€ EUR - Euro</option>
-                <option value="GBP">£ GBP - British Pound</option>
-                <option value="AUD">$ AUD - Australian Dollar</option>
-                <option value="INR">₹ INR - Indian Rupee</option>
-                <option value="JPY">¥ JPY - Japanese Yen</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label>Consultation Fee</label>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 600px;">
-                <div>
-                    <label for="consultation-base" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Base Fee ($)</label>
-                    <input type="number" 
-                           id="consultation-base" 
-                           step="0.01" 
-                           min="0" 
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('base')">
-                </div>
-                <div>
-                    <label for="consultation-tax" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Tax Rate (%)</label>
-                    <input type="number" 
-                           id="consultation-tax" 
-                           step="0.01" 
-                           min="0" 
-                           max="100"
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('tax')">
-                </div>
-                <div>
-                    <label for="consultation-total" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Total Fee ($)</label>
-                    <input type="number" 
-                           id="consultation-total" 
-                           step="0.01" 
-                           min="0" 
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('total')">
-                </div>
+        <button type="button" class="section-toggle-btn" data-section="practice-info">
+            <span class="toggle-icon">▶</span>
+            <span>Practice Information</span>
+        </button>
+        <div class="section-content" id="practice-info-section" style="display: none;">
+            <p class="section-description">Basic information about your practice and professional details</p>
+            
+            <div class="form-group">
+                <label for="practice-name">Practice Name</label>
+                <input type="text" id="practice-name" placeholder="Your practice name">
+            </div>
+            
+            <div class="form-group">
+                <label for="therapist-name">Your Name</label>
+                <input type="text" id="therapist-name" placeholder="Your professional name">
+            </div>
+            
+            <div class="form-group">
+                <label for="credentials">Credentials</label>
+                <input type="text" id="credentials" placeholder="e.g., Ph.D., M.A., R.Psych">
+            </div>
+            
+            <div class="form-group">
+                <label for="practice-phone">Phone</label>
+                <input type="tel" id="practice-phone" placeholder="(123) 456-7890">
+            </div>
+            
+            <div class="form-group">
+                <label for="practice-email">Email</label>
+                <input type="email" id="practice-email" placeholder="contact@practice.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="practice-address">Address</label>
+                <textarea id="practice-address" placeholder="123 Main Street&#10;Suite 100&#10;City, Province/State&#10;Postal Code"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="practice-website">Website</label>
+                <input type="url" id="practice-website" placeholder="https://www.yourpractice.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="default-session-duration">Default Session Duration</label>
+                <select id="default-session-duration">
+                    <option value="30">30 minutes</option>
+                    <option value="40">40 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="50" selected>50 minutes</option>
+                    <option value="55">55 minutes</option>
+                    <option value="60">60 minutes</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+            <label for="logo-upload">Practice Logo</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+                <button onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    Choose Logo
+                </button>
+                <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+                <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
+                    Upload
+                </button>
+                <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+                <button onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                    🗑️ Delete
+                </button>
             </div>
         </div>
-        
-        <div class="form-group">
-            <label for="consultation-duration">Consultation Duration</label>
-            <select id="consultation-duration" style="max-width: 200px;">
-                <option value="15">15 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="25">25 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="35">35 minutes</option>
-                <option value="40">40 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="50">50 minutes</option>
-                <option value="55">55 minutes</option>
-                <option value="60">60 minutes</option>
-            </select>
+            
+            <div class="form-group">
+            <label for="signature-upload">Digital Signature</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="file" id="signature-upload" accept="image/*" style="display: none;">
+                <button onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    Choose Signature
+                </button>
+                <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+                <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
+                    Upload
+                </button>
+                <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+                <button onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                    🗑️ Delete
+                </button>
+            </div>
         </div>
-        
-        <div class="form-group">
-        <label for="logo-upload">Practice Logo</label>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="file" id="logo-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                Choose Logo
-            </button>
-            <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                Upload
-            </button>
-            <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-            <button onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
-            </button>
+            
+            <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
         </div>
-    </div>
-        
-        <div class="form-group">
-        <label for="signature-upload">Digital Signature</label>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="file" id="signature-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                Choose Signature
-            </button>
-            <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                Upload
-            </button>
-            <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-            <button onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
-            </button>
-        </div>
-    </div>
-        
-        <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
 
     
-    <!-- File Number Format Section (replaces "Coming soon" section around line 385) -->
+    <!-- File Number Format Section -->
     <div class="settings-section">
-        <h3>File Number Format</h3>
-        <p>Choose how client file numbers are generated</p>
-        
-        <div class="form-group">
-            <label for="file-number-format">Format Type</label>
-            <select id="file-number-format" onchange="toggleFileNumberFields()">
-                <option value="manual">Manual Entry - User types file number</option>
-                <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
-                <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
-            </select>
-        </div>
-        
-        <!-- Options for Prefix-Counter format -->
-        <div id="prefix-counter-options" style="display: none; margin-left: 2rem; padding: 1rem; background: #F2F4F5; border-radius: 0.5rem;">
-            <div class="form-group">
-                <label for="file-number-prefix">Prefix (optional)</label>
-                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;">
-                <small>Up to 6 characters</small>
-            </div>
+        <button type="button" class="section-toggle-btn" data-section="file-number">
+            <span class="toggle-icon">▶</span>
+            <span>File Number Format</span>
+        </button>
+        <div class="section-content" id="file-number-section" style="display: none;">
+            <p class="section-description">Choose how client file numbers are generated</p>
             
             <div class="form-group">
-                <label for="file-number-suffix">Suffix (optional)</label>
-                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;">
-                <small>Up to 4 characters</small>
+                <label for="file-number-format">Format Type</label>
+                <select id="file-number-format" onchange="toggleFileNumberFields()">
+                    <option value="manual">Manual Entry - User types file number</option>
+                    <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
+                    <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
+                </select>
             </div>
             
-            <div class="form-group">
-                <label for="file-number-start">Starting Number</label>
-                <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;">
-                <small>Counter starts here and increments automatically</small>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-                <label>Preview</label>
-                <div id="file-number-preview" style="font-family: monospace; font-size: 1.125rem; color: #111827; padding: 0.75rem; background: white; border: 2px solid #DEE2E6; border-radius: 0.5rem; max-width: 300px;">
-                    0001
+            <!-- Options for Prefix-Counter format -->
+            <div id="prefix-counter-options" style="display: none; margin-left: 2rem; padding: 1rem; background: #F2F4F5; border-radius: 0.5rem;">
+                <div class="form-group">
+                    <label for="file-number-prefix">Prefix (optional)</label>
+                    <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;">
+                    <small>Up to 6 characters</small>
                 </div>
-                <small>Total length must not exceed 12 characters</small>
+                
+                <div class="form-group">
+                    <label for="file-number-suffix">Suffix (optional)</label>
+                    <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;">
+                    <small>Up to 4 characters</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file-number-start">Starting Number</label>
+                    <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;">
+                    <small>Counter starts here and increments automatically</small>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Preview</label>
+                    <div id="file-number-preview" style="font-family: monospace; font-size: 1.125rem; color: #111827; padding: 0.75rem; background: white; border: 2px solid #DEE2E6; border-radius: 0.5rem; max-width: 300px;">
+                        0001
+                    </div>
+                    <small>Total length must not exceed 12 characters</small>
+                </div>
             </div>
+            
+            <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
         </div>
-        
-        <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
     </div>
     
     <div class="button-group">
