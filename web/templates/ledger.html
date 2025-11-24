@@ -71,23 +71,23 @@
     
     <div class="year-header" onclick="toggleYear('year-{{ year }}')">
         <span style="font-size: 1.125rem; font-weight: 600;">
-            <span id="year-{{ year }}-icon">▼</span>
+            <span id="year-{{ year }}-icon">▶</span>
             {{ year }}
         </span>
         <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_total.count }} Entr{{ 'y' if year_total.count == 1 else 'ies' }}</span>
     </div>
     
-    <div id="year-{{ year }}-content" class="year-content expanded">
+    <div id="year-{{ year }}-content" class="year-content">
         {% for month_num, month_data in entries_by_year_month[year].items() %}
         <div class="month-header" onclick="toggleMonth('month-{{ year }}-{{ month_num }}')">
             <span style="font-weight: 600;">
-                <span id="month-{{ year }}-{{ month_num }}-icon">▼</span>
+                <span id="month-{{ year }}-{{ month_num }}-icon">▶</span>
                 {{ month_data.name }}
             </span>
             <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_data.entries|length }} Entr{{ 'y' if month_data.entries|length == 1 else 'ies' }}</span>
         </div>
         
-        <div id="month-{{ year }}-{{ month_num }}-content" class="month-content expanded">
+        <div id="month-{{ year }}-{{ month_num }}-content" class="month-content">
             <table class="ledger-table">
                 <thead>
                     <tr>

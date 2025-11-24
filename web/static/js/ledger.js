@@ -2,28 +2,28 @@
 
 // Year/month toggle functions
 function toggleYear(yearId) {
-    const yearContent = document.getElementById(`year-${yearId}`);
-    const arrow = document.getElementById(`year-arrow-${yearId}`);
+    const yearContent = document.getElementById(`${yearId}-content`);
+    const arrow = document.getElementById(`${yearId}-icon`);
     
     if (yearContent.classList.contains('expanded')) {
         yearContent.classList.remove('expanded');
-        arrow.textContent = '▼';
+        arrow.textContent = '▶';
     } else {
         yearContent.classList.add('expanded');
-        arrow.textContent = '▲';
+        arrow.textContent = '▼';
     }
 }
 
 function toggleMonth(monthId) {
-    const monthContent = document.getElementById(`month-${monthId}`);
-    const arrow = document.getElementById(`month-arrow-${monthId}`);
+    const monthContent = document.getElementById(`${monthId}-content`);
+    const arrow = document.getElementById(`${monthId}-icon`);
     
     if (monthContent.classList.contains('expanded')) {
         monthContent.classList.remove('expanded');
-        arrow.textContent = '▼';
+        arrow.textContent = '▶';
     } else {
         monthContent.classList.add('expanded');
-        arrow.textContent = '▲';
+        arrow.textContent = '▼';
     }
 }
 
@@ -70,17 +70,35 @@ document.addEventListener('click', function(event) {
 
 // Expand most recent year/month on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Find the first year header and expand it
+    // Find the first year header (most recent year)
     const firstYearHeader = document.querySelector('.year-header');
     if (firstYearHeader) {
         const yearId = firstYearHeader.getAttribute('onclick').match(/'([^']+)'/)[1];
-        toggleYear(yearId);
         
-        // Expand the first month in that year
-        const firstMonthHeader = document.querySelector(`#year-${yearId} .month-header`);
+        // Get year content and arrow
+        const yearContent = document.getElementById(`${yearId}-content`);
+        const yearArrow = document.getElementById(`${yearId}-icon`);
+        
+        // Expand year
+        if (yearContent) {
+            yearContent.classList.add('expanded');
+            yearArrow.textContent = '▼';
+        }
+        
+        // Find the first month in that year (most recent month)
+        const firstMonthHeader = document.querySelector(`#${yearId}-content .month-header`);
         if (firstMonthHeader) {
             const monthId = firstMonthHeader.getAttribute('onclick').match(/'([^']+)'/)[1];
-            toggleMonth(monthId);
+            
+            // Get month content and arrow
+            const monthContent = document.getElementById(`${monthId}-content`);
+            const monthArrow = document.getElementById(`${monthId}-icon`);
+            
+            // Expand month
+            if (monthContent) {
+                monthContent.classList.add('expanded');
+                monthArrow.textContent = '▼';
+            }
         }
     }
 });
