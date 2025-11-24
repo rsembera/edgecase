@@ -34,8 +34,8 @@
                     <span class="member-count">{{ group.members|length }} clients</span>
                 </div>
                 <div class="group-actions">
-                    <a href="{{ url_for('links.edit_link_group', group_id=group.id) }}" class="btn-icon" title="Edit group">✏️</a>
-                    <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}& {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-icon btn-danger" title="Delete group">🗑️</button>
+                    <a href="{{ url_for('links.edit_link_group', group_id=group.id) }}" class="btn-small" style="padding: 0.375rem 1.2rem; font-size: 0.875rem; background: #9FCFC0; text-decoration: none; border-radius: 0.375rem; border: none; cursor: pointer;" title="Edit group">Edit</a>
+                    <button onclick="deleteGroup({{ group.id }}, '{% if group.members|length == 2 %}{{ group.members[0].first_name }} {% if group.members[0].middle_name %}{{ group.members[0].middle_name }} {% endif %}& {{ group.members[1].first_name }} {% if group.members[1].middle_name %}{{ group.members[1].middle_name }} {% endif %}{% else %}Link Group ({{ group.members|length }} clients){% endif %}')" class="btn-small btn-danger" style="padding: 0.375rem 0.75rem; font-size: 0.875rem; background: #DC2626; color: white; border-radius: 0.375rem; border: none; cursor: pointer;" title="Delete group">Delete</button>
                 </div>
             </div>
             
@@ -56,8 +56,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-icon">🔗</div>
-        <h3 style="margin: 0 0 0.5rem 0; color: #111827;">No Link Groups Yet</h3>
+        <h2 style="margin: 0 0 0.5rem 0; color: #111827;">No Link Groups Yet</h2>
         <p style="margin: 0 0 0.5rem 0; color: #6B7280;">Link clients together for couples, family, or joint therapy sessions.</p>
     </div>
     {% endif %}
