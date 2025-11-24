@@ -1,266 +1,110 @@
-/* Client File View Styles - Extracted from client_file.html */
+/* Client File View - Custom Styles */
+/* Shared styles imported from shared.css */
+/* Year/Month headers, table base, empty state now in shared.css */
 
-/* Muted palette styling for client file view */
-    .card {
-        background: #FBFCFD;
-        border-radius: 1rem;
-        padding: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    
-    .type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        position: relative;
-    }
-    
-    /* Dropdown styling (matches main_view.html) */
-    .dropdown-btn {
-        padding: 0.75rem 1.25rem;
-        background: #FBFCFD;
-        border: 2px solid #DEE2E6;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #323B45;
-        cursor: pointer;
-        transition: all 0.2s;
-        position: relative;
-    }
-    
-    .dropdown-btn:hover {
-        border-color: #1F8F74;
-        color: #1F8F74;
-    }
+/* Profile entry styling (unique to client file) */
+.profile-entry {
+    padding: 1.5rem;
+    background: #CFE7DA;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid #1F8F74;
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
-    /* Entry search clear button */
-    #clear-entry-search:hover {
-        color: #6B7280; 
-    }
-    
-    /* Profile entry styling */
-    .profile-entry {
-        padding: 1.5rem;
-        background: #CFE7DA;
-        border-radius: 1rem;
-        margin-bottom: 2rem;
-        border-left: 4px solid #1F8F74;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .profile-entry:hover {
-        background: #BFDCDC;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    /* Year/Month headers */
-    .year-header {
-        background: #DEE2EA;
-        color: #55607D;
-        padding: 1rem 1.5rem;
-        border-radius: 1rem;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        user-select: none;
-        transition: all 0.2s;
-    }
-    
-    .year-header:hover {
-        background: #D4D9E3;
-    }
-    
-    .month-header {
-        background: #BFDCDC;
-        color: #115D4F;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        user-select: none;
-        transition: all 0.2s;
-    }
-    
-    .month-header:hover {
-        background: #9FCFC0;
-    }
-    
-    /* Table styling */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #FBFCFD;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        table-layout: fixed; /* Fixed table layout for consistent column widths */
-    }
-    
-    /* Fixed column widths */
-    th:nth-child(1), td:nth-child(1) { width: 10%; }  /* Date */
-    th:nth-child(2), td:nth-child(2) { width: 15%; }  /* Class */
-    th:nth-child(3), td:nth-child(3) { width: 35%; }  /* Description */
-    th:nth-child(4), td:nth-child(4) { width: 10%; }  /* Time */
-    th:nth-child(5), td:nth-child(5) { width: 15%; }  /* Details */
-    th:nth-child(6), td:nth-child(6) { width: 15%; }  /* Info */
-    
-    thead tr {
-        background: #E3E9EE;
-        border-bottom: 2px solid #DEE2E6;
-    }
-    
-    th {
-        padding: 0.75rem 1rem;
-        text-align: left;
-        font-weight: 600;
-        color: #55607D;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    td {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #E5E7EB;
-        color: #323B45;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    
-    /* Allow Date column to wrap (no truncation) */
-    td:nth-child(1) {
-        white-space: normal;
-        word-wrap: break-word;
-    }
-    
-    /* Allow Description column to wrap */
-    td:nth-child(3) {
-        white-space: normal;
-        word-wrap: break-word;
-    }
-    
-    /* Allow Time column to wrap */
-    td:nth-child(4) {
-        white-space: normal;
-        word-wrap: break-word;
-    }
-    
-    /* Allow Details column to wrap */
-    td:nth-child(5) {
-        white-space: normal;
-        word-wrap: break-word;
-    }
-    
-    tbody tr {
-        border-bottom: 1px solid #DEE2E6;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    
-    tbody tr:hover {
-        background: #F2F4F5;
-    }
-    
-    td {
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        color: #323B45;
-    }
-    
-   /* Session/Consultation badges */
-    .session-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-weight: 500;
-        font-size: 0.875rem;
-    }
-    
-    .session-badge.consultation {
-        background: #FAF0DF;
-        color: #5A4823;
-    }
-    
-    .session-badge.session {
-        background: #CFE7DA;
-        color: #0E5346;
-    }
-    
-    .session-badge.draft {
-        background: #FED7D7;
-        color: #C53030;
-    }
-    
-    /* Links */
-    a.edit-link {
-        color: #1F8F74;
-        text-decoration: none;
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition: color 0.2s;
-    }
-    
-    a.edit-link:hover {
-        color: #16735F;
-    }
-    
-    /* Empty state */
-    .empty-state {
-        padding: 3rem;
-        text-align: center;
-        background: #E3E9EE;
-        border-radius: 1rem;
-        margin-top: 1rem;
-    }
-    
-    /* RESPONSIVE STYLES FOR IPAD PORTRAIT */
-    @media (max-width: 768px) {
-        /* Hide Time, Details, Info columns on narrow screens */
-        th:nth-child(4), /* Time */
-        th:nth-child(5), /* Details */
-        th:nth-child(6), /* Info */
-        td:nth-child(4),
-        td:nth-child(5),
-        td:nth-child(6) {
-            display: none;
-        }
-        
-        /* Adjust remaining column widths for narrow screens */
-        th:nth-child(1), td:nth-child(1) { width: 20%; }  /* Date */
-        th:nth-child(2), td:nth-child(2) { width: 30%; }  /* Class */
-        th:nth-child(3), td:nth-child(3) { width: 50%; }  /* Description */
-    }
+.profile-entry:hover {
+    background: #BFDCDC;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
-    /* Linked Clients Section */
-    .linked-client-card {
-        display: inline-block;
-        background: white;
-        border: 2px solid #E5E7EB;
-        border-radius: 0.5rem;
-        padding: 0.75rem;
-        min-width: 180px;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
+/* Client file specific table column widths */
+th:nth-child(1), td:nth-child(1) { width: 10%; }  /* Date */
+th:nth-child(2), td:nth-child(2) { width: 15%; }  /* Class */
+th:nth-child(3), td:nth-child(3) { width: 35%; }  /* Description */
+th:nth-child(4), td:nth-child(4) { width: 10%; }  /* Time */
+th:nth-child(5), td:nth-child(5) { width: 15%; }  /* Details */
+th:nth-child(6), td:nth-child(6) { width: 15%; }  /* Info */
 
-    .linked-client-card:hover {
-        border-color: #9FCFC0;
-        box-shadow: 0 2px 8px rgba(159, 207, 192, 0.2);
-        transform: translateY(-2px);
-    }
+/* Allow specific columns to wrap */
+td:nth-child(1),  /* Date */
+td:nth-child(3),  /* Description */
+td:nth-child(4),  /* Time */
+td:nth-child(5) { /* Details */
+    white-space: normal;
+    word-wrap: break-word;
+}
 
-    .linked-client-card .type-badge {
-        display: inline-block;
-        border-radius: 0.25rem;
-        font-weight: 600;
+/* Session/Consultation badges (unique to client file) */
+.session-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.session-badge.consultation {
+    background: #FAF0DF;
+    color: #5A4823;
+}
+
+.session-badge.session {
+    background: #CFE7DA;
+    color: #0E5346;
+}
+
+.session-badge.draft {
+    background: #FED7D7;
+    color: #C53030;
+}
+
+/* Edit links */
+a.edit-link {
+    color: #1F8F74;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+a.edit-link:hover {
+    color: #16735F;
+}
+
+/* Linked Clients Section (unique to client file) */
+.linked-client-card {
+    display: inline-block;
+    background: white;
+    border: 2px solid #E5E7EB;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    min-width: 180px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.linked-client-card:hover {
+    border-color: #9FCFC0;
+    box-shadow: 0 2px 8px rgba(159, 207, 192, 0.2);
+    transform: translateY(-2px);
+}
+
+/* RESPONSIVE STYLES FOR IPAD PORTRAIT */
+@media (max-width: 768px) {
+    /* Hide Time, Details, Info columns on narrow screens */
+    th:nth-child(4),
+    th:nth-child(5),
+    th:nth-child(6),
+    td:nth-child(4),
+    td:nth-child(5),
+    td:nth-child(6) {
+        display: none;
     }
+    
+    /* Adjust remaining column widths */
+    th:nth-child(1), td:nth-child(1) { width: 20%; }  /* Date */
+    th:nth-child(2), td:nth-child(2) { width: 30%; }  /* Class */
+    th:nth-child(3), td:nth-child(3) { width: 50%; }  /* Description */
+}

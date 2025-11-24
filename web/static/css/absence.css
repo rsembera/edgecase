@@ -1,175 +1,21 @@
-.form-group {
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #374151;
-    }
-    
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        width: 100%;
-        padding: 0.75rem;
-        border: 2px solid #E5E7EB;
-        border-radius: 0.75rem;
-        font-size: 1rem;
-        font-family: 'Lexend', sans-serif;
-        transition: border-color 0.2s;
-    }
-    
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: #1F8F74;
-        box-shadow: 0 0 0 3px rgba(31,143,116,0.1);
-    }
-    
-    .form-group textarea {
-        min-height: 300px;
-        resize: vertical;
-        font-family: 'Lexend', monospace;
-        line-height: 1.6;
-    }
-    
-    /* Date dropdown styling */
-    .date-input-group {
-        display: flex;
-        gap: 0.5rem;
-    }
-    
-    .date-input-group select {
-        flex: 1;
-        height: 46px;
-    }
-    
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-        margin-top: 2rem;
-    }
-    
-    .btn-cancel {
-        padding: 0.75rem 1.5rem;
-        background: #E3E9EE;
-        color: #323B45;
-        text-decoration: none;
-        border-radius: 0.75rem;
-        border: none;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .btn-cancel:hover {
-        background: #DEE2E6;
-    }
-    
-    .btn-save {
-        padding: 0.75rem 1.5rem;
-        background: #BFDCDC;
-        color: #115D4F;
-        border-radius: 0.75rem;
-        border: none;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .btn-save:hover {
-        background: #9FCFC0;
-        transform: translateY(-1px);
-    }
-    
-    .helper-text {
-        font-size: 0.875rem;
-        color: #718096;
-        margin-top: 0.25rem;
-    }
+/* Absence Entry Form - Custom Styles */
+/* Shared styles imported from shared.css */
+/* Form groups, buttons, inputs, fee-grid now in shared.css */
 
-    /* Help text - extra spacing after fee section */
-    p.help-text {
-        font-size: 0.875rem;
-        color: #718096;
-        margin-top: 0.5rem;
-        margin-bottom: 2.5rem;  /* Extra space before Notes */
-    }
-    
-    .type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-    }
-    /* Remove spinner arrows from number inputs */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-input[type="number"] {
-    -moz-appearance: textfield;
+/* Absence-specific textarea height */
+.form-group textarea {
+    min-height: 300px;
 }
 
-/* Section divider */
-.section-divider {
-    height: 2px;
-    background: #E5E7EB;
-    margin: 2rem 0 1.5rem 0;
+/* Help text - extra spacing after fee section */
+p.help-text {
+    margin-bottom: 2.5rem;  /* Extra space before Notes */
 }
 
-/* Section heading - override h3 defaults */
+/* Section heading - override h3 defaults for absence */
 h3.section-heading {
-    font-size: 1.2rem !important;  /* Same size as regular labels */
+    font-size: 1.2rem !important;
     font-weight: 600;
     color: #374151;
-    margin: 0 0 0.75rem 0;  /* Reset h3 margins */
-}
-
- /* Fee grid section - matches profile.html styling */
-.fee-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-.fee-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.fee-field label {
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.fee-field input {
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    transition: border-color 0.2s;
-}
-
-.fee-field input:focus {
-    outline: none;
-    border-color: #00aa88;
-}
-
-.fee-field small {
-    color: #718096;
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
+    margin: 0 0 0.75rem 0;
 }
