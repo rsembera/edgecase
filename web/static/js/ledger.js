@@ -30,8 +30,14 @@ function toggleMonth(monthId) {
 // Search entries
 function searchEntries() {
     const searchInput = document.getElementById('search-input');
+    const clearBtn = document.querySelector('.clear-search');
     const searchTerm = searchInput.value.toLowerCase();
     const rows = document.querySelectorAll('.entry-row');
+    
+    // Show/hide clear button
+    if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+    }
     
     rows.forEach(row => {
         const description = row.dataset.description.toLowerCase();
@@ -43,6 +49,14 @@ function searchEntries() {
             row.style.display = 'none';
         }
     });
+}
+
+// Clear search
+function clearSearch() {
+    const searchInput = document.getElementById('search-input');
+    searchInput.value = '';
+    searchEntries();
+    searchInput.focus();
 }
 
 // Add Entry dropdown toggle
