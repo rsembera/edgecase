@@ -10,14 +10,17 @@
     margin-bottom: 2rem;
 }
 
-/* Controls bar (unique to ledger) */
+/* Controls bar */
 .controls-bar {
     background: #E3E9EE;
     border-radius: 1rem;
     padding: 0.75rem 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     gap: 1rem;
 }
 

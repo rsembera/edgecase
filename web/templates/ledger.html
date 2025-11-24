@@ -38,15 +38,14 @@
             <!-- Add Entry Dropdown -->
             <div class="dropdown-container" style="position: relative;">
                 <button class="dropdown-btn" id="add-entry-btn" onclick="toggleAddDropdown()">
-                    + Add Entry ▾
+                    ⚙️ Manage ▾
                 </button>
                 <div id="add-dropdown" class="dropdown-menu" style="display: none;">
                     <a href="{{ url_for('ledger.create_income') }}" class="dropdown-item">💰 Income</a>
                     <a href="{{ url_for('ledger.create_expense') }}" class="dropdown-item">💸 Expense</a>
+                    <a href="" class="dropdown-item">📊 Report</a>
                 </div>
             </div>
-            
-            <button class="btn" disabled>📊 Report</button>
         </div>
     </div>
     
