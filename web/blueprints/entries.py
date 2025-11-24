@@ -123,7 +123,6 @@ def edit_profile(client_id):
             
             # Update existing profile - track changes (now that it's locked)
             if db.is_entry_locked(profile['id']):
-                import difflib
                 changes = []
                 old_profile = profile.copy()
                 
@@ -206,26 +205,13 @@ def edit_profile(client_id):
                 
                 # Address (smart word-level diff)
                 if old_profile.get('address') != profile_data.get('address'):
+                    from web.utils import generate_content_diff
+                    
                     old_addr = old_profile.get('address') or ''
                     new_addr = profile_data.get('address') or ''
                     
                     if old_addr and new_addr:
-                        old_words = old_addr.split()
-                        new_words = new_addr.split()
-                        diff = difflib.ndiff(old_words, new_words)
-                        
-                        formatted_parts = []
-                        for item in diff:
-                            if item.startswith('  '):
-                                formatted_parts.append(item[2:])
-                            elif item.startswith('- '):
-                                formatted_parts.append(f'<del>{item[2:]}</del>')
-                            elif item.startswith('+ '):
-                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        
-                        diff_text = ' '.join(formatted_parts)
-                        if len(diff_text) > 100:
-                            diff_text = diff_text[:100] + '...'
+                        diff_text = generate_content_diff(old_addr, new_addr, max_length=100)
                         changes.append(f"Address: {diff_text}")
                     elif old_addr:
                         changes.append("Address: Cleared")
@@ -234,26 +220,13 @@ def edit_profile(client_id):
                 
                 # Additional Info (smart word-level diff)
                 if old_profile.get('additional_info') != profile_data.get('additional_info'):
+                    from web.utils import generate_content_diff
+                    
                     old_info = old_profile.get('additional_info') or ''
                     new_info = profile_data.get('additional_info') or ''
                     
                     if old_info and new_info:
-                        old_words = old_info.split()
-                        new_words = new_info.split()
-                        diff = difflib.ndiff(old_words, new_words)
-                        
-                        formatted_parts = []
-                        for item in diff:
-                            if item.startswith('  '):
-                                formatted_parts.append(item[2:])
-                            elif item.startswith('- '):
-                                formatted_parts.append(f'<del>{item[2:]}</del>')
-                            elif item.startswith('+ '):
-                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        
-                        diff_text = ' '.join(formatted_parts)
-                        if len(diff_text) > 150:
-                            diff_text = diff_text[:150] + '...'
+                        diff_text = generate_content_diff(old_info, new_info)
                         changes.append(f"Additional Info: {diff_text}")
                     elif old_info:
                         changes.append("Additional Info: Cleared")
@@ -312,26 +285,13 @@ def edit_profile(client_id):
                 
                 # Guardian addresses (smart word-level diff)
                 if old_profile.get('guardian1_address') != profile_data.get('guardian1_address'):
+                    from web.utils import generate_content_diff
+                    
                     old_addr = old_profile.get('guardian1_address') or ''
                     new_addr = profile_data.get('guardian1_address') or ''
                     
                     if old_addr and new_addr:
-                        old_words = old_addr.split()
-                        new_words = new_addr.split()
-                        diff = difflib.ndiff(old_words, new_words)
-                        
-                        formatted_parts = []
-                        for item in diff:
-                            if item.startswith('  '):
-                                formatted_parts.append(item[2:])
-                            elif item.startswith('- '):
-                                formatted_parts.append(f'<del>{item[2:]}</del>')
-                            elif item.startswith('+ '):
-                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        
-                        diff_text = ' '.join(formatted_parts)
-                        if len(diff_text) > 100:
-                            diff_text = diff_text[:100] + '...'
+                        diff_text = generate_content_diff(old_addr, new_addr, max_length=100)
                         changes.append(f"Guardian 1 Address: {diff_text}")
                     elif old_addr:
                         changes.append("Guardian 1 Address: Cleared")
@@ -339,26 +299,13 @@ def edit_profile(client_id):
                         changes.append("Guardian 1 Address: Added")
                 
                 if old_profile.get('guardian2_address') != profile_data.get('guardian2_address'):
+                    from web.utils import generate_content_diff
+                    
                     old_addr = old_profile.get('guardian2_address') or ''
                     new_addr = profile_data.get('guardian2_address') or ''
                     
                     if old_addr and new_addr:
-                        old_words = old_addr.split()
-                        new_words = new_addr.split()
-                        diff = difflib.ndiff(old_words, new_words)
-                        
-                        formatted_parts = []
-                        for item in diff:
-                            if item.startswith('  '):
-                                formatted_parts.append(item[2:])
-                            elif item.startswith('- '):
-                                formatted_parts.append(f'<del>{item[2:]}</del>')
-                            elif item.startswith('+ '):
-                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        
-                        diff_text = ' '.join(formatted_parts)
-                        if len(diff_text) > 100:
-                            diff_text = diff_text[:100] + '...'
+                        diff_text = generate_content_diff(old_addr, new_addr, max_length=100)
                         changes.append(f"Guardian 2 Address: {diff_text}")
                     elif old_addr:
                         changes.append("Guardian 2 Address: Cleared")
@@ -748,34 +695,13 @@ def edit_session(client_id, entry_id):
                 
                 # Notes (with smart word-level diff)
                 if old_session.get('content') != session_data.get('content'):
-                    import difflib
+                    from web.utils import generate_content_diff
+                    
                     old_content = old_session.get('content') or ''
                     new_content = session_data.get('content') or ''
                     
                     if old_content and new_content:
-                        # Split into words for word-level diff
-                        old_words = old_content.split()
-                        new_words = new_content.split()
-                        
-                        # Generate diff
-                        diff = difflib.ndiff(old_words, new_words)
-                        
-                        # Build HTML formatted diff
-                        formatted_parts = []
-                        for item in diff:
-                            if item.startswith('  '):  # Unchanged
-                                formatted_parts.append(item[2:])
-                            elif item.startswith('- '):  # Deleted
-                                formatted_parts.append(f'<del>{item[2:]}</del>')
-                            elif item.startswith('+ '):  # Added
-                                formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                            # Ignore '?' lines (change indicators)
-                        
-                        # Limit length for display (keep first ~200 chars of diff)
-                        diff_text = ' '.join(formatted_parts)
-                        if len(diff_text) > 150:
-                            diff_text = diff_text[:150] + '...'
-                        
+                        diff_text = generate_content_diff(old_content, new_content)
                         changes.append(f"Notes: {diff_text}")
                     elif old_content:
                         changes.append("Notes: Cleared")
@@ -971,38 +897,17 @@ def edit_communication(client_id, entry_id):
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
-            import difflib
             changes = []
             
             # Description (with smart word-level diff)
             if old_comm.get('description') != comm_data.get('description'):
+                from web.utils import generate_content_diff
+                
                 old_desc = old_comm.get('description') or ''
                 new_desc = comm_data.get('description') or ''
                 
                 if old_desc and new_desc:
-                    # Split into words for word-level diff
-                    old_words = old_desc.split()
-                    new_words = new_desc.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_desc, new_desc, max_length=150)
                     changes.append(f"Description: {diff_text}")
                 elif old_desc:
                     changes.append("Description: Cleared")
@@ -1031,33 +936,13 @@ def edit_communication(client_id, entry_id):
             
             # Content (with smart word-level diff)
             if old_comm.get('content') != comm_data.get('content'):
+                from web.utils import generate_content_diff
+                
                 old_content = old_comm.get('content') or ''
                 new_content = comm_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Split into words for word-level diff
-                    old_words = old_content.split()
-                    new_words = new_content.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_content, new_content)
                     changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
@@ -1127,7 +1012,6 @@ def edit_communication(client_id, entry_id):
                         edit_history=edit_history,
                         prev_comm_id=prev_comm_id,
                         next_comm_id=next_comm_id)
-
 
 # ============================================================================
 # ABSENCE ENTRY ROUTES  
@@ -1213,38 +1097,17 @@ def edit_absence(client_id, entry_id):
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
-            import difflib
             changes = []
             
             # Description (with smart word-level diff)
             if old_absence.get('description') != absence_data.get('description'):
+                from web.utils import generate_content_diff
+                
                 old_desc = old_absence.get('description') or ''
                 new_desc = absence_data.get('description') or ''
                 
                 if old_desc and new_desc:
-                    # Split into words for word-level diff
-                    old_words = old_desc.split()
-                    new_words = new_desc.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_desc, new_desc, max_length=150)
                     changes.append(f"Description: {diff_text}")
                 elif old_desc:
                     changes.append("Description: Cleared")
@@ -1287,33 +1150,13 @@ def edit_absence(client_id, entry_id):
             
             # Content (with smart word-level diff)
             if old_absence.get('content') != absence_data.get('content'):
+                from web.utils import generate_content_diff
+                
                 old_content = old_absence.get('content') or ''
                 new_content = absence_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Split into words for word-level diff
-                    old_words = old_content.split()
-                    new_words = new_content.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_content, new_content)
                     changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
@@ -1338,13 +1181,13 @@ def edit_absence(client_id, entry_id):
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
     return render_template('entry_forms/absence.html',
-                         client=client,
-                         client_type=client_type,
-                         entry=absence,
-                         absence_date=absence_date,
-                         is_edit=True,
-                         is_locked=is_locked,
-                         edit_history=edit_history)
+                        client=client,
+                        client_type=client_type,
+                        entry=absence,
+                        absence_date=absence_date,
+                        is_edit=True,
+                        is_locked=is_locked,
+                        edit_history=edit_history)
 
 
 # ============================================================================
@@ -1433,38 +1276,17 @@ def edit_item(client_id, entry_id):
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
-            import difflib
             changes = []
             
             # Description (with smart word-level diff)
             if old_item.get('description') != item_data.get('description'):
+                from web.utils import generate_content_diff
+                
                 old_desc = old_item.get('description') or ''
                 new_desc = item_data.get('description') or ''
                 
                 if old_desc and new_desc:
-                    # Split into words for word-level diff
-                    old_words = old_desc.split()
-                    new_words = new_desc.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_desc, new_desc, max_length=150)
                     changes.append(f"Description: {diff_text}")
                 elif old_desc:
                     changes.append("Description: Cleared")
@@ -1507,33 +1329,13 @@ def edit_item(client_id, entry_id):
             
             # Content (with smart word-level diff)
             if old_item.get('content') != item_data.get('content'):
+                from web.utils import generate_content_diff
+                
                 old_content = old_item.get('content') or ''
                 new_content = item_data.get('content') or ''
                 
                 if old_content and new_content:
-                    # Split into words for word-level diff
-                    old_words = old_content.split()
-                    new_words = new_content.split()
-                    
-                    # Generate diff
-                    diff = difflib.ndiff(old_words, new_words)
-                    
-                    # Build HTML formatted diff
-                    formatted_parts = []
-                    for item in diff:
-                        if item.startswith('  '):  # Unchanged
-                            formatted_parts.append(item[2:])
-                        elif item.startswith('- '):  # Deleted
-                            formatted_parts.append(f'<del>{item[2:]}</del>')
-                        elif item.startswith('+ '):  # Added
-                            formatted_parts.append(f'<strong>{item[2:]}</strong>')
-                        # Ignore '?' lines (change indicators)
-                    
-                    # Limit length for display
-                    diff_text = ' '.join(formatted_parts)
-                    if len(diff_text) > 150:
-                        diff_text = diff_text[:150] + '...'
-                    
+                    diff_text = generate_content_diff(old_content, new_content)
                     changes.append(f"Content: {diff_text}")
                 elif old_content:
                     changes.append("Content: Cleared")
