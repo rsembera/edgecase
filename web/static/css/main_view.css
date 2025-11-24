@@ -149,7 +149,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 .controls-bar {
     background: #E3E9EE;
     border-radius: 1rem;
-    padding: 1.5rem;
+    padding: 0.75rem 1rem;
     margin-bottom: 2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
@@ -171,7 +171,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 }
 
 .search-box input {
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
     font-size: 0.875rem;
@@ -187,7 +187,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
 .search-icon {
     position: absolute;
-    right: 0.75rem;
+    left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
     color: #9CA3AF;
