@@ -1,0 +1,763 @@
+/* EdgeCase Equalizer - Shared Styles */
+/* Common patterns used across all entry forms and views */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES (COLORS)
+   ============================================ */
+:root {
+    /* Primary colors */
+    --color-primary: #1F8F74;
+    --color-primary-light: #9FCFC0;
+    --color-primary-lighter: #BFDCDC;
+    --color-primary-dark: #115D4F;
+    
+    /* UI colors */
+    --color-border: #DEE2E6;
+    --color-border-focus: #1F8F74;
+    --color-background: #FBFCFD;
+    --color-background-secondary: #F7FAFC;
+    --color-background-tertiary: #F9FAFB;
+    
+    /* Text colors */
+    --color-text: #323B45;
+    --color-text-heading: #2D3748;
+    --color-text-muted: #718096;
+    --color-text-light: #4B5563;
+    
+    /* Status colors */
+    --color-danger: #E57373;
+    --color-danger-hover: #D32F2F;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-focus: 0 0 0 3px rgba(31,143,116,0.06);
+    
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.75rem;
+    --space-lg: 1rem;
+    --space-xl: 1.5rem;
+    --space-2xl: 2rem;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+/* Primary button */
+.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.5rem 1.25rem !important;
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+    text-decoration: none !important; /* Remove underline from <a> tags */
+    border-radius: 0.75rem;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 46px !important; /* Standard button height */
+    line-height: 1 !important; /* Reset line-height to 1 for better flex alignment */
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.btn:hover {
+    background: var(--color-primary-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    text-decoration: none !important; /* Keep no underline on hover */
+}
+
+/* Secondary button (grey) */
+.btn-secondary {
+    background: #E5E7EB !important;
+    color: var(--color-text-light) !important;
+    text-decoration: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-secondary:hover {
+    background: #D1D5DB !important;
+    box-shadow: var(--shadow-md) !important;
+    text-decoration: none !important;
+}
+
+/* Danger button (red) - need !important to override inline styles */
+.btn-danger {
+    background: var(--color-danger) !important;
+    color: white !important;
+}
+
+.btn-danger:hover {
+    background: var(--color-danger-hover) !important;
+    box-shadow: 0 4px 12px rgba(229,115,115,0.3) !important;
+}
+
+/* Small button (for inline actions) */
+.btn-small {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    height: 38px !important; /* Smaller button height */
+    line-height: 1 !important; /* Reset for better flex alignment */
+    box-sizing: border-box;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle;
+}
+
+.btn-small:hover {
+    background: var(--color-primary-light);
+    transform: translateY(-1px);
+}
+
+/* Small danger button */
+.btn-small.btn-danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.btn-small.btn-danger:hover {
+    background: var(--color-danger-hover);
+}
+
+/* Small secondary button */
+.btn-small.btn-secondary {
+    background: #E5E7EB;
+    color: var(--color-text-light);
+}
+
+.btn-small.btn-secondary:hover {
+    background: #D1D5DB;
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+
+/* Form group container */
+.form-group {
+    margin-bottom: var(--space-xl);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+    color: var(--color-text-heading);
+    font-size: 0.875rem;
+}
+
+/* Text inputs, number inputs, selects */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group select {
+    width: 100%;
+    padding: var(--space-md);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    background: var(--color-background);
+    transition: all 0.2s;
+    height: 50px; /* Standard input height */
+    box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="tel"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+/* Readonly inputs */
+.form-group input[readonly],
+.form-group select[disabled] {
+    background-color: var(--color-background-secondary);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Textarea */
+.form-group textarea {
+    width: 100%;
+    padding: var(--space-md);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    background: var(--color-background);
+    transition: all 0.2s;
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+/* Large textarea (for session notes, etc.) */
+textarea.large {
+    min-height: 300px;
+}
+
+/* Helper text */
+.helper-text,
+.help-text {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+    display: block;
+}
+
+/* Remove number input spinner arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* ============================================
+   DATE INPUT GROUP
+   ============================================ */
+.date-input-group {
+    display: flex;
+    gap: var(--space-md);
+    /* No max-width - let it be controlled by parent container */
+}
+
+.date-input-group select {
+    flex: 1;
+    padding: var(--space-md);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    background: var(--color-background);
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 50px; /* Match text input height */
+    line-height: normal;
+    box-sizing: border-box;
+}
+
+.date-input-group select:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+/* ============================================
+   FORM LAYOUTS
+   ============================================ */
+
+/* Two-column form row */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+/* Three-column form row */
+.form-row-thirds {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+/* Full-width form row */
+.form-row-full {
+    margin-bottom: var(--space-xl);
+}
+
+/* Fee grid (3 columns: Base, Tax, Total) */
+.fee-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-sm);
+}
+
+.fee-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.fee-field label {
+    font-weight: 600;
+    color: var(--color-text-heading);
+    margin-bottom: var(--space-sm);
+    font-size: 0.875rem;
+}
+
+.fee-field input {
+    padding: var(--space-md);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    height: 50px;
+    box-sizing: border-box;
+}
+
+.fee-field input:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+.fee-field small {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    margin-top: var(--space-xs);
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+    .form-row,
+    .form-row-thirds,
+    .fee-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Date fields go full width on mobile */
+    .date-input-group {
+        max-width: 100% !important;
+    }
+}
+
+/* ============================================
+   CHECKBOXES
+   ============================================ */
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    padding: var(--space-md) 0;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.checkbox-inline:hover {
+    opacity: 0.8;
+}
+
+.checkbox-inline input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin-right: var(--space-sm);
+    cursor: pointer;
+}
+
+* ============================================
+   CHECKBOX LABELS
+   ============================================ */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: var(--space-2xl);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: var(--space-lg);
+    color: var(--color-text-heading);
+}
+
+.modal-content p {
+    margin-bottom: var(--space-xl);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+/* Modal buttons */
+.modal-buttons {
+    display: flex;
+    gap: var(--space-lg);
+    justify-content: flex-end;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+    background: white;
+    border-radius: 1rem;
+    padding: var(--space-2xl);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============================================
+   SECTION DIVIDERS
+   ============================================ */
+.section-divider {
+    height: 2px;
+    background: linear-gradient(to right, var(--color-border), transparent);
+    margin: 2.5rem 0 var(--space-xl) 0;
+}
+
+.section-heading {
+    color: var(--color-text-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--space-lg);
+}
+
+/* ============================================
+   FILE UPLOADS
+   ============================================ */
+
+/* Upload toggle button - looks like a section header */
+.upload-toggle-btn {
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-background-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-heading);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    text-decoration: none;
+}
+
+.upload-toggle-btn:hover {
+    background: #EDF2F7;
+    border-color: #CBD5E0;
+}
+
+.upload-toggle-btn span {
+    text-decoration: none;
+}
+
+/* Upload section container */
+.upload-section {
+    background: var(--color-background-secondary);
+    padding: var(--space-xl);
+    border-radius: 0.75rem;
+    margin-top: var(--space-lg);
+}
+
+/* File input row */
+.file-input-row {
+    margin-bottom: var(--space-lg);
+}
+
+.file-input {
+    width: 100%;
+}
+
+/* File description input - match Remove button height */
+.file-input-row input[type="text"] {
+    height: 38px; /* Match .btn-small */
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+}
+
+/* Attachment list */
+.attachment-list {
+    margin-bottom: var(--space-xl);
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-md);
+    background: var(--color-background-tertiary);
+    border-radius: 0.375rem;
+    margin-bottom: var(--space-sm);
+}
+
+.attachment-item-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.attachment-item-description {
+    flex: 2;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.type-badge {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.text-muted {
+    color: var(--color-text-muted);
+}
+
+.text-danger {
+    color: var(--color-danger);
+}
+
+.text-success {
+    color: var(--color-success);
+}
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--space-sm); }
+.mb-2 { margin-bottom: var(--space-lg); }
+.mb-3 { margin-bottom: var(--space-xl); }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--space-sm); }
+.mt-2 { margin-top: var(--space-lg); }
+.mt-3 { margin-top: var(--space-xl); }
+
+/* ============================================
+   SESSION-SPECIFIC (kept for compatibility)
+   ============================================ */
+.session-number-display {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: var(--space-xl);
+}
+
+/* ============================================
+   YEAR/MONTH TIMELINE HEADERS (Client File & Ledger)
+   ============================================ */
+.year-header {
+    background: #DEE2EA;
+    color: #55607D;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.year-header:hover {
+    background: #D4D9E3;
+}
+
+.month-header {
+    background: #BFDCDC;
+    color: #115D4F;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: all 0.2s;
+    margin-top: 1rem;
+}
+
+.month-header:hover {
+    background: #9FCFC0;
+}
+
+.year-content {
+    display: none;
+}
+
+.year-content.expanded {
+    display: block;
+}
+
+.month-content {
+    display: none;
+    margin-top: 0.5rem;
+}
+
+.month-content.expanded {
+    display: block;
+}
+
+/* ============================================
+   TABLE BASE STYLING (Client File & Ledger)
+   ============================================ */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FBFCFD;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    table-layout: fixed;
+}
+
+thead tr {
+    background: #E3E9EE;
+    border-bottom: 2px solid #DEE2E6;
+}
+
+th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #55607D;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #E5E7EB;
+    color: #323B45;
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+tbody tr {
+    border-bottom: 1px solid #DEE2E6;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+tbody tr:hover {
+    background: #F2F4F5;
+}
+
+/* ============================================
+   EMPTY STATE (Client File & Ledger)
+   ============================================ */
+.empty-state,
+.placeholder-message {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #E3E9EE;
+    border-radius: 1rem;
+    margin: 2rem 0;
+    color: #718096;
+}
+
+.empty-state h3,
+.placeholder-message h3 {
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   DROPDOWN BUTTONS (Client File & Ledger)
+   ============================================ */
+.dropdown-btn {
+    padding: 0.75rem 1.25rem;
+    background: #FBFCFD;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #323B45;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.dropdown-btn:hover {
+    border-color: #1F8F74;
+    color: #1F8F74;
+}
+
+/* ============================================
+   DISABLED BUTTONS (consistent height)
+   ============================================ */
+/* Disabled buttons - override inline styles */
+.btn:disabled,
+.btn[disabled] {
+    background: #718096 !important;
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    padding: 0.5rem 1.5rem !important;
+    height: 46px !important;
+    box-sizing: border-box !important;  /* ADD THIS LINE */
+}
+
+.btn:disabled:hover,
+.btn[disabled]:hover {
+    background: #718096 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}

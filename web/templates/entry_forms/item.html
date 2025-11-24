@@ -135,9 +135,9 @@
         {% endif %}
         
         <!-- Form Actions -->
-        <div class="form-actions" style="justify-content: space-between;">
-            <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn-cancel">Cancel</a>
-            <button type="submit" class="btn-save">Save Item</button>
+        <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+            <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn">Save Item</button>
         </div>
     </form>
 </div>

@@ -1,13 +1,8 @@
-/* Ledger Page Styles - Matches client_file.css */
+/* Ledger Page Styles */
+/* Shared styles imported from shared.css */
+/* Year/Month headers, table base, empty state, disabled buttons now in shared.css */
 
-/* Card styling */
-.card {
-    background: #FBFCFD;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
+/* Ledger header (unique to ledger) */
 .ledger-header {
     display: flex;
     justify-content: space-between;
@@ -15,6 +10,7 @@
     margin-bottom: 2rem;
 }
 
+/* Controls bar (unique to ledger) */
 .controls-bar {
     background: #E3E9EE;
     border-radius: 1rem;
@@ -39,7 +35,7 @@
     gap: 1rem;
 }
 
-/* Search box - MATCH CLIENT_FILE */
+/* Search box (unique to ledger) */
 .search-box {
     position: relative;
     flex: 1;
@@ -69,26 +65,7 @@
     font-size: 1rem;
 }
 
-/* Dropdown button - MATCH CLIENT_FILE */
-.dropdown-btn {
-    padding: 0.75rem 1.25rem;
-    background: #FBFCFD;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #323B45;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-}
-
-.dropdown-btn:hover {
-    border-color: #1F8F74;
-    color: #1F8F74;
-}
-
-/* Dropdown for Add Entry */
+/* Dropdown for Add Entry (unique to ledger) */
 .dropdown-container {
     position: relative;
 }
@@ -120,77 +97,7 @@
     background: #F3F4F6;
 }
 
-/* Year/Month headers - MATCH CLIENT_FILE.CSS */
-.year-header {
-    background: #DEE2EA;
-    color: #55607D;
-    padding: 1rem 1.5rem;
-    border-radius: 1rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    user-select: none;
-    transition: all 0.2s;
-    margin-bottom: 1rem;
-}
-
-.year-header:hover {
-    background: #D4D9E3;
-}
-
-.month-header {
-    background: #BFDCDC;
-    color: #115D4F;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    user-select: none;
-    transition: all 0.2s;
-    margin-top: 1rem;
-}
-
-.month-header:hover {
-    background: #9FCFC0;
-}
-
-.year-content {
-    display: none;
-}
-
-.year-content.expanded {
-    display: block;
-}
-
-.month-content {
-    display: none;
-    margin-top: 0.5rem;
-}
-
-.month-content.expanded {
-    display: block;
-}
-
-/* Table styling - MATCH CLIENT_FILE.CSS */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #FBFCFD;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    table-layout: fixed;
-}
-
-.ledger-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-/* 7 columns: Date, Transaction, Amount, Description, Source, Category, Files */
+/* Ledger-specific table column widths (7 columns) */
 .ledger-table th:nth-child(1), 
 .ledger-table td:nth-child(1) { width: 10%; }  /* Date */
 .ledger-table th:nth-child(2), 
@@ -206,59 +113,16 @@ table {
 .ledger-table th:nth-child(7), 
 .ledger-table td:nth-child(7) { width: 8%; }   /* Files */
 
-.ledger-table thead tr {
-    background: #E3E9EE;
-    border-bottom: 2px solid #DEE2E6;
-}
-
-.ledger-table th {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: #55607D;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.ledger-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #E5E7EB;
-    color: #323B45;
-    font-size: 0.875rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Truncate specific columns (override shared.css default) */
+.ledger-table td:nth-child(4),  /* Description */
+.ledger-table td:nth-child(5),  /* Source */
+.ledger-table td:nth-child(6) { /* Category */
     white-space: nowrap;
-}
-
-/* Change these columns from wrapping to truncating */
-.ledger-table td:nth-child(4),
-.ledger-table td:nth-child(5),
-.ledger-table td:nth-child(6) {
-    white-space: nowrap;           /* Changed from 'normal' */
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.ledger-table tbody tr {
-    border-bottom: 1px solid #DEE2E6;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.entry-row:hover {
-    background: #F2F4F5;
-}
-
-/* Type badges */
-.type-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-block;
-}
-
+/* Income/Expense badges (unique to ledger) */
 .income-badge {
     background: #D1FAE5;
     color: #065F46;
@@ -269,7 +133,7 @@ table {
     color: #991B1B;
 }
 
-/* Amount colors */
+/* Amount colors (unique to ledger) */
 .income-amount {
     color: #0E5346;
     font-weight: 600;
@@ -280,58 +144,9 @@ table {
     font-weight: 600;
 }
 
-/* Empty state */
-.placeholder-message {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: #718096;
-    background: #E3E9EE;
-    border-radius: 1rem;
-    margin: 2rem 0;
-}
-
-.placeholder-message h3 {
-    color: #2d3748;
-    margin-bottom: 0.5rem;
-}
-
- .btn {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: #BFDCDC;
-    color: #115D4F;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    border: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn:hover {
-            background: #9FCFC0;
-            transform: translateY(-1px);
-        }
-
-/* Disabled button styling */
-.btn:disabled,
-.btn[disabled] {
-    background: #718096;
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.btn:disabled:hover,
-.btn[disabled]:hover {
-    background: #718096;
-    transform: none;
-    box-shadow: none;
-}
-
 /* RESPONSIVE STYLES FOR IPAD PORTRAIT */
 @media (max-width: 768px) {
-    /* Hide Description, Source, Category, and Files columns on narrow screens */
+    /* Hide Description, Source, Category, Files columns */
     .ledger-table th:nth-child(4),
     .ledger-table th:nth-child(5),
     .ledger-table th:nth-child(6),
@@ -343,7 +158,7 @@ table {
         display: none;
     }
     
-    /* Adjust remaining column widths for narrow screens */
+    /* Adjust remaining column widths */
     .ledger-table th:nth-child(1), 
     .ledger-table td:nth-child(1) { width: 30%; }  /* Date */
     .ledger-table th:nth-child(2), 

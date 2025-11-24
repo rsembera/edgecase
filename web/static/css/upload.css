@@ -1,52 +1,9 @@
-/* Upload Entry Form Styles */
+/* Upload Entry Form - Custom Styles */
+/* Shared styles imported from shared.css */
 
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #374151;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #E5E7EB;
-    border-radius: 0.75rem;
-    font-size: 1rem;
-    font-family: 'Lexend', sans-serif;
-    transition: border-color 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.1);
-}
-
+/* Upload-specific textarea height (shorter than other forms) */
 .form-group textarea {
     min-height: 150px;
-    resize: vertical;
-    font-family: 'Lexend', monospace;
-    line-height: 1.6;
-}
-
-/* Date dropdown styling */
-.date-input-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.date-input-group select {
-    flex: 1;
-    height: 46px;
 }
 
 /* Upload toggle button - looks like a form section header */
@@ -74,7 +31,7 @@
     text-decoration: none;
 }
 
-/* File upload specific styles */
+/* File upload section styling */
 .upload-section {
     background: #F7FAFC;
     padding: 1.5rem;
@@ -97,75 +54,4 @@
 .file-input-row {
     border-left: 3px solid #E5E7EB;
     padding-left: 1rem;
-}
-
-.btn-small {
-    padding: 0.5rem 0.75rem;  /* Back to smaller padding for these inline buttons */
-    font-size: 0.875rem;
-    border-radius: 0.375rem;   /* Smaller radius for inline buttons */
-    background: #9FCFC0;
-    color: #115D4F;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 38px;  /* Force consistent height */
-    box-sizing: border-box;
-}
-
-.btn-small:hover {
-    background: #8DBFB0;
-    transform: translateY(-1px);
-}
-
-/* For small inline buttons */
-.btn-small.btn-danger {
-    background: #DC2626;
-    color: white;
-}
-
-/* For regular buttons */
-.btn.btn-danger {
-    background: #DC2626;
-    color: white;
-}
-
-.btn-small.btn-danger:hover {
-    background: #B91C1C;
-}
-
-.btn-secondary {
-    background: #E3E9EE;
-    color: #323B45;
-}
-
-.btn-secondary:hover {
-    background: #DEE2E6;
-}
-
-/* Force same height for links and buttons */
-.btn, .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 46px;
-    box-sizing: border-box;
-}
-
-.helper-text {
-    font-size: 0.875rem;
-    color: #718096;
-    margin-top: 0.25rem;
-}
-
-.type-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 600;
 }

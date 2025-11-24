@@ -1,46 +1,8 @@
-/* Profile Entry Form Styles - Extracted from profile.html */
+/* Profile Entry Form - Custom Styles */
+/* Shared styles imported from shared.css */
+/* Form rows, form groups, buttons, inputs, fee-grid now in shared.css */
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.form-row-full {
-    margin-bottom: 1.5rem;
-}
-
-.form-row-thirds {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-    .form-row, .form-row-thirds {
-        grid-template-columns: 1fr;
-    }
-}
-
-textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    font-family: inherit;
-    resize: vertical;
-    transition: border-color 0.2s;
-}
-
-textarea:focus {
-    outline: none;
-    border-color: #00aa88;
-}
-
-/* Specific heights for different textareas */
+/* Profile-specific textarea heights */
 textarea[name="address"] {
     min-height: 120px;
 }
@@ -50,101 +12,7 @@ textarea[name="additional_info"] {
     min-height: 300px;
 }
 
-.help-text {
-    font-size: 0.875rem;
-    color: #718096;
-    margin-top: 0.25rem;
-}
-
-.date-input-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.date-input-group select {
-    flex: 1;
-    height: 46px;  /* Match text input height */
-}
-
-/* Section dividers and headings */
-.section-divider {
-    height: 2px;
-    background: linear-gradient(to right, #e2e8f0, transparent);
-    margin: 2.5rem 0 1.5rem 0;
-}
-
-.section-heading {
-    color: #2d3748;
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-/* Checkbox labels */
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: auto;
-    margin-right: 0.5rem;
-    cursor: pointer;
-}
-
-/* Fee Override section */
-.fee-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-.fee-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.fee-field label {
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.fee-field input {
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    transition: border-color 0.2s;
-}
-
-.fee-field input:focus {
-    outline: none;
-    border-color: #00aa88;
-}
-
-.fee-field small {
-    color: #718096;
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-}
-
-/* Remove spinner arrows from number inputs */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-input[type="number"] {
-    -moz-appearance: textfield;
-}
-
-/* Guardian section */
+/* Guardian section styling (unique to profile) */
 .guardian-heading {
     color: #374151;
     font-size: 1rem;
@@ -202,6 +70,7 @@ input[type="number"] {
     font-weight: 500;
 }
 
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .fee-grid {
         grid-template-columns: 1fr;
