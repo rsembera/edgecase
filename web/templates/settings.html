@@ -5,6 +5,65 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
 
+<style>
+/* Collapsible section styles */
+.settings-section-collapsible {
+    background: #FBFCFD;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.settings-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    transition: background-color 0.2s;
+}
+
+.settings-section-header:hover {
+    background-color: #F2F4F5;
+}
+
+.settings-section-header::-webkit-details-marker {
+    display: none;
+}
+
+.settings-section-header .arrow {
+    font-size: 0.875rem;
+    color: #6B7280;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    line-height: 1.875rem;
+}
+
+details[open] .settings-section-header .arrow {
+    transform: rotate(90deg);
+}
+
+.settings-section-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1F2937;
+    font-weight: 700;
+}
+
+.settings-section-header p {
+    margin: 0.25rem 0 0 0;
+    color: #6B7280;
+    font-size: 0.9375rem;
+}
+
+.settings-section-content {
+    padding: 0 2rem 2rem 2rem;
+}
+</style>
+
 {% endblock %}
 
 {% block content %}
@@ -16,10 +75,16 @@
         ✓ Settings saved successfully!
     </div>
     
-    <!-- Theme Settings Section -->
-    <div class="settings-section">
-        <h3>Appearance</h3>
-        <p>Customize how EdgeCase looks</p>
+    <!-- Appearance Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Appearance</h3>
+                <p>Customize how EdgeCase looks</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
         
         <div class="form-group">
             <label for="card-style">Info Card Style</label>
@@ -53,12 +118,19 @@
         </div>
         
         <div id="upload-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
-    </div>
+        </div>
+    </details>
     
     <!-- Card Layout Section -->
-    <div class="settings-section">
-        <h3>Card Layout</h3>
-        <p>Arrange your info cards in your preferred order</p>
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Card Layout</h3>
+                <p>Arrange your info cards in your preferred order</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
         
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
             <div class="form-group" style="margin-bottom: 0;">
@@ -135,12 +207,19 @@
                 </select>
             </div>
         </div>
-    </div>
+        </div>
+    </details>
     
     <!-- Practice Information Section -->
-    <div class="settings-section">
-        <h3>Practice Information</h3>
-        <p>Your contact details and branding (used on invoices)</p>
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Practice Information</h3>
+                <p>Your contact details and branding (used on invoices)</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
         
         <div class="form-group">
             <label for="practice-name">Practice Name</label>
@@ -277,13 +356,20 @@
     </div>
         
         <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
-    </div>
+        </div>
+    </details>
 
     
-    <!-- File Number Format Section (replaces "Coming soon" section around line 385) -->
-    <div class="settings-section">
-        <h3>File Number Format</h3>
-        <p>Choose how client file numbers are generated</p>
+    <!-- File Number Format Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>File Number Format</h3>
+                <p>Choose how client file numbers are generated</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
         
         <div class="form-group">
             <label for="file-number-format">Format Type</label>
@@ -324,7 +410,8 @@
         </div>
         
         <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
-    </div>
+        </div>
+    </details>
     
     <div class="button-group">
         <a href="{{ url_for('clients.index') }}" class="btn btn-secondary">Cancel</a>

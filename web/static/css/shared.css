@@ -183,6 +183,7 @@
     transition: all 0.2s;
     height: 50px; /* Standard input height */
     box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
 }
 
 .form-group input[type="text"]:focus,
@@ -216,7 +217,7 @@
     transition: all 0.2s;
     min-height: 100px;
     resize: vertical;
-    font-family: inherit;
+    font-family: 'Lexend', sans-serif;
     box-sizing: border-box;
 }
 
