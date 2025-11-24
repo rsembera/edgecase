@@ -196,7 +196,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
 .clear-search {
     position: absolute;
-    right: 3rem;
+    right: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
     background: none;

@@ -166,3 +166,23 @@
     .ledger-table th:nth-child(3), 
     .ledger-table td:nth-child(3) { width: 35%; }  /* Amount */
 }
+
+/* Clear search button */
+.clear-search {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    display: none;
+    transition: color 0.2s;
+}
+
+.clear-search:hover {
+    color: #6B7280;
+}
