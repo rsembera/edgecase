@@ -245,7 +245,7 @@
             <!-- Add Entry Dropdown -->
             <div style="position: relative;">
                 <button class="dropdown-btn" onclick="toggleDropdown('add-entry-dropdown')">
-                    ⚙️ Manage ▾
+                    ⚙️ Create ▾
                 </button>
                 <div id="add-entry-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 200px; z-index: 100;">
                     <a href="{{ url_for('entries.create_session', client_id=client.id) }}" 
