@@ -2,6 +2,20 @@
 /* Shared styles imported from shared.css */
 /* Year/Month headers, table base, empty state now in shared.css */
 
+/* Controls bar */
+.controls-bar {
+    background: #E3E9EE;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 /* Profile entry styling (unique to client file) */
 .profile-entry {
     padding: 1.5rem;
