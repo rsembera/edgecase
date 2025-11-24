@@ -43,7 +43,7 @@
                         {% for year in range(2025, 2019, -1) %}
                         <option value="{{ year }}" 
                                 {% if is_edit and comm_year == year %}selected
-                                {% elif not is_edit and today_year == year %}selected{% endif %}>
+                                {% elif not is_edit and today[:4] == year|string %}selected{% endif %}>
                             {{ year }}
                         </option>
                         {% endfor %}
@@ -53,7 +53,7 @@
                         {% for month in range(1, 13) %}
                         <option value="{{ month }}" 
                                 {% if is_edit and comm_month == month %}selected
-                                {% elif not is_edit and today_month == month %}selected{% endif %}>
+                                {% elif not is_edit and today[5:7] == '%02d'|format(month) %}selected{% endif %}>
                             {{ '%02d'|format(month) }}
                         </option>
                         {% endfor %}
@@ -63,7 +63,7 @@
                         {% for day in range(1, 32) %}
                         <option value="{{ day }}" 
                                 {% if is_edit and comm_day == day %}selected
-                                {% elif not is_edit and today_day == day %}selected{% endif %}>
+                                {% elif not is_edit and today[8:10] == '%02d'|format(day) %}selected{% endif %}>
                             {{ '%02d'|format(day) }}
                         </option>
                         {% endfor %}
