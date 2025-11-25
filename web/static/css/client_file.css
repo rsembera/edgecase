@@ -122,3 +122,55 @@ a.edit-link:hover {
     th:nth-child(2), td:nth-child(2) { width: 30%; }  /* Class */
     th:nth-child(3), td:nth-child(3) { width: 50%; }  /* Description */
 }
+
+/* Search box - matches main_view */
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF;
+}
+
+.clear-search {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    display: none;
+}
+
+.clear-search:hover {
+    color: #6B7280;
+}
+
+/* Lucide icon sizing */
+svg[data-lucide] {
+    width: 14px !important;
+    height: 14px !important;
+    vertical-align: middle;
+}
