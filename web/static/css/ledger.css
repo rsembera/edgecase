@@ -179,13 +179,45 @@
     background: none;
     border: none;
     color: #9CA3AF;
-    font-size: 1.25rem;
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     display: none;
     transition: color 0.2s;
+    line-height: 1;
 }
 
 .clear-search:hover {
     color: #6B7280;
+}
+
+/* Lucide icon sizing */
+svg[data-lucide] {
+    width: 14px !important;
+    height: 14px !important;
+    vertical-align: middle;
+}
+
+/* Icons in dropdown items */
+.dropdown-item svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 0.5rem;
+}
+
+/* Icons in dropdown button */
+.dropdown-btn svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 0.25rem;
+}
+
+/* Search icon color */
+.search-icon svg[data-lucide] {
+    color: #9CA3AF;
+}
+
+/* Dropdown button sizing */
+.dropdown-btn {
+    padding: 0.75rem 1rem;
+    line-height: 1;
 }

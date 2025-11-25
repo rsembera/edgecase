@@ -202,11 +202,11 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
     background: none;
     border: none;
     color: #9CA3AF;
-    font-size: 1.25rem;
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     display: none;
     transition: color 0.2s;
+    line-height: 1;
 }
 
 .clear-search:hover {

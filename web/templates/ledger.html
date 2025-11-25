@@ -25,12 +25,12 @@
         <div class="filter-search-group">
             <!-- Search Box -->
             <div class="search-box">
-                <span class="search-icon">🔍</span>
+                <span class="search-icon"><i data-lucide="search"></i></span>
                 <input type="text" 
                     id="search-input" 
                     placeholder="Search amount or description..."
                     onkeyup="searchEntries()">
-                <button type="button" class="clear-search" style="display: none;" onclick="clearSearch()">✕</button>
+                <button type="button" class="clear-search" style="display: none;" onclick="clearSearch()"><i data-lucide="x"></i></button>
             </div>
         </div>
         
@@ -38,12 +38,12 @@
             <!-- Add Entry Dropdown -->
             <div class="dropdown-container" style="position: relative;">
                 <button class="dropdown-btn" id="add-entry-btn" onclick="toggleAddDropdown()">
-                    ⚙️ Create ▾
+                    <i data-lucide="plus"></i> Create ▾
                 </button>
                 <div id="add-dropdown" class="dropdown-menu" style="display: none;">
-                    <a href="{{ url_for('ledger.create_income') }}" class="dropdown-item">💰 Income</a>
-                    <a href="{{ url_for('ledger.create_expense') }}" class="dropdown-item">💸 Expense</a>
-                    <a href="" class="dropdown-item">📊 Report</a>
+                    <a href="{{ url_for('ledger.create_income') }}" class="dropdown-item"><i data-lucide="trending-up"></i>Income</a>
+                    <a href="{{ url_for('ledger.create_expense') }}" class="dropdown-item"><i data-lucide="trending-down"></i>Expense</a>
+                    <a href="" class="dropdown-item"><i data-lucide="bar-chart-2"></i>Report</a>
                 </div>
             </div>
         </div>

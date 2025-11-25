@@ -31,7 +31,7 @@ function toggleMonth(monthId) {
 function searchEntries() {
     const searchInput = document.getElementById('search-input');
     const clearBtn = document.querySelector('.clear-search');
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value.toLowerCase().trim();
     const rows = document.querySelectorAll('.entry-row');
     
     // Show/hide clear button
@@ -39,16 +39,127 @@ function searchEntries() {
         clearBtn.style.display = searchTerm ? 'block' : 'none';
     }
     
+    if (!searchTerm) {
+        // No search term - show all rows and collapse to default state
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        collapseAllAndExpandRecent();
+        return;
+    }
+    
+    // Track which months and years have matches
+    const monthsWithMatches = new Set();
+    const yearsWithMatches = new Set();
+    
     rows.forEach(row => {
         const description = row.dataset.description.toLowerCase();
         const amount = row.dataset.amount;
         
         if (description.includes(searchTerm) || amount.includes(searchTerm)) {
             row.style.display = '';
+            
+            // Find parent month and year
+            const monthContent = row.closest('.month-content');
+            const yearContent = row.closest('.year-content');
+            
+            if (monthContent) {
+                monthsWithMatches.add(monthContent.id);
+            }
+            if (yearContent) {
+                yearsWithMatches.add(yearContent.id);
+            }
         } else {
             row.style.display = 'none';
         }
     });
+    
+    // Collapse all sections first
+    document.querySelectorAll('.year-content').forEach(el => {
+        el.classList.remove('expanded');
+        const yearId = el.id.replace('-content', '');
+        const arrow = document.getElementById(`${yearId}-icon`);
+        if (arrow) arrow.textContent = '▶';
+    });
+    
+    document.querySelectorAll('.month-content').forEach(el => {
+        el.classList.remove('expanded');
+        const monthId = el.id.replace('-content', '');
+        const arrow = document.getElementById(`${monthId}-icon`);
+        if (arrow) arrow.textContent = '▶';
+    });
+    
+    // Expand sections with matches
+    yearsWithMatches.forEach(yearContentId => {
+        const yearContent = document.getElementById(yearContentId);
+        const yearId = yearContentId.replace('-content', '');
+        const arrow = document.getElementById(`${yearId}-icon`);
+        
+        if (yearContent) {
+            yearContent.classList.add('expanded');
+            if (arrow) arrow.textContent = '▼';
+        }
+    });
+    
+    monthsWithMatches.forEach(monthContentId => {
+        const monthContent = document.getElementById(monthContentId);
+        const monthId = monthContentId.replace('-content', '');
+        const arrow = document.getElementById(`${monthId}-icon`);
+        
+        if (monthContent) {
+            monthContent.classList.add('expanded');
+            if (arrow) arrow.textContent = '▼';
+        }
+    });
+}
+
+// Collapse all and expand most recent (helper function)
+function collapseAllAndExpandRecent() {
+    // Collapse all
+    document.querySelectorAll('.year-content').forEach(el => {
+        el.classList.remove('expanded');
+        const yearId = el.id.replace('-content', '');
+        const arrow = document.getElementById(`${yearId}-icon`);
+        if (arrow) arrow.textContent = '▶';
+    });
+    
+    document.querySelectorAll('.month-content').forEach(el => {
+        el.classList.remove('expanded');
+        const monthId = el.id.replace('-content', '');
+        const arrow = document.getElementById(`${monthId}-icon`);
+        if (arrow) arrow.textContent = '▶';
+    });
+    
+    // Expand most recent
+    const firstYearHeader = document.querySelector('.year-header');
+    if (firstYearHeader) {
+        const match = firstYearHeader.getAttribute('onclick').match(/'([^']+)'/);
+        if (match) {
+            const yearId = match[1];
+            const yearContent = document.getElementById(`${yearId}-content`);
+            const yearArrow = document.getElementById(`${yearId}-icon`);
+            
+            if (yearContent) {
+                yearContent.classList.add('expanded');
+                if (yearArrow) yearArrow.textContent = '▼';
+            }
+            
+            const firstMonthHeader = document.querySelector(`#${yearId}-content .month-header`);
+            if (firstMonthHeader) {
+                const monthMatch = firstMonthHeader.getAttribute('onclick').match(/'([^']+)'/);
+                if (monthMatch) {
+                    const monthId = monthMatch[1];
+                    const monthContent = document.getElementById(`${monthId}-content`);
+                    const monthArrow = document.getElementById(`${monthId}-icon`);
+                    
+                    if (monthContent) {
+                        monthContent.classList.add('expanded');
+                        if (monthArrow) monthArrow.textContent = '▼';
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Clear search
