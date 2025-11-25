@@ -213,49 +213,49 @@ def index():
         # Smart phone display based on preferred contact method
         client['display_phone'] = ''
         client['contact_type'] = 'call'
-        client['contact_icon'] = '📞'
+        client['contact_icon'] = '<i data-lucide="phone"></i>'
         
         if client['preferred_contact'] == 'call_cell':
             client['display_phone'] = client['phone']
             client['contact_type'] = 'call'
-            client['contact_icon'] = '📞'
+            client['contact_icon'] = '<i data-lucide="phone"></i>'
         elif client['preferred_contact'] == 'call_home':
             client['display_phone'] = client['home_phone']
             client['contact_type'] = 'call'
-            client['contact_icon'] = '📞'
+            client['contact_icon'] = '<i data-lucide="phone"></i>'
         elif client['preferred_contact'] == 'call_work':
             client['display_phone'] = client['work_phone']
             client['contact_type'] = 'call'
-            client['contact_icon'] = '📞'
+            client['contact_icon'] = '<i data-lucide="phone"></i>'
         elif client['preferred_contact'] == 'text':
             if client['text_number'] == 'none':
                 client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
                 client['contact_type'] = 'call'
-                client['contact_icon'] = '📞'
+                client['contact_icon'] = '<i data-lucide="phone"></i>'
             elif client['text_number'] == 'cell':
                 client['display_phone'] = client['phone']
                 client['contact_type'] = 'text'
-                client['contact_icon'] = '💬'
+                client['contact_icon'] = '<i data-lucide="message-circle"></i>'
             elif client['text_number'] == 'home':
                 client['display_phone'] = client['home_phone']
                 client['contact_type'] = 'text'
-                client['contact_icon'] = '💬'
+                client['contact_icon'] = '<i data-lucide="message-circle"></i>'
             elif client['text_number'] == 'work':
                 client['display_phone'] = client['work_phone']
                 client['contact_type'] = 'text'
-                client['contact_icon'] = '💬'
+                client['contact_icon'] = '<i data-lucide="message-circle"></i>'
             else:
                 client['display_phone'] = client['phone']
                 client['contact_type'] = 'text'
-                client['contact_icon'] = '💬'
+                client['contact_icon'] = '<i data-lucide="message-circle"></i>'
         elif client['preferred_contact'] == 'email':
             client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
             client['contact_type'] = 'call'
-            client['contact_icon'] = '📞'
+            client['contact_icon'] = '<i data-lucide="phone"></i>'
         else:
             client['display_phone'] = client['phone']
             client['contact_type'] = 'call'
-            client['contact_icon'] = '📞'
+            client['contact_icon'] = '<i data-lucide="phone"></i>'
         
         # Get last session date
         last_session = db.get_last_session_date(client['id'])

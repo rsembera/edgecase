@@ -539,3 +539,10 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* Lucide icon sizing */
+svg[data-lucide] {
+    width: 14px !important;
+    height: 14px !important;
+    vertical-align: middle;
+}
