@@ -10,7 +10,7 @@
         {% for attachment in attachments %}
         <div class="attachment-item" style="display: flex; align-items: center; padding: 0.75rem; background: #F9FAFB; border-radius: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #E5E7EB;">
             <span style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 1.25rem;">📎</span>
+                <i data-lucide="paperclip" style="width: 18px; height: 18px; vertical-align: middle; color: #6B7280;"></i>
                 <div>
                     <strong style="color: #111827;">{{ attachment.filename }}</strong>
                     {% if attachment.description != attachment.filename %}

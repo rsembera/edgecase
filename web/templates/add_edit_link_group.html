@@ -33,7 +33,7 @@
                         </span>
                         <span class="client-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
                         <span class="client-file">{{ member.file_number }}</span>
-                        <button type="button" class="remove-client" onclick="removeClient({{ member.id }})">×</button>
+                        <button type="button" class="remove-client" onclick="removeClient({{ member.id }})"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
                     </div>
                     {% endfor %}
                 {% endif %}
@@ -88,7 +88,7 @@
 <!-- Error Modal -->
 <div id="error-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
-        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">⚠️ Cannot Save Link Group</h3>
+        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;"><i data-lucide="alert-triangle" style="width: 18px; height: 18px; vertical-align: middle; color: #D97706; margin-right: 0.25rem;"></i> Cannot Save Link Group</h3>
         <p id="error-message" style="color: #4B5563; margin-bottom: 1.5rem; line-height: 1.6;"></p>
         <button onclick="closeErrorModal()" style="padding: 0.625rem 1.25rem; background: #DC2626; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer; width: 100%;">
             OK
