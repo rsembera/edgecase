@@ -96,13 +96,6 @@ function expandAllSections(expand) {
 function performEntrySearch() {
     const searchTerm = entrySearchInput.value.toLowerCase().trim();
     
-    // Save search term to sessionStorage
-    if (searchTerm) {
-        sessionStorage.setItem('entrySearch', searchTerm);
-    } else {
-        sessionStorage.removeItem('entrySearch');
-    }
-    
     // Show/hide clear button
     if (clearEntrySearchBtn) {
         clearEntrySearchBtn.style.display = searchTerm ? 'block' : 'none';
@@ -175,12 +168,11 @@ if (clearEntrySearchBtn) {
     });
 }
 
-// Restore search from sessionStorage on page load
+// Clear search input on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const savedSearch = sessionStorage.getItem('entrySearch');
-    if (savedSearch && entrySearchInput) {
-        entrySearchInput.value = savedSearch;
-        performEntrySearch();
+    if (entrySearchInput) {
+        entrySearchInput.value = '';
+        sessionStorage.removeItem('entrySearch');
     }
 });
 
