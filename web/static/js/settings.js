@@ -147,10 +147,26 @@ async function loadBackgroundOptions() {
         
         const select = document.getElementById('background-style');
         
-        // Clear existing options except "Suit Grey"
-        while (select.options.length > 1) {
-            select.remove(1);
-        }
+        // Clear all existing options
+        select.innerHTML = '';
+        
+        // Add solid color options
+        const solidColors = [
+            { value: 'suit-grey', name: 'Suit Grey' },
+            { value: 'warm-stone', name: 'Warm Stone' },
+            { value: 'sage-mist', name: 'Sage Mist' },
+            { value: 'soft-cream', name: 'Soft Cream' }
+        ];
+        
+        const solidGroup = document.createElement('optgroup');
+        solidGroup.label = 'Solid Colors';
+        solidColors.forEach(color => {
+            const option = document.createElement('option');
+            option.value = color.value;
+            option.textContent = color.name;
+            solidGroup.appendChild(option);
+        });
+        select.appendChild(solidGroup);
         
         // Add system backgrounds
         if (systemBackgrounds.length > 0) {
@@ -195,9 +211,9 @@ function updateDeleteButton() {
     
     // Show delete button only for user backgrounds
     if (select.value.startsWith('user:')) {
-        deleteBtn.style.display = 'inline-block';
+        deleteBtn.classList.add('visible');
     } else {
-        deleteBtn.style.display = 'none';
+        deleteBtn.classList.remove('visible');
     }
 }
 

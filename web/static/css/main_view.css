@@ -64,6 +64,120 @@ body.tutti-frutti .stat-card[data-card-id="billable-month"] { background: #CFE7D
 body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0; }
 body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
+/* Ocean Breeze theme - blue/teal tones */
+body.ocean-breeze .stat-card[data-card-id="active-clients"] { background: #B8D4E3; }
+body.ocean-breeze .stat-card[data-card-id="sessions-week"] { background: #A8C8D8; }
+body.ocean-breeze .stat-card[data-card-id="pending-invoices"] { background: #C2DDE8; }
+body.ocean-breeze .stat-card[data-card-id="billable-month"] { background: #B5D8D8; }
+body.ocean-breeze .stat-card[data-card-id="current-time"] { background: #95C4D1; }
+body.ocean-breeze .stat-card[data-card-id="navigation"] { background: #7FB3C2; }
+
+/* Sunset Glow theme - warm peach/amber tones */
+body.sunset-glow .stat-card[data-card-id="active-clients"] { background: #F5DEB3; }
+body.sunset-glow .stat-card[data-card-id="sessions-week"] { background: #EECFB8; }
+body.sunset-glow .stat-card[data-card-id="pending-invoices"] { background: #E8C4A8; }
+body.sunset-glow .stat-card[data-card-id="billable-month"] { background: #F0D8C4; }
+body.sunset-glow .stat-card[data-card-id="current-time"] { background: #E5CFBB; }
+body.sunset-glow .stat-card[data-card-id="navigation"] { background: #D4B896; }
+
+/* Garden Path theme - green/sage tones */
+body.garden-path .stat-card[data-card-id="active-clients"] { background: #C8D8C4; }
+body.garden-path .stat-card[data-card-id="sessions-week"] { background: #B8CEB5; }
+body.garden-path .stat-card[data-card-id="pending-invoices"] { background: #D4DCC8; }
+body.garden-path .stat-card[data-card-id="billable-month"] { background: #C2D4BE; }
+body.garden-path .stat-card[data-card-id="current-time"] { background: #B5C8B0; }
+body.garden-path .stat-card[data-card-id="navigation"] { background: #9BB89A; }
+
+/* Ocean Breeze theme - nav buttons */
+body.ocean-breeze .nav-btn.teal {
+    background: #B8D4E3;
+    color: #1E4D6B;
+}
+body.ocean-breeze .nav-btn.teal:hover {
+    background: #A0C4D8;
+}
+body.ocean-breeze .nav-btn.purple {
+    background: #A8C8D8;
+    color: #1A4A5E;
+}
+body.ocean-breeze .nav-btn.purple:hover {
+    background: #90B8CC;
+}
+body.ocean-breeze .nav-btn.sage {
+    background: #95C4D1;
+    color: #185060;
+}
+body.ocean-breeze .nav-btn.sage:hover {
+    background: #80B4C4;
+}
+body.ocean-breeze .nav-btn.peach {
+    background: #C5DCE5;
+    color: #1A4A5E;
+}
+body.ocean-breeze .nav-btn.peach:hover {
+    background: #B0D0DD;
+}
+
+/* Sunset Glow theme - nav buttons */
+body.sunset-glow .nav-btn.teal {
+    background: #F5DEB3;
+    color: #5A4520;
+}
+body.sunset-glow .nav-btn.teal:hover {
+    background: #EDD49E;
+}
+body.sunset-glow .nav-btn.purple {
+    background: #EECFB8;
+    color: #5C4030;
+}
+body.sunset-glow .nav-btn.purple:hover {
+    background: #E4C0A5;
+}
+body.sunset-glow .nav-btn.sage {
+    background: #E8C4A8;
+    color: #5A3E28;
+}
+body.sunset-glow .nav-btn.sage:hover {
+    background: #DCB595;
+}
+body.sunset-glow .nav-btn.peach {
+    background: #F2E4D0;
+    color: #5A4520;
+}
+body.sunset-glow .nav-btn.peach:hover {
+    background: #E8D8C0;
+}
+
+/* Garden Path theme - nav buttons */
+body.garden-path .nav-btn.teal {
+    background: #C8D8C4;
+    color: #2D4228;
+}
+body.garden-path .nav-btn.teal:hover {
+    background: #B8CCB2;
+}
+body.garden-path .nav-btn.purple {
+    background: #B8CEB5;
+    color: #2A3D26;
+}
+body.garden-path .nav-btn.purple:hover {
+    background: #A8C0A3;
+}
+body.garden-path .nav-btn.sage {
+    background: #B5C8B0;
+    color: #283A24;
+}
+body.garden-path .nav-btn.sage:hover {
+    background: #A5BA9E;
+}
+body.garden-path .nav-btn.peach {
+    background: #D0DFC8;
+    color: #2D4228;
+}
+body.garden-path .nav-btn.peach:hover {
+    background: #C0D2B8;
+}
+
 .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
@@ -98,6 +212,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
     margin-bottom: 0.5rem;
 }
 
+/* Strait-Laced theme - nav buttons (uniform grey) */
 .nav-btn {
     display: block;
     padding: 0.625rem 1rem;
@@ -107,41 +222,41 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
     font-size: 0.875rem;
     font-weight: 600;
     transition: all 0.2s;
+    background: #D8DDE2;
+    color: #3D4852;
 }
 
-.nav-btn.teal {
+.nav-btn:hover {
+    background: #C8CED5;
+}
+
+/* Tutti-Frutti theme - nav buttons (colorful) */
+body.tutti-frutti .nav-btn.teal {
     background: #BFDCDC;
     color: #115D4F;
 }
-
-.nav-btn.teal:hover {
+body.tutti-frutti .nav-btn.teal:hover {
     background: #9FCFC0;
 }
-
-.nav-btn.purple {
+body.tutti-frutti .nav-btn.purple {
     background: #DCD3E8;
     color: #3F3358;
 }
-
-.nav-btn.purple:hover {
+body.tutti-frutti .nav-btn.purple:hover {
     background: #C9BFE8;
 }
-
-.nav-btn.sage {
+body.tutti-frutti .nav-btn.sage {
     background: #D4DCC8;
     color: #3D4A2E;
 }
-
-.nav-btn.sage:hover {
+body.tutti-frutti .nav-btn.sage:hover {
     background: #C2CCB3;
 }
-
-.nav-btn.peach {
+body.tutti-frutti .nav-btn.peach {
     background: #F5DEB0;
     color: #5A4823;
 }
-
-.nav-btn.peach:hover {
+body.tutti-frutti .nav-btn.peach:hover {
     background: #EDD49E;
 }
 

@@ -118,6 +118,14 @@ input[type="number"]:focus {
     display: block;
 }
 
+#delete-bg-button {
+    display: none !important;
+}
+
+#delete-bg-button.visible {
+    display: inline-flex !important;
+}
+
 /* Remove spinner arrows from number inputs */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
