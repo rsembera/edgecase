@@ -156,17 +156,26 @@
         const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
         
         // Apply card style
-        if (cardStyle === 'tutti-frutti') {
-            document.body.classList.add('tutti-frutti');
-        } else {
-            document.body.classList.remove('tutti-frutti');
+        const cardThemes = ['tutti-frutti', 'ocean-breeze', 'sunset-glow', 'garden-path'];
+        // Remove all theme classes first
+        cardThemes.forEach(theme => document.body.classList.remove(theme));
+        // Add the selected theme (strait-laced has no class)
+        if (cardThemes.includes(cardStyle)) {
+            document.body.classList.add(cardStyle);
         }
         
         // Apply background
-        if (backgroundStyle === 'suit-grey') {
-            document.body.style.backgroundImage = 'none';
-            document.body.style.backgroundColor = '#C5CDD3';
-        } else {
+            const solidBackgrounds = {
+                'suit-grey': '#C5CDD3',
+                'warm-stone': '#D4CEC5',
+                'sage-mist': '#C8D1C8',
+                'soft-cream': '#E5E1D8'
+            };
+
+            if (solidBackgrounds[backgroundStyle]) {
+                document.body.style.backgroundImage = 'none';
+                document.body.style.backgroundColor = solidBackgrounds[backgroundStyle];
+            } else {
             // Parse the background value (system:filename or user:filename)
             let bgPath;
             if (backgroundStyle.startsWith('system:')) {

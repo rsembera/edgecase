@@ -89,19 +89,25 @@ details[open] .settings-section-header .arrow {
         <div class="form-group">
             <label for="card-style">Info Card Style</label>
             <select id="card-style" onchange="saveAndApplyCardStyle()">
-                <option value="strait-laced">Strait-Laced (White cards)</option>
-                <option value="tutti-frutti">Tutti-Frutti (Colored cards)</option>
+                <option value="strait-laced">Strait-Laced (White)</option>
+                <option value="garden-path">Garden Path (Green/sage)</option>
+                <option value="ocean-breeze">Ocean Breeze (Blue/teal)</option>
+                <option value="sunset-glow">Sunset Glow (Warm peach)</option>
+                <option value="tutti-frutti">Tutti-Frutti (Mixed pastels)</option>
             </select>
         </div>
         
         <div class="form-group">
             <label for="background-style">Background</label>
             <select id="background-style" onchange="saveAndApplyBackground()">
-                <option value="suit-grey">Suit Grey (Solid)</option>
+                <option value="suit-grey">Suit Grey</option>
+                 <option value="sage-mist">Sage Mist</option>
+                <option value="soft-cream">Soft Cream</option>
+                <option value="warm-stone">Warm Stone</option>
                 <!-- Background images will be added by JavaScript -->
             </select>
-            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
+            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; background: #E7CFD4; color: #6A243E;">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 0.25rem;"></i>Delete
             </button>
         </div>
         
