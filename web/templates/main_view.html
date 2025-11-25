@@ -111,9 +111,9 @@
             <input type="hidden" name="sort" value="{{ sort_by }}">
             <input type="hidden" name="order" value="{{ sort_order }}">
             <input type="hidden" name="view" value="{{ view_mode }}">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon"><i data-lucide="search"></i></span>
             <input type="text" name="search" placeholder="Search clients..." value="{{ search }}">
-            <button type="button" class="clear-search" style="display: none;">✕</button>
+            <button type="button" class="clear-search" style="display: none;"><i data-lucide="x"></i></button>
         </form>
         
         <!-- View Toggle -->
@@ -134,26 +134,26 @@
         <!-- Manage Dropdown -->
         <div style="position: relative;">
             <button class="dropdown-btn" onclick="toggleDropdown('manage-dropdown')">
-                ⚙️ Manage ▾
+                Manage ▾
             </button>
-            <div id="manage-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
+            <div id="manage-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 160px; z-index: 100;">
                 <a href="{{ url_for('clients.add_client') }}" 
-                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                   onmouseover="this.style.background='#F3F4F6'" 
-                   onmouseout="this.style.background='transparent'">
-                    ➕ Add Client
+                style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                onmouseover="this.style.background='#F3F4F6'" 
+                onmouseout="this.style.background='transparent'">
+                    <i data-lucide="plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Add Client
                 </a>
                 <a href="{{ url_for('types.manage_types') }}" 
                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                    onmouseover="this.style.background='#F3F4F6'" 
                    onmouseout="this.style.background='transparent'">
-                    🏷️ Edit Types
+                    <i data-lucide="tag" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Edit Types
                 </a>
                 <a href="{{ url_for('links.manage_links') }}" 
                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                    onmouseover="this.style.background='#F3F4F6'" 
                    onmouseout="this.style.background='transparent'">
-                    🔗 Edit Links
+                    <i data-lucide="link" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Edit Links
                 </a>
             </div>
         </div>
@@ -187,19 +187,19 @@
                     {{ client.type.name }}
                 </span>
                 <span class="file-number">{{ client.file_number }}</span>
-                {% if client.is_linked %}<span class="link-icon" title="Linked to other clients">🔗</span>{% endif %}
+                {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" style="width: 14px; height: 14px;"></i></span>{% endif %}
                 <span class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</span>
                 <div class="contact-info">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        📧 <span>{{ client.email }}</span>
+                        <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} ⚠️{% endif %}</span>
+                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}</span>
                     </a>
                     {% endif %}
                 </div>
@@ -216,20 +216,20 @@
                         {{ client.type.name }}
                     </span>
                     <span style="color: #6B7280; font-size: 0.875rem;">{{ client.file_number }}</span>
-                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients">🔗</span>{% endif %}
+                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" style="width: 14px; height: 14px;"></i></span>{% endif %}
                 </div>
                 <div class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</div>
                 <div class="contact-row">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        📧 <span>{{ client.email }}</span>
+                        <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} ⚠️{% endif %}</span>
+                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}</span>
                     </a>
                     {% endif %}
                 </div>
@@ -264,7 +264,7 @@
                 <span><u>Underlined</u> = Preferred contact</span>
             </div>
             <div class="legend-item">
-                <span>⚠️ = Do not leave message</span>
+                <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i> <span>= Do not leave message</span>
             </div>
         </div>
     </div>
