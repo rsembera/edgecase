@@ -366,21 +366,60 @@ input[type="number"] {
     -moz-appearance: textfield;
 }
 
-/* Format selector */
-#format {
+/* Format and Duration side by side */
+.format-duration-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.field-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #111827;
+    font-size: 0.875rem;
+}
+
+.field-group select,
+.field-group input[type="number"] {
     width: 100%;
     padding: 0.75rem;
     border: 2px solid #DEE2E6;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
     background: white;
-    cursor: pointer;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    height: 50px;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
 }
 
-#format:focus {
+.field-group select:focus,
+.field-group input[type="number"]:focus {
     outline: none;
-    border-color: #9FCFC0;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.field-group small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #5B6571;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 600px) {
+    .format-duration-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Responsive adjustments */
