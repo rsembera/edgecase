@@ -546,3 +546,10 @@ svg[data-lucide] {
     height: 14px !important;
     vertical-align: middle;
 }
+
+/* Icons in dropdown button */
+.dropdown-btn svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 0.25rem;
+}
