@@ -735,6 +735,11 @@ tbody tr:hover {
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    height: 42px;
+    box-sizing: border-box;
 }
 
 .dropdown-btn:hover {
