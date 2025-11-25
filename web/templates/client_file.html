@@ -352,11 +352,11 @@
                                     </td>
                                     <td>
                                         {% if entry.class == 'session' %}
-                                            <span class="session-badge {% if entry.is_consultation %}consultation{% elif not entry.locked %}draft{% else %}session{% endif %}">
-                                                {% if entry.is_consultation %}
-                                                    Consultation
-                                                {% elif not entry.locked %}
+                                            <span class="session-badge {% if not entry.locked %}draft{% elif entry.is_consultation %}consultation{% else %}session{% endif %}">
+                                                {% if not entry.locked %}
                                                     Draft
+                                                {% elif entry.is_consultation %}
+                                                    Consultation
                                                 {% else %}
                                                     Session
                                                 {% endif %}
