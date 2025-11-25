@@ -58,7 +58,7 @@
             {# Minor Badge #}
             {% if profile_entry.is_minor %}
             <span style="background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
-                👶 Minor
+                <i data-lucide="baby" style="width: 12px; height: 12px; vertical-align: middle;"></i> Minor
             </span>
             {% endif %}
         </div>
@@ -66,7 +66,7 @@
         {# Contact Information - matching main_view.html logic #}
         {% if profile_entry.email %}
         <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">
-            📧 <a href="mailto:{{ profile_entry.email }}" 
+            <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <a href="mailto:{{ profile_entry.email }}" 
                   style="color: #323B45; text-decoration: {% if profile_entry.preferred_contact == 'email' %}underline{% else %}none{% endif %};" 
                   onclick="event.stopPropagation();">{{ profile_entry.email }}</a>
         </p>
@@ -110,11 +110,11 @@
             {% endif %}
             
             {% if display_phone %}
-                {% if link_type == 'tel' %}📞{% else %}💬{% endif %} 
+                {% if link_type == 'tel' %}<i data-lucide="phone" style="width: 14px; height: 14px; vertical-align: middle;"></i>{% else %}<i data-lucide="message-circle" style="width: 14px; height: 14px; vertical-align: middle;"></i>{% endif %} 
                 <a href="{{ link_type }}:{{ display_phone }}" 
                    style="color: #323B45; text-decoration: {% if is_preferred %}underline{% else %}none{% endif %};" 
                    onclick="event.stopPropagation();">{{ display_phone }}</a>
-                {% if profile_entry.ok_to_leave_message == 'no' %} ⚠️{% endif %}
+                {% if profile_entry.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}
             {% endif %}
         </p>
         {% endif %}
@@ -229,15 +229,14 @@
         </div>
         
         <!-- Search Box -->
-        <div class="entry-search-box" style="position: relative; flex: 1; max-width: 400px;">
+        <div class="search-box" style="flex: 1; max-width: 400px;">
+            <span class="search-icon"><i data-lucide="search"></i></span>
             <input type="text" 
                 id="entry-search" 
-                placeholder="Search entries..." 
-                style="width: 100%; padding: 0.75rem 2.5rem 0.75rem 2.5rem; border: 2px solid #DEE2E6; border-radius: 0.75rem; font-size: 0.875rem;">
-            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 1rem;">🔍</span>
+                placeholder="Search entries...">
             <button type="button" 
                     id="clear-entry-search" 
-                    style="display: none; position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9CA3AF; font-size: 1.25rem; cursor: pointer; padding: 0.25rem 0.5rem;">✕</button>
+                    class="clear-search"><i data-lucide="x"></i></button>
         </div>
         
         <!-- Action Buttons (right-aligned) -->
@@ -245,44 +244,44 @@
             <!-- Add Entry Dropdown -->
             <div style="position: relative;">
                 <button class="dropdown-btn" onclick="toggleDropdown('add-entry-dropdown')">
-                    ⚙️ Create ▾
+                    <i data-lucide="plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.25rem;"></i> Create ▾
                 </button>
                 <div id="add-entry-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 200px; z-index: 100;">
                     <a href="{{ url_for('entries.create_session', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
-                        📝 Session
+                        <i data-lucide="clipboard" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Session
                     </a>
                     <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
-                        💬 Communication
+                        <i data-lucide="message-circle" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Communication
                     </a>
                     <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
-                        🚫 Absence
+                        <i data-lucide="x-circle" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Absence
                     </a>
                     <a href="{{ url_for('entries.create_item', client_id=client.id) }}" 
                        style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                        onmouseover="this.style.background='#F3F4F6'" 
                        onmouseout="this.style.background='transparent'">
-                        📦 Item
+                        <i data-lucide="package" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Item
                     </a>
                     <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" 
                     style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                     onmouseover="this.style.background='#F3F4F6'" 
                     onmouseout="this.style.background='transparent'">
-                        📎 Upload
+                        <i data-lucide="paperclip" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Upload
                     </a>
                     <a href="" 
                     style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                     onmouseover="this.style.background='#F3F4F6'" 
                     onmouseout="this.style.background='transparent'">
-                        📒 Export
+                        <i data-lucide="file-text" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Export
                     </a>
                 </div>
             </div>
