@@ -3,195 +3,11 @@
 {% block title %}Scheduler - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<style>
-    .scheduler-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-    
-    .controls-bar {
-        background: #E3E9EE;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    
-    .date-nav {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-    
-    .nav-btn {
-        padding: 0.75rem 1.25rem;
-        background: #FBFCFD;
-        border: 2px solid #DEE2E6;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #323B45;
-        cursor: not-allowed;
-        opacity: 0.5;
-    }
-    
-    .current-date {
-        font-weight: 600;
-        color: #323B45;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 0.75rem;
-    }
-    
-    .week-view {
-        background: white;
-        border: 2px solid #E5E7EB;
-        border-radius: 0.75rem;
-        overflow: hidden;
-    }
-    
-    .week-header {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        background: #2d3748;
-        color: white;
-    }
-    
-    .week-header > div {
-        padding: 1rem;
-        text-align: center;
-        font-weight: 600;
-        border-right: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .week-header > div:last-child {
-        border-right: none;
-    }
-    
-    .time-column {
-        background: #f7fafc;
-        color: #6B7280;
-        font-size: 0.875rem;
-        text-align: right;
-        padding-right: 0.5rem;
-        border-right: 2px solid #E5E7EB;
-    }
-    
-    .week-grid {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        min-height: 600px;
-        position: relative;
-    }
-    
-    .day-column {
-        border-right: 1px solid #E5E7EB;
-        position: relative;
-        opacity: 0.5;
-    }
-    
-    .day-column:last-child {
-        border-right: none;
-    }
-    
-    .time-slot {
-        height: 60px;
-        border-bottom: 1px solid #E5E7EB;
-    }
-    
-    .session-block {
-        position: absolute;
-        background: #9FCFC0;
-        border-left: 4px solid #1F8F74;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    
-    .session-block:hover {
-        transform: scale(1.02);
-        z-index: 10;
-    }
-    
-    .session-client {
-        font-weight: 600;
-        color: #115D4F;
-    }
-    
-    .session-time {
-        color: #0E5346;
-        font-size: 0.75rem;
-    }
-    
-    .placeholder-message {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: #718096;
-        background: #f7fafc;
-        border-radius: 0.5rem;
-        margin: 2rem 0;
-    }
-    
-    .placeholder-message h3 {
-        color: #2d3748;
-        margin-bottom: 0.5rem;
-    }
-    
-    .upcoming-list {
-        background: white;
-        border: 2px solid #E5E7EB;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-top: 2rem;
-        opacity: 0.5;
-    }
-    
-    .upcoming-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid #E5E7EB;
-    }
-    
-    .upcoming-item:last-child {
-        border-bottom: none;
-    }
-    
-    .client-info {
-        flex: 1;
-    }
-    
-    .client-name {
-        font-weight: 600;
-        color: #323B45;
-    }
-    
-    .session-details {
-        color: #6B7280;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-    
-    .contact-badge {
-        background: #E3E9EE;
-        color: #323B45;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/scheduler.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -199,116 +15,85 @@
     <div class="scheduler-header">
         <div>
             <h2>Scheduler</h2>
-            <p style="color: #718096; margin-top: 0.5rem;">Manage appointments and track upcoming sessions</p>
+            <p style="color: #718096; margin-top: 0.5rem;">{{ appointment_count }} appointment{% if appointment_count != 1 %}s{% endif %} scheduled</p>
         </div>
         <a href="{{ url_for('clients.index') }}" class="btn">← Back to Clients</a>
     </div>
     
-    <!-- Controls Bar -->
+    <!-- Date Navigation -->
     <div class="controls-bar">
         <div class="date-nav">
-            <button class="nav-btn">◀ Prev</button>
-            <div class="current-date">Week of November 17, 2025</div>
-            <button class="nav-btn">Next ▶</button>
-            <button class="nav-btn">Today</button>
-        </div>
-        
-        <div class="action-buttons">
-            <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">📅 Schedule Session</button>
+            <a href="{{ url_for('scheduler.scheduler', date=prev_date) }}" class="nav-btn">
+                <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+            </a>
+            <div class="current-date">{{ display_date }}</div>
+            <a href="{{ url_for('scheduler.scheduler', date=next_date) }}" class="nav-btn">
+                <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </a>
+            {% if view_date != today %}
+            <a href="{{ url_for('scheduler.scheduler') }}" class="btn" style="margin-left: 1rem;">Today</a>
+            {% endif %}
         </div>
     </div>
     
-    <!-- Placeholder Message -->
-    <div class="placeholder-message">
-        <h3>Session Scheduling Coming Soon</h3>
-        <p>One-click calendar integration with automatic client invitations.</p>
-        <p style="margin-top: 1rem; font-size: 0.875rem;">
-            <strong>Planned Features:</strong> Create calendar events directly from EdgeCase • 
-            Auto-populate file numbers and Meet links • Send email invitations to clients • 
-            Recurring session support (weekly therapy) • Works on Mac (instant) and iPad (.ics download)
-        </p>
-        <p style="margin-top: 1rem; font-size: 0.875rem; color: #00AA88;">
-            <strong>Time Savings:</strong> 15 steps → 3 steps | 5 minutes → 30 seconds | Zero errors
-        </p>
-    </div>
-    
-    <!-- Sample Week View -->
-    <div class="week-view">
-        <div class="week-header">
-            <div>Time</div>
-            <div>Sun<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 17</span></div>
-            <div>Mon<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 18</span></div>
-            <div>Tue<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 19</span></div>
-            <div>Wed<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 20</span></div>
-            <div>Thu<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 21</span></div>
-            <div>Fri<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 22</span></div>
-            <div>Sat<br><span style="font-weight: normal; font-size: 0.875rem;">Nov 23</span></div>
-        </div>
-        
-        <div class="week-grid">
-            <div class="time-column">
-                <div class="time-slot" style="line-height: 60px;">9 AM</div>
-                <div class="time-slot" style="line-height: 60px;">10 AM</div>
-                <div class="time-slot" style="line-height: 60px;">11 AM</div>
-                <div class="time-slot" style="line-height: 60px;">12 PM</div>
-                <div class="time-slot" style="line-height: 60px;">1 PM</div>
-                <div class="time-slot" style="line-height: 60px;">2 PM</div>
-                <div class="time-slot" style="line-height: 60px;">3 PM</div>
-                <div class="time-slot" style="line-height: 60px;">4 PM</div>
-                <div class="time-slot" style="line-height: 60px;">5 PM</div>
-                <div class="time-slot" style="line-height: 60px;">6 PM</div>
+    <!-- Appointments List -->
+    {% if appointments %}
+    <div class="appointments-list">
+        {% for appt in appointments %}
+        <div class="appointment-card" style="border-left: 4px solid {{ appt.type_color }}; background: {{ appt.bubble_color }};">
+            <div class="appointment-time">
+                <div class="time-display">{{ appt.appointment_time }}</div>
+                {% if appt.duration %}
+                <div class="duration">{{ appt.duration }} min</div>
+                {% endif %}
             </div>
             
-            <div class="day-column"></div>
-            <div class="day-column">
-                <!-- Sample session block -->
-                <div class="session-block" style="top: 60px; height: 50px; width: 90%; left: 5%;">
-                    <div class="session-client">Smith, John</div>
-                    <div class="session-time">10:00 AM - 10:50 AM</div>
-                </div>
+            <div class="appointment-client">
+                <a href="{{ url_for('clients.client_file', client_id=appt.client_id) }}" class="client-name">
+                    {{ appt.last_name }}, {{ appt.first_name }}{% if appt.middle_name %} {{ appt.middle_name }}{% endif %}
+                </a>
+                <div class="file-number">{{ appt.file_number }}</div>
             </div>
-            <div class="day-column"></div>
-            <div class="day-column">
-                <div class="session-block" style="top: 180px; height: 50px; width: 90%; left: 5%;">
-                    <div class="session-client">Doe, Jane</div>
-                    <div class="session-time">1:00 PM - 1:50 PM</div>
-                </div>
+            
+            <div class="appointment-contact">
+                {% if appt.preferred_contact == 'email' and appt.email %}
+                    <span class="contact-method"><i data-lucide="mail" style="width: 14px; height: 14px;"></i> {{ appt.email }}</span>
+                {% elif appt.preferred_contact == 'text' and appt.text_number %}
+                    <span class="contact-method"><i data-lucide="message-circle" style="width: 14px; height: 14px;"></i> {{ appt.text_number }}</span>
+                {% elif appt.preferred_contact == 'call_cell' and appt.phone %}
+                    <span class="contact-method"><i data-lucide="phone" style="width: 14px; height: 14px;"></i> {{ appt.phone }}</span>
+                {% elif appt.preferred_contact == 'call_home' and appt.home_phone %}
+                    <span class="contact-method"><i data-lucide="phone" style="width: 14px; height: 14px;"></i> {{ appt.home_phone }}</span>
+                {% elif appt.preferred_contact == 'call_work' and appt.work_phone %}
+                    <span class="contact-method"><i data-lucide="phone" style="width: 14px; height: 14px;"></i> {{ appt.work_phone }}</span>
+                {% elif appt.phone %}
+                    <span class="contact-method"><i data-lucide="phone" style="width: 14px; height: 14px;"></i> {{ appt.phone }}</span>
+                {% elif appt.email %}
+                    <span class="contact-method"><i data-lucide="mail" style="width: 14px; height: 14px;"></i> {{ appt.email }}</span>
+                {% else %}
+                    <span class="contact-method" style="color: #9CA3AF;">No contact info</span>
+                {% endif %}
             </div>
-            <div class="day-column">
-                <div class="session-block" style="top: 120px; height: 50px; width: 90%; left: 5%;">
-                    <div class="session-client">Wilson, Mary</div>
-                    <div class="session-time">12:00 PM - 12:50 PM</div>
-                </div>
+            
+            <div class="appointment-actions">
+                {% if appt.meet_link %}
+                <a href="{{ appt.meet_link }}" target="_blank" class="action-btn meet-btn" title="Join Meeting">
+                    <i data-lucide="video" style="width: 16px; height: 16px;"></i>
+                </a>
+                {% endif %}
+                <button onclick="cancelAppointment({{ appt.id }}, '{{ appt.last_name }}, {{ appt.first_name }}')" class="action-btn cancel-btn" title="Cancel Appointment">
+                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                </button>
             </div>
-            <div class="day-column"></div>
-            <div class="day-column"></div>
         </div>
+        {% endfor %}
     </div>
-    
-    <!-- Upcoming Sessions List -->
-    <div class="upcoming-list">
-        <h3 style="margin-top: 0; margin-bottom: 1rem;">Upcoming Sessions</h3>
-        <div class="upcoming-item">
-            <div class="client-info">
-                <div class="client-name">Smith, John (20251101-JS)</div>
-                <div class="session-details">Monday, Nov 18 • 10:00 AM - 10:50 AM • Google Meet</div>
-            </div>
-            <span class="contact-badge">📧 Email • 📱 Cell</span>
-        </div>
-        <div class="upcoming-item">
-            <div class="client-info">
-                <div class="client-name">Doe, Jane (20251102-JD)</div>
-                <div class="session-details">Wednesday, Nov 20 • 1:00 PM - 1:50 PM • Google Meet</div>
-            </div>
-            <span class="contact-badge">📱 Text preferred</span>
-        </div>
-        <div class="upcoming-item">
-            <div class="client-info">
-                <div class="client-name">Wilson, Mary (20251103-MW)</div>
-                <div class="session-details">Thursday, Nov 21 • 12:00 PM - 12:50 PM • Google Meet</div>
-            </div>
-            <span class="contact-badge">📞 Call home</span>
-        </div>
+    {% else %}
+    <div class="no-appointments">
+        <i data-lucide="calendar-off" style="width: 48px; height: 48px; color: #9CA3AF; margin-bottom: 1rem;"></i>
+        <h3>No appointments scheduled</h3>
+        <p>No sessions scheduled for {{ display_date|lower }}.</p>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

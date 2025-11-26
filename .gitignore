@@ -22,3 +22,5 @@ env/
 *.swo
 attachments/
 data/edgecase.db
+__pycache__/
+*.pyc

@@ -19,6 +19,7 @@ from web.blueprints.links import links_bp, init_blueprint as init_links
 from web.blueprints.clients import clients_bp, init_blueprint as init_clients
 from web.blueprints.entries import entries_bp, init_blueprint as init_entries
 from web.blueprints.ledger import ledger_bp
+from web.blueprints.scheduler import scheduler_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
@@ -42,9 +43,12 @@ app.register_blueprint(links_bp)
 app.register_blueprint(clients_bp)
 app.register_blueprint(entries_bp)
 app.register_blueprint(ledger_bp)
+app.register_blueprint(scheduler_bp)
 
 from web.blueprints.ledger import init_blueprint as init_ledger
 init_ledger(db)
+from web.blueprints.scheduler import init_blueprint as init_scheduler
+init_scheduler(db)
 
 from datetime import datetime         
 
