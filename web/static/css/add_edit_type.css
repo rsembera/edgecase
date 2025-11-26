@@ -180,6 +180,10 @@ h2 {
 }
 
 .modal {
+    display: block;
+    position: static;
+    width: auto;
+    height: auto;
     background: white;
     padding: 2rem;
     border-radius: 1rem;

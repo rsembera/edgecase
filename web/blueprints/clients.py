@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import sys
 import sqlite3
+from flask import jsonify
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -632,9 +633,14 @@ def change_client_type(client_id):
     }
     db.update_client(client_id, client_updates)
     
-    # If changing to Inactive, remove from link groups
+   # If changing to Inactive, remove from link groups AND snapshot retention
     if new_type and new_type['name'] == 'Inactive':
+        # Get retention from CURRENT type (before change)
+        current_type = db.get_client_type(client['type_id'])
+        retention_days = current_type.get('retention_period') if current_type else None
+        
         cleanup_inactive_client_links(client_id)
+        db.snapshot_retention_on_inactive(client_id, retention_days)
     
     # Redirect back to where they came from (referrer)
     referrer = request.referrer
@@ -642,3 +648,70 @@ def change_client_type(client_id):
         return redirect(url_for('entries.edit_profile', client_id=client_id))
     else:
         return redirect(url_for('clients.client_file', client_id=client_id))
+    
+# ============================================================
+# RETENTION ROUTES
+# Add these routes to clients.py (web/blueprints/clients.py)
+# ============================================================
+
+@clients_bp.route('/api/retention-check')
+def retention_check():
+    """Check for clients due for deletion. Returns JSON."""
+    clients_due = db.get_clients_due_for_deletion()
+    
+    # Format dates for display
+    from datetime import datetime
+    for client in clients_due:
+        client['first_contact_display'] = datetime.fromtimestamp(client['first_contact']).strftime('%Y-%m-%d')
+        client['last_contact_display'] = datetime.fromtimestamp(client['last_contact']).strftime('%Y-%m-%d')
+        client['retain_until_display'] = datetime.fromtimestamp(client['retain_until']).strftime('%Y-%m-%d')
+    
+    return jsonify({'clients_due': clients_due})
+
+
+@clients_bp.route('/api/retention-delete', methods=['POST'])
+def retention_delete():
+    """Delete selected clients that are due for retention deletion."""
+    data = request.get_json()
+    client_ids = data.get('client_ids', [])
+    
+    if not client_ids:
+        return jsonify({'success': False, 'error': 'No clients selected'}), 400
+    
+    # Verify all clients are actually due for deletion (security check)
+    clients_due = db.get_clients_due_for_deletion()
+    due_ids = {c['id'] for c in clients_due}
+    
+    results = {'deleted': [], 'failed': [], 'skipped': []}
+    
+    for client_id in client_ids:
+        if client_id not in due_ids:
+            results['skipped'].append(client_id)
+            continue
+        
+        success = db.archive_and_delete_client(client_id)
+        if success:
+            results['deleted'].append(client_id)
+        else:
+            results['failed'].append(client_id)
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
+
+
+@clients_bp.route('/deleted-clients')
+def deleted_clients():
+    """View deleted client records."""
+    deleted = db.get_deleted_clients()
+    
+    # Format dates for display
+    from datetime import datetime
+    for client in deleted:
+        client['first_contact_display'] = datetime.fromtimestamp(client['first_contact']).strftime('%Y-%m-%d') if client['first_contact'] else '-'
+        client['last_contact_display'] = datetime.fromtimestamp(client['last_contact']).strftime('%Y-%m-%d') if client['last_contact'] else '-'
+        client['retain_until_display'] = datetime.fromtimestamp(client['retain_until']).strftime('%Y-%m-%d') if client['retain_until'] else '-'
+        client['deleted_at_display'] = datetime.fromtimestamp(client['deleted_at']).strftime('%Y-%m-%d %H:%M')
+    
+    return render_template('deleted_clients.html', deleted=deleted)

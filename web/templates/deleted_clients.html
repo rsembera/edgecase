@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Deleted Clients - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/deleted_clients.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="deleted-header">
+        <div>
+            <h2>Deleted Clients</h2>
+            <p style="color: #718096; margin-top: 0.5rem;">Records of deleted client files retained for audit purposes</p>
+        </div>
+        <a href="{{ url_for('clients.index') }}" class="btn">← Back to Clients</a>
+    </div>
+    
+    {% if deleted %}
+    <table class="deleted-table">
+        <thead>
+            <tr>
+                <th>File Number</th>
+                <th>Name</th>
+                <th>First Contact</th>
+                <th>Last Contact</th>
+                <th>Retained Until</th>
+                <th>Deleted</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in deleted %}
+            <tr>
+                <td class="file-number">{{ client.file_number }}</td>
+                <td>{{ client.full_name }}</td>
+                <td>{{ client.first_contact_display }}</td>
+                <td>{{ client.last_contact_display }}</td>
+                <td>{{ client.retain_until_display }}</td>
+                <td>{{ client.deleted_at_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="placeholder-message">
+        <h3>No Deleted Clients</h3>
+        <p>When client files are deleted after their retention period expires, records will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

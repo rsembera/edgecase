@@ -1,0 +1,67 @@
+/* Deleted Clients Styles */
+
+.deleted-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.deleted-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1A2B3C;
+}
+
+.deleted-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.deleted-table th,
+.deleted-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.deleted-table th {
+    background: #F8FAFC;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.deleted-table td {
+    font-size: 0.875rem;
+    color: #1A2B3C;
+}
+
+.deleted-table tbody tr:hover {
+    background: #F9FAFB;
+}
+
+.deleted-table .file-number {
+    font-family: monospace;
+    color: #5B6571;
+}
+
+.placeholder-message {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #718096;
+}
+
+.placeholder-message h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #4A5568;
+    margin-bottom: 0.5rem;
+}
+
+.placeholder-message p {
+    margin: 0;
+}
