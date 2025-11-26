@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** November 23, 2025
+**Last Updated:** November 25, 2025
 
 ---
 
@@ -60,7 +60,7 @@ All client records (profiles, sessions, communications, etc.) are stored as entr
 
 ### The Decision
 
-Organize routes into 5 modular blueprints instead of one monolithic app.py.
+Organize routes into 6 modular blueprints instead of one monolithic app.py.
 
 ### Why?
 
@@ -74,8 +74,9 @@ Organize routes into 5 modular blueprints instead of one monolithic app.py.
 - `clients.py` - Client management (~400 lines)
 - `entries.py` - Entry CRUD (~450 lines)
 - `ledger.py` - Income/Expense (~350 lines)
+- `scheduler.py` - Calendar integration (~200 lines) - NEW
 - `types.py` - Client types (~100 lines)
-- `settings.py` - Configuration (~100 lines)
+- `settings.py` - Configuration (~120 lines)
 - `app.py` - Just initialization (77 lines)
 
 **Benefits:**
@@ -426,8 +427,8 @@ Extract inline CSS and JavaScript into external files.
 - Harder to find and fix bugs
 
 **After extraction:**
-- 11 CSS files in `web/static/css/`
-- 11 JS files in `web/static/js/`
+- 12 CSS files in `web/static/css/`
+- 12 JS files in `web/static/js/`
 - Templates just link to files
 - **Result: 48.1% file size reduction**
 
@@ -607,6 +608,93 @@ Manual testing with real workflows, no automated test suite.
 
 ---
 
+## CALENDAR INTEGRATION (NEW)
+
+### The Decision
+
+Calendar apps are the source of truth for scheduling. EdgeCase generates events via .ics files or AppleScript, but does not store appointments.
+
+### Why?
+
+**Problem:** Therapists need to schedule appointments with clients.
+
+**Alternative considered:** Build a full scheduler in EdgeCase
+- Create appointments table
+- Day/week/month calendar views
+- Drag-and-drop rescheduling
+- Conflict detection
+- Reminders system
+
+**Problems with built-in scheduler:**
+- **Dual maintenance** - Appointments in EdgeCase AND calendar app = sync issues
+- **Reinventing the wheel** - Calendar apps already do this well
+- **No calendar sync** - Can't easily share with receptionist or see on phone
+- **More code** - Significant development time for solved problem
+- **Feature creep** - Endless feature requests (recurring, reminders, etc.)
+
+### The Solution
+
+**EdgeCase as "event generator":**
+1. User clicks "Schedule" from client file
+2. Fills in date, time, duration, meet link, repeat, alerts
+3. EdgeCase generates event and adds to calendar
+
+**Two output methods:**
+- **.ics file download** - Works with any calendar app (default)
+- **AppleScript direct add** - Mac only, adds directly to Calendar app
+
+### Implementation Details
+
+**Event content:**
+- Title: Client file number (not name - privacy)
+- Notes: Contact info (preferred method first) + user notes
+- URL/Location: Meet link (for video calls)
+- RRULE: Repeat pattern (weekly, biweekly, monthly)
+- VALARM: Alert triggers (5 min, 15 min, 1 hour, etc.)
+
+**Natural language parsing:**
+- "Friday 2pm" → auto-fills date and time fields
+- "Nov 28" → sets date
+- "tomorrow" → calculates next day
+- Custom implementation (no external dependencies)
+
+**AppleScript fallback:**
+- If wrong calendar name → shows friendly error
+- Auto-downloads .ics file as backup
+- User can import manually
+
+### Why This Works
+
+✅ **No sync issues** - Calendar app is single source of truth  
+✅ **Leverages existing tools** - Reminders, sharing, mobile sync already work  
+✅ **Privacy** - Client names never appear in calendar titles  
+✅ **Flexibility** - Works with any calendar app via .ics  
+✅ **Mac integration** - Power users get direct Calendar.app add  
+✅ **Simple code** - ~200 lines vs thousands for full scheduler
+
+### Why NOT Auto-Notify Clients
+
+**Decision:** No automatic email/notification to clients when scheduling
+
+**Reasons:**
+1. **Consent** - Client didn't opt into calendar invites
+2. **Privacy** - Some clients don't want therapy in shared/work calendars
+3. **Professional boundary** - Therapist should confirm verbally first
+4. **Control** - Therapist handles rescheduling their way
+
+**Contact info in notes:** For therapist reference, not automated sending
+
+### Alternative Considered: Full Sync
+
+Could have implemented two-way calendar sync (EdgeCase ↔ Google/Apple Calendar)
+- Much more complex
+- OAuth, API keys, token refresh
+- Sync conflicts
+- Privacy concerns (data leaving local machine)
+- Decision: Generate-only is simpler and sufficient
+
+---
+
 ## KEY TAKEAWAYS
 
 1. **Entry-based architecture** - Simplicity and flexibility over "pure" normalization
@@ -622,6 +710,7 @@ Manual testing with real workflows, no automated test suite.
 11. **Year/month grouping** - Scale with natural thinking patterns
 12. **Safe migrations** - Never destructive, always additive
 13. **Manual testing** - Sufficient for solo development with fast iteration
+14. **Calendar as source of truth** - Generate events, don't store them (NEW)
 
 **Overarching principle:** Build for the specific user (solo therapists) with their specific needs (flexibility, privacy, professional standards), not for hypothetical future users or corporate features.
 
@@ -631,4 +720,4 @@ Manual testing with real workflows, no automated test suite.
 *For route details, see Route_Reference.md*  
 *For debugging help, see Debugging_Guide.md*
 
-*Last updated: November 23, 2025*
+*Last updated: November 25, 2025*
