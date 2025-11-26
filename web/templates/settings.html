@@ -418,6 +418,34 @@ details[open] .settings-section-header .arrow {
         <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
         </div>
     </details>
+
+    <!-- Calendar Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Calendar</h3>
+                <p>How appointments are added to your calendar</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+        
+        <div class="form-group">
+            <label for="calendar_method">Add appointments via</label>
+            <select id="calendar_method" onchange="toggleCalendarNameField()">
+                <option value="ics">Download .ics file (works everywhere)</option>
+                <option value="applescript">Add directly to Calendar (Mac only)</option>
+            </select>
+        </div>
+        
+        <div class="form-group" id="calendar-name-group" style="display: none;">
+            <label for="calendar_name">Calendar name</label>
+            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;">
+            <small>Exact name of the calendar in Apple Calendar app</small>
+        </div>
+        
+        </div>
+    </details>
     
     <div class="button-group">
         <a href="{{ url_for('clients.index') }}" class="btn btn-secondary">Cancel</a>

@@ -43,7 +43,7 @@
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
         
         <!-- Date and Time -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div class="form-group">
                 <label for="year">Date *</label>
                 <div class="date-input-group">
@@ -107,6 +107,47 @@
             </div>
         </div>
         
+        <!-- Repeat -->
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="repeat">Repeat</label>
+            <select id="repeat" name="repeat">
+                <option value="none">Does not repeat</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+            </select>
+        </div>
+        
+        <!-- Alerts side by side -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="alert1">First Alert</label>
+                <select id="alert1" name="alert1">
+                    <option value="none">No alert</option>
+                    <option value="0">At time of event</option>
+                    <option value="5">5 minutes before</option>
+                    <option value="15" selected>15 minutes before</option>
+                    <option value="30">30 minutes before</option>
+                    <option value="60">1 hour before</option>
+                    <option value="120">2 hours before</option>
+                    <option value="1440">1 day before</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="alert2">Second Alert</label>
+                <select id="alert2" name="alert2">
+                    <option value="none" selected>No alert</option>
+                    <option value="0">At time of event</option>
+                    <option value="5">5 minutes before</option>
+                    <option value="15">15 minutes before</option>
+                    <option value="30">30 minutes before</option>
+                    <option value="60">1 hour before</option>
+                    <option value="120">2 hours before</option>
+                    <option value="1440">1 day before</option>
+                </select>
+            </div>
+        </div>
+        
         <!-- Notes -->
         <div class="form-group">
             <label for="notes">Notes</label>
@@ -122,7 +163,7 @@
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
         <button type="submit" form="schedule-form" class="btn">
             <i data-lucide="calendar-plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.25rem;"></i>
-            Schedule
+            Add to Calendar
         </button>
     </div>
 </div>

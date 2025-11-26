@@ -391,3 +391,26 @@ def delete_signature():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# ============================================================================
+# CALENDAR SETTINGS
+# ============================================================================
+
+@settings_bp.route('/api/calendar_settings', methods=['GET', 'POST'])
+def calendar_settings():
+    """Get or save calendar settings"""
+    if request.method == 'GET':
+        settings = {
+            'calendar_method': db.get_setting('calendar_method', 'ics'),
+            'calendar_name': db.get_setting('calendar_name', '')
+        }
+        return jsonify(settings)
+    
+    else:  # POST
+        data = request.get_json()
+        
+        db.set_setting('calendar_method', data.get('calendar_method', 'ics'))
+        db.set_setting('calendar_name', data.get('calendar_name', ''))
+        
+        return jsonify({'success': True})
+    
