@@ -8,6 +8,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import time
+from datetime import datetime
 
 class Database:
     """
@@ -1468,6 +1469,106 @@ class Database:
             'net_income': total_income - total_expenses,
             'net_tax_owing': total_tax_collected - total_tax_paid
         }
+        
+    # ============================================================
+    # APPOINTMENTS
+    # ============================================================
+    
+    def create_appointment(self, client_id: int, appointment_date: int, 
+                          appointment_time: str, duration: int = None,
+                          meet_link: str = None, notes: str = None) -> int:
+        """Create a new appointment."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        now = int(datetime.now().timestamp())
+        
+        cursor.execute('''
+            INSERT INTO appointments (client_id, appointment_date, appointment_time,
+                                     duration, meet_link, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (client_id, appointment_date, appointment_time, duration, 
+              meet_link, notes, now))
+        
+        appointment_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return appointment_id
+    
+    def get_appointment(self, appointment_id: int) -> Optional[Dict[str, Any]]:
+        """Get a single appointment by ID."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM appointments WHERE id = ?', (appointment_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            columns = ['id', 'client_id', 'appointment_date', 'appointment_time',
+                      'duration', 'meet_link', 'notes', 'created_at']
+            return dict(zip(columns, row))
+        return None
+    
+    def get_appointments_for_date(self, date_timestamp: int) -> List[Dict[str, Any]]:
+        """Get all appointments for a specific date."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get start and end of day
+        date_dt = datetime.fromtimestamp(date_timestamp)
+        start_of_day = int(datetime(date_dt.year, date_dt.month, date_dt.day, 0, 0, 0).timestamp())
+        end_of_day = int(datetime(date_dt.year, date_dt.month, date_dt.day, 23, 59, 59).timestamp())
+        
+        cursor.execute('''
+            SELECT a.*, c.file_number, c.first_name, c.middle_name, c.last_name, c.type_id
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            WHERE a.appointment_date >= ? AND a.appointment_date <= ?
+            ORDER BY a.appointment_time ASC
+        ''', (start_of_day, end_of_day))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        columns = ['id', 'client_id', 'appointment_date', 'appointment_time',
+                  'duration', 'meet_link', 'notes', 'created_at',
+                  'file_number', 'first_name', 'middle_name', 'last_name', 'type_id']
+        
+        return [dict(zip(columns, row)) for row in rows]
+    
+    def get_appointments_for_client(self, client_id: int) -> List[Dict[str, Any]]:
+        """Get all appointments for a specific client."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT * FROM appointments 
+            WHERE client_id = ?
+            ORDER BY appointment_date ASC, appointment_time ASC
+        ''', (client_id,))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        columns = ['id', 'client_id', 'appointment_date', 'appointment_time',
+                  'duration', 'meet_link', 'notes', 'created_at']
+        
+        return [dict(zip(columns, row)) for row in rows]
+    
+    def delete_appointment(self, appointment_id: int) -> bool:
+        """Delete an appointment."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM appointments WHERE id = ?', (appointment_id,))
+        deleted = cursor.rowcount > 0
+        
+        conn.commit()
+        conn.close()
+        
+        return deleted
 
 
     # ============================================================================
