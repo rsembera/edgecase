@@ -55,8 +55,9 @@ function searchEntries() {
     rows.forEach(row => {
         const description = row.dataset.description.toLowerCase();
         const amount = row.dataset.amount;
-        
-        if (description.includes(searchTerm) || amount.includes(searchTerm)) {
+        const payor = (row.dataset.payor || '').toLowerCase();
+
+        if (description.includes(searchTerm) || amount.includes(searchTerm) || payor.includes(searchTerm)) {
             row.style.display = '';
             
             // Find parent month and year

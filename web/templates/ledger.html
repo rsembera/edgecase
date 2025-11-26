@@ -143,6 +143,7 @@
                     <tr class="entry-row" 
                         data-description="{{ entry.description or '' }}" 
                         data-amount="{{ entry.total_amount }}"
+                        data-payor="{{ entry.source if entry.ledger_type == 'income' else entry.payee_name or '' }}"
                         onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('ledger.edit_income', entry_id=entry.id) }}{% else %}{{ url_for('ledger.edit_expense', entry_id=entry.id) }}{% endif %}';"
                         style="cursor: pointer;">
                         <td>
