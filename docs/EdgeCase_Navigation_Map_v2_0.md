@@ -1,8 +1,8 @@
-# EdgeCase Equalizer - Navigation Map v1.9
+# EdgeCase Equalizer - Navigation Map v2.0
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025 (Week 1, Day 2)  
-**Last Updated:** November 23, 2025 (Phase 10 - Optimization Complete)
+**Last Updated:** November 25, 2025 (Calendar Integration Complete)
 
 ---
 
@@ -22,19 +22,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## CURRENT STATE (Phase 10 Complete - Nov 23, 2025)
+## CURRENT STATE (Nov 25, 2025 - Calendar Integration Complete)
 
 ### Project Statistics
-- **Total Routes:** 30+ across 5 blueprints
+- **Total Routes:** 35+ across 6 blueprints
 - **Entry Types:** 8 (6 client entry types + 2 ledger types)
-- **Database Tables:** 11 tables
-- **Templates:** 11 HTML files with external CSS/JS
+- **Database Tables:** 11 tables (appointments table deprecated)
+- **Templates:** 12 HTML files with external CSS/JS
 - **Code Reduction:** ~4,300 lines eliminated through blueprint extraction + optimization
-  - Original app.py: ~3,700 lines
-  - Current app.py: 77 lines
-  - Blueprints: ~1,400 lines
-  - Shared utilities: ~100 lines
-  - **Net reduction: ~2,100 lines from original monolithic structure**
 
 ### Implementation Status
 
@@ -52,7 +47,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 **✅ COMPLETE - Core Systems:**
 - Entry-based database with 11 tables
-- Flask blueprints architecture (5 blueprints)
+- Flask blueprints architecture (6 blueprints)
 - Shared utility functions (Phase 10)
 - Comprehensive billing (profile fees, guardian splits, link groups)
 - Edit history system (smart word-level diff)
@@ -64,13 +59,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Real-time entry filtering
 - Payment status tracking
 - Ledger with income/expense tracking
+- **Calendar integration (.ics + AppleScript)**
 
 **⏳ NOT YET IMPLEMENTED:**
 - Statement generation (auto-invoices)
 - PDF generation for statements
 - Income/Expense reports
 - Data encryption (SQLCipher - Phase 2)
-- Backup system (Phase 2)
+- Backup system (Phase 2 - placeholder button added)
 - AI features (Phase 2)
 
 ---
@@ -87,19 +83,21 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ├── web/                         # Flask web application
 │   ├── __init__.py
 │   ├── app.py                   # Main Flask app (77 lines - OPTIMIZED)
-│   ├── utils.py                 # Shared utilities (NEW Phase 10)
+│   ├── utils.py                 # Shared utilities (Phase 10)
 │   └── blueprints/              # Modular route handlers
 │       ├── __init__.py
 │       ├── clients.py           # Client management routes
-│       ├── entries.py           # Entry CRUD routes (refactored Phase 10)
-│       ├── ledger.py            # Income/Expense routes (refactored Phase 10)
+│       ├── entries.py           # Entry CRUD routes
+│       ├── ledger.py            # Income/Expense routes
+│       ├── scheduler.py         # Calendar integration (NEW)
 │       ├── settings.py          # Settings and configuration
 │       └── types.py             # Client type management
-├── templates/                   # Jinja2 HTML templates (11 files)
+├── templates/                   # Jinja2 HTML templates (12 files)
 │   ├── base.html               # Base layout
 │   ├── main_view.html          # Client list
 │   ├── client_file.html        # Entry timeline
 │   ├── ledger.html             # Income/Expense view
+│   ├── schedule_form.html      # Calendar appointment form (NEW)
 │   ├── entry_forms/            # Entry creation/edit forms
 │   │   ├── profile.html
 │   │   ├── session.html
@@ -114,8 +112,8 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── manage_links.html
 │   └── add_edit_link_group.html
 ├── static/                     # Static assets
-│   ├── css/                    # External stylesheets (11 files)
-│   └── js/                     # External JavaScript (11 files)
+│   ├── css/                    # External stylesheets (12 files)
+│   └── js/                     # External JavaScript (12 files)
 ├── data/                       # Application data
 │   └── edgecase.db            # SQLite database
 ├── attachments/                # File uploads (NOT in git)
@@ -135,16 +133,16 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 **web/app.py** (77 lines)
 - Flask app initialization
-- Blueprint registration (5 blueprints)
+- Blueprint registration (6 blueprints)
 - Jinja2 filters
-- Placeholder routes (/scheduler, /billing)
+- Placeholder route (/billing)
 
-**web/utils.py** (NEW - Phase 10)
+**web/utils.py** (Phase 10)
 - `parse_date_from_form(form_data)` - Convert dropdowns to timestamp
 - `get_today_date_parts()` - Return dict with today's date components
 - `save_uploaded_files(files, descriptions, entry_id, db, client_id=None)` - Handle uploads
 
-### Blueprints (~1,400 lines total)
+### Blueprints (~1,600 lines total)
 
 **web/blueprints/clients.py** (~400 lines)
 - Client list view (main view)
@@ -153,7 +151,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Change client type
 - Linked client groups display
 
-**web/blueprints/entries.py** (~450 lines, reduced from ~700)
+**web/blueprints/entries.py** (~450 lines)
 - Profile create/edit
 - Session create/edit
 - Communication create/edit
@@ -163,24 +161,32 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Attachment download/delete
 - Session renumbering logic
 
-**web/blueprints/ledger.py** (~350 lines, reduced from ~500)
+**web/blueprints/ledger.py** (~350 lines)
 - Ledger main view
 - Income create/edit/delete
 - Expense create/edit/delete
 - Payee management
 - Category management
 
+**web/blueprints/scheduler.py** (~200 lines) - NEW
+- Schedule form for client appointments
+- Natural language date/time parsing
+- .ics file generation (VEVENT, RRULE, VALARM)
+- AppleScript integration for Mac Calendar
+- Fallback page with auto-download on error
+
 **web/blueprints/types.py** (~100 lines)
 - Manage client types
 - Add/edit/delete types
 - Color palette management
 
-**web/blueprints/settings.py** (~100 lines)
+**web/blueprints/settings.py** (~120 lines)
 - Settings page
 - Practice info API
 - Logo/signature upload
 - File number format settings
 - Background image management
+- Calendar settings API (NEW)
 
 ### Database
 
@@ -190,6 +196,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - 11 tables: clients, client_types, entries, link_groups, client_links, attachments, expense_categories, payees, settings
 - Edit history tracking
 - Entry locking system
+- Note: appointments table exists but is deprecated/empty
 
 ---
 
@@ -198,7 +205,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 **Route Distribution:**
 
 ```
-clients_bp (6 routes):
+clients_bp (11 routes):
   GET  /                           - Main view (client list)
   GET  /client/<id>                - Client file (entry timeline)
   POST /client/<id>/change_type    - Change client type
@@ -236,6 +243,10 @@ ledger_bp (7 routes):
   POST /ledger/income/<id>/delete  - Delete income
   (+ expense - same pattern)
 
+scheduler_bp (1 route) - NEW:
+  GET  /client/<id>/schedule       - Schedule form
+  POST /client/<id>/schedule       - Create calendar event (.ics or AppleScript)
+
 types_bp (4 routes):
   GET  /types                      - Manage types
   GET  /add_type                   - Add type form
@@ -244,7 +255,7 @@ types_bp (4 routes):
   POST /edit_type/<id>             - Update type
   POST /types/<id>/delete          - Delete type
 
-settings_bp (9 routes):
+settings_bp (11 routes):
   GET  /settings                   - Settings page
   GET  /api/practice_info          - Get practice info
   POST /api/practice_info          - Save practice info
@@ -257,37 +268,39 @@ settings_bp (9 routes):
   POST /delete_background          - Delete background
   GET  /settings/file-number       - File number settings
   POST /settings/file-number       - Save file number settings
+  GET  /api/calendar_settings      - Get calendar settings (NEW)
+  POST /api/calendar_settings      - Save calendar settings (NEW)
 ```
 
 ---
 
-## PHASE 10 OPTIMIZATION SUMMARY
+## CALENDAR INTEGRATION (NEW)
 
-**Goal:** Eliminate duplicate code across blueprints using shared utility functions
+**Architecture Decision:** Calendar apps are the source of truth for scheduling. EdgeCase generates events, doesn't store them.
 
-**Created: web/utils.py**
-- `parse_date_from_form()` - Replaced 14 occurrences (8-9 lines each)
-- `get_today_date_parts()` - Replaced 7 occurrences (6 lines + 4 params each)
-- `save_uploaded_files()` - Replaced 6 occurrences (~25 lines each)
+**Features:**
+- Natural language date/time parsing ("Friday 2pm", "Nov 28", "tomorrow")
+- Quick entry field with real-time preview
+- Repeat options: None, Weekly, Biweekly, Monthly
+- Two configurable alerts (e.g., 15 min before, 1 day before)
+- Meet link field (auto-recognized by Apple Calendar for video calls)
 
-**Refactored: entries.py**
-- Date parsing: 10 replacements
-- Today dates: 5 replacements
-- File uploads: 2 replacements
-- **Saved:** ~250 lines
+**Two Output Methods:**
+1. **.ics file download** - Works everywhere (default)
+2. **AppleScript direct add** - Mac only, adds directly to Calendar app
 
-**Refactored: ledger.py**
-- Date parsing: 4 replacements
-- Today dates: 2 replacements
-- File uploads: 4 replacements
-- **Saved:** ~150 lines
+**Settings (in Settings page):**
+- `calendar_method`: 'ics' or 'applescript'
+- `calendar_name`: Target calendar name for AppleScript (e.g., "Work", "Clients")
 
-**Bugs Fixed:**
-- Profile None handling in session routes (4 places)
-- Missing today_dt reference in session number calculation
-- Upload entry sorting bug (missing upload_time in sort logic)
+**Fallback Behavior:**
+If AppleScript fails (wrong calendar name), shows friendly message and auto-downloads .ics file.
 
-**Total Code Reduction:** ~400 lines of duplicate code eliminated
+**Event Content:**
+- Title: Client file number (privacy - no names)
+- Notes: Contact info (preferred method first) + user notes
+- URL/Location: Meet link (if provided)
+- Alerts: VALARM entries in .ics, display alarms in AppleScript
 
 ---
 
@@ -357,13 +370,15 @@ python main.py
 - ✅ Entry locking (immediate for billable, on first edit for Profile)
 - ✅ Session numbering with offset support
 - ✅ Pro bono session tracking (excluded from billing)
+- ✅ **Calendar integration** (natural language parsing, .ics, AppleScript)
+- ✅ **Video call link support** (auto-recognized by calendar apps)
 
 **Cannot yet:**
 - ⏳ Generate statements/invoices automatically
 - ⏳ Create PDF invoices
 - ⏳ Generate financial reports for tax time
 - ⏳ Encrypt database (Phase 2)
-- ⏳ Automated backups (Phase 2)
+- ⏳ Automated backups (Phase 2 - placeholder button added)
 - ⏳ AI note expansion (Phase 2)
 
 ---
@@ -374,7 +389,7 @@ For more detailed information, see:
 
 1. **Database_Schema.md** - Complete table definitions, field descriptions, design decisions
 2. **Route_Reference.md** - All routes organized by blueprint with parameters and return values
-3. **Architecture_Decisions.md** - Why we built things certain ways (billing, edit history, blueprints)
+3. **Architecture_Decisions.md** - Why we built things certain ways (billing, edit history, blueprints, calendar)
 4. **Debugging_Guide.md** - Common issues, solutions, debugging workflows
 
 ---
@@ -386,9 +401,10 @@ For more detailed information, see:
 - v1.7: Edit history system complete (Week 3, Day 4)
 - v1.8: Upload entry type complete (Week 3, Day 5)
 - v1.9: Phase 10 optimization complete, split into modular docs (Nov 23, 2025)
+- v2.0: Calendar integration complete (.ics, AppleScript, natural language) (Nov 25, 2025)
 
 ---
 
 *This is the main navigation map. For detailed information on specific topics, refer to the specialized documentation files listed above.*
 
-*Last updated: November 23, 2025 (Phase 10 - Optimization Complete)*
+*Last updated: November 25, 2025 (Calendar Integration Complete)*
