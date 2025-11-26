@@ -1,0 +1,62 @@
+/* Schedule Form - minimal additions to shared.css */
+
+/* Date input group layout */
+.date-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.date-input-group select {
+    flex: 1;
+}
+
+/* Ensure all input types match */
+#schedule-form input[type="number"],
+#schedule-form input[type="url"] {
+    font-size: 1rem;
+    padding: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Quick entry preview */
+.parse-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    min-height: 1.5rem;
+}
+
+.parse-preview:empty {
+    display: none;
+}
+
+.parse-success {
+    background: #E6F5F1;
+    color: #047857;
+    border: 1px solid #9FCFC0;
+}
+
+.parse-error {
+    background: #FEF2F2;
+    color: #B91C1C;
+    border: 1px solid #FECACA;
+}
+
+/* Quick entry field emphasis */
+#quick_entry {
+    font-size: 1.125rem;
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+}
+
+#quick_entry:focus {
+    border-color: #4299e1;
+}
+
+.parse-hint {
+    background: #F7FAFC;
+    color: #718096;
+    border: 1px solid #E2E8F0;
+}

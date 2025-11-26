@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Appointment - {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/schedule_form.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+        <div>
+            <h2>Schedule Appointment</h2>
+            <div style="color: #718096;">
+                <div style="margin-bottom: 0.25rem;">
+                    {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }} {% endif %}{{ client['last_name'] }}
+                </div>
+                <div style="margin-bottom: 0.25rem;">
+                    <span class="type-badge" style="background-color: {{ client_type['color'] }}">
+                        {{ client_type['name'] }}
+                    </span>
+                </div>
+                <div>
+                    File #{{ client['file_number'] }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="POST" id="schedule-form">
+        <!-- Quick Entry -->
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label for="quick_entry">Quick Entry</label>
+            <input type="text" 
+                   id="quick_entry" 
+                   placeholder="e.g., Friday at 2pm, next Tuesday 3:30, Nov 28 6:15pm"
+                   autocomplete="off">
+            <div id="parse-preview" class="parse-preview"></div>
+            <p class="helper-text">Type naturally - date and time will auto-fill below</p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
+        
+        <!-- Date and Time -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+            <div class="form-group">
+                <label for="year">Date *</label>
+                <div class="date-input-group">
+                    <select id="year" name="year" required>
+                        <option value="">Year</option>
+                        {% for year in range(today_year + 2, today_year - 2, -1) %}
+                        <option value="{{ year }}" {% if year == today_year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select id="month" name="month" required>
+                        <option value="">Month</option>
+                        {% for month in range(1, 13) %}
+                        <option value="{{ month }}" {% if month == today_month %}selected{% endif %}>
+                            {{ '%02d'|format(month) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select id="day" name="day" required>
+                        <option value="">Day</option>
+                        {% for day in range(1, 32) %}
+                        <option value="{{ day }}" {% if day == today_day %}selected{% endif %}>
+                            {{ '%02d'|format(day) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="appointment_time">Time *</label>
+                <input type="text" 
+                       id="appointment_time" 
+                       name="appointment_time" 
+                       value="10:00 AM"
+                       placeholder="e.g., 2:00 PM or 14:00"
+                       required>
+                <p class="helper-text">e.g., 2:00 PM or 14:00</p>
+            </div>
+        </div>
+        
+        <!-- Duration and Meet Link side by side -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="duration">Duration (minutes)</label>
+                <input type="number" 
+                       id="duration" 
+                       name="duration" 
+                       value="{{ default_duration }}" 
+                       min="15" 
+                       max="180" 
+                       step="5">
+            </div>
+            <div class="form-group">
+                <label for="meet_link">Meeting Link</label>
+                <input type="url" 
+                       id="meet_link" 
+                       name="meet_link" 
+                       placeholder="https://meet.google.com/...">
+                <p class="helper-text">Optional - for video sessions</p>
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" 
+                      name="notes" 
+                      rows="3" 
+                      placeholder="Any notes about this appointment..."></textarea>
+        </div>
+    </form>
+    
+    <!-- Buttons OUTSIDE the form -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" form="schedule-form" class="btn">
+            <i data-lucide="calendar-plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.25rem;"></i>
+            Schedule
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/schedule_form.js') }}"></script>
+{% endblock %}

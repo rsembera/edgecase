@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 EdgeCase Scheduler Blueprint
-Handles appointments and calendar integration
+Handles appointment creation and calendar integration
 """
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, make_response
 from datetime import datetime, timedelta
 from core.database import Database
+from web.utils import get_today_date_parts
 
 scheduler_bp = Blueprint('scheduler', __name__)
 
@@ -19,81 +20,52 @@ def init_blueprint(database):
     global db
     db = database
 
-@scheduler_bp.route('/scheduler')
-def scheduler():
-    """Display appointments for a given date (defaults to today)."""
-    
-    # Get date from query param or default to today
-    date_str = request.args.get('date')
-    
-    if date_str:
-        try:
-            view_date = datetime.strptime(date_str, '%Y-%m-%d')
-        except ValueError:
-            view_date = datetime.now()
-    else:
-        view_date = datetime.now()
-    
-    # Get start of day timestamp
-    start_of_day = int(datetime(view_date.year, view_date.month, view_date.day, 0, 0, 0).timestamp())
-    
-    # Get appointments for this date
-    appointments = db.get_appointments_for_date(start_of_day)
-    
-    # Get contact info for each appointment
-    for appt in appointments:
-        client_id = appt['client_id']
-        # Get profile entry for contact details
-        entries = db.get_client_entries(client_id)
-        profile = next((e for e in entries if e['class'] == 'profile'), None)
-        
-        if profile:
-            appt['email'] = profile.get('email')
-            appt['phone'] = profile.get('phone')
-            appt['home_phone'] = profile.get('home_phone')
-            appt['work_phone'] = profile.get('work_phone')
-            appt['text_number'] = profile.get('text_number')
-            appt['preferred_contact'] = profile.get('preferred_contact')
-        
-        # Get client type for color
-        client_type = db.get_client_type(appt['type_id'])
-        if client_type:
-            appt['type_color'] = client_type.get('color', '#9FCFC0')
-            appt['bubble_color'] = client_type.get('bubble_color', '#E6F5F1')
-    
-    # Calculate prev/next dates
-    prev_date = (view_date - timedelta(days=1)).strftime('%Y-%m-%d')
-    next_date = (view_date + timedelta(days=1)).strftime('%Y-%m-%d')
-    today = datetime.now().strftime('%Y-%m-%d')
-    
-    # Format display date
-    if view_date.date() == datetime.now().date():
-        display_date = "Today"
-    elif view_date.date() == (datetime.now() + timedelta(days=1)).date():
-        display_date = "Tomorrow"
-    elif view_date.date() == (datetime.now() - timedelta(days=1)).date():
-        display_date = "Yesterday"
-    else:
-        display_date = view_date.strftime('%A, %B %d, %Y')
-    
-    return render_template('scheduler.html',
-                         appointments=appointments,
-                         view_date=view_date.strftime('%Y-%m-%d'),
-                         display_date=display_date,
-                         prev_date=prev_date,
-                         next_date=next_date,
-                         today=today,
-                         appointment_count=len(appointments))
 
-
-@scheduler_bp.route('/scheduler/delete/<int:appointment_id>', methods=['POST'])
-def delete_appointment(appointment_id):
-    """Delete an appointment."""
+@scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
+def schedule_for_client(client_id):
+    """Create a calendar appointment for a specific client."""
     
-    success = db.delete_appointment(appointment_id)
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
     
-    if success:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'Appointment not found'}), 404
+    # Get profile for default duration and contact info
+    entries = db.get_client_entries(client_id)
+    profile = next((e for e in entries if e['class'] == 'profile'), None)
     
+    # Get client type for default duration and badge
+    client_type = db.get_client_type(client['type_id'])
+    default_duration = 50  # fallback
+    if profile and profile.get('default_session_duration'):
+        default_duration = profile['default_session_duration']
+    elif client_type and client_type.get('session_duration'):
+        default_duration = client_type['session_duration']
+    
+    if request.method == 'POST':
+        # Parse date from form
+        year = request.form.get('year')
+        month = request.form.get('month')
+        day = request.form.get('day')
+        
+        if year and month and day:
+            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+        else:
+            date_str = datetime.now().strftime('%Y-%m-%d')
+        
+        appointment_time = request.form.get('appointment_time', '10:00 AM')
+        duration = int(request.form.get('duration', default_duration) or default_duration)
+        meet_link = request.form.get('meet_link', '').strip() or None
+        notes = request.form.get('notes', '').strip() or ''
+        
+        # TODO: Generate .ics file or use AppleScript
+        # For now, redirect back
+        return redirect(url_for('clients.client_file', client_id=client_id))
+    
+    # GET - show form
+    date_parts = get_today_date_parts()
+    
+    return render_template('schedule_form.html',
+                         client=client,
+                         client_type=client_type,
+                         default_duration=default_duration,
+                         **date_parts)
