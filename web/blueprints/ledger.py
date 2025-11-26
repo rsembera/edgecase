@@ -63,8 +63,28 @@ def ledger():
     # Get all ledger entries
     entries = db.get_all_ledger_entries()
     
-    # Get currency from settings
-    currency = db.get_setting('currency', '$')
+    # Get currency symbol from settings
+    currency_symbols = {
+        'CAD': '$',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'AUD': '$',
+        'NZD': '$',
+    }
+    currency_code = db.get_setting('currency', 'CAD')
+    currency = currency_symbols.get(currency_code, '$')
+    
+    # Calculate YTD and MTD stats
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+    
+    ytd_income = 0
+    ytd_expenses = 0
+    mtd_income = 0
+    mtd_expenses = 0
+    ytd_expenses_by_category = {}
     
     # Organize entries by year and month
     entries_by_year_month = {}
@@ -75,7 +95,29 @@ def ledger():
             year = entry_dt.year
             month = entry_dt.month
             month_name = entry_dt.strftime('%B')  # "November"
+            amount = entry.get('total_amount', 0) or 0
             
+            # YTD calculations
+            if year == current_year:
+                if entry['ledger_type'] == 'income':
+                    ytd_income += amount
+                elif entry['ledger_type'] == 'expense':
+                    ytd_expenses += amount
+                    # Track by category
+                    cat_id = entry.get('category_id')
+                    if cat_id:
+                        if cat_id not in ytd_expenses_by_category:
+                            ytd_expenses_by_category[cat_id] = 0
+                        ytd_expenses_by_category[cat_id] += amount
+            
+            # MTD calculations
+            if year == current_year and month == current_month:
+                if entry['ledger_type'] == 'income':
+                    mtd_income += amount
+                elif entry['ledger_type'] == 'expense':
+                    mtd_expenses += amount
+            
+            # Organize by year/month
             if year not in entries_by_year_month:
                 entries_by_year_month[year] = {}
             
@@ -104,6 +146,20 @@ def ledger():
             
             entries_by_year_month[year][month]['entries'].append(entry)
     
+    # Calculate net
+    ytd_net = ytd_income - ytd_expenses
+    mtd_net = mtd_income - mtd_expenses
+    
+    # Get category names for YTD breakdown
+    ytd_category_breakdown = []
+    for cat_id, amount in sorted(ytd_expenses_by_category.items(), key=lambda x: x[1], reverse=True):
+        category = db.get_expense_category(cat_id)
+        if category:
+            ytd_category_breakdown.append({
+                'name': category['name'],
+                'amount': amount
+            })
+    
     # Sort years (newest first) and months (newest first within year)
     years = sorted(entries_by_year_month.keys(), reverse=True)
     for year in years:
@@ -114,7 +170,15 @@ def ledger():
     return render_template('ledger.html',
                          entries_by_year_month=entries_by_year_month,
                          years=years,
-                         currency=currency)
+                         currency=currency,
+                         ytd_income=ytd_income,
+                         ytd_expenses=ytd_expenses,
+                         ytd_net=ytd_net,
+                         mtd_income=mtd_income,
+                         mtd_expenses=mtd_expenses,
+                         mtd_net=mtd_net,
+                         ytd_category_breakdown=ytd_category_breakdown,
+                         current_year=current_year)
 
 
 # ============================================================================

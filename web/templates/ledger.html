@@ -20,6 +20,44 @@
         <a href="{{ url_for('clients.index') }}" class="btn">← Back to Clients</a>
     </div>
     
+    <!-- Stats Cards -->
+    <div class="stats-container">
+        <div class="stat-card" data-card-id="ytd-income">
+            <div class="stat-number" style="color: #059669;">{{ currency }}{{ "%.2f"|format(ytd_income) }}</div>
+            <div class="stat-label">YTD Income</div>
+        </div>
+        <div class="stat-card" data-card-id="ytd-expenses">
+            <div class="stat-number" style="color: #DC2626;">{{ currency }}{{ "%.2f"|format(ytd_expenses) }}</div>
+            <div class="stat-label">YTD Expenses</div>
+        </div>
+        <div class="stat-card" data-card-id="ytd-net">
+            <div class="stat-number" style="color: {% if ytd_net >= 0 %}#059669{% else %}#DC2626{% endif %};">{{ currency }}{{ "%.2f"|format(ytd_net) }}</div>
+            <div class="stat-label">YTD Net ({{ current_year }})</div>
+        </div>
+        <div class="stat-card" data-card-id="mtd-income">
+            <div class="stat-number" style="color: #059669;">{{ currency }}{{ "%.2f"|format(mtd_income) }}</div>
+            <div class="stat-label">MTD Income</div>
+        </div>
+        <div class="stat-card" data-card-id="mtd-expenses">
+            <div class="stat-number" style="color: #DC2626;">{{ currency }}{{ "%.2f"|format(mtd_expenses) }}</div>
+            <div class="stat-label">MTD Expenses</div>
+        </div>
+        <div class="stat-card category-card" data-card-id="top-categories">
+            <div class="stat-label" style="margin-bottom: 0.5rem; font-weight: 700;">Top Expenses (YTD)</div>
+            {% if ytd_category_breakdown %}
+                {% for cat in ytd_category_breakdown[:3] %}
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                    <span>{{ cat.name }}</span>
+                    <span style="color: #DC2626;">{{ currency }}{{ "%.2f"|format(cat.amount) }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="font-size: 0.875rem; color: #718096;">No expenses yet</div>
+            {% endif %}
+        </div>
+    </div>
+
+    
     <!-- Controls Bar: Search and Action Buttons -->
     <div class="controls-bar">
         <div class="filter-search-group">
