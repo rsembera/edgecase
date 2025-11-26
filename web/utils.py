@@ -35,14 +35,14 @@ def get_today_date_parts():
     Get today's date as year, month, day for form defaults.
     
     Returns:
-        dict: {'today': 'YYYY-MM-DD', 'year': int, 'month': int, 'day': int}
+        dict: {'today': 'YYYY-MM-DD', 'today_year': int, 'today_month': int, 'today_day': int}
     """
     today_dt = datetime.now()
     return {
         'today': today_dt.strftime('%Y-%m-%d'),
-        'year': today_dt.year,
-        'month': today_dt.month,
-        'day': today_dt.day
+        'today_year': today_dt.year,
+        'today_month': today_dt.month,
+        'today_day': today_dt.day
     }
 
 

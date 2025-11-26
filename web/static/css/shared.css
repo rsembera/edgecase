@@ -45,6 +45,16 @@
 }
 
 /* ============================================
+
+/* Global font for form elements */
+select,
+input,
+textarea,
+button {
+    font-family: 'Lexend', sans-serif;
+}
+
+/* ============================================
    BUTTONS
    ============================================ */
 
