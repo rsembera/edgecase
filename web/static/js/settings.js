@@ -344,7 +344,6 @@ async function uploadBackground() {
 }
 
 // Save settings
-// Save settings
 async function saveSettings() {
     // Validate phone number FIRST
     const practicePhone = document.getElementById('practice-phone').value;
@@ -363,6 +362,16 @@ async function saveSettings() {
     
     // Save file number settings
     await saveFileNumberSettings();
+    
+    // Save calendar settings
+    await fetch('/api/calendar_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            calendar_method: document.getElementById('calendar_method').value,
+            calendar_name: document.getElementById('calendar_name').value
+        })
+    });
     
     // Show success message and redirect
     const successMsg = document.getElementById('success-message');
@@ -889,4 +898,58 @@ function showAboutModal() {
 
 function closeAboutModal() {
     document.getElementById('about-modal').style.display = 'none';
+}
+
+// Calendar Settings
+(function() {
+    const calendarMethod = document.getElementById('calendar_method');
+    const calendarNameGroup = document.getElementById('calendar-name-group');
+    const calendarName = document.getElementById('calendar_name');
+    
+    if (!calendarMethod) return; // Not on settings page
+    
+    // Show/hide calendar name based on method
+    calendarMethod.addEventListener('change', function() {
+        calendarNameGroup.style.display = this.value === 'applescript' ? 'block' : 'none';
+    });
+    
+    // Load calendar settings
+    fetch('/api/calendar_settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.calendar_method) {
+                calendarMethod.value = data.calendar_method;
+                calendarNameGroup.style.display = data.calendar_method === 'applescript' ? 'block' : 'none';
+            }
+            if (data.calendar_name) {
+                calendarName.value = data.calendar_name;
+            }
+        });
+})();
+
+function saveCalendarSettings() {
+    const calendarMethod = document.getElementById('calendar_method');
+    const calendarName = document.getElementById('calendar_name');
+    
+    fetch('/api/calendar_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            calendar_method: calendarMethod.value,
+            calendar_name: calendarName.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Calendar settings saved!');
+        }
+    });
+}
+
+// Toggle calendar name field visibility
+function toggleCalendarNameField() {
+    const method = document.getElementById('calendar_method').value;
+    const nameGroup = document.getElementById('calendar-name-group');
+    nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
 }
