@@ -24,3 +24,5 @@ attachments/
 data/edgecase.db
 __pycache__/
 *.pyc
+data/*.db-shm
+data/*.db-wal
