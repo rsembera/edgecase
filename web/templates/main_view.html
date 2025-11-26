@@ -163,6 +163,16 @@
                    onmouseout="this.style.background='transparent'">
                     <i data-lucide="link" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Edit Links
                 </a>
+
+                <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #E2E8F0;">
+
+                <a href="{{ url_for('clients.deleted_clients') }}" 
+                style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                onmouseover="this.style.background='#F3F4F6'" 
+                onmouseout="this.style.background='transparent'">
+                    <i data-lucide="archive" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Deleted
+                </a>
+
             </div>
         </div>
     </div>
@@ -282,7 +292,116 @@
 </div>
 {% endif %}
 
+<!-- ============================================================ -->
+<!-- RETENTION REVIEW MODAL                                       -->
+<!-- Add this HTML to main_view.html, before the closing </body>  -->
+<!-- ============================================================ -->
 
+<!-- Retention Review Modal -->
+<div id="retention-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 700px; width: 90%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #D97706;">
+        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">
+            <i data-lucide="alert-triangle" style="width: 20px; height: 20px; vertical-align: middle; color: #D97706; margin-right: 0.35rem;"></i>
+            File Retention Review Required
+        </h3>
+        <p style="color: #4B5563; margin-bottom: 1rem; line-height: 1.6;">
+            The following client files have exceeded their retention period and are due for deletion. 
+            Select the files you wish to permanently delete. An archive record will be kept for audit purposes.
+        </p>
+        
+        <div id="retention-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #E5E7EB; border-radius: 0.5rem;">
+            <!-- Populated by JavaScript -->
+        </div>
+        
+        <p class="warning-text" style="color: #92400E; background: #FEF3C7; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem;">
+            <strong>Warning:</strong> This action cannot be undone. All entries, attachments, and client data will be permanently deleted.
+        </p>
+        
+        <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 0.75rem;">
+            <button onclick="deleteSelectedClients()" id="delete-selected-btn" style="padding: 0.625rem 1.25rem; background: #9CA3AF; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: not-allowed;" disabled>Delete Selected (0)</button>
+            <button onclick="closeRetentionModal()" class="btn">Review Later</button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Retention list item styles */
+.retention-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #E5E7EB;
+    background: #FAFAFA;
+}
+
+.retention-item:last-child {
+    border-bottom: none;
+}
+
+.retention-item:hover {
+    background: #F3F4F6;
+}
+
+.retention-item input[type="checkbox"] {
+    margin-top: 0.25rem;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.retention-item-details {
+    flex: 1;
+}
+
+.retention-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.retention-item-name {
+    font-weight: 600;
+    color: #1A2B3C;
+}
+
+.retention-item-file-number {
+    font-size: 0.875rem;
+    color: #5B6571;
+    font-family: monospace;
+}
+
+.retention-item-dates {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.8125rem;
+    color: #6B7280;
+}
+
+.minor-badge {
+    font-size: 0.75rem;
+    background: #DBEAFE;
+    color: #1E40AF;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+</style>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 450px; width: 90%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
+        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Confirm Permanent Deletion</h3>
+        <p style="color: #4B5563; margin-bottom: 1.5rem; line-height: 1.6;">
+            Are you sure you want to permanently delete <strong id="delete-count"></strong> client file(s)? This cannot be undone.
+        </p>
+        <div style="display: flex; justify-content: space-between; gap: 0.75rem;">
+            <button onclick="cancelDeletion()" class="btn">Cancel</button>
+            <button onclick="confirmDeletion()" style="padding: 0.625rem 1.25rem; background: #DC2626; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer;">Delete Permanently</button>
+        </div>
+    </div>
+</div>
 
 
 {% endblock %}

@@ -279,10 +279,9 @@ class Database:
     def _create_default_types(self):
         """Create default client types on first run.
         
-        Creates 3 system types:
+        Creates 2 system types:
         - Active (editable, default)
         - Inactive (locked, workflow state)
-        - Deleted (locked, workflow state)
         """
         # Check if any types exist
         conn = self.connect()
@@ -315,15 +314,6 @@ class Database:
                 'retention_period': 2555,  # 7 years in days
                 'is_system': 1,
                 'is_system_locked': 1
-            },
-            {
-                'name': 'Deleted',
-                'color': '#B8B8C5',  # Soft Gray
-                'color_name': 'Soft Gray',
-                'bubble_color': '#EEEEEF',
-                'retention_period': 0,
-                'is_system': 1,
-                'is_system_locked': 1
             }
         ]
         
@@ -349,7 +339,7 @@ class Database:
         
         conn.commit()
         conn.close()
-        print("Created 3 default client types (Active, Inactive, Deleted)")
+        print("Created 2 default client types (Active, Inactive)")
     
     # ===== CLIENT TYPE OPERATIONS =====
 
@@ -1469,6 +1459,253 @@ class Database:
             'net_income': total_income - total_expenses,
             'net_tax_owing': total_tax_collected - total_tax_paid
         }
+        
+    # ============================================================
+    # RETENTION SYSTEM FUNCTIONS
+    # Add these methods to the Database class in database.py
+    # ============================================================
+
+    def get_clients_due_for_deletion(self):
+        """
+        Get all Inactive clients whose retention period has expired.
+        Returns list of dicts with client info and calculated retain_until.
+        """
+        import time
+        from datetime import datetime, timedelta
+        
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get all Inactive clients with retention_days set
+        cursor.execute("""
+            SELECT c.*, ct.name as type_name
+            FROM clients c
+            JOIN client_types ct ON c.type_id = ct.id
+            WHERE ct.name = 'Inactive' 
+            AND c.retention_days IS NOT NULL
+            AND c.is_deleted = 0
+        """)
+        
+        columns = [description[0] for description in cursor.description]
+        inactive_clients = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        clients_due = []
+        today = int(time.time())
+        
+        for client in inactive_clients:
+            client_id = client['id']
+            retention_days = client['retention_days']
+            
+            # Get last contact date (most recent entry)
+            cursor.execute("""
+                SELECT MAX(created_at) as last_contact
+                FROM entries
+                WHERE client_id = ?
+            """, (client_id,))
+            result = cursor.fetchone()
+            last_contact = result[0] if result and result[0] else client['created_at']
+            
+            # Get profile to check for minor status
+            cursor.execute("""
+                SELECT is_minor, date_of_birth
+                FROM entries
+                WHERE client_id = ? AND class = 'profile'
+            """, (client_id,))
+            profile = cursor.fetchone()
+            
+            is_minor = profile[0] if profile else 0
+            dob_str = profile[1] if profile else None
+            
+            # Calculate retain_until
+            retention_seconds = retention_days * 24 * 60 * 60
+            standard_retain_until = last_contact + retention_seconds
+            
+            # For minors, also calculate based on 18th birthday
+            if is_minor and dob_str:
+                try:
+                    dob = datetime.strptime(dob_str, '%Y-%m-%d')
+                    eighteenth_birthday = dob.replace(year=dob.year + 18)
+                    after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
+                    retain_until = max(standard_retain_until, after_majority)
+                except (ValueError, TypeError):
+                    retain_until = standard_retain_until
+            else:
+                retain_until = standard_retain_until
+            
+            # Check if retention period has expired
+            if today >= retain_until:
+                # Get first contact (profile created_at or earliest entry)
+                cursor.execute("""
+                    SELECT MIN(created_at) as first_contact
+                    FROM entries
+                    WHERE client_id = ?
+                """, (client_id,))
+                result = cursor.fetchone()
+                first_contact = result[0] if result and result[0] else client['created_at']
+                
+                # Build full name
+                full_name = client['first_name']
+                if client.get('middle_name'):
+                    full_name += f" {client['middle_name']}"
+                full_name += f" {client['last_name']}"
+                
+                clients_due.append({
+                    'id': client_id,
+                    'file_number': client['file_number'],
+                    'full_name': full_name,
+                    'first_contact': first_contact,
+                    'last_contact': last_contact,
+                    'retain_until': retain_until,
+                    'is_minor': is_minor
+                })
+        
+        conn.close()
+        return clients_due
+
+    def archive_and_delete_client(self, client_id):
+        """
+        Archive client info and delete all their data.
+        Returns True on success, False on failure.
+        """
+        import time
+        import os
+        import shutil
+        from datetime import datetime
+        
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            # Get client data
+            cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+            columns = [description[0] for description in cursor.description]
+            row = cursor.fetchone()
+            if not row:
+                return False
+            client = dict(zip(columns, row))
+            
+            # Get profile for minor check
+            cursor.execute("""
+                SELECT is_minor, date_of_birth
+                FROM entries
+                WHERE client_id = ? AND class = 'profile'
+            """, (client_id,))
+            profile = cursor.fetchone()
+            is_minor = profile[0] if profile else 0
+            dob_str = profile[1] if profile else None
+            
+            # Get first contact
+            cursor.execute("""
+                SELECT MIN(created_at) FROM entries WHERE client_id = ?
+            """, (client_id,))
+            result = cursor.fetchone()
+            first_contact = result[0] if result and result[0] else client['created_at']
+            
+            # Get last contact
+            cursor.execute("""
+                SELECT MAX(created_at) FROM entries WHERE client_id = ?
+            """, (client_id,))
+            result = cursor.fetchone()
+            last_contact = result[0] if result and result[0] else client['created_at']
+            
+            # Calculate retain_until (same logic as get_clients_due_for_deletion)
+            retention_days = client.get('retention_days') or 0
+            retention_seconds = retention_days * 24 * 60 * 60
+            standard_retain_until = last_contact + retention_seconds
+            
+            if is_minor and dob_str:
+                try:
+                    dob = datetime.strptime(dob_str, '%Y-%m-%d')
+                    eighteenth_birthday = dob.replace(year=dob.year + 18)
+                    after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
+                    retain_until = max(standard_retain_until, after_majority)
+                except (ValueError, TypeError):
+                    retain_until = standard_retain_until
+            else:
+                retain_until = standard_retain_until
+            
+            # Build full name
+            full_name = client['first_name']
+            if client.get('middle_name'):
+                full_name += f" {client['middle_name']}"
+            full_name += f" {client['last_name']}"
+            
+            # Create archive record
+            cursor.execute("""
+                INSERT INTO archived_clients 
+                (file_number, full_name, first_contact, last_contact, retain_until, deleted_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                client['file_number'],
+                full_name,
+                first_contact,
+                last_contact,
+                retain_until,
+                int(time.time())
+            ))
+            
+            # Get all entry IDs for this client (for attachment cleanup)
+            cursor.execute("SELECT id FROM entries WHERE client_id = ?", (client_id,))
+            entry_ids = [row[0] for row in cursor.fetchall()]
+            
+            # Delete attachment files from disk
+            attachments_base = os.path.expanduser('~/edgecase/attachments')
+            client_attachments_dir = os.path.join(attachments_base, str(client_id))
+            if os.path.exists(client_attachments_dir):
+                shutil.rmtree(client_attachments_dir)
+            
+            # Delete attachments from database
+            if entry_ids:
+                placeholders = ','.join('?' * len(entry_ids))
+                cursor.execute(f"DELETE FROM attachments WHERE entry_id IN ({placeholders})", entry_ids)
+            
+            # Delete all entries
+            cursor.execute("DELETE FROM entries WHERE client_id = ?", (client_id,))
+            
+            # Delete client record
+            cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+            
+            conn.commit()
+            conn.close()
+            return True
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            print(f"Error archiving client {client_id}: {e}")
+            return False
+
+    def get_deleted_clients(self):
+        """Get all archived client records."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM archived_clients
+            ORDER BY deleted_at DESC
+        """)
+        
+        columns = [description[0] for description in cursor.description]
+        archived = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        conn.close()
+        return archived
+
+    def snapshot_retention_on_inactive(self, client_id, retention_days):
+        """
+        When changing to Inactive, store the retention_days from the original type.
+        """
+        import time
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE clients 
+            SET retention_days = ?, modified_at = ?
+            WHERE id = ?
+        """, (retention_days, int(time.time()), client_id))
+        
+        conn.commit()
+        conn.close()
 
 
     # ============================================================================

@@ -458,6 +458,166 @@ function manageViewToggleForDevice() {
     }
 }
 
+// ============================================================
+// RETENTION SYSTEM JAVASCRIPT
+// Add these functions to main_view.js
+// ============================================================
+
+// Check for clients due for deletion on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkRetention();
+});
+
+function checkRetention() {
+    fetch('/api/retention-check')
+        .then(response => response.json())
+        .then(data => {
+            if (data.clients_due && data.clients_due.length > 0) {
+                showRetentionModal(data.clients_due);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking retention:', error);
+        });
+}
+
+function showRetentionModal(clients) {
+    const modal = document.getElementById('retention-modal');
+    const listContainer = document.getElementById('retention-list');
+    
+    // Build the list HTML
+    let html = '';
+    clients.forEach(client => {
+        html += `
+            <div class="retention-item">
+                <input type="checkbox" 
+                       id="retention-${client.id}" 
+                       value="${client.id}"
+                       onchange="updateDeleteButton()">
+                <div class="retention-item-details">
+                    <div class="retention-item-header">
+                        <span class="retention-item-name">
+                            ${escapeHtml(client.full_name)}
+                            ${client.is_minor ? '<span class="minor-badge">Minor</span>' : ''}
+                        </span>
+                        <span class="retention-item-file-number">${escapeHtml(client.file_number)}</span>
+                    </div>
+                    <div class="retention-item-dates">
+                        <span>First contact: ${client.first_contact_display}</span>
+                        <span>Last contact: ${client.last_contact_display}</span>
+                        <span>Retain until: ${client.retain_until_display}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    listContainer.innerHTML = html;
+    modal.style.display = 'flex';
+    
+    // Re-initialize Lucide icons in modal
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function closeRetentionModal() {
+    document.getElementById('retention-modal').style.display = 'none';
+}
+
+function updateDeleteButton() {
+    const checkboxes = document.querySelectorAll('#retention-list input[type="checkbox"]:checked');
+    const btn = document.getElementById('delete-selected-btn');
+    const count = checkboxes.length;
+    
+    btn.disabled = count === 0;
+    if (count === 0) {
+        btn.style.background = '#9CA3AF';
+        btn.style.cursor = 'not-allowed';
+    } else {
+        btn.style.background = '#DC2626';
+        btn.style.cursor = 'pointer';
+    }
+    btn.textContent = `Delete Selected (${count})`;
+}
+
+let pendingDeleteIds = [];
+
+function deleteSelectedClients() {
+    const checkboxes = document.querySelectorAll('#retention-list input[type="checkbox"]:checked');
+    pendingDeleteIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (pendingDeleteIds.length === 0) return;
+    
+    // Show confirmation modal
+    document.getElementById('delete-count').textContent = pendingDeleteIds.length;
+    document.getElementById('delete-confirm-modal').style.display = 'flex';
+}
+
+function cancelDeletion() {
+    document.getElementById('delete-confirm-modal').style.display = 'none';
+    pendingDeleteIds = [];
+}
+
+function confirmDeletion() {
+    document.getElementById('delete-confirm-modal').style.display = 'none';
+    
+    // Disable button and show loading state
+    const btn = document.getElementById('delete-selected-btn');
+    btn.disabled = true;
+    btn.style.background = '#9CA3AF';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Deleting...';
+    
+    fetch('/api/retention-delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ client_ids: pendingDeleteIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeRetentionModal();
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            updateDeleteButton();
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting clients:', error);
+        alert('An error occurred while deleting clients.');
+        btn.disabled = false;
+        updateDeleteButton();
+    });
+    
+    pendingDeleteIds = [];
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Add spinning animation for loader
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+
 // Run on page load
 document.addEventListener('DOMContentLoaded', manageViewToggleForDevice);
 
