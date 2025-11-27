@@ -1,0 +1,299 @@
+/* Outstanding Statements page styles - matches ledger.css patterns */
+
+/* Header */
+.statements-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #E5E7EB;
+}
+
+.statements-header h2 {
+    color: #111827;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Controls bar */
+.controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.filter-search-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #FBFCFD;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    min-width: 250px;
+}
+
+.search-box .search-icon {
+    color: #718096;
+    display: flex;
+    align-items: center;
+}
+
+.search-box .search-icon i {
+    width: 18px;
+    height: 18px;
+}
+
+.search-box input {
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    width: 100%;
+    outline: none;
+    font-family: 'Lexend', sans-serif;
+}
+
+.clear-search {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #718096;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.clear-search:hover {
+    color: #4A5568;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #5B6571;
+}
+
+.filter-group select {
+    padding: 0.5rem 1rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    background: #FBFCFD;
+    cursor: pointer;
+    font-family: 'Lexend', sans-serif;
+}
+
+/* Table - uses shared.css base styles, adding specifics */
+.statements-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FBFCFD;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.statements-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #55607D;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #E3E9EE;
+    border-bottom: 2px solid #DEE2E6;
+}
+
+.statements-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 0.875rem;
+    color: #323B45;
+}
+
+.statements-table tbody tr.entry-row:hover {
+    background: #F2F4F5;
+}
+
+/* Client cell */
+.client-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.client-name {
+    font-weight: 600;
+    color: #1F2937;
+}
+
+.file-number {
+    font-size: 0.75rem;
+    color: #718096;
+}
+
+.guardian-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    background: #E0E7FF;
+    color: #4338CA;
+    font-size: 0.625rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+    width: fit-content;
+}
+
+/* Amounts */
+.amount {
+    font-family: 'Lexend', monospace;
+    font-weight: 500;
+}
+
+.amount-owing {
+    font-weight: 700;
+    color: #1F2937;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-partial {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-paid {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+/* Action cell */
+.action-cell {
+    white-space: nowrap;
+}
+
+/* Payment form row */
+.payment-form-row {
+    background: #F7FAFC !important;
+}
+
+.payment-form-row:hover {
+    background: #F7FAFC !important;
+}
+
+.payment-form {
+    padding: 1rem 1.5rem;
+    background: #EDF2F7;
+    border-radius: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    cursor: pointer;
+}
+
+.partial-amount {
+    width: 100px;
+    padding: 0.375rem 0.5rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    margin-left: 0.25rem;
+    font-family: 'Lexend', sans-serif;
+}
+
+.partial-amount:disabled {
+    background: #E5E7EB;
+    cursor: not-allowed;
+}
+
+.payment-notes {
+    margin-bottom: 1rem;
+}
+
+.notes-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-family: 'Lexend', sans-serif;
+}
+
+.payment-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-search-group {
+        flex-direction: column;
+    }
+    
+    .search-box {
+        min-width: 100%;
+    }
+    
+    .statements-table {
+        font-size: 0.75rem;
+    }
+    
+    .statements-table th,
+    .statements-table td {
+        padding: 0.5rem;
+    }
+}

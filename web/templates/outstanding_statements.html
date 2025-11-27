@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Outstanding Statements - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/outstanding_statements.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/outstanding_statements.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="statements-header">
+        <div>
+            <h2><i data-lucide="file-text" style="width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Outstanding Statements</h2>
+            <p style="color: #718096; margin-top: 0.5rem;">Track and record payments from clients</p>
+        </div>
+        <a href="{{ url_for('clients.index') }}" class="btn">← Back to Clients</a>
+    </div>
+    
+    {% if portions %}
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+        <div class="filter-search-group">
+            <div class="search-box">
+                <span class="search-icon"><i data-lucide="search"></i></span>
+                <input type="text" 
+                    id="search-input" 
+                    placeholder="Search clients..."
+                    onkeyup="filterTable()">
+                <button type="button" class="clear-search" style="display: none;" onclick="clearSearch()"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="status-filter" onchange="filterTable()">
+                    <option value="all">All Outstanding</option>
+                    <option value="pending">Pending</option>
+                    <option value="partial">Partial</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statements Table -->
+    <table class="statements-table">
+        <thead>
+            <tr>
+                <th>Client</th>
+                <th>Statement Date</th>
+                <th>Amount Due</th>
+                <th>Amount Paid</th>
+                <th>Amount Owing</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for portion in portions %}
+            <tr class="entry-row" 
+                data-portion-id="{{ portion.id }}" 
+                data-client-name="{{ portion.client_name|lower }}"
+                data-file-number="{{ portion.file_number|lower }}"
+                data-status="{{ portion.status }}"
+                data-amount-owing="{{ portion.amount_owing }}">
+                <td class="client-cell">
+                    <span class="client-name">{{ portion.client_name }}</span>
+                    <span class="file-number">{{ portion.file_number }}</span>
+                    {% if portion.payer_label %}
+                    <span class="guardian-badge">{{ portion.payer_label }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ portion.statement_date_formatted }}</td>
+                <td class="amount">${{ "%.2f"|format(portion.amount_due) }}</td>
+                <td class="amount">${{ "%.2f"|format(portion.amount_paid) }}</td>
+                <td class="amount amount-owing">${{ "%.2f"|format(portion.amount_owing) }}</td>
+                <td>
+                    <span class="status-badge status-{{ portion.status }}">
+                        {{ portion.status|capitalize }}
+                    </span>
+                </td>
+                <td class="action-cell">
+                    <button class="btn btn-small mark-paid-btn" 
+                            data-portion-id="{{ portion.id }}"
+                            data-amount-owing="{{ portion.amount_owing }}">
+                        Mark Paid
+                    </button>
+                </td>
+            </tr>
+            
+            <!-- Payment form row (hidden by default) -->
+            <tr class="payment-form-row" data-for-portion="{{ portion.id }}" style="display: none;">
+                <td colspan="7">
+                    <div class="payment-form">
+                        <div class="payment-options">
+                            <label class="radio-option">
+                                <input type="radio" name="payment-type-{{ portion.id }}" 
+                                       value="full" checked>
+                                Paid in full (${{ "%.2f"|format(portion.amount_owing) }})
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="payment-type-{{ portion.id }}" 
+                                       value="partial">
+                                Partial payment: 
+                                <input type="number" class="partial-amount" 
+                                       step="0.01" min="0.01" 
+                                       max="{{ portion.amount_owing }}"
+                                       placeholder="0.00" disabled>
+                            </label>
+                        </div>
+                        <div class="payment-notes">
+                            <input type="text" class="notes-input" 
+                                   placeholder="Notes (optional)">
+                        </div>
+                        <div class="payment-actions">
+                            <button class="btn btn-secondary cancel-payment-btn">Cancel</button>
+                            <button class="btn confirm-payment-btn"
+                                    data-portion-id="{{ portion.id }}"
+                                    data-amount-owing="{{ portion.amount_owing }}">
+                                Confirm Payment
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% else %}
+    <!-- Empty State -->
+    <div class="placeholder-message">
+        <i data-lucide="check-circle" style="width: 48px; height: 48px; color: #10B981; margin-bottom: 1rem;"></i>
+        <h3>All Caught Up!</h3>
+        <p>No outstanding statements. All payments have been received.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -266,6 +266,36 @@ class Database:
             )
         """)
         
+        # Archived Clients (retention system audit trail)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS archived_clients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_number TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                first_contact INTEGER,
+                last_contact INTEGER,
+                retain_until INTEGER,
+                deleted_at INTEGER NOT NULL
+            )
+        """)
+        
+        # Statement Portions (payment tracking for Outstanding Statements)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS statement_portions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            statement_entry_id INTEGER NOT NULL,
+            client_id INTEGER NOT NULL,
+            guardian_number INTEGER,
+            amount_due REAL NOT NULL,
+            amount_paid REAL DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            date_sent INTEGER,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (statement_entry_id) REFERENCES entries(id),
+            FOREIGN KEY (client_id) REFERENCES clients(id)
+        )
+        """)
+        
         conn.commit()
         
         # Create default client types if they don't exist
