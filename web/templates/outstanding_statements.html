@@ -12,130 +12,171 @@
 
 {% block content %}
 <div class="card">
+    <!-- Header -->
     <div class="statements-header">
         <div>
-            <h2><i data-lucide="file-text" style="width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Outstanding Statements</h2>
-            <p style="color: #718096; margin-top: 0.5rem;">Track and record payments from clients</p>
+            <h2><i data-lucide="file-text"></i> Outstanding Statements</h2>
+            <p>Generate and track client statements</p>
         </div>
-        <a href="{{ url_for('clients.index') }}" class="btn">← Back to Clients</a>
+        <a href="{{ url_for('clients.index') }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back to Clients
+        </a>
     </div>
     
-    {% if portions %}
+    <!-- Generate Section (Collapsible) -->
+    <div class="generate-section">
+        <div class="generate-header" onclick="toggleGenerateSection()">
+            <i data-lucide="chevron-right" class="toggle-icon" id="generate-toggle-icon"></i>
+            <span>Generate New Statements</span>
+        </div>
+            <div class="generate-content" id="generate-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>From</label>
+                        <div class="date-input-group">
+                            <select id="start-year" class="year-select">
+                                {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if y == default_start_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <select id="start-month" class="month-select">
+                                {% for m in range(1, 13) %}
+                                <option value="{{ m }}" {% if m == default_start_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                                {% endfor %}
+                            </select>
+                            <select id="start-day" class="day-select">
+                                {% for d in range(1, 32) %}
+                                <option value="{{ d }}" {% if d == default_start_day %}selected{% endif %}>{{ d }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                <div class="form-group">
+                    <label>To</label>
+                        <div class="date-input-group">
+                            <select id="end-year" class="year-select">
+                                {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if y == default_end_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <select id="end-month" class="month-select">
+                                {% for m in range(1, 13) %}
+                                <option value="{{ m }}" {% if m == default_end_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                                {% endfor %}
+                            </select>
+                            <select id="end-day" class="day-select">
+                                {% for d in range(1, 32) %}
+                                <option value="{{ d }}" {% if d == default_end_day %}selected{% endif %}>{{ d }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                </div>
+            </div>
+        
+        <div class="date-buttons">
+            <button type="button" class="btn-small" onclick="findUnbilled()">Find Unbilled</button>
+        </div>
+        
+        <!-- Results will be populated here -->
+        <div id="unbilled-results"></div>
+    </div>
+    </div>
+    
     <!-- Controls Bar -->
     <div class="controls-bar">
-        <div class="filter-search-group">
-            <div class="search-box">
-                <span class="search-icon"><i data-lucide="search"></i></span>
-                <input type="text" 
-                    id="search-input" 
-                    placeholder="Search clients..."
-                    onkeyup="filterTable()">
-                <button type="button" class="clear-search" style="display: none;" onclick="clearSearch()"><i data-lucide="x"></i></button>
+        <div class="controls-left">
+            <!-- Filter Dropdown (custom, matches main_view) -->
+            <div style="position: relative;">
+                <button class="dropdown-btn" id="filter-button" onclick="toggleDropdown('filter-dropdown')">
+                    Filter:&nbsp;<span id="filter-label">All</span>:&nbsp▾
+                </button>
+                <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
+                    <a href="#" class="filter-option" data-value="all" onclick="setFilter('all', 'All'); return false;">All Statuses</a>
+                    <a href="#" class="filter-option" data-value="ready" onclick="setFilter('ready', 'Ready'); return false;">Ready to Send</a>
+                    <a href="#" class="filter-option" data-value="sent" onclick="setFilter('sent', 'Sent'); return false;">Sent</a>
+                    <a href="#" class="filter-option" data-value="partial" onclick="setFilter('partial', 'Partial'); return false;">Partial Payment</a>
+                </div>
             </div>
             
-            <div class="filter-group">
-                <label>Status:</label>
-                <select id="status-filter" onchange="filterTable()">
-                    <option value="all">All Outstanding</option>
-                    <option value="pending">Pending</option>
-                    <option value="partial">Partial</option>
-                </select>
+            <!-- Search - matches main_view.html exactly -->
+            <div class="search-box">
+                <span class="search-icon"><i data-lucide="search"></i></span>
+                <input type="text" id="search-input" placeholder="Search statements..." oninput="filterTable()">
+                <button type="button" class="clear-search" onclick="clearSearch()"><i data-lucide="x"></i></button>
             </div>
         </div>
     </div>
     
     <!-- Statements Table -->
-    <table class="statements-table">
-        <thead>
-            <tr>
-                <th>Client</th>
-                <th>Statement Date</th>
-                <th>Amount Due</th>
-                <th>Amount Paid</th>
-                <th>Amount Owing</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for portion in portions %}
-            <tr class="entry-row" 
-                data-portion-id="{{ portion.id }}" 
-                data-client-name="{{ portion.client_name|lower }}"
-                data-file-number="{{ portion.file_number|lower }}"
-                data-status="{{ portion.status }}"
-                data-amount-owing="{{ portion.amount_owing }}">
-                <td class="client-cell">
-                    <span class="client-name">{{ portion.client_name }}</span>
-                    <span class="file-number">{{ portion.file_number }}</span>
-                    {% if portion.payer_label %}
-                    <span class="guardian-badge">{{ portion.payer_label }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ portion.statement_date_formatted }}</td>
-                <td class="amount">${{ "%.2f"|format(portion.amount_due) }}</td>
-                <td class="amount">${{ "%.2f"|format(portion.amount_paid) }}</td>
-                <td class="amount amount-owing">${{ "%.2f"|format(portion.amount_owing) }}</td>
-                <td>
-                    <span class="status-badge status-{{ portion.status }}">
-                        {{ portion.status|capitalize }}
-                    </span>
-                </td>
-                <td class="action-cell">
-                    <button class="btn btn-small mark-paid-btn" 
-                            data-portion-id="{{ portion.id }}"
-                            data-amount-owing="{{ portion.amount_owing }}">
-                        Mark Paid
-                    </button>
-                </td>
-            </tr>
-            
-            <!-- Payment form row (hidden by default) -->
-            <tr class="payment-form-row" data-for-portion="{{ portion.id }}" style="display: none;">
-                <td colspan="7">
-                    <div class="payment-form">
-                        <div class="payment-options">
-                            <label class="radio-option">
-                                <input type="radio" name="payment-type-{{ portion.id }}" 
-                                       value="full" checked>
-                                Paid in full (${{ "%.2f"|format(portion.amount_owing) }})
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="payment-type-{{ portion.id }}" 
-                                       value="partial">
-                                Partial payment: 
-                                <input type="number" class="partial-amount" 
-                                       step="0.01" min="0.01" 
-                                       max="{{ portion.amount_owing }}"
-                                       placeholder="0.00" disabled>
-                            </label>
-                        </div>
-                        <div class="payment-notes">
-                            <input type="text" class="notes-input" 
-                                   placeholder="Notes (optional)">
-                        </div>
-                        <div class="payment-actions">
-                            <button class="btn btn-secondary cancel-payment-btn">Cancel</button>
-                            <button class="btn confirm-payment-btn"
-                                    data-portion-id="{{ portion.id }}"
-                                    data-amount-owing="{{ portion.amount_owing }}">
-                                Confirm Payment
+    {% if statements %}
+    <div class="statements-table-container">
+        <table class="statements-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="statements-tbody">
+                {% for stmt in statements %}
+                <tr class="statement-row" 
+                    data-status="{{ stmt.status }}" 
+                    data-client="{{ stmt.client_name|lower }}"
+                    data-file="{{ stmt.file_number|lower }}">
+                    <td>{{ stmt.date_display }}</td>
+                    <td>
+                        <strong>{{ stmt.client_name }}</strong><br>
+                        <span style="color: #718096; font-size: 0.8125rem;">{{ stmt.file_number }}</span>
+                    </td>
+                    <td>${{ "%.2f"|format(stmt.amount_owing) }}</td>
+                    <td>
+                        <span class="status-badge {{ stmt.status }}">{{ stmt.status }}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if stmt.status == 'ready' %}
+                            <button class="btn-icon" onclick="markSent({{ stmt.id }})" title="Mark as Sent">
+                                <i data-lucide="send"></i>
                             </button>
+                            {% elif stmt.status == 'sent' %}
+                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }}, {{ stmt.amount_due }})" title="Record Payment">
+                                <i data-lucide="banknote"></i>
+                            </button>
+                            {% elif stmt.status == 'partial' %}
+                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }}, {{ stmt.amount_due - stmt.amount_paid }})" title="Add Payment">
+                                <i data-lucide="banknote"></i>
+                            </button>
+                            {% endif %}
                         </div>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <!-- Empty State -->
     <div class="placeholder-message">
-        <i data-lucide="check-circle" style="width: 48px; height: 48px; color: #10B981; margin-bottom: 1rem;"></i>
-        <h3>All Caught Up!</h3>
-        <p>No outstanding statements. All payments have been received.</p>
+        <i data-lucide="file-text"></i>
+        <h3>No Outstanding Statements</h3>
+        <p>Use the "Generate New Statements" section above to create statements for unbilled sessions.</p>
     </div>
     {% endif %}
 </div>
+
+<!-- Payment Modal -->
+<div class="payment-modal-overlay" id="payment-modal">
+    <div class="payment-modal">
+        <h3>Record Payment</h3>
+        <label for="payment-amount">Amount</label>
+        <input type="number" id="payment-amount" step="0.01" min="0">
+        <div class="payment-modal-buttons">
+            <button class="btn-small btn-secondary" onclick="hidePaymentModal()">Cancel</button>
+            <button class="btn-small" onclick="confirmPayment()">Confirm</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
