@@ -1,87 +1,226 @@
-// Outstanding Statements page JavaScript
+/* Outstanding Statements - JavaScript */
+
+// Track current filter
+let currentFilter = 'all';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Mark Paid buttons
-    document.querySelectorAll('.mark-paid-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const portionId = this.dataset.portionId;
-            showPaymentForm(portionId);
-        });
-    });
-    
-    // Cancel payment buttons
-    document.querySelectorAll('.cancel-payment-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const formRow = this.closest('.payment-form-row');
-            hidePaymentForm(formRow);
-        });
-    });
-    
-    // Confirm payment buttons
-    document.querySelectorAll('.confirm-payment-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const portionId = this.dataset.portionId;
-            const amountOwing = parseFloat(this.dataset.amountOwing);
-            confirmPayment(portionId, amountOwing);
-        });
-    });
-    
-    // Radio button toggle for partial payment input
-    document.querySelectorAll('input[type="radio"][name^="payment-type-"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const formRow = this.closest('.payment-form-row');
-            const partialInput = formRow.querySelector('.partial-amount');
-            
-            if (this.value === 'partial') {
-                partialInput.disabled = false;
-                partialInput.focus();
-            } else {
-                partialInput.disabled = true;
-                partialInput.value = '';
-            }
-        });
-    });
-    
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-});
-
-function filterTable() {
-    const searchInput = document.getElementById('search-input');
-    const statusFilter = document.getElementById('status-filter');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    const statusValue = statusFilter ? statusFilter.value : 'all';
     
-    // Show/hide clear button
-    const clearBtn = document.querySelector('.clear-search');
-    if (clearBtn) {
-        clearBtn.style.display = searchTerm ? 'flex' : 'none';
+    // Set up search input clear button visibility
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        updateClearButton();
+        searchInput.addEventListener('input', updateClearButton);
     }
     
-    document.querySelectorAll('.statements-table tbody tr.entry-row').forEach(row => {
-        const clientName = row.dataset.clientName || '';
-        const fileNumber = row.dataset.fileNumber || '';
-        const status = row.dataset.status || '';
-        
-        const matchesSearch = clientName.includes(searchTerm) || 
-                             fileNumber.includes(searchTerm);
-        const matchesStatus = statusValue === 'all' || status === statusValue;
-        
-        if (matchesSearch && matchesStatus) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-            // Also hide associated payment form row
-            const portionId = row.dataset.portionId;
-            const formRow = document.querySelector(`.payment-form-row[data-for-portion="${portionId}"]`);
-            if (formRow) {
-                formRow.style.display = 'none';
-            }
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown-btn') && !e.target.closest('#filter-dropdown')) {
+            const dropdown = document.getElementById('filter-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
     });
+});
+
+// ============================================
+// DROPDOWN TOGGLE (matches main_view)
+// ============================================
+
+function toggleDropdown(id) {
+    const dropdown = document.getElementById(id);
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function setFilter(value, label) {
+    currentFilter = value;
+    document.getElementById('filter-label').textContent = label;
+    document.getElementById('filter-dropdown').style.display = 'none';
+    
+    // Update active state on options
+    document.querySelectorAll('.filter-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.value === value);
+    });
+    
+    filterTable();
+}
+
+// ============================================
+// GENERATE SECTION TOGGLE
+// ============================================
+
+function toggleGenerateSection() {
+    const content = document.getElementById('generate-content');
+    const icon = document.getElementById('generate-toggle-icon');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        icon.classList.remove('expanded');
+    } else {
+        content.classList.add('expanded');
+        icon.classList.add('expanded');
+    }
+}
+
+// ============================================
+// DATE HELPERS
+// ============================================
+
+function getDateFromDropdowns(prefix) {
+    const year = document.getElementById(prefix + '-year').value;
+    const month = document.getElementById(prefix + '-month').value.padStart(2, '0');
+    const day = document.getElementById(prefix + '-day').value.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function setDateInDropdowns(prefix, date) {
+    const d = new Date(date);
+    document.getElementById(prefix + '-year').value = d.getFullYear();
+    document.getElementById(prefix + '-month').value = d.getMonth() + 1;
+    document.getElementById(prefix + '-day').value = d.getDate();
+}
+
+// ============================================
+// FIND UNBILLED CLIENTS
+// ============================================
+
+function findUnbilled() {
+    const startDate = getDateFromDropdowns('start');
+    const endDate = getDateFromDropdowns('end');
+    
+    fetch(`/statements/find-unbilled?start=${startDate}&end=${endDate}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('unbilled-results');
+            
+            if (data.clients && data.clients.length > 0) {
+                let html = `
+                    <div class="unbilled-results">
+                        <h4>Clients with Unbilled Sessions (${data.clients.length})</h4>
+                        <div class="select-all-row">
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                            <label for="select-all">Select All</label>
+                        </div>
+                        <div id="unbilled-list">
+                `;
+                
+                data.clients.forEach(client => {
+                    html += `
+                        <div class="unbilled-client">
+                            <input type="checkbox" class="client-checkbox" value="${client.id}" data-amount="${client.unbilled_total}">
+                            <span class="client-name">${client.name}</span>
+                            <span class="file-number">${client.file_number}</span>
+                            <span class="unbilled-amount">$${client.unbilled_total.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                        <div class="generate-actions">
+                            <button class="btn" onclick="generateStatements()">Generate Statements</button>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="unbilled-results">
+                        <p style="color: #718096; padding: 1rem 0;">No unbilled sessions found for the selected date range.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error finding unbilled:', error);
+            alert('Error searching for unbilled sessions');
+        });
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.client-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+}
+
+// ============================================
+// GENERATE STATEMENTS
+// ============================================
+
+function generateStatements() {
+    const checkboxes = document.querySelectorAll('.client-checkbox:checked');
+    const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (clientIds.length === 0) {
+        alert('Please select at least one client');
+        return;
+    }
+    
+    const startDate = getDateFromDropdowns('start');
+    const endDate = getDateFromDropdowns('end');
+    
+    fetch('/statements/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            client_ids: clientIds,
+            start_date: startDate,
+            end_date: endDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Generated ${data.count} statement(s)`);
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error generating statements:', error);
+        alert('Error generating statements');
+    });
+}
+
+// ============================================
+// FILTER AND SEARCH
+// ============================================
+
+function filterTable() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const rows = document.querySelectorAll('.statement-row');
+    
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const client = row.dataset.client;
+        const file = row.dataset.file;
+        
+        const statusMatch = currentFilter === 'all' || status === currentFilter;
+        const searchMatch = !searchTerm || 
+            client.includes(searchTerm) || 
+            file.includes(searchTerm);
+        
+        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+    });
+    
+    // Update clear button visibility
+    updateClearButton();
+}
+
+function updateClearButton() {
+    const searchInput = document.getElementById('search-input');
+    const clearBtn = document.querySelector('.clear-search');
+    if (searchInput && clearBtn) {
+        clearBtn.style.display = searchInput.value ? 'block' : 'none';
+    }
 }
 
 function clearSearch() {
@@ -92,89 +231,98 @@ function clearSearch() {
     }
 }
 
-function showPaymentForm(portionId) {
-    // Hide all other payment forms
-    document.querySelectorAll('.payment-form-row').forEach(row => {
-        row.style.display = 'none';
+// ============================================
+// STATEMENT ACTIONS
+// ============================================
+
+function markSent(portionId) {
+    fetch(`/statements/mark-sent/${portionId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error marking sent:', error);
+        alert('Error marking statement as sent');
     });
-    
-    // Show this payment form
-    const formRow = document.querySelector(`.payment-form-row[data-for-portion="${portionId}"]`);
-    if (formRow) {
-        formRow.style.display = '';
-        
-        // Reset form
-        const fullRadio = formRow.querySelector('input[value="full"]');
-        if (fullRadio) fullRadio.checked = true;
-        
-        const partialInput = formRow.querySelector('.partial-amount');
-        if (partialInput) {
-            partialInput.disabled = true;
-            partialInput.value = '';
-        }
-        
-        const notesInput = formRow.querySelector('.notes-input');
-        if (notesInput) notesInput.value = '';
-    }
 }
 
-function hidePaymentForm(formRow) {
-    formRow.style.display = 'none';
+let currentPaymentPortionId = null;
+
+function showPaymentForm(portionId, amountOwing) {
+    currentPaymentPortionId = portionId;
+    const input = document.getElementById('payment-amount');
+    input.value = amountOwing.toFixed(2);
+    input.dataset.max = amountOwing.toFixed(2);
+    input.max = amountOwing.toFixed(2);
+    document.getElementById('payment-modal').classList.add('visible');
 }
 
-function confirmPayment(portionId, amountOwing) {
-    const formRow = document.querySelector(`.payment-form-row[data-for-portion="${portionId}"]`);
-    const paymentType = formRow.querySelector('input[name^="payment-type-"]:checked').value;
-    const partialAmount = formRow.querySelector('.partial-amount').value;
-    const notes = formRow.querySelector('.notes-input').value;
+function hidePaymentModal() {
+    document.getElementById('payment-modal').classList.remove('visible');
+    currentPaymentPortionId = null;
+}
+
+function confirmPayment() {
+    const amountInput = document.getElementById('payment-amount');
+    const amount = parseFloat(amountInput.value);
     
-    let paymentAmount;
-    if (paymentType === 'full') {
-        paymentAmount = amountOwing;
-    } else {
-        paymentAmount = parseFloat(partialAmount);
-        if (isNaN(paymentAmount) || paymentAmount <= 0) {
-            alert('Please enter a valid payment amount');
-            return;
-        }
-        if (paymentAmount > amountOwing) {
-            alert('Payment amount cannot exceed amount owing');
-            return;
-        }
+    // Validation
+    if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid positive amount');
+        return;
     }
     
-    // Disable button while processing
-    const confirmBtn = formRow.querySelector('.confirm-payment-btn');
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Processing...';
+    // Get max amount from data attribute
+    const maxAmount = parseFloat(amountInput.dataset.max);
+    if (amount > maxAmount) {
+        alert(`Amount cannot exceed $${maxAmount.toFixed(2)}`);
+        return;
+    }
     
     fetch('/statements/mark-paid', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            portion_id: portionId,
-            payment_amount: paymentAmount,
-            payment_type: paymentType,
-            notes: notes
+        body: JSON.stringify({ 
+            portion_id: currentPaymentPortionId,
+            payment_amount: amount,
+            payment_type: amount >= maxAmount ? 'full' : 'partial'
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Reload page to show updated data
+            hidePaymentModal();
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to process payment');
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Confirm Payment';
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Network error. Please try again.');
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Confirm Payment';
+        console.error('Error recording payment:', error);
+        alert('Error recording payment');
     });
 }
+
+// Close modal when clicking outside
+document.getElementById('payment-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hidePaymentModal();
+    }
+});
+
+// Format amount to 2 decimal places on blur
+document.getElementById('payment-amount').addEventListener('blur', function() {
+    const val = parseFloat(this.value);
+    if (!isNaN(val)) {
+        this.value = val.toFixed(2);
+    }
+});

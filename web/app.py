@@ -45,7 +45,7 @@ app.register_blueprint(clients_bp)
 app.register_blueprint(entries_bp)
 app.register_blueprint(ledger_bp)
 app.register_blueprint(scheduler_bp)
-app.register_blueprint(statements_bp)
+app.register_blueprint(statements_bp, url_prefix='/statements')
 
 from web.blueprints.ledger import init_blueprint as init_ledger
 init_ledger(db)

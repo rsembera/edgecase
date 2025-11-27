@@ -288,7 +288,7 @@ class Database:
             guardian_number INTEGER,
             amount_due REAL NOT NULL,
             amount_paid REAL DEFAULT 0,
-            status TEXT DEFAULT 'pending',
+            status TEXT DEFAULT 'ready',
             date_sent INTEGER,
             created_at INTEGER NOT NULL,
             FOREIGN KEY (statement_entry_id) REFERENCES entries(id),

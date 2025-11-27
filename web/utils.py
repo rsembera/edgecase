@@ -10,23 +10,23 @@ import time
 import difflib
 
 
-def parse_date_from_form(form_data):
-    """
-    Parse year/month/day from form dropdowns to Unix timestamp.
-    
-    Args:
-        form_data: Form data dict with 'year', 'month', 'day' keys
-        
-    Returns:
-        int: Unix timestamp or None if incomplete
-    """
-    year = form_data.get('year')
-    month = form_data.get('month')
-    day = form_data.get('day')
+import calendar
+
+def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day'):
+    """Convert year/month/day dropdowns to Unix timestamp.
+    Automatically clamps invalid days (e.g., Nov 31 → Nov 30)."""
+    year = form_data.get(year_key)
+    month = form_data.get(month_key)
+    day = form_data.get(day_key)
     
     if year and month and day:
-        date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-        return int(datetime.strptime(date_str, '%Y-%m-%d').timestamp())
+        year = int(year)
+        month = int(month)
+        day = int(day)
+        # Clamp day to valid range for the month
+        max_day = calendar.monthrange(year, month)[1]
+        day = min(day, max_day)
+        return int(datetime(year, month, day).timestamp())
     return None
 
 

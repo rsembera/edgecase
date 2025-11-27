@@ -1,299 +1,585 @@
-/* Outstanding Statements page styles - matches ledger.css patterns */
+/* Outstanding Statements - Custom Styles */
+/* Follows patterns from main_view.css and shared.css */
 
-/* Header */
+.card {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
 .statements-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #E5E7EB;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .statements-header h2 {
-    color: #111827;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0;
+    margin: 0 0 0.25rem 0;
+    color: #2D3748;
+    font-size: 1.75rem;
+    font-weight: 600;
 }
 
-/* Controls bar */
+.statements-header h2 svg {
+    width: 28px;
+    height: 28px;
+    vertical-align: -4px;
+    margin-right: 0.5rem;
+    color: #1F8F74;
+}
+
+.statements-header p {
+    color: #718096;
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+/* ============================================
+   GENERATE SECTION (Collapsible)
+   ============================================ */
+.generate-section {
+    background: #F7FAFC;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.generate-header {
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #2D3748;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.generate-header:hover {
+    background: #EDF2F7;
+}
+
+.generate-header .toggle-icon {
+    color: #718096;
+    transition: transform 0.2s;
+    width: 16px;
+    height: 16px;
+}
+
+.generate-header .toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.generate-content {
+    display: none;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    border-top: 1px solid #E2E8F0;
+}
+
+.generate-content.expanded {
+    display: block;
+}
+
+/* Date range row */
+.date-range-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+}
+
+.date-range-row label {
+    font-weight: 600;
+    color: #2D3748;
+    font-size: 0.875rem;
+}
+
+/* Date input group - matches shared.css .date-input-group */
+.date-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.date-input-group select {
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #323B45;
+    background: #FBFCFD;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 50px;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
+}
+
+.date-input-group select:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+/* Individual select widths */
+.date-input-group select.year-select {
+    width: 100px;
+}
+
+.date-input-group select.month-select {
+    width: 120px;
+}
+
+.date-input-group select.day-select {
+    width: 80px;
+}
+
+.date-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Results section */
+.unbilled-results {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #E2E8F0;
+}
+
+.unbilled-results h4 {
+    margin: 0 0 1rem 0;
+    color: #2D3748;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Select all row */
+.select-all-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #E3E9EE;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.select-all-row label {
+    font-weight: 600;
+    color: #55607D;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+/* Client row in unbilled list */
+.unbilled-client {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: #FBFCFD;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.unbilled-client:hover {
+    background: #F7FAFC;
+}
+
+.unbilled-client input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.unbilled-client .client-name {
+    flex: 1;
+    font-weight: 600;
+    color: #2D3748;
+}
+
+.unbilled-client .file-number {
+    color: #718096;
+    font-size: 0.875rem;
+    font-family: monospace;
+}
+
+.unbilled-client .unbilled-amount {
+    font-weight: 600;
+    color: #1F8F74;
+}
+
+/* Generate button row */
+.generate-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #E2E8F0;
+}
+
+/* ============================================
+   CONTROLS BAR (Filter + Search)
+   Matches main_view.css .controls-bar
+   ============================================ */
 .controls-bar {
+    background: #E3E9EE;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
     flex-wrap: wrap;
     gap: 1rem;
 }
 
-.filter-search-group {
+.controls-left {
     display: flex;
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.search-box {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+/* Filter dropdown - matches .dropdown-btn from shared.css */
+.filter-select {
+    padding: 0.75rem 1.25rem;
     background: #FBFCFD;
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
-    padding: 0.5rem 1rem;
-    min-width: 250px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #323B45;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 42px;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
 }
 
-.search-box .search-icon {
-    color: #718096;
-    display: flex;
-    align-items: center;
+.filter-select:hover {
+    border-color: #1F8F74;
 }
 
-.search-box .search-icon i {
-    width: 18px;
-    height: 18px;
+.filter-select:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+/* Search box - matches main_view.css .search-box exactly */
+.search-box {
+    position: relative;
 }
 
 .search-box input {
-    border: none;
-    background: transparent;
-    font-size: 0.875rem;
-    width: 100%;
-    outline: none;
-    font-family: 'Lexend', sans-serif;
-}
-
-.clear-search {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #718096;
-    padding: 0;
-    display: flex;
-    align-items: center;
-}
-
-.clear-search:hover {
-    color: #4A5568;
-}
-
-.filter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filter-group label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #5B6571;
-}
-
-.filter-group select {
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
     font-size: 0.875rem;
-    background: #FBFCFD;
-    cursor: pointer;
+    width: 300px;
+    transition: all 0.2s;
     font-family: 'Lexend', sans-serif;
+    box-sizing: border-box;
 }
 
-/* Table - uses shared.css base styles, adding specifics */
-.statements-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #FBFCFD;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+.search-box input:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
 }
 
-.statements-table th {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #55607D;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: #E3E9EE;
-    border-bottom: 2px solid #DEE2E6;
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF;
 }
 
-.statements-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #E5E7EB;
-    font-size: 0.875rem;
-    color: #323B45;
+/* Match main_view Lucide icon sizing */
+.search-icon svg {
+    width: 14px;
+    height: 14px;
 }
 
-.statements-table tbody tr.entry-row:hover {
-    background: #F2F4F5;
+.clear-search {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: none;
+    transition: color 0.2s;
+    line-height: 1;
 }
 
-/* Client cell */
-.client-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.clear-search:hover {
+    color: #6B7280;
 }
 
-.client-name {
-    font-weight: 600;
-    color: #1F2937;
+.clear-search svg {
+    width: 14px;
+    height: 14px;
 }
 
-.file-number {
-    font-size: 0.75rem;
-    color: #718096;
+/* ============================================
+   STATEMENTS TABLE
+   ============================================ */
+.statements-table-container {
+    overflow-x: auto;
 }
 
-.guardian-badge {
-    display: inline-block;
-    padding: 0.125rem 0.5rem;
-    background: #E0E7FF;
-    color: #4338CA;
-    font-size: 0.625rem;
-    font-weight: 600;
-    border-radius: 0.25rem;
-    text-transform: uppercase;
-    margin-top: 0.25rem;
-    width: fit-content;
+/* Use shared table styles from shared.css */
+/* These are just overrides for column widths */
+
+/* Column widths and spacing */
+.statements-table th:nth-child(1),
+.statements-table td:nth-child(1) {
+    width: 120px;  /* Date */
 }
 
-/* Amounts */
-.amount {
-    font-family: 'Lexend', monospace;
-    font-weight: 500;
+.statements-table th:nth-child(2),
+.statements-table td:nth-child(2) {
+    width: auto;   /* Client - flexible */
 }
 
-.amount-owing {
-    font-weight: 700;
-    color: #1F2937;
+.statements-table th:nth-child(3),
+.statements-table td:nth-child(3) {
+    width: 100px;  /* Amount */
+    text-align: right;
+    padding-right: 1.5rem;
+}
+
+.statements-table th:nth-child(4),
+.statements-table td:nth-child(4) {
+    width: 120px;  /* Status */
+    text-align: center;
+}
+
+.statements-table th:nth-child(5),
+.statements-table td:nth-child(5) {
+    width: 100px;  /* Actions */
+    text-align: right;
 }
 
 /* Status badges */
 .status-badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    border-radius: 0.375rem;
+    border-radius: 1rem;
     font-size: 0.75rem;
     font-weight: 600;
+    text-transform: uppercase;
 }
 
-.status-pending {
+.status-badge.ready {
     background: #FEF3C7;
     color: #92400E;
 }
 
-.status-partial {
+.status-badge.sent {
     background: #DBEAFE;
     color: #1E40AF;
 }
 
-.status-paid {
+.status-badge.partial {
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+.status-badge.paid {
     background: #D1FAE5;
     color: #065F46;
 }
 
-/* Action cell */
-.action-cell {
-    white-space: nowrap;
-}
-
-/* Payment form row */
-.payment-form-row {
-    background: #F7FAFC !important;
-}
-
-.payment-form-row:hover {
-    background: #F7FAFC !important;
-}
-
-.payment-form {
-    padding: 1rem 1.5rem;
-    background: #EDF2F7;
-    border-radius: 0.75rem;
-    margin: 0.5rem 0;
-}
-
-.payment-options {
+/* Action buttons in table - use .btn-small from shared.css */
+.action-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.radio-option {
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: #BFDCDC;
+    color: #115D4F;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+    background: #9FCFC0;
+}
+
+.btn-icon i {
+    width: 18px;
+    height: 18px;
+}
+
+/* ============================================
+   PAYMENT FORM (Inline)
+   ============================================ */
+/* Payment Modal Overlay */
+.payment-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.payment-modal-overlay.visible {
+    display: flex;
+}
+
+.payment-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.payment-modal h3 {
+    margin: 0 0 1rem 0;
+    color: #2D3748;
+}
+
+.payment-modal label {
+    display: block;
+    font-weight: 600;
+    color: #2D3748;
     font-size: 0.875rem;
-    cursor: pointer;
+    margin-bottom: 0.5rem;
 }
 
-.radio-option input[type="radio"] {
-    cursor: pointer;
-}
-
-.partial-amount {
-    width: 100px;
-    padding: 0.375rem 0.5rem;
+.payment-modal input[type="number"] {
+    width: 100%;
+    padding: 0.75rem;
     border: 2px solid #DEE2E6;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    margin-left: 0.25rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    height: 50px;
+    box-sizing: border-box;
     font-family: 'Lexend', sans-serif;
-}
-
-.partial-amount:disabled {
-    background: #E5E7EB;
-    cursor: not-allowed;
-}
-
-.payment-notes {
     margin-bottom: 1rem;
 }
 
-.notes-input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-family: 'Lexend', sans-serif;
+.payment-modal input[type="number"]:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
 }
 
-.payment-actions {
+.payment-modal-buttons {
     display: flex;
     gap: 0.75rem;
     justify-content: flex-end;
 }
 
-/* Responsive */
+/* ============================================
+   EMPTY STATE
+   Uses .placeholder-message from shared.css
+   ============================================ */
+.placeholder-message svg {
+    width: 48px;
+    height: 48px;
+    color: #9CA3AF;
+    margin-bottom: 1rem;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
+    .statements-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .date-range-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .date-input-group {
+        width: 100%;
+    }
+    
+    .date-input-group select {
+        flex: 1;
+    }
+    
     .controls-bar {
         flex-direction: column;
         align-items: stretch;
     }
     
-    .filter-search-group {
+    .controls-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box input {
+        width: 100%;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+    
+    .action-buttons {
         flex-direction: column;
     }
-    
-    .search-box {
-        min-width: 100%;
-    }
-    
-    .statements-table {
-        font-size: 0.75rem;
-    }
-    
-    .statements-table th,
-    .statements-table td {
-        padding: 0.5rem;
-    }
+}
+
+/* ============================================
+   CUSTOM DROPDOWN (matches main_view)
+   ============================================ */
+.filter-option {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.filter-option:hover {
+    background: #F3F4F6;
+}
+
+.filter-option.active {
+    background: #BFDCDC;
+    color: #115D4F;
 }
