@@ -8,6 +8,7 @@ from pathlib import Path
 import sys, sqlite3
 import time
 from werkzeug.utils import secure_filename
+from web.blueprints.statements import statements_bp
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -44,11 +45,14 @@ app.register_blueprint(clients_bp)
 app.register_blueprint(entries_bp)
 app.register_blueprint(ledger_bp)
 app.register_blueprint(scheduler_bp)
+app.register_blueprint(statements_bp)
 
 from web.blueprints.ledger import init_blueprint as init_ledger
 init_ledger(db)
 from web.blueprints.scheduler import init_blueprint as init_scheduler
 init_scheduler(db)
+from web.blueprints.statements import statements_bp, init_blueprint as init_statements
+init_statements(db)
 
 from datetime import datetime         
 
