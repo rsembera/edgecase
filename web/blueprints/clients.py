@@ -179,7 +179,7 @@ def index():
         if db.get_payment_status(client['id']) == 'pending':
             pending_invoices += 1
             
-    # Calculate billable this month
+    # Calculate unbilled this month
     now = datetime.now()
     month_start = int(datetime(now.year, now.month, 1).timestamp())
     
@@ -187,10 +187,24 @@ def index():
     for client in all_clients:
         entries = db.get_client_entries(client['id'])
         for entry in entries:
-            if entry.get('created_at', 0) >= month_start:
-                if entry.get('class') == 'session' and not entry.get('is_consultation'):
+            # Skip if already billed or still a draft
+            if entry.get('statement_id') is not None:
+                continue
+            if not entry.get('locked'):
+                continue
+                
+            # Use appropriate date field for each type
+            if entry.get('class') == 'session' and not entry.get('is_consultation'):
+                entry_date = entry.get('session_date', 0)
+                if entry_date >= month_start:
                     billable_this_month += entry.get('fee', 0) or 0
-                elif entry.get('class') == 'item':
+            elif entry.get('class') == 'item':
+                entry_date = entry.get('item_date', 0)
+                if entry_date >= month_start:
+                    billable_this_month += entry.get('fee', 0) or 0
+            elif entry.get('class') == 'absence':
+                entry_date = entry.get('absence_date', 0)
+                if entry_date >= month_start:
                     billable_this_month += entry.get('fee', 0) or 0
                     
     # Get current date and time
