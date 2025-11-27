@@ -447,6 +447,29 @@ details[open] .settings-section-header .arrow {
         </div>
     </details>
     
+    <!-- Email Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Email</h3>
+                <p>How statements are sent to clients</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+        
+        <div class="form-group">
+            <label for="email_method">Send statements via</label>
+            <select id="email_method">
+                <option value="mailto">Open mailto: link (works everywhere)</option>
+                <option value="applescript">Compose in Mail.app (Mac only, attaches PDF)</option>
+            </select>
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">AppleScript method can automatically attach the PDF statement</small>
+        </div>
+        
+        </div>
+    </details>
+
     <div class="button-group">
         <a href="{{ url_for('clients.index') }}" class="btn btn-secondary">Cancel</a>
         <button onclick="saveSettings()" class="btn">Save Settings</button>

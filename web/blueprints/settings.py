@@ -414,3 +414,14 @@ def calendar_settings():
         
         return jsonify({'success': True})
     
+@settings_bp.route('/api/email_settings', methods=['GET', 'POST'])
+def email_settings():
+    """Get or save email settings."""
+    if request.method == 'POST':
+        data = request.get_json()
+        db.set_setting('email_method', data.get('email_method', 'mailto'))
+        return jsonify({'success': True})
+    else:
+        return jsonify({
+            'email_method': db.get_setting('email_method', 'mailto')
+        })
