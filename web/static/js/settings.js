@@ -372,6 +372,15 @@ async function saveSettings() {
             calendar_name: document.getElementById('calendar_name').value
         })
     });
+
+    // Save email settings
+    await fetch('/api/email_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email_method: document.getElementById('email_method').value
+        })
+    });
     
     // Show success message and redirect
     const successMsg = document.getElementById('success-message');
@@ -952,4 +961,38 @@ function toggleCalendarNameField() {
     const method = document.getElementById('calendar_method').value;
     const nameGroup = document.getElementById('calendar-name-group');
     nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
+}
+
+// Email Settings
+(function() {
+    const emailMethod = document.getElementById('email_method');
+    
+    if (!emailMethod) return; // Not on settings page
+    
+    // Load email settings
+    fetch('/api/email_settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.email_method) {
+                emailMethod.value = data.email_method;
+            }
+        });
+})();
+
+function saveEmailSettings() {
+    const emailMethod = document.getElementById('email_method');
+    
+    fetch('/api/email_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email_method: emailMethod.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Email settings saved!');
+        }
+    });
 }
