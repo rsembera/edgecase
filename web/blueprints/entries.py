@@ -852,6 +852,12 @@ def create_communication(client_id):
         }
         
         entry_id = db.add_entry(comm_data)
+        
+        # Handle file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        save_uploaded_files(files, descriptions, entry_id, db, client_id)
+        
         db.lock_entry(entry_id)
         
         return redirect(url_for('clients.client_file', client_id=client_id))
@@ -953,6 +959,16 @@ def edit_communication(client_id, entry_id):
                 change_desc = "; ".join(changes)
                 db.add_to_edit_history(entry_id, change_desc)
         
+        # Handle file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        added_files = save_uploaded_files(files, descriptions, entry_id, db, client_id)
+        
+        # Track file additions in edit history
+        if added_files and db.is_entry_locked(entry_id):
+            file_list = ', '.join(added_files)
+            db.add_to_edit_history(entry_id, f"Added files: {file_list}")
+        
         # Update the existing communication
         db.update_entry(entry_id, comm_data)
         
@@ -995,10 +1011,14 @@ def edit_communication(client_id, entry_id):
     is_locked = db.is_entry_locked(entry_id)
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
+    # Get attachments for this entry
+    attachments = db.get_attachments(entry_id)
+    
     return render_template('entry_forms/communication.html',
                         client=client,
                         client_type=client_type,
                         entry=communication,
+                        attachments=attachments, 
                         comm_year=comm_year,
                         comm_month=comm_month,
                         comm_day=comm_day,
