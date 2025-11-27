@@ -438,10 +438,10 @@ def mark_paid():
     """, (new_amount_paid, new_status, portion_id))
     
     # Create Income entry
-    client_name = f"{portion['first_name']} {portion['last_name']}"
-    description = f"Payment from {portion['file_number']}"
+    description = "Client Payment"
     if portion['guardian_number']:
         description += f" (Guardian {portion['guardian_number']})"
+    source = portion['file_number']
     
     cursor.execute("""
         INSERT INTO entries (
@@ -450,15 +450,15 @@ def mark_paid():
             tax_amount, statement_id
         ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, 0, ?)
     """, (
-        None,  # Income entries don't have client_id
+        None,
         now,
         now,
         description,
         notes if notes else None,
-        now,  # ledger_date = today
-        client_name,  # source = who paid
+        now,
+        source,  # file number instead of name
         payment_amount,
-        portion['statement_entry_id']  # Link to statement
+        portion['statement_entry_id']
     ))
     
     conn.commit()

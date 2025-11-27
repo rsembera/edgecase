@@ -157,7 +157,7 @@ function generateStatements() {
     const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
     
     if (clientIds.length === 0) {
-        alert('Please select at least one client');
+        showSuccessModal('Please select at least one client', 'No Selection');
         return;
     }
     
@@ -178,8 +178,8 @@ function generateStatements() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`Generated ${data.count} statement(s)`);
-            window.location.reload();
+            const word = data.count === 1 ? 'statement' : 'statements';
+            showSuccessModal(`Generated ${data.count} ${word}`, 'Success');
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
@@ -275,14 +275,14 @@ function confirmPayment() {
     
     // Validation
     if (isNaN(amount) || amount <= 0) {
-        alert('Please enter a valid positive amount');
+        showSuccessModal('Please enter a valid positive amount', 'Invalid Amount');
         return;
     }
     
     // Get max amount from data attribute
     const maxAmount = parseFloat(amountInput.dataset.max);
     if (amount > maxAmount) {
-        alert(`Amount cannot exceed $${maxAmount.toFixed(2)}`);
+        showSuccessModal(`Amount cannot exceed $${maxAmount.toFixed(2)}`, 'Invalid Amount');
         return;
     }
     
@@ -301,7 +301,7 @@ function confirmPayment() {
     .then(data => {
         if (data.success) {
             hidePaymentModal();
-            window.location.reload();
+            showSuccessModal('Payment recorded', 'Success');
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
@@ -326,3 +326,14 @@ document.getElementById('payment-amount').addEventListener('blur', function() {
         this.value = val.toFixed(2);
     }
 });
+
+function showSuccessModal(message, title) {
+    document.getElementById('success-title').textContent = title || 'Success';
+    document.getElementById('success-message').textContent = message;
+    document.getElementById('success-modal').classList.add('visible');
+}
+
+function closeSuccessModal() {
+    document.getElementById('success-modal').classList.remove('visible');
+    window.location.reload();
+}
