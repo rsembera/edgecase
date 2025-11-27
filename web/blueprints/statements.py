@@ -161,6 +161,7 @@ def find_unbilled():
         JOIN client_types ct ON c.type_id = ct.id
         WHERE e.class IN ('session', 'absence', 'item')
         AND e.statement_id IS NULL
+        AND e.locked = 1
         AND ct.name != 'Inactive'
         AND (
             (e.class = 'session' AND e.session_date BETWEEN ? AND ? AND e.fee > 0)
