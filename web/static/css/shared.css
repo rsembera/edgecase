@@ -526,6 +526,11 @@ input[type="number"] {
 
 .file-input {
     width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+    height: 38px;
 }
 
 /* File description input - match Remove button height */
