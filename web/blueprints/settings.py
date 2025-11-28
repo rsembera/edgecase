@@ -430,6 +430,8 @@ def statement_settings():
         db.set_setting('include_attestation', 'true' if data.get('include_attestation', False) else 'false')
         db.set_setting('attestation_text', data.get('attestation_text', ''))
         db.set_setting('email_method', data.get('email_method', 'mailto'))
+        db.set_setting('email_from_address', data.get('email_from_address', ''))
+        db.set_setting('statement_email_body', data.get('statement_email_body', ''))
         return jsonify({'success': True})
     else:
         return jsonify({
@@ -438,5 +440,7 @@ def statement_settings():
             'payment_instructions': db.get_setting('payment_instructions', ''),
             'include_attestation': db.get_setting('include_attestation', 'false') == 'true',
             'attestation_text': db.get_setting('attestation_text', 'I attest that I have performed the services listed above.'),
-            'email_method': db.get_setting('email_method', 'mailto')
+            'email_method': db.get_setting('email_method', 'mailto'),
+            'email_from_address': db.get_setting('email_from_address', ''),
+            'statement_email_body': db.get_setting('statement_email_body', '')
         })

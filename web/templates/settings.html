@@ -449,13 +449,28 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group">
             <label for="email_method">Send statements via</label>
-            <select id="email_method">
+            <select id="email_method" onchange="toggleEmailFromField()">
                 <option value="mailto">Open mailto: link (works everywhere)</option>
                 <option value="applescript">Compose in Mail.app (Mac only, attaches PDF)</option>
             </select>
             <small style="display: block; margin-top: 0.5rem; color: #6B7280;">AppleScript method can automatically attach the PDF statement</small>
         </div>  
 
+        <div class="form-group" id="email-from-group" style="display: none;">
+                    <label for="email_from">Send From Address</label>
+                    <input type="email" id="email_from" placeholder="john.smith@geemail.com">
+                    <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Must match an account configured in Apple Mail</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="statement_email_body">Email Body Text</label>
+                    <textarea id="statement_email_body" rows="6" placeholder="If you have any questions or concerns, please don't hesitate to let me know.
+
+All the best,
+
+John Smith."></textarea>
+                    <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Text that follows "Please find attached your statement for [Month Year]."</small>
+                </div>
         <div class="form-group">
             <label>Practice Logo</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">

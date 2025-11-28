@@ -241,8 +241,17 @@ function markSent(portionId) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Email method:', data.email_method);
         if (data.success) {
-            window.location.reload();
+            // Store portion_id in data for mailto fallback
+            data.portion_id = portionId;
+            
+            // Trigger email client
+            if (data.email_method === 'applescript') {
+                triggerAppleScriptEmail(data);
+            } else {
+                triggerMailtoEmail(data);
+            }
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
@@ -250,6 +259,56 @@ function markSent(portionId) {
     .catch(error => {
         console.error('Error marking sent:', error);
         alert('Error marking statement as sent');
+    });
+}
+
+function triggerMailtoEmail(data) {
+    const subject = encodeURIComponent(data.subject);
+    const body = encodeURIComponent(data.body + '\n\n[Please attach the downloaded PDF]');
+    const mailto = `mailto:${data.recipient_email}?subject=${subject}&body=${body}`;
+    
+    // Download PDF so user can attach it
+    const pdfLink = document.createElement('a');
+    pdfLink.href = `/statements/pdf/${data.portion_id}`;
+    pdfLink.download = '';
+    pdfLink.click();
+    
+    // Small delay then open mailto
+    setTimeout(() => {
+        window.location.href = mailto;
+        // Reload after mailto opens
+        setTimeout(() => window.location.reload(), 1000);
+    }, 300);
+}
+
+function triggerAppleScriptEmail(data) {
+    fetch('/statements/send-applescript-email', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            recipient_email: data.recipient_email,
+            subject: data.subject,
+            body: data.body,
+            pdf_path: data.pdf_path,
+            email_from: data.email_from
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Success - reload page
+            window.location.reload();
+        } else {
+            alert('AppleScript email failed: ' + result.error + '\n\nFalling back to mailto...');
+            triggerMailtoEmail(data);
+        }
+    })
+    .catch(error => {
+        console.error('AppleScript error:', error);
+        alert('AppleScript email failed. Falling back to mailto...');
+        triggerMailtoEmail(data);
     });
 }
 

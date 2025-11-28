@@ -654,7 +654,7 @@ class Database:
             date_sent = portion['date_sent']
             
             # If sent and date_sent is 30+ days ago, it's overdue
-            if status == 'sent' and date_sent and date_sent < thirty_days_ago:
+            if status in ('sent', 'partial') and date_sent and date_sent < thirty_days_ago:
                 return 'overdue'
         
         # Has outstanding portions but none overdue = pending

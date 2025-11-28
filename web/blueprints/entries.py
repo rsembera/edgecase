@@ -928,11 +928,11 @@ def edit_communication(client_id, entry_id):
             if old_comm.get('comm_type') != comm_data.get('comm_type'):
                 changes.append(f"Type: {old_comm.get('comm_type')} → {comm_data.get('comm_type')}")
             
-            # Date
-            if old_comm.get('comm_date') != comm_date_timestamp:
-                old_date = datetime.fromtimestamp(old_comm['comm_date']).strftime('%Y-%m-%d') if old_comm.get('comm_date') else 'None'
-                new_date = datetime.fromtimestamp(comm_date_timestamp).strftime('%Y-%m-%d') if comm_date_timestamp else 'None'
-                changes.append(f"Date: {old_date} → {new_date}")
+            # Date - compare just the date portion, not full timestamp
+            old_date_str = datetime.fromtimestamp(old_comm['comm_date']).strftime('%Y-%m-%d') if old_comm.get('comm_date') else 'None'
+            new_date_str = datetime.fromtimestamp(comm_date_timestamp).strftime('%Y-%m-%d') if comm_date_timestamp else 'None'
+            if old_date_str != new_date_str:
+                changes.append(f"Date: {old_date_str} → {new_date_str}")
             
             # Time
             if old_comm.get('comm_time') != comm_data.get('comm_time'):
@@ -940,17 +940,16 @@ def edit_communication(client_id, entry_id):
                 new_time = comm_data.get('comm_time') or 'None'
                 changes.append(f"Time: {old_time} → {new_time}")
             
-            # Content (with smart word-level diff)
-            if old_comm.get('content') != comm_data.get('content'):
+            # Content (with smart word-level diff) - normalize line endings
+            old_content_normalized = (old_comm.get('content') or '').replace('\r\n', '\n').strip()
+            new_content_normalized = (comm_data.get('content') or '').replace('\r\n', '\n').strip()
+            if old_content_normalized != new_content_normalized:
                 from web.utils import generate_content_diff
                 
-                old_content = old_comm.get('content') or ''
-                new_content = comm_data.get('content') or ''
-                
-                if old_content and new_content:
-                    diff_text = generate_content_diff(old_content, new_content)
+                if old_content_normalized and new_content_normalized:
+                    diff_text = generate_content_diff(old_content_normalized, new_content_normalized)
                     changes.append(f"Content: {diff_text}")
-                elif old_content:
+                elif old_content_normalized:
                     changes.append("Content: Cleared")
                 else:
                     changes.append("Content: Added")
