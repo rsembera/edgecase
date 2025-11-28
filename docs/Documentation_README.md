@@ -1,42 +1,43 @@
 # EdgeCase Documentation - README
 
 **Created:** November 23, 2025  
-**Purpose:** Guide to the new modular documentation structure
+**Updated:** November 28, 2025  
+**Purpose:** Guide to the modular documentation structure
 
 ---
 
 ## DOCUMENTATION FILES
 
-EdgeCase Equalizer now has **5 modular documentation files** instead of one monolithic navigation map:
+EdgeCase Equalizer has **6 modular documentation files**:
 
-### 1. EdgeCase_Navigation_Map_v1_9.md (~300 lines)
+### 1. EdgeCase_Navigation_Map_v2_1.md (~350 lines)
 **Purpose:** Main overview and quick reference  
 **Use when:** Starting a session, need project overview, want quick commands
 
 **Contents:**
-- Project overview and current status (Phase 10 complete)
-- Directory structure
-- Tech stack summary
-- Blueprint architecture overview
-- Phase 10 optimization summary
+- Project overview and current status (Statement System complete)
+- Directory structure (including pdf/ folder)
+- Tech stack summary (including ReportLab)
+- Blueprint architecture overview (7 blueprints)
+- Statement system workflow
 - Quick reference commands
 - System capabilities checklist
-- Links to other documentation
 
 **Start here** every session to get oriented.
 
 ---
 
-### 2. Database_Schema.md (~400 lines)
+### 2. Database_Schema.md (~450 lines)
 **Purpose:** Complete database table definitions and design decisions  
 **Use when:** Working with database, adding fields, understanding data structure
 
 **Contents:**
-- All 11 table definitions with CREATE TABLE statements
+- All 12 table definitions with CREATE TABLE statements
 - Field descriptions and purposes
 - Entry-based architecture explanation
+- **statement_portions table** (NEW)
 - Migration history
-- Design pattern rationale (why unified entries table, etc.)
+- Design pattern rationale
 - Color palette reference
 - Storage locations
 
@@ -48,12 +49,12 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 ---
 
-### 3. Route_Reference.md (~350 lines)
+### 3. Route_Reference.md (~400 lines)
 **Purpose:** Complete route listings organized by blueprint  
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
 **Contents:**
-- All 30+ routes across 5 blueprints
+- All 40+ routes across 7 blueprints
 - Route signatures (parameters, query params, form data)
 - Return values and redirects
 - Special behaviors and validation
@@ -63,6 +64,8 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 - clients_bp: Main view, client file, links
 - entries_bp: Entry CRUD operations
 - ledger_bp: Income/Expense operations
+- **statements_bp: Statement generation, PDF, email** (NEW)
+- scheduler_bp: Calendar integration
 - types_bp: Type management
 - settings_bp: Settings and uploads
 
@@ -74,7 +77,7 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 ---
 
-### 4. Architecture_Decisions.md (~500 lines)
+### 4. Architecture_Decisions.md (~550 lines)
 **Purpose:** Explain *why* we built things certain ways  
 **Use when:** Understanding design philosophy, making architectural decisions
 
@@ -88,6 +91,8 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 - File number generation modes
 - External CSS/JS rationale
 - Year/month timeline grouping
+- **Calendar integration philosophy** (calendar as source of truth)
+- **Statement system architecture** (NEW)
 - Migration strategy
 - Testing approach
 
@@ -105,16 +110,7 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 **Contents:**
 - Quick debugging checklist
-- Common issues with solutions:
-  - Server won't start
-  - 404 errors
-  - Database locked
-  - Entries not appearing
-  - Fee calculations wrong
-  - Edit history not saving
-  - File uploads failing
-  - Entry sorting wrong
-  - Modals not appearing
+- Common issues with solutions
 - Step-by-step debugging workflows
 - Common error messages explained
 - Git debugging commands
@@ -127,7 +123,27 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 - Feature not working as expected
 - Testing reveals bugs
 - Performance issues
-- Need to debug step-by-step
+
+---
+
+### 6. EdgeCase_Project_Status_2025-11-28.md (~400 lines)
+**Purpose:** Current project state and remaining work  
+**Use when:** Planning sessions, tracking progress, understanding what's done
+
+**Contents:**
+- Phase 1 completion status (95%)
+- Completed features list
+- Remaining tasks with time estimates
+- Testing status
+- Known issues
+- Git status
+- Success criteria tracking
+
+**Read this** when:
+- Starting a new session
+- Planning what to work on
+- Checking what's been tested
+- Reviewing project progress
 
 ---
 
@@ -135,12 +151,17 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 ### Starting a New Session
 
-1. **Read:** EdgeCase_Navigation_Map_v1_9.md
+1. **Read:** EdgeCase_Navigation_Map_v2_1.md
    - Get current project state
-   - See what's complete, what's remaining
+   - See directory structure
    - Check system capabilities
 
-2. **Quick Reference:** Use command reference at bottom
+2. **Check:** EdgeCase_Project_Status_2025-11-28.md
+   - See what's remaining
+   - Review recent work
+   - Plan session focus
+
+3. **Quick Reference:** Use command reference at bottom of Navigation Map
    - Start server
    - Access URLs
    - Common git commands
@@ -181,13 +202,6 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
    - Database_Schema.md for data structure
    - Architecture_Decisions.md for design context
 
-### Understanding the System
-
-1. **Overview:** EdgeCase_Navigation_Map_v1_9.md
-2. **Deep Dive:** Architecture_Decisions.md
-3. **Details:** Database_Schema.md + Route_Reference.md
-4. **Troubleshooting:** Debugging_Guide.md
-
 ---
 
 ## BENEFITS OF MODULAR DOCUMENTATION
@@ -204,7 +218,7 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 ### When to Update
 
-**EdgeCase_Navigation_Map_v1_9.md:**
+**EdgeCase_Navigation_Map:**
 - Phase completion
 - Major feature additions
 - Directory structure changes
@@ -214,24 +228,24 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 - New tables
 - New fields
 - Schema migrations
-- Design pattern changes
 
 **Route_Reference.md:**
 - New routes
 - Route signature changes
 - New blueprints
-- Shared utility updates
 
 **Architecture_Decisions.md:**
 - Major architectural decisions
 - Design pattern explanations
-- "Why we did it this way" insights
 
 **Debugging_Guide.md:**
 - New common issues discovered
 - Solutions to recurring problems
-- New debugging workflows
-- Tool tips and tricks
+
+**Project_Status:**
+- After each session
+- When features complete
+- When issues found/fixed
 
 ### How to Update
 
@@ -244,20 +258,11 @@ EdgeCase Equalizer now has **5 modular documentation files** instead of one mono
 
 ## FILE LOCATIONS
 
-**Current location:** `/home/claude/` (Claude's workspace)
-
-**To deploy to project:**
-```bash
-# Copy all documentation files to project docs folder
-cp EdgeCase_Navigation_Map_v1_9.md ~/edgecase/docs/
-cp Database_Schema.md ~/edgecase/docs/
-cp Route_Reference.md ~/edgecase/docs/
-cp Architecture_Decisions.md ~/edgecase/docs/
-cp Debugging_Guide.md ~/edgecase/docs/
-```
+**Project docs folder:** `~/edgecase/docs/`
 
 **Add to Project Knowledge in Claude Projects:**
-- EdgeCase_Navigation_Map_v1_9.md (main reference)
+- EdgeCase_Navigation_Map_v2_1.md (main reference)
+- EdgeCase_Project_Status_2025-11-28.md (current state)
 - Architecture_Decisions.md (design philosophy)
 - Database_Schema.md (data reference)
 
@@ -267,36 +272,10 @@ cp Debugging_Guide.md ~/edgecase/docs/
 
 ---
 
-## MIGRATION FROM OLD NAVIGATION MAP
-
-**Old system:** EdgeCase_Equalizer_Navigation_Map_v1_8.md (1000+ lines)
-
-**What happened:**
-- Split into 5 focused files
-- Navigation map reduced to ~300 lines
-- Each topic now has dedicated file
-- Better organization by purpose
-
-**What to do with old file:**
-- Keep as backup for now
-- Can archive once comfortable with new structure
-- All information preserved, just reorganized
-
----
-
-## NEXT STEPS
-
-1. ✅ All 5 documentation files created
-2. Copy files to ~/edgecase/docs/
-3. Update Project Knowledge with new files
-4. Archive old navigation map v1.8
-5. Test documentation in next session
-
----
-
 ## QUICK ACCESS
 
-**Main entry point:** EdgeCase_Navigation_Map_v1_9.md  
+**Main entry point:** EdgeCase_Navigation_Map_v2_1.md  
+**Current status:** EdgeCase_Project_Status_2025-11-28.md  
 **Design philosophy:** Architecture_Decisions.md  
 **Data reference:** Database_Schema.md  
 **Route lookup:** Route_Reference.md  
@@ -306,5 +285,12 @@ cp Debugging_Guide.md ~/edgecase/docs/
 
 ---
 
+## VERSION HISTORY
+
+- Nov 23, 2025: Initial modular documentation (5 files)
+- Nov 28, 2025: Updated for Statement System completion (Navigation Map v2.1, new Project Status)
+
+---
+
 *EdgeCase Equalizer - Modular Documentation System*  
-*Created: November 23, 2025*
+*Last Updated: November 28, 2025*

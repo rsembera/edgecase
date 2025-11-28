@@ -1,13 +1,13 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** November 23, 2025
+**Last Updated:** November 28, 2025
 
 ---
 
 ## OVERVIEW
 
-EdgeCase uses SQLite with 11 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
+EdgeCase uses SQLite with 12 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
 
 **Database Location:** `~/edgecase/data/edgecase.db`
 
@@ -21,6 +21,8 @@ EdgeCase uses SQLite with 11 tables organized around an entry-based architecture
 7. expense_categories - User-defined expense categories
 8. payees - Expense payee names
 9. settings - Application settings
+10. archived_clients - Retention system archives
+11. statement_portions - Statement tracking (NEW)
 
 ---
 
@@ -197,8 +199,9 @@ CREATE TABLE entries (
     total_amount REAL,
     tax_amount REAL,
     
-    -- Statement-specific fields (not yet implemented)
+    -- Statement-specific fields
     statement_total REAL,
+    statement_id INTEGER,           -- Links billable entries to their statement
     payment_status TEXT,
     payment_notes TEXT,
     date_sent INTEGER,
@@ -212,7 +215,8 @@ CREATE TABLE entries (
     
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (payee_id) REFERENCES payees(id),
-    FOREIGN KEY (category_id) REFERENCES expense_categories(id)
+    FOREIGN KEY (category_id) REFERENCES expense_categories(id),
+    FOREIGN KEY (statement_id) REFERENCES entries(id)
 );
 ```
 
@@ -221,25 +225,19 @@ CREATE TABLE entries (
 **Client Entry Types (client_id NOT NULL):**
 - `profile` - Client demographics and contact info
 - `session` - Therapy session notes
-- `communication` - Emails, calls, administrative notes
+- `communication` - Emails, calls, administrative notes (with file attachments)
 - `absence` - Cancellations and no-shows with fees
 - `item` - Billable items (books, letters, reports)
 - `upload` - File attachments and documents
+- `statement` - Generated invoice record
 
 **Ledger Entry Types (client_id NULL, ledger_type NOT NULL):**
 - `income` - Payment received (ledger_type='income')
 - `expense` - Business expenses (ledger_type='expense')
 
-**Design Philosophy:**
-- Class-specific fields are NULL for entries that don't use them
-- Simpler than 6+ separate tables
-- Easy querying across all entry types
-- Easy to add new entry types
-
-**Locking Behavior:**
-- Session, Communication, Absence, Item: Lock on creation
-- Profile: Lock on first edit (designed to be updated frequently)
-- Upload, Income, Expense: Never locked (editable administrative records)
+**Key Fields for Statements:**
+- `statement_id`: On billable entries (session, absence, item), links to the statement entry
+- `statement_total`: On statement entries, the total amount due
 
 ---
 
@@ -282,23 +280,6 @@ CREATE TABLE client_links (
 );
 ```
 
-**Self-Referential Pattern:**
-Each client gets their own row where `client_id_1 = client_id_2`.
-
-**Example:** For group [A, B, C]:
-```
-client_id_1 | client_id_2 | group_id | member_base_fee | member_tax_rate | member_total_fee
-------------|-------------|----------|-----------------|-----------------|------------------
-     A      |      A      |    1     |     60.00       |      13.00      |      67.80
-     B      |      B      |    1     |     75.00       |      13.00      |      84.75
-     C      |      C      |    1     |     50.00       |      13.00      |      56.50
-```
-
-**Benefits:**
-- Each member has own fee allocation
-- Easy query: `SELECT * FROM client_links WHERE group_id = 1`
-- Semantically accurate: group therapy = individuals attending together
-
 ---
 
 ### 6. attachments
@@ -336,8 +317,6 @@ CREATE TABLE expense_categories (
 );
 ```
 
-**Design:** No pre-populated categories - user defines based on their jurisdiction.
-
 ---
 
 ### 8. payees
@@ -374,87 +353,112 @@ CREATE TABLE settings (
 - `currency`: 'CAD', 'USD', 'EUR', 'GBP', etc.
 - `consultation_base_price`, `consultation_tax_rate`, `consultation_fee`, `consultation_duration`
 - `logo_filename`, `signature_filename`
+- `calendar_method`, `calendar_name`
+- `email_method`: 'mailto' or 'applescript'
+- `email_from_address`: For AppleScript email
+- `statement_email_body`: Email body template
+- `registration_info`, `payment_instructions`
+- `include_attestation`, `attestation_text`
+
+---
+
+### 10. archived_clients
+
+Retention system archives (minimal info kept after deletion).
+
+```sql
+CREATE TABLE archived_clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_number TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    middle_name TEXT,
+    last_name TEXT NOT NULL,
+    first_contact INTEGER,
+    last_contact INTEGER,
+    retain_until INTEGER,
+    deletion_date INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+);
+```
+
+---
+
+### 11. statement_portions (NEW)
+
+Tracks individual payment portions for statements.
+
+```sql
+CREATE TABLE statement_portions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    statement_entry_id INTEGER NOT NULL,
+    client_id INTEGER NOT NULL,
+    guardian_number INTEGER,          -- NULL for client, 1 or 2 for guardians
+    amount_due REAL NOT NULL,
+    amount_paid REAL DEFAULT 0,
+    status TEXT DEFAULT 'ready',      -- 'ready', 'sent', 'partial', 'paid'
+    created_at INTEGER NOT NULL,
+    date_sent INTEGER,                -- When statement was emailed
+    FOREIGN KEY (statement_entry_id) REFERENCES entries(id),
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
+```
+
+**Key Fields:**
+- `statement_entry_id`: Links to the statement entry in entries table
+- `client_id`: The client this portion is for
+- `guardian_number`: NULL for client paying directly, 1 or 2 for guardian splits
+- `amount_due`: Total amount for this portion
+- `amount_paid`: Running total of payments received
+- `status`: Payment status for this portion
+- `date_sent`: Unix timestamp when "Mark Sent" was clicked
+
+**Status Values:**
+- `ready`: Statement generated, not yet sent
+- `sent`: Email sent to client/guardian
+- `partial`: Some payment received, balance remaining
+- `paid`: Fully paid
+
+**Guardian Billing:**
+When a client is a minor with guardian billing:
+- Two portions created (one per guardian)
+- Each portion has `guardian_number` = 1 or 2
+- `amount_due` calculated from guardian's `pays_percent`
+
+**Payment Status Calculation (in database.py):**
+```python
+def get_payment_status(self, client_id):
+    # Returns: 'paid', 'pending', or 'overdue'
+    # - 'paid': No outstanding portions
+    # - 'pending': Has sent/partial portions, none 30+ days old
+    # - 'overdue': Has sent/partial portions 30+ days old
+```
 
 ---
 
 ## KEY DESIGN DECISIONS
 
-### Entry-Based Architecture
+### Statement System Architecture
 
-**Why unified entries table?**
-- Single interface for all record types
-- Unified timeline view per client
-- Built-in edit history and audit trail
-- Easy to add new entry types
-- Simpler codebase (one system vs. many)
+**Why statement_portions table?**
+- Separates billing tracking from entry data
+- Handles guardian splits (2 portions per statement)
+- Tracks payment status independently
+- Easy to query outstanding statements
+- Payment status calculation doesn't require complex entry queries
 
-**Alternative considered:** Separate tables for each entry type
-- More "normalized" but much more complex
-- Would need 6+ tables with similar fields
-- Harder to query across entry types
-- More code duplication
+**Why Communication entry on send?**
+- Creates audit trail in client file
+- PDF attachment preserved
+- Email content recorded
+- No separate "sent statements" view needed
+- Natural fit with existing entry timeline
 
-### Self-Referential Link Pattern
-
-**Why not "star pattern" or "full mesh"?**
-- Star pattern: One "hub" client, others link to hub → complex queries, special hub logic
-- Full mesh: Every pair linked → N*(N-1)/2 records, redundant
-- Self-referential: Each member links to themselves → N records, simple queries, semantically accurate
-
-**Benefits:**
-- Each member has own row with own fees
-- Query all members: `SELECT * FROM client_links WHERE group_id = X`
-- No special "hub" logic needed
-- Semantically accurate: group therapy = individuals attending together
-- Easy to add/remove members (just insert/delete rows)
-
-### Three-Way Fee Calculation
-
-**Pattern used in:**
-- Client Types (session fees)
-- Profile Fee Override
-- Item entries
-- Link Group member fees
-
-**How it works:** User can edit any 2 of 3 fields, system calculates the 3rd:
-- Change base + tax → calculates total
-- Change total + tax → calculates base
-- Change total + base → (less common, but supported)
-
-**Why store base/tax/total separately?**
-- Tax rates change over time
-- Need historical accuracy for invoicing
-- Can regenerate invoices years later with correct breakdown
-- Matches real-world accounting
-
-### Session Fee Breakdown Storage
-
-**Why store base_fee and tax_rate, not just fee?**
-- Tax rates change (e.g., from 13% to 15%)
-- Need historical accuracy for audits
-- Can regenerate invoices with correct tax breakdown
-- Matches pattern everywhere else (consistency)
-
-**When consultation checkbox is checked:**
-- Sets `base_fee = 0`, `tax_rate = 0`, `fee = 0`
-- Excludes from session numbering
-- Still stored for audit trail
-
-### Guardian/Billing for Minors
-
-**Problem:** When therapy is for a child, parents pay
-
-**Solution:** Store guardian info in Profile, split bill by percentage
-
-**Fields:**
-- `is_minor`: 1 or 0
-- Guardian 1: name, email, phone, address, pays_percent
-- `has_guardian2`: 1 or 0
-- Guardian 2: name, email, phone, address, pays_percent
-
-**Percentages must add to 100** (validation in Statement generation)
-
-**Data preservation:** Unchecking "Client is minor" sets `is_minor = 0` but keeps guardian data
+**Auto-Income Generation:**
+When payment recorded:
+1. Update statement_portions (amount_paid, status)
+2. Create Income entry in ledger
+3. Link Income to statement via statement_id field
+4. Use file_number as source (privacy - not client name)
 
 ---
 
@@ -462,18 +466,9 @@ CREATE TABLE settings (
 
 **Location:** `core/database.py` in `_run_migrations()` method
 
-**How migrations work:**
-1. Check if column exists
-2. If not, use ALTER TABLE to add column
-3. Print migration message to console
-4. Never breaks existing data
-
-**Major migrations completed:**
-- Week 3: Session fee breakdown (base_fee, tax_rate)
-- Week 3: Profile fee override and guardian fields
-- Week 3: Link group format and member fees
-- Week 3: Upload entry date/time fields
-- Week 4: Ledger entry fields (income/expense)
+**Recent Migrations (Nov 28):**
+- Added statement_portions table
+- Added statement_id field to entries (links billable entries to statements)
 
 **Philosophy:** Always additive, never destructive. Old data stays intact.
 
@@ -483,4 +478,4 @@ CREATE TABLE settings (
 *For design philosophy, see Architecture_Decisions.md*  
 *For debugging help, see Debugging_Guide.md*
 
-*Last updated: November 23, 2025*
+*Last updated: November 28, 2025*
