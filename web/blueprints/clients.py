@@ -173,11 +173,8 @@ def index():
                                   if e.get('created_at', 0) >= week_ago 
                                   and not e.get('is_consultation'))
     
-    # Count pending invoices
-    pending_invoices = 0
-    for client in all_clients:
-        if db.get_payment_status(client['id']) == 'pending':
-            pending_invoices += 1
+    # Count pending invoices (statement portions not fully paid)
+    pending_invoices = db.count_pending_invoices()
             
     # Calculate unbilled this month
     now = datetime.now()
