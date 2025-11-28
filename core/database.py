@@ -8,7 +8,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Database:
     """
@@ -622,9 +622,60 @@ class Database:
         return row[0] if row else 0
     
     def get_payment_status(self, client_id: int) -> str:
-        """Get client's payment status (paid/pending/overdue)."""
-        # Placeholder - will implement when Statement generation is done
-        return 'paid'
+        """Get client's payment status based on statement_portions.
+        
+        Returns:
+            'paid' (green) - No outstanding portions, or all paid
+            'pending' (yellow) - Has sent/partial portions, none overdue
+            'overdue' (red) - Has sent portions 30+ days old
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get all non-paid portions for this client
+        cursor.execute("""
+            SELECT status, date_sent 
+            FROM statement_portions 
+            WHERE client_id = ? AND status != 'paid'
+        """, (client_id,))
+        
+        portions = cursor.fetchall()
+        
+        # No outstanding portions = paid/current
+        if not portions:
+            return 'paid'
+        
+        # Check for overdue (sent more than 30 days ago)
+        thirty_days_ago = int((datetime.now() - timedelta(days=30)).timestamp())
+        
+        for portion in portions:
+            status = portion['status']
+            date_sent = portion['date_sent']
+            
+            # If sent and date_sent is 30+ days ago, it's overdue
+            if status == 'sent' and date_sent and date_sent < thirty_days_ago:
+                return 'overdue'
+        
+        # Has outstanding portions but none overdue = pending
+        return 'pending'
+
+
+    def count_pending_invoices(self) -> int:
+        """Count statement portions that aren't fully paid.
+        
+        Returns count of portions with status != 'paid'
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM statement_portions 
+            WHERE status != 'paid'
+        """)
+        
+        return cursor.fetchone()[0]
     
     def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
         """Get client's profile entry."""
