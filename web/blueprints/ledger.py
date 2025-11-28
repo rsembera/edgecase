@@ -63,17 +63,8 @@ def ledger():
     # Get all ledger entries
     entries = db.get_all_ledger_entries()
     
-    # Get currency symbol from settings
-    currency_symbols = {
-        'CAD': '$',
-        'USD': '$',
-        'EUR': '€',
-        'GBP': '£',
-        'AUD': '$',
-        'NZD': '$',
-    }
-    currency_code = db.get_setting('currency', 'CAD')
-    currency = currency_symbols.get(currency_code, '$')
+    # Get currency code from settings
+    currency = db.get_setting('currency', 'CAD')
     
     # Calculate YTD and MTD stats
     now = datetime.now()
