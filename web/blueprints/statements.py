@@ -762,3 +762,165 @@ def send_applescript_email():
         return jsonify({'success': False, 'error': 'AppleScript timed out'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# ============================================
+# ADD THIS ROUTE TO THE END OF statements.py
+# (before the last line if there is one)
+# ============================================
+
+@statements_bp.route('/write-off', methods=['POST'])
+def write_off_statement():
+    """Write off a statement portion."""
+    
+    data = request.get_json()
+    portion_id = data.get('portion_id')
+    reason = data.get('reason')  # 'uncollectible', 'waived', 'billing_error', 'other'
+    note = data.get('note', '')
+    amount = data.get('amount', 0)
+    
+    if not portion_id or not reason:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+    
+    conn = db.connect()
+    cursor = conn.cursor()
+    
+    now = int(time.time())
+    
+    # Get portion and client info
+    cursor.execute("""
+        SELECT sp.*, c.file_number, c.first_name, c.middle_name, c.last_name, c.id as client_id,
+               e.description as statement_description
+        FROM statement_portions sp
+        JOIN clients c ON sp.client_id = c.id
+        JOIN entries e ON sp.statement_entry_id = e.id
+        WHERE sp.id = ?
+    """, (portion_id,))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
+    
+    columns = [col[0] for col in cursor.description]
+    portion = dict(zip(columns, row))
+    
+    # Build client name
+    name_parts = [portion['first_name']]
+    if portion['middle_name']:
+        name_parts.append(portion['middle_name'])
+    name_parts.append(portion['last_name'])
+    client_name = ' '.join(name_parts)
+    
+    # Update statement_portions with write-off info
+    cursor.execute("""
+        UPDATE statement_portions
+        SET status = 'written_off',
+            write_off_reason = ?,
+            write_off_date = ?,
+            write_off_note = ?
+        WHERE id = ?
+    """, (reason, now, note if note else None, portion_id))
+    
+    # Build description for Communication entry
+    reason_labels = {
+        'uncollectible': 'Uncollectible',
+        'waived': 'Waived',
+        'billing_error': 'Billing Error',
+        'other': 'Other'
+    }
+    reason_label = reason_labels.get(reason, reason)
+    
+    comm_description = f"Statement Written Off - {reason_label}"
+    
+    # Build content for Communication entry
+    amount_owing = portion['amount_due'] - portion['amount_paid']
+    content_parts = [
+        f"**Statement:** {portion['statement_description']}",
+        f"**Amount Written Off:** ${amount_owing:.2f}",
+        f"**Reason:** {reason_label}"
+    ]
+    if note:
+        content_parts.append(f"**Note:** {note}")
+    
+    comm_content = '\n\n'.join(content_parts)
+    
+    # Format current time for comm_time
+    from datetime import datetime
+    now_dt = datetime.fromtimestamp(now)
+    comm_time = now_dt.strftime('%I:%M %p').lstrip('0')
+    
+    # Create Communication entry in client file
+    cursor.execute("""
+        INSERT INTO entries (
+            client_id, class, created_at, modified_at,
+            description, content, comm_recipient, comm_type,
+            comm_date, comm_time, locked, locked_at
+        ) VALUES (?, 'communication', ?, ?, ?, ?, 'internal_note', 'administrative', ?, ?, 1, ?)
+    """, (
+        portion['client_id'],
+        now,
+        now,
+        comm_description,
+        comm_content,
+        now,
+        comm_time,
+        now
+    ))
+    
+    # If uncollectible, create Bad Debt expense entry
+    if reason == 'uncollectible':
+        # Check if "Bad Debt" category exists, create if not
+        cursor.execute("SELECT id FROM expense_categories WHERE name = 'Bad Debt'")
+        cat_row = cursor.fetchone()
+        
+        if cat_row:
+            category_id = cat_row[0]
+        else:
+            cursor.execute("""
+                INSERT INTO expense_categories (name, created_at)
+                VALUES ('Bad Debt', ?)
+            """, (now,))
+            category_id = cursor.lastrowid
+        
+        # Check if payee with file number exists, create if not
+        cursor.execute("SELECT id FROM payees WHERE name = ?", (portion['file_number'],))
+        payee_row = cursor.fetchone()
+        
+        if payee_row:
+            payee_id = payee_row[0]
+        else:
+            cursor.execute("""
+                INSERT INTO payees (name, created_at)
+                VALUES (?, ?)
+            """, (portion['file_number'], now))
+            payee_id = cursor.lastrowid
+        
+        # Create expense entry
+        expense_description = "Uncollectible"
+        expense_content = f"Written off statement for {client_name}"
+        if portion['guardian_number']:
+            expense_content += f" (Guardian {portion['guardian_number']})"
+        
+        cursor.execute("""
+            INSERT INTO entries (
+                client_id, class, ledger_type, created_at, modified_at,
+                description, content, ledger_date, category_id, payee_id,
+                total_amount, tax_amount, statement_id
+            ) VALUES (?, 'expense', 'expense', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        """, (
+            None,
+            now,
+            now,
+            expense_description,
+            expense_content,
+            now,
+            category_id,
+            payee_id,
+            amount_owing,
+            portion['statement_entry_id']
+        ))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})

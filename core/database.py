@@ -291,6 +291,9 @@ class Database:
             status TEXT DEFAULT 'ready',
             date_sent INTEGER,
             created_at INTEGER NOT NULL,
+            write_off_reason TEXT,
+            write_off_date INTEGER,
+            write_off_note TEXT,
             FOREIGN KEY (statement_entry_id) REFERENCES entries(id),
             FOREIGN KEY (client_id) REFERENCES clients(id)
         )
@@ -625,7 +628,7 @@ class Database:
         """Get client's payment status based on statement_portions.
         
         Returns:
-            'paid' (green) - No outstanding portions, or all paid
+            'paid' (green) - No outstanding portions, or all paid/written_off
             'pending' (yellow) - Has sent/partial portions, none overdue
             'overdue' (red) - Has sent portions 30+ days old
         """
@@ -633,11 +636,11 @@ class Database:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Get all non-paid portions for this client
+        # Get all non-paid, non-written-off portions for this client
         cursor.execute("""
             SELECT status, date_sent 
             FROM statement_portions 
-            WHERE client_id = ? AND status != 'paid'
+            WHERE client_id = ? AND status NOT IN ('paid', 'written_off')
         """, (client_id,))
         
         portions = cursor.fetchall()
@@ -662,9 +665,9 @@ class Database:
 
 
     def count_pending_invoices(self) -> int:
-        """Count statement portions that aren't fully paid.
+        """Count statement portions that aren't fully paid or written off.
         
-        Returns count of portions with status != 'paid'
+        Returns count of portions with status not in ('paid', 'written_off')
         """
         conn = self.connect()
         cursor = conn.cursor()
@@ -672,7 +675,7 @@ class Database:
         cursor.execute("""
             SELECT COUNT(*) 
             FROM statement_portions 
-            WHERE status != 'paid'
+            WHERE status NOT IN ('paid', 'written_off')
         """)
         
         return cursor.fetchone()[0]

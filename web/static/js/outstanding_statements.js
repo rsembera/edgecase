@@ -312,6 +312,10 @@ function triggerAppleScriptEmail(data) {
     });
 }
 
+// ============================================
+// PAYMENT MODAL
+// ============================================
+
 let currentPaymentPortionId = null;
 
 function showPaymentForm(portionId, amountOwing) {
@@ -385,6 +389,121 @@ document.getElementById('payment-amount').addEventListener('blur', function() {
         this.value = val.toFixed(2);
     }
 });
+
+// ============================================
+// WRITE-OFF MODAL
+// ============================================
+
+let currentWriteOffPortionId = null;
+let currentWriteOffAmount = 0;
+
+function showWriteOffModal(portionId, amountOwing) {
+    currentWriteOffPortionId = portionId;
+    currentWriteOffAmount = amountOwing;
+    
+    // Reset form
+    document.getElementById('writeoff-reason').value = '';
+    document.getElementById('writeoff-note').value = '';
+    document.getElementById('writeoff-note-group').style.display = 'none';
+    document.getElementById('writeoff-hint').textContent = '';
+    document.getElementById('writeoff-amount-text').textContent = '$' + amountOwing.toFixed(2);
+    
+    document.getElementById('writeoff-modal').classList.add('visible');
+}
+
+function hideWriteOffModal() {
+    document.getElementById('writeoff-modal').classList.remove('visible');
+    currentWriteOffPortionId = null;
+    currentWriteOffAmount = 0;
+}
+
+function toggleWriteOffNote() {
+    const reason = document.getElementById('writeoff-reason').value;
+    const noteGroup = document.getElementById('writeoff-note-group');
+    const hint = document.getElementById('writeoff-hint');
+    
+    // Show note field for "Other"
+    if (reason === 'other') {
+        noteGroup.style.display = 'block';
+    } else {
+        noteGroup.style.display = 'none';
+    }
+    
+    // Update hint text based on reason
+    switch(reason) {
+        case 'uncollectible':
+            hint.textContent = 'This will create a "Bad Debt" expense entry in the Ledger.';
+            hint.style.color = '#B45309';
+            break;
+        case 'waived':
+            hint.textContent = 'The debt will be resolved. No ledger entry will be created.';
+            hint.style.color = '#718096';
+            break;
+        case 'billing_error':
+            hint.textContent = 'The debt will be resolved. No ledger entry will be created.';
+            hint.style.color = '#718096';
+            break;
+        case 'other':
+            hint.textContent = 'Please provide an explanation. No ledger entry will be created.';
+            hint.style.color = '#718096';
+            break;
+        default:
+            hint.textContent = '';
+    }
+}
+
+function confirmWriteOff() {
+    const reason = document.getElementById('writeoff-reason').value;
+    const note = document.getElementById('writeoff-note').value.trim();
+    
+    // Validation
+    if (!reason) {
+        showSuccessModal('Please select a reason', 'Missing Reason');
+        return;
+    }
+    
+    if (reason === 'other' && !note) {
+        showSuccessModal('Please provide an explanation', 'Missing Explanation');
+        return;
+    }
+    
+    fetch('/statements/write-off', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            portion_id: currentWriteOffPortionId,
+            reason: reason,
+            note: note,
+            amount: currentWriteOffAmount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hideWriteOffModal();
+            showSuccessModal('Statement written off', 'Success');
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error writing off statement:', error);
+        alert('Error writing off statement');
+    });
+}
+
+// Close write-off modal when clicking outside
+document.getElementById('writeoff-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideWriteOffModal();
+    }
+});
+
+// ============================================
+// SUCCESS MODAL
+// ============================================
 
 function showSuccessModal(message, title) {
     document.getElementById('success-title').textContent = title || 'Success';
