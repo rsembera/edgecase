@@ -416,24 +416,23 @@ async function loadPracticeInfo() {
             document.getElementById('consultation-base').value = parseFloat(data.info.consultation_base_price || 0).toFixed(2);
             document.getElementById('consultation-tax').value = parseFloat(data.info.consultation_tax_rate || 0).toFixed(2);
             document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
-            document.getElementById('currency').value = data.info.currency || 'CAD';
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
             // Show current logo/signature status
             if (data.info.logo_filename) {
                 document.getElementById('logo-current').textContent = '✓ ' + data.info.logo_filename;
-                document.getElementById('logo-delete-button').style.display = 'inline-block';
+                document.getElementById('logo-delete-button').classList.add('visible');
             } else {
                 document.getElementById('logo-current').textContent = '';
-                document.getElementById('logo-delete-button').style.display = 'none';
+                document.getElementById('logo-delete-button').classList.remove('visible');
             }
             
             if (data.info.signature_filename) {
                 document.getElementById('signature-current').textContent = '✓ ' + data.info.signature_filename;
-                document.getElementById('signature-delete-button').style.display = 'inline-block';
+                document.getElementById('signature-delete-button').classList.add('visible');
             } else {
                 document.getElementById('signature-current').textContent = '';
-                document.getElementById('signature-delete-button').style.display = 'none';
+                document.getElementById('signature-delete-button').classList.remove('visible');
             }
         }
     } catch (error) {
@@ -611,23 +610,19 @@ document.getElementById('signature-upload').addEventListener('change', function(
     }
 });
 
-// Upload logo
+// Upload logo (auto-triggered on file select)
 async function uploadLogo() {
     const fileInput = document.getElementById('logo-upload');
     const file = fileInput.files[0];
     
-    if (!file) {
-        alert('Please select a file first');
-        return;
-    }
+    if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
         alert('Please upload an image file');
+        fileInput.value = '';
         return;
     }
     
-    // Create form data
     const formData = new FormData();
     formData.append('logo', file);
     
@@ -640,24 +635,9 @@ async function uploadLogo() {
         const result = await response.json();
         
         if (result.success) {
-            // Show success message
-            const statusDiv = document.getElementById('practice-info-status');
-            statusDiv.textContent = '✓ Logo uploaded successfully!';
-            statusDiv.style.display = 'block';
-
-            // Update display
             document.getElementById('logo-current').textContent = '✓ ' + result.filename;
-            document.getElementById('logo-delete-button').style.display = 'inline-block';
-            
-            // Clear the file input
+            document.getElementById('logo-delete-button').classList.add('visible');
             fileInput.value = '';
-            document.getElementById('logo-filename').textContent = '';
-            document.getElementById('logo-upload-button').style.display = 'none';
-            
-            // Hide success message after 3 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
         } else {
             alert('Upload failed: ' + result.error);
         }
@@ -666,23 +646,19 @@ async function uploadLogo() {
     }
 }
 
-// Upload signature
+// Upload signature (auto-triggered on file select)
 async function uploadSignature() {
     const fileInput = document.getElementById('signature-upload');
     const file = fileInput.files[0];
     
-    if (!file) {
-        alert('Please select a file first');
-        return;
-    }
+    if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
         alert('Please upload an image file');
+        fileInput.value = '';
         return;
     }
     
-    // Create form data
     const formData = new FormData();
     formData.append('signature', file);
     
@@ -695,24 +671,9 @@ async function uploadSignature() {
         const result = await response.json();
         
         if (result.success) {
-            // Show success message
-            const statusDiv = document.getElementById('practice-info-status');
-            statusDiv.textContent = '✓ Signature uploaded successfully!';
-            statusDiv.style.display = 'block';
-
-            // Update display
             document.getElementById('signature-current').textContent = '✓ ' + result.filename;
-            document.getElementById('signature-delete-button').style.display = 'inline-block';
-            
-            // Clear the file input
+            document.getElementById('signature-delete-button').classList.add('visible');
             fileInput.value = '';
-            document.getElementById('signature-filename').textContent = '';
-            document.getElementById('signature-upload-button').style.display = 'none';
-            
-            // Hide success message after 3 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
         } else {
             alert('Upload failed: ' + result.error);
         }
@@ -741,7 +702,7 @@ async function deleteLogo() {
                 statusDiv.style.display = 'block';
                 
                 document.getElementById('logo-current').textContent = '';
-                document.getElementById('logo-delete-button').style.display = 'none';
+                document.getElementById('logo-delete-button').classList.remove('visible');
                 
                 setTimeout(() => {
                     statusDiv.style.display = 'none';
@@ -776,7 +737,7 @@ async function deleteSignature() {
                 statusDiv.style.display = 'block';
                 
                 document.getElementById('signature-current').textContent = '';
-                document.getElementById('signature-delete-button').style.display = 'none';
+                document.getElementById('signature-delete-button').classList.remove('visible');
                 
                 setTimeout(() => {
                     statusDiv.style.display = 'none';
