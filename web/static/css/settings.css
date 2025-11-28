@@ -126,6 +126,16 @@ input[type="number"]:focus {
     display: inline-flex !important;
 }
 
+#logo-delete-button,
+#signature-delete-button {
+    display: none !important;
+}
+
+#logo-delete-button.visible,
+#signature-delete-button.visible {
+    display: inline-flex !important;
+}
+
 /* Remove spinner arrows from number inputs */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

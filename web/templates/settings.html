@@ -457,36 +457,28 @@ details[open] .settings-section-header .arrow {
         </div>  
 
         <div class="form-group">
-            <label for="logo-upload">Practice Logo</label>
+            <label>Practice Logo</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+                <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="uploadLogo()">
                 <button type="button" onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                     Choose Logo
                 </button>
-                <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-                <button type="button" onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                    Upload
-                </button>
-                <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-                <button type="button" onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                <span id="logo-current" style="color: #0E5346; font-size: 0.875rem;"></span>
+                <button type="button" onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
                     <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
                 </button>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="signature-upload">Digital Signature</label>
+            <label>Digital Signature</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="file" id="signature-upload" accept="image/*" style="display: none;">
+                <input type="file" id="signature-upload" accept="image/*" style="display: none;" onchange="uploadSignature()">
                 <button type="button" onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                     Choose Signature
                 </button>
-                <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-                <button type="button" onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                    Upload
-                </button>
-                <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-                <button type="button" onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                <span id="signature-current" style="color: #0E5346; font-size: 0.875rem;"></span>
+                <button type="button" onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
                     <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
                 </button>
             </div>
