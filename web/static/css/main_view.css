@@ -510,17 +510,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     font-size: 0.875rem;
 }
 
-.client-card.detailed-view .client-name {
-    width: 250px;
-    flex-shrink: 0;
-    margin-right: 1rem;
-    font-weight: 600;
-    color: #111827;
-    font-size: 0.9375rem;
-}
-
 .client-card.detailed-view .contact-info {
-    flex: 1;
     min-width: 200px;
     margin-right: 1rem;
     display: flex;
@@ -531,10 +521,35 @@ body.tutti-frutti .nav-btn.peach:hover {
 .client-card.detailed-view .dates {
     width: 220px;
     flex-shrink: 0;
+    margin-left: auto;
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
     align-items: center;
+}
+
+.client-card.detailed-view .name-group {
+    width: 270px;
+    flex-shrink: 0;
+    margin-right: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.client-card.detailed-view .link-icon {
+    width: 20px;
+    flex-shrink: 0;
+    color: #6B7280;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0;
+}
+
+.client-card.detailed-view .client-name {
+    font-weight: 600;
+    color: #111827;
+    font-size: 0.9375rem;
 }
 
 /* Payment status dots */
