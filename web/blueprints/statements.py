@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 import calendar
 import sys
 import time
+import tempfile
+from flask import send_file
+from pdf.generator import generate_statement_pdf
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -471,9 +474,85 @@ def mark_paid():
         'amount_owing': amount_owing
     })
 
-@statements_bp.route('/generate-final/<int:client_id>')
-def generate_final_statement(client_id):
-    """Generate a final statement showing all amounts owing for a client."""
-    # TODO: Implement final statement generation
-    # This will create a PDF showing all unpaid amounts
-    pass
+@statements_bp.route('/pdf/<int:portion_id>')
+def download_statement_pdf(portion_id):
+    """Generate and download a PDF statement for a portion."""
+    
+    temp_dir = tempfile.gettempdir()
+    
+    conn = db.connect()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT sp.*, c.file_number
+        FROM statement_portions sp
+        JOIN clients c ON sp.client_id = c.id
+        WHERE sp.id = ?
+    """, (portion_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'success': False, 'error': 'Statement not found'}), 404
+    
+    columns = [col[0] for col in cursor.description]
+    portion = dict(zip(columns, row))
+    
+    date_str = datetime.now().strftime('%Y%m%d')
+    filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
+    output_path = Path(temp_dir) / filename
+    
+    assets_path = Path(__file__).parent.parent.parent / 'assets'
+    
+    try:
+        generate_statement_pdf(db, portion_id, str(output_path), str(assets_path))
+        
+        return send_file(
+            output_path,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@statements_bp.route('/view-pdf/<int:portion_id>')
+def view_statement_pdf(portion_id):
+    """Generate and view a PDF statement in browser."""
+    
+    temp_dir = tempfile.gettempdir()
+    
+    conn = db.connect()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT sp.*, c.file_number
+        FROM statement_portions sp
+        JOIN clients c ON sp.client_id = c.id
+        WHERE sp.id = ?
+    """, (portion_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'success': False, 'error': 'Statement not found'}), 404
+    
+    columns = [col[0] for col in cursor.description]
+    portion = dict(zip(columns, row))
+    
+    date_str = datetime.now().strftime('%Y%m%d')
+    filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
+    output_path = Path(temp_dir) / filename
+    
+    assets_path = Path(__file__).parent.parent.parent / 'assets'
+    
+    try:
+        generate_statement_pdf(db, portion_id, str(output_path), str(assets_path))
+        
+        return send_file(
+            output_path,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
