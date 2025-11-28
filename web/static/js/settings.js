@@ -383,7 +383,9 @@ async function saveSettings() {
             payment_instructions: document.getElementById('payment_instructions').value,
             include_attestation: document.getElementById('include_attestation').checked,
             attestation_text: document.getElementById('attestation_text').value,
-            email_method: document.getElementById('email_method').value
+            email_method: document.getElementById('email_method').value,
+            email_from_address: document.getElementById('email_from').value,
+            statement_email_body: document.getElementById('statement_email_body').value
         })
     });
     
@@ -953,6 +955,15 @@ function toggleAttestationText() {
     textGroup.style.display = checkbox.checked ? 'block' : 'none';
 }
 
+// Toggle email from field visibility based on email method
+function toggleEmailFromField() {
+    const method = document.getElementById('email_method').value;
+    const emailFromGroup = document.getElementById('email-from-group');
+    if (emailFromGroup) {
+        emailFromGroup.style.display = method === 'applescript' ? 'block' : 'none';
+    }
+}
+
 // Statement Settings - Load on page load
 (function() {
     const currencyField = document.getElementById('currency');
@@ -964,7 +975,9 @@ function toggleAttestationText() {
             if (data.currency) document.getElementById('currency').value = data.currency;
             if (data.registration_info) document.getElementById('registration_info').value = data.registration_info;
             if (data.payment_instructions) document.getElementById('payment_instructions').value = data.payment_instructions;
-            if (data.email_method) document.getElementById('email_method').value = data.email_method;
+            if (data.email_from_address) document.getElementById('email_from').value = data.email_from_address;
+            if (data.statement_email_body) document.getElementById('statement_email_body').value = data.statement_email_body;
+            toggleEmailFromField();
             
             const attestationCheckbox = document.getElementById('include_attestation');
             attestationCheckbox.checked = data.include_attestation === true || data.include_attestation === 'true';

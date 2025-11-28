@@ -374,12 +374,122 @@ def generate_statements():
 
 @statements_bp.route('/mark-sent/<int:portion_id>', methods=['POST'])
 def mark_sent(portion_id):
-    """Mark a statement portion as sent (email sent to client)."""
+    """Mark a statement portion as sent - generates PDF, creates Communication entry, triggers email."""
+    
+    import subprocess
+    import shutil
+    from urllib.parse import quote
     
     now = int(time.time())
     conn = db.connect()
     cursor = conn.cursor()
     
+    # Get portion with client info
+    cursor.execute("""
+        SELECT sp.*, c.id as client_id, c.file_number, c.first_name, c.middle_name, c.last_name,
+               e.created_at as statement_date
+        FROM statement_portions sp
+        JOIN clients c ON sp.client_id = c.id
+        JOIN entries e ON sp.statement_entry_id = e.id
+        WHERE sp.id = ?
+    """, (portion_id,))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
+    
+    columns = [col[0] for col in cursor.description]
+    portion = dict(zip(columns, row))
+    
+    # Get profile for guardian info if needed
+    cursor.execute("""
+        SELECT * FROM entries 
+        WHERE client_id = ? AND class = 'profile'
+        ORDER BY created_at DESC LIMIT 1
+    """, (portion['client_id'],))
+    profile_row = cursor.fetchone()
+    profile = None
+    if profile_row:
+        profile_cols = [col[0] for col in cursor.description]
+        profile = dict(zip(profile_cols, profile_row))
+    
+    # Determine recipient name and email
+    if portion['guardian_number'] == 1 and profile:
+        recipient_first_name = profile.get('guardian1_name', '').split()[0] if profile.get('guardian1_name') else portion['first_name']
+        recipient_email = profile.get('guardian1_email', '')
+    elif portion['guardian_number'] == 2 and profile:
+        recipient_first_name = profile.get('guardian2_name', '').split()[0] if profile.get('guardian2_name') else portion['first_name']
+        recipient_email = profile.get('guardian2_email', '')
+    else:
+        recipient_first_name = portion['first_name']
+        recipient_email = profile.get('email', '') if profile else ''
+    
+    # Get statement month from statement date
+    statement_dt = datetime.fromtimestamp(portion['statement_date'])
+    statement_month_year = statement_dt.strftime('%B %Y')
+    
+    # Get email settings
+    email_method = db.get_setting('email_method', 'mailto')
+    email_from = db.get_setting('email_from_address', '')
+    email_body_template = db.get_setting('statement_email_body', '')
+    
+    # Build email text
+    email_subject = f"Statement for {statement_month_year}"
+    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {statement_month_year}.\n\n{email_body_template}"
+    
+    # Generate PDF to temp location
+    temp_dir = tempfile.gettempdir()
+    date_str = datetime.now().strftime('%Y%m%d')
+    pdf_filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
+    temp_pdf_path = Path(temp_dir) / pdf_filename
+    assets_path = Path(__file__).parent.parent.parent / 'assets'
+    
+    try:
+        generate_statement_pdf(db, portion_id, str(temp_pdf_path), str(assets_path))
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
+    
+    # Create Communication entry
+    cursor.execute("""
+        INSERT INTO entries (
+            client_id, class, created_at, modified_at,
+            description, content, comm_recipient, comm_type, comm_date, comm_time,
+            locked
+        ) VALUES (?, 'communication', ?, ?, ?, ?, 'to_client', 'email', ?, ?, 1)
+    """, (
+        portion['client_id'],
+        now,
+        now,
+        f"Statement {statement_month_year}",
+        email_body,
+        now,
+        datetime.now().strftime('%I:%M %p')
+    ))
+    
+    comm_entry_id = cursor.lastrowid
+    
+    # Copy PDF to attachments folder and create attachment record
+    attachments_dir = Path(__file__).parent.parent.parent / 'attachments' / str(portion['client_id']) / str(comm_entry_id)
+    attachments_dir.mkdir(parents=True, exist_ok=True)
+    
+    final_pdf_path = attachments_dir / pdf_filename
+    shutil.copy2(temp_pdf_path, final_pdf_path)
+    
+    cursor.execute("""
+        INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        comm_entry_id,
+        pdf_filename,
+        f"Statement for {statement_month_year}",
+        str(final_pdf_path),
+        final_pdf_path.stat().st_size,
+        now
+    ))
+    
+    # Update statement portion status
     cursor.execute("""
         UPDATE statement_portions
         SET status = 'sent', date_sent = ?
@@ -389,7 +499,18 @@ def mark_sent(portion_id):
     conn.commit()
     conn.close()
     
-    return jsonify({'success': True})
+    # Prepare response with email trigger info
+    response_data = {
+        'success': True,
+        'email_method': email_method,
+        'recipient_email': recipient_email,
+        'subject': email_subject,
+        'body': email_body,
+        'pdf_path': str(temp_pdf_path),
+        'email_from': email_from
+    }
+    
+    return jsonify(response_data)
 
 @statements_bp.route('/mark-paid', methods=['POST'])
 def mark_paid():
@@ -556,3 +677,88 @@ def view_statement_pdf(portion_id):
         )
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+@statements_bp.route('/send-applescript-email', methods=['POST'])
+def send_applescript_email():
+    """Send email via AppleScript (Mac Mail.app)."""
+    
+    import subprocess
+    
+    data = request.get_json()
+    recipient = data.get('recipient_email', '')
+    subject = data.get('subject', '')
+    body = data.get('body', '')
+    pdf_path = data.get('pdf_path', '')
+    email_from = data.get('email_from', '')
+    
+    # Escape double quotes and backslashes for AppleScript
+    def escape_for_applescript(s):
+        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+    
+    subject_escaped = escape_for_applescript(subject)
+    body_escaped = escape_for_applescript(body)
+    
+    # Build AppleScript
+    applescript = f'''
+    tell application "Mail"
+        set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
+        
+        tell newMessage
+            make new to recipient at end of to recipients with properties {{address:"{recipient}"}}
+            
+            if "{pdf_path}" is not "" then
+                make new attachment with properties {{file name:POSIX file "{pdf_path}"}} at after last paragraph
+            end if
+        end tell
+        
+        activate
+    end tell
+    '''
+    
+    # Add sender account if specified
+    if email_from:
+        applescript = f'''
+        tell application "Mail"
+            set senderAccount to null
+            repeat with acct in accounts
+                if (email addresses of acct) contains "{email_from}" then
+                    set senderAccount to acct
+                    exit repeat
+                end if
+            end repeat
+            
+            set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
+            
+            if senderAccount is not null then
+                set sender of newMessage to "{email_from}"
+            end if
+            
+            tell newMessage
+                make new to recipient at end of to recipients with properties {{address:"{recipient}"}}
+                
+                if "{pdf_path}" is not "" then
+                    make new attachment with properties {{file name:POSIX file "{pdf_path}"}} at after last paragraph
+                end if
+            end tell
+            
+            activate
+        end tell
+        '''
+    
+    try:
+        result = subprocess.run(
+            ['osascript', '-e', applescript],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return jsonify({'success': False, 'error': result.stderr})
+        
+        return jsonify({'success': True})
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': 'AppleScript timed out'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
