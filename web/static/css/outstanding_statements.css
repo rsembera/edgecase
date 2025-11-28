@@ -374,7 +374,7 @@
 
 .statements-table th:nth-child(5),
 .statements-table td:nth-child(5) {
-    width: 100px;  /* Actions */
+    width: 120px;  /* Actions - slightly wider for 2 icons */
     text-align: right;
 }
 
@@ -439,10 +439,20 @@
     height: 18px;
 }
 
+/* Grey icon variant for write-off */
+.btn-icon.btn-icon-grey {
+    background: #E5E7EB;
+    color: #6B7280;
+}
+
+.btn-icon.btn-icon-grey:hover {
+    background: #D1D5DB;
+    color: #4B5563;
+}
+
 /* ============================================
-   PAYMENT FORM (Inline)
+   PAYMENT MODAL
    ============================================ */
-/* Payment Modal Overlay */
 .payment-modal-overlay {
     display: none;
     position: fixed;
@@ -504,6 +514,67 @@
     display: flex;
     gap: 0.75rem;
     justify-content: flex-end;
+}
+
+/* ============================================
+   WRITE-OFF MODAL
+   ============================================ */
+.writeoff-modal {
+    min-width: 350px;
+}
+
+.writeoff-amount-display {
+    margin: 0 0 1rem 0;
+    color: #4A5568;
+    font-size: 0.9375rem;
+}
+
+.writeoff-amount-display strong {
+    color: #2D3748;
+}
+
+.payment-modal select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    height: 50px;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
+    background: #FBFCFD;
+    cursor: pointer;
+    color: #323B45;
+}
+
+.payment-modal select:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.payment-modal textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.payment-modal textarea:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.writeoff-hint {
+    margin: 1rem 0;
+    font-size: 0.8125rem;
+    font-style: italic;
 }
 
 /* ============================================
