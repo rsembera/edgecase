@@ -261,19 +261,6 @@ details[open] .settings-section-header .arrow {
             <label for="website">Website (optional)</label>
             <input type="url" id="website" placeholder="e.g., https://practice.com">
         </div>
-
-        <div class="form-group">
-            <label for="currency">Currency</label>
-            <select id="currency">
-                <option value="CAD">$ CAD - Canadian Dollar</option>
-                <option value="USD">$ USD - US Dollar</option>
-                <option value="EUR">€ EUR - Euro</option>
-                <option value="GBP">£ GBP - British Pound</option>
-                <option value="AUD">$ AUD - Australian Dollar</option>
-                <option value="INR">₹ INR - Indian Rupee</option>
-                <option value="JPY">¥ JPY - Japanese Yen</option>
-            </select>
-        </div>
         
         <div class="form-group">
             <label>Consultation Fee</label>
@@ -324,42 +311,6 @@ details[open] .settings-section-header .arrow {
                 <option value="60">60 minutes</option>
             </select>
         </div>
-        
-        <div class="form-group">
-        <label for="logo-upload">Practice Logo</label>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="file" id="logo-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                Choose Logo
-            </button>
-            <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                Upload
-            </button>
-            <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-            <button onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
-            </button>
-        </div>
-    </div>
-        
-        <div class="form-group">
-        <label for="signature-upload">Digital Signature</label>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="file" id="signature-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                Choose Signature
-            </button>
-            <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
-            <button onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
-                Upload
-            </button>
-            <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
-            <button onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
-                🗑️ Delete
-            </button>
-        </div>
-    </div>
         
         <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
         </div>
@@ -443,20 +394,58 @@ details[open] .settings-section-header .arrow {
             <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;">
             <small>Exact name of the calendar in Apple Calendar app</small>
         </div>
-        
         </div>
     </details>
     
-    <!-- Email Section -->
+    
+
+       <!-- Statements Section -->
     <details class="settings-section-collapsible">
         <summary class="settings-section-header">
             <span class="arrow">▶</span>
             <div>
-                <h3>Email</h3>
-                <p>How statements are sent to clients</p>
+                <h3>Statements</h3>
+                <p>Invoice appearance and payment details</p>
             </div>
         </summary>
         <div class="settings-section-content">
+        
+        <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency">
+                <option value="CAD">$ CAD - Canadian Dollar</option>
+                <option value="USD">$ USD - US Dollar</option>
+                <option value="EUR">€ EUR - Euro</option>
+                <option value="GBP">£ GBP - British Pound</option>
+                <option value="AUD">$ AUD - Australian Dollar</option>
+                <option value="INR">₹ INR - Indian Rupee</option>
+                <option value="JPY">¥ JPY - Japanese Yen</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="registration_info">Registration Info</label>
+            <input type="text" id="registration_info" placeholder="e.g., CRPO Registration Nr. #001234">
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Appears in header next to your credentials</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="payment_instructions">Payment Instructions</label>
+            <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" style="resize: vertical;"></textarea>
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Appears at bottom of statement</small>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" id="include_attestation" onchange="toggleAttestationText()" style="width: auto;">
+                Include attestation statement
+            </label>
+        </div>
+        
+        <div class="form-group" id="attestation-text-group" style="display: none;">
+            <label for="attestation_text">Attestation Text</label>
+            <textarea id="attestation_text" rows="3" style="resize: vertical;">I attest that I have performed the services listed above.</textarea>
+        </div>
         
         <div class="form-group">
             <label for="email_method">Send statements via</label>
@@ -465,8 +454,43 @@ details[open] .settings-section-header .arrow {
                 <option value="applescript">Compose in Mail.app (Mac only, attaches PDF)</option>
             </select>
             <small style="display: block; margin-top: 0.5rem; color: #6B7280;">AppleScript method can automatically attach the PDF statement</small>
+        </div>  
+
+        <div class="form-group">
+            <label for="logo-upload">Practice Logo</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    Choose Logo
+                </button>
+                <span id="logo-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+                <button type="button" onclick="uploadLogo()" id="logo-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
+                    Upload
+                </button>
+                <span id="logo-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+                <button type="button" onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
+                </button>
+            </div>
         </div>
-        
+
+        <div class="form-group">
+            <label for="signature-upload">Digital Signature</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="file" id="signature-upload" accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    Choose Signature
+                </button>
+                <span id="signature-filename" style="margin-left: 0.5rem; color: #5B6571; font-size: 0.875rem;"></span>
+                <button type="button" onclick="uploadSignature()" id="signature-upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none;">
+                    Upload
+                </button>
+                <span id="signature-current" style="margin-left: 0.5rem; color: #0E5346; font-size: 0.875rem;"></span>
+                <button type="button" onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; display: none; background: #E7CFD4; color: #6A243E;">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
+                </button>
+            </div>
+        </div>
         </div>
     </details>
 

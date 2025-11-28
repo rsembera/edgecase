@@ -373,11 +373,16 @@ async function saveSettings() {
         })
     });
 
-    // Save email settings
-    await fetch('/api/email_settings', {
+    // Save statement settings
+    await fetch('/api/statement_settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+            currency: document.getElementById('currency').value,
+            registration_info: document.getElementById('registration_info').value,
+            payment_instructions: document.getElementById('payment_instructions').value,
+            include_attestation: document.getElementById('include_attestation').checked,
+            attestation_text: document.getElementById('attestation_text').value,
             email_method: document.getElementById('email_method').value
         })
     });
@@ -446,7 +451,6 @@ async function savePracticeInfo() {
         phone: document.getElementById('practice-phone').value,
         address: document.getElementById('practice-address').value,  // CHANGED: single address field
         website: document.getElementById('website').value,
-        currency: document.getElementById('currency').value,
         consultation_base_price: document.getElementById('consultation-base').value,
         consultation_tax_rate: document.getElementById('consultation-tax').value,
         consultation_fee: document.getElementById('consultation-total').value,
@@ -963,22 +967,6 @@ function toggleCalendarNameField() {
     nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
 }
 
-// Email Settings
-(function() {
-    const emailMethod = document.getElementById('email_method');
-    
-    if (!emailMethod) return; // Not on settings page
-    
-    // Load email settings
-    fetch('/api/email_settings')
-        .then(response => response.json())
-        .then(data => {
-            if (data.email_method) {
-                emailMethod.value = data.email_method;
-            }
-        });
-})();
-
 function saveEmailSettings() {
     const emailMethod = document.getElementById('email_method');
     
@@ -996,3 +984,31 @@ function saveEmailSettings() {
         }
     });
 }
+
+// Toggle attestation text field visibility
+function toggleAttestationText() {
+    const checkbox = document.getElementById('include_attestation');
+    const textGroup = document.getElementById('attestation-text-group');
+    textGroup.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// Statement Settings - Load on page load
+(function() {
+    const currencyField = document.getElementById('currency');
+    if (!currencyField) return; // Not on settings page
+    
+    fetch('/api/statement_settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.currency) document.getElementById('currency').value = data.currency;
+            if (data.registration_info) document.getElementById('registration_info').value = data.registration_info;
+            if (data.payment_instructions) document.getElementById('payment_instructions').value = data.payment_instructions;
+            if (data.email_method) document.getElementById('email_method').value = data.email_method;
+            
+            const attestationCheckbox = document.getElementById('include_attestation');
+            attestationCheckbox.checked = data.include_attestation === true || data.include_attestation === 'true';
+            toggleAttestationText();
+            
+            if (data.attestation_text) document.getElementById('attestation_text').value = data.attestation_text;
+        });
+})();

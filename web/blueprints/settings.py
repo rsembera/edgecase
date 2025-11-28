@@ -414,14 +414,29 @@ def calendar_settings():
         
         return jsonify({'success': True})
     
-@settings_bp.route('/api/email_settings', methods=['GET', 'POST'])
-def email_settings():
-    """Get or save email settings."""
+        
+# ============================================================================
+# STATEMENT SETTINGS
+# ============================================================================
+        
+@settings_bp.route('/api/statement_settings', methods=['GET', 'POST'])
+def statement_settings():
+    """Get or save statement settings."""
     if request.method == 'POST':
         data = request.get_json()
+        db.set_setting('currency', data.get('currency', 'CAD'))
+        db.set_setting('registration_info', data.get('registration_info', ''))
+        db.set_setting('payment_instructions', data.get('payment_instructions', ''))
+        db.set_setting('include_attestation', 'true' if data.get('include_attestation', False) else 'false')
+        db.set_setting('attestation_text', data.get('attestation_text', ''))
         db.set_setting('email_method', data.get('email_method', 'mailto'))
         return jsonify({'success': True})
     else:
         return jsonify({
+            'currency': db.get_setting('currency', 'CAD'),
+            'registration_info': db.get_setting('registration_info', ''),
+            'payment_instructions': db.get_setting('payment_instructions', ''),
+            'include_attestation': db.get_setting('include_attestation', 'false') == 'true',
+            'attestation_text': db.get_setting('attestation_text', 'I attest that I have performed the services listed above.'),
             'email_method': db.get_setting('email_method', 'mailto')
         })
