@@ -81,7 +81,7 @@
                 <div id="add-dropdown" class="dropdown-menu" style="display: none;">
                     <a href="{{ url_for('ledger.create_income') }}" class="dropdown-item"><i data-lucide="trending-up"></i>Income</a>
                     <a href="{{ url_for('ledger.create_expense') }}" class="dropdown-item"><i data-lucide="trending-down"></i>Expense</a>
-                    <a href="" class="dropdown-item"><i data-lucide="bar-chart-2"></i>Report</a>
+                    <a href="{{ url_for('ledger.ledger_report') }}" class="dropdown-item"><i data-lucide="bar-chart-2"></i>Report</a>
                 </div>
             </div>
         </div>

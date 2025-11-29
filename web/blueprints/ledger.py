@@ -4,7 +4,7 @@ EdgeCase Ledger Blueprint
 Handles income and expense tracking
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, send_file
 from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -13,6 +13,8 @@ import os
 import shutil
 import time
 from core.database import Database
+import tempfile
+from pathlib import Path
 
 ledger_bp = Blueprint('ledger', __name__)
 
@@ -498,3 +500,136 @@ def delete_expense_entry(entry_id):
     except Exception as e:
         print(f"Error deleting expense entry: {e}")
         return f"Error: {str(e)}", 500
+    
+# ============================================
+# REPORTS
+# ============================================
+
+@ledger_bp.route('/ledger/report')
+def ledger_report():
+    """Display the financial report generator page."""
+    from datetime import datetime
+    
+    # Default to current year
+    now = datetime.now()
+    
+    return render_template('ledger_report.html',
+        default_start_year=now.year,
+        default_start_month=1,
+        default_start_day=1,
+        default_end_year=now.year,
+        default_end_month=now.month,
+        default_end_day=now.day
+    )
+
+
+@ledger_bp.route('/ledger/report/calculate')
+def calculate_report():
+    """Calculate totals for preview without generating PDF."""
+    from datetime import datetime
+    
+    start_date = request.args.get('start')
+    end_date = request.args.get('end')
+    
+    if not start_date or not end_date:
+        return jsonify({'success': False, 'error': 'Missing date range'}), 400
+    
+    # Convert to timestamps
+    start_ts = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
+    end_ts = int(datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S').timestamp())
+    
+    conn = db.connect()
+    cursor = conn.cursor()
+    
+    # Get total income
+    cursor.execute("""
+        SELECT COALESCE(SUM(total_amount), 0) as total
+        FROM entries
+        WHERE class = 'income' AND ledger_type = 'income'
+        AND ledger_date >= ? AND ledger_date <= ?
+    """, (start_ts, end_ts))
+    total_income = cursor.fetchone()[0] or 0
+    
+    # Get total expenses
+    cursor.execute("""
+        SELECT COALESCE(SUM(total_amount), 0) as total
+        FROM entries
+        WHERE class = 'expense' AND ledger_type = 'expense'
+        AND ledger_date >= ? AND ledger_date <= ?
+    """, (start_ts, end_ts))
+    total_expenses = cursor.fetchone()[0] or 0
+    
+    # Get expenses by category
+    cursor.execute("""
+        SELECT ec.name, COALESCE(SUM(e.total_amount), 0) as total
+        FROM entries e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
+        AND e.ledger_date >= ? AND e.ledger_date <= ?
+        GROUP BY e.category_id
+        ORDER BY ec.name
+    """, (start_ts, end_ts))
+    
+    categories = []
+    for row in cursor.fetchall():
+        categories.append({
+            'name': row[0] or 'Uncategorized',
+            'total': row[1]
+        })
+    
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_income': total_income - total_expenses,
+        'categories': categories
+    })
+
+
+@ledger_bp.route('/ledger/report/pdf')
+def generate_report_pdf():
+    """Generate the PDF financial report."""
+    from datetime import datetime
+    from pdf.ledger_report import generate_ledger_report_pdf
+    import tempfile
+    from pathlib import Path
+    
+    start_date = request.args.get('start')
+    end_date = request.args.get('end')
+    include_details = request.args.get('details') == '1'
+    
+    if not start_date or not end_date:
+        return jsonify({'success': False, 'error': 'Missing date range'}), 400
+    
+    # Convert to timestamps
+    start_ts = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
+    end_ts = int(datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S').timestamp())
+    
+    # Generate filename
+    filename = f"Financial_Report_{start_date}_to_{end_date}.pdf"
+    
+    # Create PDF in temp directory
+    temp_dir = tempfile.gettempdir()
+    output_path = Path(temp_dir) / filename
+    
+    try:
+        generate_ledger_report_pdf(
+            db=db,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            output_path=str(output_path),
+            include_details=include_details,
+            start_date_str=start_date,
+            end_date_str=end_date
+        )
+        
+        return send_file(
+            output_path,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

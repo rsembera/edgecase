@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Report - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ledger_report.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/ledger_report.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px;">
+    <!-- Header -->
+    <div class="report-header">
+        <div>
+            <h2><i data-lucide="file-bar-chart" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Financial Report</h2>
+            <p>Generate income and expense reports for tax filing</p>
+        </div>
+        <a href="{{ url_for('ledger.ledger') }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+    
+    <!-- Report Options -->
+    <div class="report-options">
+        <h3>Report Options</h3>
+        
+        <div class="form-group">
+            <label>From</label>
+            <div class="date-input-group">
+                <select id="start-year" class="year-select">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == default_start_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <select id="start-month" class="month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == default_start_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                    {% endfor %}
+                </select>
+                <select id="start-day" class="day-select">
+                    {% for d in range(1, 32) %}
+                    <option value="{{ d }}" {% if d == default_start_day %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>To</label>
+            <div class="date-input-group">
+                <select id="end-year" class="year-select">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == default_end_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <select id="end-month" class="month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == default_end_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                    {% endfor %}
+                </select>
+                <select id="end-day" class="day-select">
+                    {% for d in range(1, 32) %}
+                    <option value="{{ d }}" {% if d == default_end_day %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="quick-ranges">
+            <button type="button" class="btn-small" onclick="setYearRange({{ default_start_year - 1 }})">{{ default_start_year - 1 }}</button>
+            <button type="button" class="btn-small" onclick="setYearRange({{ default_start_year }})">{{ default_start_year }}</button>
+            <button type="button" class="btn-small" onclick="setYTD()">Year to Date</button>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="include-details" checked>
+                <span>Include transaction details</span>
+            </label>
+            <p class="checkbox-hint">When checked, report includes a page listing all individual transactions. When unchecked, only the category summary is generated.</p>
+        </div>
+    </div>
+    
+    <!-- Preview Section -->
+    <div class="report-preview">
+        <h3>Preview</h3>
+        <p class="preview-hint">Click "Calculate" to see totals before generating PDF.</p>
+        
+        <button type="button" class="btn" onclick="calculateTotals()">
+            <i data-lucide="calculator" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Calculate
+        </button>
+        
+        <div id="preview-results" style="display: none;">
+            <div class="preview-summary">
+                <div class="summary-item income">
+                    <span class="summary-label">Total Income</span>
+                    <span class="summary-value" id="preview-income">$0.00</span>
+                </div>
+                <div class="summary-item expenses">
+                    <span class="summary-label">Total Expenses</span>
+                    <span class="summary-value" id="preview-expenses">$0.00</span>
+                </div>
+                <div class="summary-item net">
+                    <span class="summary-label">Net Income</span>
+                    <span class="summary-value" id="preview-net">$0.00</span>
+                </div>
+            </div>
+            
+            <div class="category-breakdown" id="category-breakdown">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Generate Button -->
+    <div class="report-actions">
+        <button type="button" class="btn" onclick="generateReport()">
+            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate PDF
+        </button>
+    </div>
+</div>
+{% endblock %}
