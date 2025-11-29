@@ -262,6 +262,33 @@ function markSent(portionId) {
     });
 }
 
+function generateOnly(portionId) {
+    // Open window immediately (before async) to avoid popup blocker
+    const pdfWindow = window.open('about:blank', '_blank');
+    
+    // Mark as sent but skip email - just view the PDF
+    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Navigate the already-open window to the PDF
+            pdfWindow.location.href = `/statements/view-pdf/${portionId}`;
+            // Reload page after short delay to update status
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            pdfWindow.close();
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        pdfWindow.close();
+        console.error('Error generating statement:', error);
+        alert('Error generating statement');
+    });
+}
+
 function triggerMailtoEmail(data) {
     const subject = encodeURIComponent(data.subject);
     const body = encodeURIComponent(data.body + '\n\n[Please attach the downloaded PDF]');
