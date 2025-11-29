@@ -88,7 +88,7 @@
             <!-- Filter Dropdown (custom, matches main_view) -->
             <div style="position: relative;">
                 <button class="dropdown-btn" id="filter-button" onclick="toggleDropdown('filter-dropdown')">
-                    Filter:&nbsp;<span id="filter-label">All</span>:&nbsp▾
+                    Filter:&nbsp;<span id="filter-label">All</span>:&nbsp;▾
                 </button>
                 <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
                     <a href="#" class="filter-option" data-value="all" onclick="setFilter('all', 'All'); return false;">All Statuses</a>
@@ -138,8 +138,11 @@
                     <td>
                         <div class="action-buttons">
                             {% if stmt.status == 'ready' %}
-                            <button class="btn-icon" onclick="markSent({{ stmt.id }})" title="Mark as Sent">
+                            <button class="btn-icon" onclick="markSent({{ stmt.id }})" title="Send via Email">
                                 <i data-lucide="send"></i>
+                            </button>
+                            <button class="btn-icon" onclick="generateOnly({{ stmt.id }})" title="View PDF (No Email)">
+                                <i data-lucide="eye"></i>
                             </button>
                             {% elif stmt.status == 'sent' %}
                             <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }}, {{ stmt.amount_due }})" title="Record Payment">

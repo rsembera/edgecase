@@ -380,6 +380,9 @@ def mark_sent(portion_id):
     import shutil
     from urllib.parse import quote
     
+    # Check if we should skip email (generate-only mode)
+    skip_email = request.args.get('skip_email') == '1'
+    
     now = int(time.time())
     conn = db.connect()
     cursor = conn.cursor()
@@ -451,7 +454,14 @@ def mark_sent(portion_id):
         conn.close()
         return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
     
-    # Create Communication entry
+    # Create Communication entry - description varies based on skip_email
+    if skip_email:
+        comm_description = f"Statement Generated - {statement_month_year}"
+        comm_content = f"Statement generated for {statement_month_year}."
+    else:
+        comm_description = f"Statement Sent - {statement_month_year}"
+        comm_content = email_body
+    
     cursor.execute("""
         INSERT INTO entries (
             client_id, class, created_at, modified_at,
@@ -462,8 +472,8 @@ def mark_sent(portion_id):
         portion['client_id'],
         now,
         now,
-        f"Statement {statement_month_year}",
-        email_body,
+        comm_description,
+        comm_content,
         now,
         datetime.now().strftime('%I:%M %p')
     ))
@@ -499,18 +509,22 @@ def mark_sent(portion_id):
     conn.commit()
     conn.close()
     
-    # Prepare response with email trigger info
-    response_data = {
-        'success': True,
-        'email_method': email_method,
-        'recipient_email': recipient_email,
-        'subject': email_subject,
-        'body': email_body,
-        'pdf_path': str(temp_pdf_path),
-        'email_from': email_from
-    }
-    
-    return jsonify(response_data)
+    # Return different response based on skip_email
+    if skip_email:
+        return jsonify({
+            'success': True,
+            'skip_email': True
+        })
+    else:
+        return jsonify({
+            'success': True,
+            'email_method': email_method,
+            'recipient_email': recipient_email,
+            'subject': email_subject,
+            'body': email_body,
+            'pdf_path': str(temp_pdf_path),
+            'email_from': email_from
+        })
 
 @statements_bp.route('/mark-paid', methods=['POST'])
 def mark_paid():
