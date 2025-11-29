@@ -474,12 +474,6 @@ def client_file(client_id):
     # Get ALL entries for this client
     all_entries = db.get_client_entries(client_id)
     
-    # Add attachment counts to upload entries
-    for entry in all_entries:
-        if entry['class'] == 'upload':
-            attachments = db.get_attachments(entry['id'])
-            entry['attachment_count'] = len(attachments)
-    
     # Get current time for calculations
     now = datetime.now()
     
