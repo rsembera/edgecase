@@ -1137,21 +1137,32 @@ class Database:
         return dict(row) if row else None
     
     def get_client_entries(self, client_id: int, entry_class: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get all entries for a client, optionally filtered by class."""
+        """Get all entries for a client, optionally filtered by class.
+        
+        Includes attachment_count via JOIN for performance.
+        """
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         if entry_class:
-            cursor.execute(
-                "SELECT * FROM entries WHERE client_id = ? AND class = ? ORDER BY created_at DESC",
-                (client_id, entry_class)
-            )
+            cursor.execute("""
+                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                FROM entries
+                LEFT JOIN attachments ON attachments.entry_id = entries.id
+                WHERE entries.client_id = ? AND entries.class = ?
+                GROUP BY entries.id
+                ORDER BY entries.created_at DESC
+            """, (client_id, entry_class))
         else:
-            cursor.execute(
-                "SELECT * FROM entries WHERE client_id = ? ORDER BY created_at DESC",
-                (client_id,)
-            )
+            cursor.execute("""
+                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                FROM entries
+                LEFT JOIN attachments ON attachments.entry_id = entries.id
+                WHERE entries.client_id = ?
+                GROUP BY entries.id
+                ORDER BY entries.created_at DESC
+            """, (client_id,))
         
         rows = cursor.fetchall()
         conn.close()
@@ -1409,6 +1420,8 @@ class Database:
         """
         Get all ledger entries (income and/or expense).
         
+        Includes attachment_count via JOIN for performance.
+        
         Args:
             ledger_type: Optional filter - 'income' or 'expense' or None for both
         
@@ -1422,15 +1435,21 @@ class Database:
         
         if ledger_type:
             cursor.execute("""
-                SELECT * FROM entries 
-                WHERE ledger_type = ?
-                ORDER BY ledger_date DESC, created_at DESC
+                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                FROM entries
+                LEFT JOIN attachments ON attachments.entry_id = entries.id
+                WHERE entries.ledger_type = ?
+                GROUP BY entries.id
+                ORDER BY entries.ledger_date DESC, entries.created_at DESC
             """, (ledger_type,))
         else:
             cursor.execute("""
-                SELECT * FROM entries 
-                WHERE ledger_type IN ('income', 'expense')
-                ORDER BY ledger_date DESC, created_at DESC
+                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                FROM entries
+                LEFT JOIN attachments ON attachments.entry_id = entries.id
+                WHERE entries.ledger_type IN ('income', 'expense')
+                GROUP BY entries.id
+                ORDER BY entries.ledger_date DESC, entries.created_at DESC
             """)
         
         entries = [dict(row) for row in cursor.fetchall()]

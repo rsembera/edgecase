@@ -130,13 +130,6 @@ def ledger():
                     category = db.get_expense_category(entry['category_id'])
                     entry['category_name'] = category['name'] if category else 'Unknown'
             
-            # Get attachment count for this entry
-            conn = db.connect()
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM attachments WHERE entry_id = ?", (entry['id'],))
-            entry['attachment_count'] = cursor.fetchone()[0]
-            conn.close()
-            
             entries_by_year_month[year][month]['entries'].append(entry)
     
     # Calculate net
