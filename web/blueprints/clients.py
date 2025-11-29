@@ -4,12 +4,11 @@ EdgeCase Clients Blueprint
 Handles main client management (list, add, view, change type)
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, jsonify
 from pathlib import Path
 from datetime import datetime, timedelta
 import sys
 import sqlite3
-from flask import jsonify
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -720,3 +719,192 @@ def deleted_clients():
         client['deleted_at_display'] = datetime.fromtimestamp(client['deleted_at']).strftime('%Y-%m-%d %H:%M')
     
     return render_template('deleted_clients.html', deleted=deleted)
+
+@clients_bp.route('/client/<int:client_id>/export')
+def export_client(client_id):
+    """Show the export page for a client."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client_type = db.get_client_type(client['type_id'])
+    
+    # Default date range (current year)
+    now = datetime.now()
+    
+    return render_template('export.html',
+                         client=client,
+                         client_type=client_type,
+                         default_start_year=now.year,
+                         default_start_month=1,
+                         default_start_day=1,
+                         default_end_year=now.year,
+                         default_end_month=now.month,
+                         default_end_day=now.day)
+
+
+@clients_bp.route('/client/<int:client_id>/export/calculate')
+def calculate_export(client_id):
+    """Calculate what will be exported (returns JSON)."""
+    client = db.get_client(client_id)
+    if not client:
+        return jsonify({'error': 'Client not found'}), 404
+    
+    # Get parameters
+    entry_types = request.args.getlist('types')
+    all_time = request.args.get('all_time') == '1'
+    
+    # Parse date range
+    start_date = None
+    end_date = None
+    
+    if not all_time:
+        try:
+            start_year = int(request.args.get('start_year', 0))
+            start_month = int(request.args.get('start_month', 1))
+            start_day = int(request.args.get('start_day', 1))
+            end_year = int(request.args.get('end_year', 0))
+            end_month = int(request.args.get('end_month', 12))
+            end_day = int(request.args.get('end_day', 31))
+            
+            if start_year:
+                start_date = int(datetime(start_year, start_month, start_day).timestamp())
+            if end_year:
+                # End of day
+                end_date = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
+        except (ValueError, TypeError):
+            pass
+    
+    # Count entries by type
+    counts = {
+        'profile': 0,
+        'session': 0,
+        'communication': 0,
+        'absence': 0,
+        'item': 0,
+        'upload': 0
+    }
+    
+    # Check profile
+    if 'profile' in entry_types:
+        profile = db.get_profile_entry(client_id)
+        if profile:
+            counts['profile'] = 1
+    
+    # Get all entries
+    all_entries = db.get_client_entries(client_id)
+    
+    # Count attachments
+    attachment_count = 0
+    
+    for entry in all_entries:
+        entry_class = entry['class']
+        
+        # Skip if not in requested types
+        if entry_class not in entry_types:
+            continue
+        
+        # Skip profile (counted above)
+        if entry_class == 'profile':
+            continue
+        
+        # Check date range
+        if start_date or end_date:
+            entry_date = None
+            if entry_class == 'session':
+                entry_date = entry.get('session_date')
+            elif entry_class == 'communication':
+                entry_date = entry.get('comm_date')
+            elif entry_class == 'absence':
+                entry_date = entry.get('absence_date')
+            elif entry_class == 'item':
+                entry_date = entry.get('item_date')
+            elif entry_class == 'upload':
+                entry_date = entry.get('upload_date')
+            
+            if entry_date:
+                if start_date and entry_date < start_date:
+                    continue
+                if end_date and entry_date > end_date:
+                    continue
+        
+        # Count it
+        if entry_class in counts:
+            counts[entry_class] += 1
+        
+        # Count attachments for upload entries
+        if entry_class == 'upload':
+            attachment_count += entry.get('attachment_count', 0)
+    
+    total = sum(counts.values())
+    
+    return jsonify({
+        'counts': counts,
+        'total': total,
+        'attachments': attachment_count
+    })
+
+
+@clients_bp.route('/client/<int:client_id>/export/pdf')
+def export_client_pdf(client_id):
+    """Generate and serve the export PDF."""
+    from pdf.client_export import generate_client_export_pdf
+    
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    # Get parameters
+    entry_types = request.args.getlist('types')
+    all_time = request.args.get('all_time') == '1'
+    
+    if not entry_types:
+        return "No entry types selected", 400
+    
+    # Parse date range
+    start_date = None
+    end_date = None
+    
+    if not all_time:
+        try:
+            start_year = int(request.args.get('start_year', 0))
+            start_month = int(request.args.get('start_month', 1))
+            start_day = int(request.args.get('start_day', 1))
+            end_year = int(request.args.get('end_year', 0))
+            end_month = int(request.args.get('end_month', 12))
+            end_day = int(request.args.get('end_day', 31))
+            
+            if start_year:
+                start_date = int(datetime(start_year, start_month, start_day).timestamp())
+            if end_year:
+                end_date = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
+        except (ValueError, TypeError):
+            pass
+    
+    # Generate PDF
+    try:
+        pdf_buffer = generate_client_export_pdf(
+            db=db,
+            client_id=client_id,
+            entry_types=entry_types,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Create filename
+        file_number = client['file_number'].replace(' ', '_').replace('/', '-')
+        if all_time:
+            filename = f"{file_number}_export.pdf"
+        else:
+            filename = f"{file_number}_export_{start_year}-{start_month:02d}_to_{end_year}-{end_month:02d}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=filename
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Error generating PDF: {str(e)}", 500
