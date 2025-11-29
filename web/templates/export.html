@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Export Client File - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/export.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/export.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="export-header">
+        <div>
+            <h2><i data-lucide="file-output" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Export Client File</h2>
+            <div style="color: #718096; margin-top: 0.5rem;">
+                <span class="type-badge" style="background-color: {{ client_type.color }}">{{ client_type.name }}</span>
+                {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }} · File #{{ client.file_number }}
+            </div>
+        </div>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+    
+    <!-- Date Range Options -->
+    <div class="export-options">
+        <h3>Date Range</h3>
+        
+        <div class="checkbox-group" style="margin-bottom: 1rem;">
+            <label class="checkbox-label">
+                <input type="checkbox" id="all-time" checked>
+                <span>All time (export entire client file)</span>
+            </label>
+        </div>
+        
+        <div id="date-range-selectors" style="display: none;">
+            <div class="form-group">
+                <label>From</label>
+                <div class="date-input-group">
+                    <select id="start-year" class="year-select">
+                        {% for y in range(2020, 2031) %}
+                        <option value="{{ y }}" {% if y == default_start_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="start-month" class="month-select">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == default_start_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="start-day" class="day-select">
+                        {% for d in range(1, 32) %}
+                        <option value="{{ d }}" {% if d == default_start_day %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>To</label>
+                <div class="date-input-group">
+                    <select id="end-year" class="year-select">
+                        {% for y in range(2020, 2031) %}
+                        <option value="{{ y }}" {% if y == default_end_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="end-month" class="month-select">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == default_end_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="end-day" class="day-select">
+                        {% for d in range(1, 32) %}
+                        <option value="{{ d }}" {% if d == default_end_day %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Entry Type Selection -->
+    <div class="export-options">
+        <h3>Entry Types</h3>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label select-all-label">
+                <input type="checkbox" id="select-all" checked>
+                <span><strong>Select All</strong></span>
+            </label>
+        </div>
+        
+        <div class="entry-type-grid">
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="profile" checked>
+                <span>Profile</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="session" checked>
+                <span>Sessions</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="communication" checked>
+                <span>Communications</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="absence" checked>
+                <span>Absences</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="item" checked>
+                <span>Items</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" name="entry_type" value="upload" checked>
+                <span>Uploads</span>
+            </label>
+        </div>
+        
+        <p class="checkbox-hint">Select which entry types to include in the export. Attachments from Upload entries will be included as separate pages.</p>
+    </div>
+    
+    <!-- Export Summary -->
+    <div class="export-options">
+        <h3>Summary</h3>
+        <p class="preview-hint">Click "Calculate" to see what will be exported.</p>
+        
+        <button type="button" class="btn" onclick="calculateExport()">
+            <i data-lucide="calculator" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Calculate
+        </button>
+        
+        <div id="export-summary" style="display: none;">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-count" id="count-profile">0</span>
+                    <span class="summary-label">Profile</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-count" id="count-session">0</span>
+                    <span class="summary-label">Sessions</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-count" id="count-communication">0</span>
+                    <span class="summary-label">Communications</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-count" id="count-absence">0</span>
+                    <span class="summary-label">Absences</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-count" id="count-item">0</span>
+                    <span class="summary-label">Items</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-count" id="count-upload">0</span>
+                    <span class="summary-label">Uploads</span>
+                </div>
+            </div>
+            <div class="total-entries">
+                <strong>Total: <span id="count-total">0</span> entries</strong>
+                <span id="attachment-note" style="display: none;"> + <span id="count-attachments">0</span> attachments</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Generate Button -->
+    <div class="export-actions">
+        <button type="button" class="btn" onclick="generateExport()">
+            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate PDF
+        </button>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<input type="hidden" id="client-id" value="{{ client.id }}">
+{% endblock %}
