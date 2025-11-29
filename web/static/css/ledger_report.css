@@ -1,0 +1,255 @@
+/* Ledger Report Page Styles */
+
+/* Card centering */
+.card {
+    margin: 0 auto;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.report-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.25rem 0;
+    color: #1E293B;
+}
+
+.report-header p {
+    margin: 0;
+    color: #64748B;
+    font-size: 0.9375rem;
+}
+
+/* Report Options Section */
+.report-options {
+    background: #F8FAFC;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.report-options h3 {
+    margin: 0 0 1.25rem 0;
+    color: #334155;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.date-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.date-input-group select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #CBD5E1;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    background: white;
+    color: #334155;
+}
+
+.year-select {
+    width: 90px;
+}
+
+.month-select {
+    width: 80px;
+}
+
+.day-select {
+    width: 70px;
+}
+
+.quick-ranges {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    color: #334155;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-hint {
+    margin: 0.5rem 0 0 1.625rem;
+    font-size: 0.8125rem;
+    color: #64748B;
+}
+
+/* Preview Section */
+.report-preview {
+    background: #F8FAFC;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.report-preview h3 {
+    margin: 0 0 0.5rem 0;
+    color: #334155;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.preview-hint {
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+    color: #64748B;
+}
+
+.preview-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-item {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #E2E8F0;
+}
+
+.summary-item.income {
+    border-left: 4px solid #10B981;
+}
+
+.summary-item.expenses {
+    border-left: 4px solid #EF4444;
+}
+
+.summary-item.net {
+    border-left: 4px solid #3B82F6;
+}
+
+.summary-label {
+    display: block;
+    font-size: 0.8125rem;
+    color: #64748B;
+    margin-bottom: 0.25rem;
+}
+
+.summary-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.summary-item.income .summary-value {
+    color: #059669;
+}
+
+.summary-item.expenses .summary-value {
+    color: #DC2626;
+}
+
+.summary-item.net .summary-value {
+    color: #2563EB;
+}
+
+.summary-item.net.negative .summary-value {
+    color: #DC2626;
+}
+
+/* Category Breakdown */
+.category-breakdown {
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px solid #E2E8F0;
+    overflow: hidden;
+}
+
+.category-breakdown h4 {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #F1F5F9;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.category-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid #F1F5F9;
+    font-size: 0.9375rem;
+}
+
+.category-row:last-child {
+    border-bottom: none;
+}
+
+.category-row.total {
+    background: #F8FAFC;
+    font-weight: 600;
+    border-top: 2px solid #E2E8F0;
+}
+
+.category-name {
+    color: #334155;
+}
+
+.category-amount {
+    color: #1E293B;
+    font-weight: 500;
+}
+
+/* Report Actions */
+.report-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .preview-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-ranges {
+        flex-wrap: wrap;
+    }
+}
