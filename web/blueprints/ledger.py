@@ -159,6 +159,21 @@ def ledger():
         entries_by_year_month[year] = dict(
             sorted(entries_by_year_month[year].items(), reverse=True)
         )
+        
+    # Sort years (newest first) and months (newest first within year)
+    years = sorted(entries_by_year_month.keys(), reverse=True)
+    for year in years:
+        entries_by_year_month[year] = dict(
+            sorted(entries_by_year_month[year].items(), reverse=True)
+        )
+    
+    # Sort entries within each month by date DESC, then created_at DESC
+    for year in entries_by_year_month:
+        for month in entries_by_year_month[year]:
+            entries_by_year_month[year][month]['entries'].sort(
+                key=lambda e: (e.get('ledger_date', 0), e.get('created_at', 0)),
+                reverse=True
+            )
     
     return render_template('ledger.html',
                          entries_by_year_month=entries_by_year_month,
