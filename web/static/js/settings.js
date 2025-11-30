@@ -420,21 +420,30 @@ async function loadPracticeInfo() {
             document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
-            // Show current logo/signature status
+            // Show current logo/signature status and hide/show buttons
+            const logoChooseBtn = document.getElementById('logo-choose-button');
+            const sigChooseBtn = document.getElementById('signature-choose-button');
+            
             if (data.info.logo_filename) {
-                document.getElementById('logo-current').textContent = '✓ ' + data.info.logo_filename;
+                document.getElementById('logo-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
+                lucide.createIcons();
                 document.getElementById('logo-delete-button').classList.add('visible');
+                if (logoChooseBtn) logoChooseBtn.classList.add('hidden');
             } else {
                 document.getElementById('logo-current').textContent = '';
                 document.getElementById('logo-delete-button').classList.remove('visible');
+                if (logoChooseBtn) logoChooseBtn.classList.remove('hidden');
             }
             
             if (data.info.signature_filename) {
-                document.getElementById('signature-current').textContent = '✓ ' + data.info.signature_filename;
+                document.getElementById('signature-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
+                lucide.createIcons();
                 document.getElementById('signature-delete-button').classList.add('visible');
+                if (sigChooseBtn) sigChooseBtn.classList.add('hidden');
             } else {
                 document.getElementById('signature-current').textContent = '';
                 document.getElementById('signature-delete-button').classList.remove('visible');
+                if (sigChooseBtn) sigChooseBtn.classList.remove('hidden');
             }
         }
     } catch (error) {
@@ -637,8 +646,10 @@ async function uploadLogo() {
         const result = await response.json();
         
         if (result.success) {
-            document.getElementById('logo-current').textContent = '✓ ' + result.filename;
+            document.getElementById('logo-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
+            lucide.createIcons();
             document.getElementById('logo-delete-button').classList.add('visible');
+            document.getElementById('logo-choose-button').classList.add('hidden');
             fileInput.value = '';
         } else {
             alert('Upload failed: ' + result.error);
@@ -673,8 +684,10 @@ async function uploadSignature() {
         const result = await response.json();
         
         if (result.success) {
-            document.getElementById('signature-current').textContent = '✓ ' + result.filename;
+            document.getElementById('signature-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
+            lucide.createIcons();
             document.getElementById('signature-delete-button').classList.add('visible');
+            document.getElementById('signature-choose-button').classList.add('hidden');
             fileInput.value = '';
         } else {
             alert('Upload failed: ' + result.error);
@@ -705,6 +718,7 @@ async function deleteLogo() {
                 
                 document.getElementById('logo-current').textContent = '';
                 document.getElementById('logo-delete-button').classList.remove('visible');
+                document.getElementById('logo-choose-button').classList.remove('hidden');
                 
                 setTimeout(() => {
                     statusDiv.style.display = 'none';
@@ -740,6 +754,7 @@ async function deleteSignature() {
                 
                 document.getElementById('signature-current').textContent = '';
                 document.getElementById('signature-delete-button').classList.remove('visible');
+                document.getElementById('signature-choose-button').classList.remove('hidden');
                 
                 setTimeout(() => {
                     statusDiv.style.display = 'none';

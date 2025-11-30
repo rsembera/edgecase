@@ -136,6 +136,11 @@ input[type="number"]:focus {
     display: inline-flex !important;
 }
 
+#logo-choose-button.hidden,
+#signature-choose-button.hidden {
+    display: none !important;
+}
+
 /* Remove spinner arrows from number inputs */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
