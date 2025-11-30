@@ -11,7 +11,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 
 
@@ -417,50 +417,68 @@ class StatementPDFGenerator:
         # Current date formatted nicely
         today_str = datetime.now().strftime('%A %B %d, %Y')
         
-        # Build signature content
-        sig_content = None
+        # Calculate date width based on actual text width
+        date_width = len(today_str) * 5.5
+        
+        # Build signature with line matching signature width
+        sig_width = 2.0 * inch  # Default/max width
+        sig_content = ''
         if signature_path:
             try:
                 sig_img = Image(signature_path)
-                # Scale signature to fit target size (will scale up or down)
                 sig_img = self._scale_image_to_fit(sig_img, 2.0 * inch, 0.75 * inch)
+                sig_width = sig_img.drawWidth
                 sig_content = sig_img
             except Exception:
                 sig_content = ''
-        else:
-            sig_content = ''
+                sig_width = 2.0 * inch
         
-        # Create signature table with lines UNDER both signature and date
-        # Date is now LEFT justified
+        # Build signature mini-table (image, line, label stacked)
         sig_data = [
-            [sig_content, '', today_str],
-            ['', '', ''],  # Empty row for spacing
-            [
-                Paragraph('Therapist Signature', self.styles['SignatureLabel']),
-                '',
-                Paragraph('Date', self.styles['DateLabel'])  # Left-aligned label
-            ]
+            [sig_content],
+            [HRFlowable(width=sig_width, thickness=0.5, color=colors.black, hAlign='LEFT')],
+            [Paragraph('Therapist Signature', self.styles['SignatureLabel'])]
         ]
-        
-        sig_table = Table(sig_data, colWidths=[3.0*inch, 1.0*inch, 3.0*inch])
+        sig_table = Table(sig_data, colWidths=[sig_width + 10])
         sig_table.setStyle(TableStyle([
-            # Alignment - date column now LEFT aligned
             ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),  # Changed from RIGHT to LEFT
-            ('VALIGN', (0, 0), (-1, 0), 'BOTTOM'),  # Signature and date on same baseline
-            ('VALIGN', (0, 2), (-1, 2), 'TOP'),
-            
-            # Padding
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
-            ('BOTTOMPADDING', (0, 1), (-1, 1), 2),
-            
-            # Lines UNDER signature and date (on row 0, at bottom)
-            ('LINEBELOW', (0, 0), (0, 0), 0.5, colors.black),  # Under signature
-            ('LINEBELOW', (2, 0), (2, 0), 0.5, colors.black),  # Under date
+            ('VALIGN', (0, 0), (0, -1), 'BOTTOM'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ]))
         
-        elements.append(sig_table)
+        # Build date mini-table (text, line, label stacked)
+        date_data = [
+            [Paragraph(today_str, self.styles['Normal'])],
+            [HRFlowable(width=date_width, thickness=0.5, color=colors.black, hAlign='LEFT')],
+            [Paragraph('Date', self.styles['DateLabel'])]
+        ]
+        date_table = Table(date_data, colWidths=[date_width + 10])
+        date_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (0, -1), 'BOTTOM'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        
+        # Combine into outer table for side-by-side layout
+        outer_data = [[sig_table, date_table]]
+        outer_table = Table(outer_data, colWidths=[4.5*inch, 3.0*inch])
+        outer_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        
+        elements.append(outer_table)
         
         return elements
     
