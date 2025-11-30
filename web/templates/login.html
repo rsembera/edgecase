@@ -126,9 +126,14 @@
             font-size: 0.9375rem;
         }
         
-        input[type="password"] {
+        .password-wrapper {
+            position: relative;
+        }
+        
+        input[type="password"],
+        input[type="text"].password-field {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 2.75rem 0.75rem 1rem;
             border: 1.5px solid #E2E8F0;
             border-radius: 0.75rem;
             font-size: 1rem;
@@ -137,11 +142,42 @@
             background: #FAFBFC;
         }
         
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        input[type="text"].password-field:focus {
             outline: none;
             border-color: #1F8F74;
             box-shadow: 0 0 0 3px rgba(31, 143, 116, 0.1);
             background: white;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #718096;
+            width: auto;
+        }
+        
+        .toggle-password:hover {
+            color: #1F8F74;
+            background: none;
+        }
+        
+        .toggle-password:active {
+            transform: translateY(-50%);
+        }
+        
+        .toggle-password svg {
+            width: 20px;
+            height: 20px;
         }
         
         .error {
@@ -154,7 +190,7 @@
             font-size: 0.9375rem;
         }
         
-        button {
+        button[type="submit"] {
             width: 100%;
             padding: 0.875rem;
             background: #BFDCDC;
@@ -168,11 +204,11 @@
             transition: background-color 0.2s, transform 0.1s;
         }
         
-        button:hover {
+        button[type="submit"]:hover {
             background: #A8CFCF;
         }
         
-        button:active {
+        button[type="submit"]:active {
             transform: translateY(1px);
         }
         
@@ -242,7 +278,19 @@
             
             <div class="form-group">
                 <label for="password">{% if first_run %}Master Password{% else %}Password{% endif %}</label>
-                <input type="password" id="password" name="password" required autofocus autocomplete="{% if first_run %}new-password{% else %}current-password{% endif %}">
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" required autofocus autocomplete="{% if first_run %}new-password{% else %}current-password{% endif %}">
+                    <button type="button" class="toggle-password" onclick="togglePassword('password', this)" aria-label="Show password">
+                        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
+                </div>
                 {% if first_run %}
                 <p class="password-hint">Minimum 8 characters</p>
                 {% endif %}
@@ -251,7 +299,19 @@
             {% if first_run %}
             <div class="form-group">
                 <label for="confirm_password">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required>
+                <div class="password-wrapper">
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('confirm_password', this)" aria-label="Show password">
+                        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
             {% endif %}
             
@@ -264,5 +324,27 @@
             Your data is encrypted with AES-256
         </div>
     </div>
+    
+    <script>
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const eyeOpen = button.querySelector('.eye-open');
+            const eyeClosed = button.querySelector('.eye-closed');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                input.classList.add('password-field');
+                eyeOpen.style.display = 'none';
+                eyeClosed.style.display = 'block';
+                button.setAttribute('aria-label', 'Hide password');
+            } else {
+                input.type = 'password';
+                input.classList.remove('password-field');
+                eyeOpen.style.display = 'block';
+                eyeClosed.style.display = 'none';
+                button.setAttribute('aria-label', 'Show password');
+            }
+        }
+    </script>
 </body>
 </html>
