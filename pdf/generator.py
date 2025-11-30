@@ -603,3 +603,198 @@ def generate_statement_pdf(db, statement_portion_id, output_path, assets_path):
     """
     generator = StatementPDFGenerator(db)
     return generator.generate_statement_pdf(statement_portion_id, output_path, assets_path)
+
+def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, include_fees=True):
+    """
+    Generate a session summary report PDF for a client.
+    
+    Args:
+        db: Database instance
+        client_id: Client ID
+        start_date: Start date filter (Unix timestamp) or None
+        end_date: End date filter (Unix timestamp) or None
+        include_fees: Whether to include fee column
+    
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    from io import BytesIO
+    
+    # Get client info
+    client = db.get_client(client_id)
+    if not client:
+        raise ValueError(f"Client {client_id} not found")
+    
+    # Get profile for address
+    profile = db.get_profile_entry(client_id)
+    
+    # Get all sessions for this client
+    all_entries = db.get_client_entries(client_id)
+    sessions = [e for e in all_entries if e['class'] == 'session' and not e.get('is_consultation')]
+    
+    # Filter by date range
+    if start_date or end_date:
+        filtered = []
+        for s in sessions:
+            session_date = s.get('session_date', 0)
+            if start_date and session_date < start_date:
+                continue
+            if end_date and session_date > end_date:
+                continue
+            filtered.append(s)
+        sessions = filtered
+    
+    # Sort by date
+    sessions.sort(key=lambda s: s.get('session_date', 0))
+    
+    # Get settings
+    settings = {
+        'practice_name': db.get_setting('practice_name', ''),
+        'therapist_name': db.get_setting('therapist_name', ''),
+        'credentials': db.get_setting('credentials', ''),
+        'address': db.get_setting('address', ''),
+        'phone': db.get_setting('phone', ''),
+        'website': db.get_setting('website', ''),
+        'registration_info': db.get_setting('registration_info', ''),
+        'logo_filename': db.get_setting('logo_filename'),
+        'signature_filename': db.get_setting('signature_filename'),
+        'include_attestation': db.get_setting('include_attestation', '1') in ['1', 'true', 'True'],
+        'attestation_text': db.get_setting('attestation_text', 'I attest that I have performed the services listed above.'),
+    }
+    
+    assets_path = os.path.expanduser('~/edgecase/assets')
+    
+    # Create PDF generator instance to reuse styles and methods
+    generator = StatementPDFGenerator(db)
+    
+    # Build the document
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=0.5*inch,
+        leftMargin=0.5*inch,
+        topMargin=0.5*inch,
+        bottomMargin=0.5*inch
+    )
+    
+    story = []
+    
+    # Header (reuse from statement generator)
+    story.extend(generator._build_header(settings, assets_path))
+    
+    # Client info (bill-to section)
+    client_name = f"{client['first_name']} {client.get('middle_name') or ''} {client['last_name']}".replace('  ', ' ')
+    story.append(Paragraph(f"<b>{client_name}</b>", generator.styles['Normal']))
+    
+    if profile and profile.get('address'):
+        address_html = profile['address'].replace('\n', '<br/>')
+        story.append(Paragraph(address_html, generator.styles['Normal']))
+    
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Report title and date range
+    story.append(Paragraph("<b>Session Summary Report</b>", generator.styles['Normal']))
+    
+    if start_date and end_date:
+        start_str = datetime.fromtimestamp(start_date).strftime('%B %d, %Y')
+        end_str = datetime.fromtimestamp(end_date).strftime('%B %d, %Y')
+        story.append(Paragraph(f"For the period: {start_str} to {end_str}", generator.styles['Normal']))
+    
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Build session table
+    if include_fees:
+        header_data = ['Date', 'Service', 'Duration', 'Fee']
+        col_widths = [1.2*inch, 3.0*inch, 1.3*inch, 1.0*inch]
+    else:
+        header_data = ['Date', 'Service', 'Duration']
+        col_widths = [1.5*inch, 3.5*inch, 1.5*inch]
+    
+    table_data = [header_data]
+    total_fees = 0
+    
+    for session in sessions:
+        session_date = session.get('session_date', 0)
+        date_str = datetime.fromtimestamp(session_date).strftime('%Y-%m-%d') if session_date else ''
+        service = session.get('service', 'Psychotherapy')
+        duration = session.get('duration', 0)
+        duration_str = f"{duration} mins." if duration else ''
+        fee = session.get('fee', 0) or 0
+        total_fees += fee
+        
+        if include_fees:
+            table_data.append([date_str, service, duration_str, f"${fee:.2f}"])
+        else:
+            table_data.append([date_str, service, duration_str])
+    
+    # Add total row if fees included
+    if include_fees:
+        table_data.append(['', '', 'TOTAL', f"${total_fees:.2f}"])
+    
+    # Create table
+    table = Table(table_data, colWidths=col_widths)
+    
+    table_style = [
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F7FAFC')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        
+        # Alignment
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Date
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),  # Service
+        ('ALIGN', (2, 0), (2, -1), 'LEFT'),  # Duration
+        
+        # Grid
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#CBD5E0')),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E0')),
+        
+        # Padding
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]
+    
+    if include_fees:
+        table_style.extend([
+            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Fee
+            ('FONTNAME', (2, -1), (3, -1), 'Helvetica-Bold'),  # Total row
+        ])
+    
+    table.setStyle(TableStyle(table_style))
+    story.append(table)
+    
+    story.append(Spacer(1, 0.4*inch))
+    
+   # Attestation
+    if settings['include_attestation'] and settings['attestation_text']:
+        story.append(Paragraph(settings['attestation_text'], generator.styles['Attestation']))
+    
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Signature only (no date)
+    signature_path = None
+    if settings['signature_filename']:
+        signature_path = os.path.join(assets_path, settings['signature_filename'])
+        if not os.path.exists(signature_path):
+            signature_path = None
+    
+    sig_width = 2.0 * inch
+    if signature_path:
+        try:
+            sig_img = Image(signature_path)
+            sig_img = generator._scale_image_to_fit(sig_img, 2.0 * inch, 0.75 * inch)
+            sig_width = sig_img.drawWidth
+            sig_img.hAlign = 'LEFT'
+            story.append(sig_img)
+        except Exception:
+            pass
+    
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width=sig_width, thickness=0.5, color=colors.black, hAlign='LEFT'))
+    story.append(Paragraph('Therapist Signature', generator.styles['SignatureLabel']))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer

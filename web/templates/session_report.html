@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Session Report - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/export.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="export-header">
+        <div>
+            <h2><i data-lucide="file-bar-chart" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Session Report</h2>
+            <div style="color: #718096; margin-top: 0.5rem;">
+                <span class="type-badge" style="background-color: {{ client_type.color }}">{{ client_type.name }}</span>
+                {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }} · File #{{ client.file_number }}
+            </div>
+        </div>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+    
+    <!-- Date Range -->
+    <div class="export-options">
+        <h3>Date Range</h3>
+        
+        <div class="form-group">
+            <label>From</label>
+            <div class="date-input-group">
+                <select id="start_year" class="year-select">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == today_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <select id="start_month" class="month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == 1 %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                    {% endfor %}
+                </select>
+                <select id="start_day" class="day-select">
+                    {% for d in range(1, 32) %}
+                    <option value="{{ d }}" {% if d == 1 %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>To</label>
+            <div class="date-input-group">
+                <select id="end_year" class="year-select">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == today_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <select id="end_month" class="month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == today_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
+                    {% endfor %}
+                </select>
+                <select id="end_day" class="day-select">
+                    {% for d in range(1, 32) %}
+                    <option value="{{ d }}" {% if d == today_day %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Options -->
+    <div class="export-options">
+        <h3>Options</h3>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="include_fees" checked>
+                <span>Include fees in report</span>
+            </label>
+        </div>
+        
+        <p class="checkbox-hint">Uncheck to generate an attendance record without financial information.</p>
+    </div>
+    
+    <!-- Generate Button -->
+    <div class="export-actions">
+        <button type="button" class="btn" id="generate-btn">
+            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate Report
+        </button>
+    </div>
+</div>
+
+<script>
+document.getElementById('generate-btn').addEventListener('click', function() {
+    // Open window immediately on user action
+    const pdfWindow = window.open('about:blank', '_blank');
+    
+    const params = new URLSearchParams();
+    params.append('start_year', document.getElementById('start_year').value);
+    params.append('start_month', document.getElementById('start_month').value);
+    params.append('start_day', document.getElementById('start_day').value);
+    params.append('end_year', document.getElementById('end_year').value);
+    params.append('end_month', document.getElementById('end_month').value);
+    params.append('end_day', document.getElementById('end_day').value);
+    
+    if (document.getElementById('include_fees').checked) {
+        params.append('include_fees', 'on');
+    }
+    
+    const url = '{{ url_for("clients.session_report", client_id=client.id) }}?' + params.toString();
+    pdfWindow.location.href = url;
+});
+</script>
+{% endblock %}

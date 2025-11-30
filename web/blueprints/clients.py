@@ -742,6 +742,79 @@ def export_client(client_id):
                          default_end_month=now.month,
                          default_end_day=now.day)
 
+@clients_bp.route('/client/<int:client_id>/session-report', methods=['GET'])
+def session_report(client_id):
+    """Generate a session summary report for a client."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    # Check if this is a generate request (has date params) or form display
+    if request.args.get('start_year'):
+        # Generate the PDF
+        from pdf.generator import generate_session_report_pdf
+        
+        # Parse date range
+        start_year = request.args.get('start_year')
+        start_month = request.args.get('start_month')
+        start_day = request.args.get('start_day')
+        end_year = request.args.get('end_year')
+        end_month = request.args.get('end_month')
+        end_day = request.args.get('end_day')
+        
+        include_fees = request.args.get('include_fees') == 'on'
+        
+        # Convert to timestamps
+        start_date = None
+        end_date = None
+        
+        if start_year and start_month and start_day:
+            start_str = f"{start_year}-{start_month.zfill(2)}-{start_day.zfill(2)}"
+            start_date = int(datetime.strptime(start_str, '%Y-%m-%d').timestamp())
+        
+        if end_year and end_month and end_day:
+            end_str = f"{end_year}-{end_month.zfill(2)}-{end_day.zfill(2)}"
+            # End of day
+            end_date = int(datetime.strptime(end_str, '%Y-%m-%d').timestamp()) + 86399
+        
+        try:
+            pdf_buffer = generate_session_report_pdf(
+                db=db,
+                client_id=client_id,
+                start_date=start_date,
+                end_date=end_date,
+                include_fees=include_fees
+            )
+            
+            # Generate filename
+            filename = f"SessionReport_{client['file_number']}"
+            if start_date and end_date:
+                start_dt = datetime.fromtimestamp(start_date)
+                end_dt = datetime.fromtimestamp(end_date)
+                filename += f"_{start_dt.strftime('%Y%m')}_to_{end_dt.strftime('%Y%m')}"
+            filename += ".pdf"
+            
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=False,
+                download_name=filename
+            )
+        except Exception as e:
+            print(f"Error generating session report: {e}")
+            import traceback
+            traceback.print_exc()
+            return f"Error generating report: {str(e)}", 500
+    
+    # Show the form
+    today = datetime.now()
+    client_type = db.get_client_type(client['type_id'])
+    return render_template('session_report.html',
+                         client=client,
+                         client_type=client_type,
+                         today_year=today.year,
+                         today_month=today.month,
+                         today_day=today.day)
 
 @clients_bp.route('/client/<int:client_id>/export/calculate')
 def calculate_export(client_id):
