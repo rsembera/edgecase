@@ -181,6 +181,7 @@ button {
 .form-group input[type="number"],
 .form-group input[type="email"],
 .form-group input[type="tel"],
+.form-group input[type="password"],
 .form-group select {
     width: 100%;
     padding: var(--space-md);
@@ -200,6 +201,7 @@ button {
 .form-group input[type="number"]:focus,
 .form-group input[type="email"]:focus,
 .form-group input[type="tel"]:focus,
+.form-group input[type="password"]:focus,
 .form-group select:focus {
     outline: none;
     border-color: var(--color-border-focus);
@@ -781,4 +783,26 @@ tbody tr:hover {
     background: #718096 !important;
     transform: none !important;
     box-shadow: none !important;
+}
+/* ============================================
+   ERROR/SUCCESS MESSAGES
+   ============================================ */
+.error-message {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: 0.75rem;
+    margin-bottom: var(--space-xl);
+    font-size: 0.9375rem;
+}
+
+.success-message {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: #16A34A;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: 0.75rem;
+    margin-bottom: var(--space-xl);
+    font-size: 0.9375rem;
 }

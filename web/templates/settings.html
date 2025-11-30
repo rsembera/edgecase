@@ -397,7 +397,35 @@ details[open] .settings-section-header .arrow {
         </div>
     </details>
     
-    
+    <!-- Security Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Security</h3>
+                <p>Database encryption and access control</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+        
+        <div class="form-group">
+            <label>Database Encryption</label>
+            <p style="color: #0E5346; font-size: 0.9375rem; margin-bottom: 1rem;">
+                <i data-lucide="shield-check" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                Your database is encrypted with AES-256 (SQLCipher)
+            </p>
+        </div>
+        
+        <div class="form-group">
+            <label>Master Password</label>
+            <a href="{{ url_for('auth.change_password') }}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <i data-lucide="key" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                Change Password
+            </a>
+        </div>
+        
+        </div>
+    </details>
 
        <!-- Statements Section -->
     <details class="settings-section-collapsible">
