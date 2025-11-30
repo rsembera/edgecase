@@ -717,7 +717,180 @@ Could have implemented two-way calendar sync (EdgeCase ↔ Google/Apple Calendar
 ---
 
 *For database details, see Database_Schema.md*  
-*For route details, see Route_Reference.md*  
-*For debugging help, see Debugging_Guide.md*
+*For route details, see Route_Reference.md* 
 
 *Last updated: November 25, 2025*
+
+# Architecture Decisions - Phase 1 Addendum
+
+**Purpose:** Additional decisions from final Phase 1 work
+ **Date:** November 29, 2025
+
+------
+
+## SAFARI POPUP BLOCKER PATTERN
+
+### The Problem
+
+Safari aggressively blocks `window.open()` calls, even when triggered by user clicks, if:
+
+- Called after async operations (fetch, setTimeout)
+- Called via inline `onclick` handlers in some cases
+- Called from console (not trusted user action)
+
+### The Solution
+
+**Blank-Window-First Pattern:**
+
+```javascript
+document.getElementById('button').addEventListener('click', function() {
+    // Open window IMMEDIATELY on user action (before any async)
+    const pdfWindow = window.open('about:blank', '_blank');
+    
+    // Build URL (synchronous - fast enough)
+    const params = new URLSearchParams();
+    params.append('param1', value1);
+    // ... more params
+    
+    const url = '/route?' + params.toString();
+    
+    // Navigate the already-open window
+    pdfWindow.location.href = url;
+});
+```
+
+**Why it works:**
+
+- `window.open('about:blank', '_blank')` is synchronous and happens on trusted click
+- Safari allows this because it's the direct result of user action
+- Subsequent `location.href` navigation is allowed on already-open window
+
+### Where We Use It
+
+1. **Statement PDF viewing** (`outstanding_statements.js`)
+   - Open blank → fetch mark-sent → navigate to PDF
+2. **Session summary reports** (`session_report.html`)
+   - Open blank → build params → navigate to PDF route
+
+### Alternative Approaches (Rejected)
+
+**Form with target="_blank":**
+
+- Works for POST forms in some browsers
+- Safari still blocks it
+
+**Direct window.open without blank:**
+
+- Works if truly synchronous
+- Fails if any computation takes too long
+
+**Download instead of new tab:**
+
+- Works but worse UX for PDFs
+- Users can't preview before saving
+
+### Key Insight
+
+The pattern separates "permission to open" (immediate on click) from "what to show" (can be async). Safari grants popup permission at click time; we use that permission later.
+
+------
+
+## SESSION SUMMARY REPORTS
+
+### The Decision
+
+Create a separate "session report" feature rather than reusing statements.
+
+### Why Not Reuse Statements?
+
+**Statements are:**
+
+- For billing (include Items, Absences)
+- Generated from unbilled entries only
+- Tracked in statement_portions table
+- Have payment workflow
+
+**Session reports are:**
+
+- For attendance records
+- Any date range (billed or not)
+- No payment tracking
+- Can exclude fees entirely
+
+### Use Cases
+
+1. **Insurance verification** - Client needs proof of attendance
+2. **Employer documentation** - EAP or workplace requirements
+3. **Lost statements** - Client needs summary without re-billing
+4. **Fee-free records** - Attendance without financial info
+
+### Implementation
+
+- Route on clients_bp (not statements_bp)
+- Reuses StatementPDFGenerator for styling
+- Optional fee inclusion checkbox
+- Access via client file "Add" dropdown
+
+------
+
+## SETTINGS UPLOAD BUTTON VISIBILITY
+
+### The Problem
+
+After uploading logo/signature, the "Choose" button should hide. CSS `display: flex !important` overrode JavaScript `style.display = 'none'`.
+
+### The Solution
+
+**CSS Class Pattern:**
+
+```css
+#logo-choose-button.hidden,
+#signature-choose-button.hidden {
+    display: none !important;
+}
+// To hide:
+button.classList.add('hidden');
+
+// To show:
+button.classList.remove('hidden');
+```
+
+### Why CSS Classes Beat Inline Styles
+
+1. **Specificity** - Class with `!important` overrides other rules
+2. **Consistency** - Same pattern as delete button visibility
+3. **Debuggability** - Can see `.hidden` in DOM inspector
+4. **Maintainability** - Logic in CSS, not scattered in JS
+
+------
+
+## PDF LINE WIDTH MATCHING
+
+### The Problem
+
+Statement signature and date lines were fixed width (3.0 inches), didn't match actual content.
+
+### The Solution
+
+Calculate widths from content:
+
+```python
+# Signature line width from image
+sig_width = sig_img.drawWidth
+
+# Date line width from text (approximate)
+date_width = len(today_str) * 5.5
+
+# Use HRFlowable for dynamic lines
+HRFlowable(width=sig_width, thickness=0.5, color=colors.black)
+```
+
+### Why Dynamic Widths?
+
+- **Professionalism** - Lines that match content look intentional
+- **Flexibility** - Different signature sizes work automatically
+- **Consistency** - Date line matches date text length
+
+------
+
+*These patterns are now established for reuse in Phase 2 and beyond.*
