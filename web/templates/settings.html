@@ -423,6 +423,18 @@ details[open] .settings-section-header .arrow {
                 Change Password
             </a>
         </div>
+
+        <div class="form-group">
+            <label for="session_timeout">Auto-Logout After Inactivity</label>
+            <select id="session_timeout">
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes (default)</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="0">Never (not recommended)</option>
+            </select>
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">For PHIPA compliance, shorter timeouts are recommended in shared spaces</small>
+        </div>
         
         </div>
     </details>

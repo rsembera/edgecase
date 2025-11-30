@@ -458,3 +458,19 @@ def statement_settings():
             'email_from_address': db.get_setting('email_from_address', ''),
             'statement_email_body': db.get_setting('statement_email_body', '')
         })
+        
+# ============================================================================
+# SECURITY SETTINGS
+# ============================================================================
+
+@settings_bp.route('/api/security_settings', methods=['GET', 'POST'])
+def security_settings():
+    """Get or save security settings."""
+    if request.method == 'POST':
+        data = request.get_json()
+        db.set_setting('session_timeout', str(data.get('session_timeout', '30')))
+        return jsonify({'success': True})
+    else:
+        return jsonify({
+            'session_timeout': db.get_setting('session_timeout', '30')
+        })

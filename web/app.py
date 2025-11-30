@@ -75,15 +75,41 @@ def timestamp_to_date(timestamp):
 
 @app.before_request
 def require_login():
-    """Redirect to login if not authenticated."""
+    """Redirect to login if not authenticated or session expired."""
     # Allow access to login page and static files without auth
     allowed_endpoints = ['auth.login', 'auth.logout', 'static']
     if request.endpoint in allowed_endpoints:
         return
     
     # Check if database is connected (user is logged in)
-    if not app.config.get('db'):
+    db = app.config.get('db')
+    if not db:
         return redirect(url_for('auth.login'))
+    
+    # Get session timeout from database (default 30 minutes)
+    try:
+        timeout_minutes = int(db.get_setting('session_timeout', '30'))
+        if timeout_minutes == 0:  # "Never" option
+            session['last_activity'] = time.time()
+            return
+        session_timeout = timeout_minutes * 60
+    except (ValueError, TypeError):
+        session_timeout = 30 * 60
+    
+    # Check session timeout
+    last_activity = session.get('last_activity')
+    now = time.time()
+    
+    if last_activity:
+        elapsed = now - last_activity
+        if elapsed > session_timeout:
+            # Session expired - clear everything and redirect to login
+            session.clear()
+            app.config['db'] = None
+            return redirect(url_for('auth.login', timeout=1))
+    
+    # Update last activity timestamp
+    session['last_activity'] = now
 
 @app.route('/scheduler')
 def scheduler():
