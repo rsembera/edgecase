@@ -9,6 +9,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 import sys
 import time
+from core.encryption import encrypt_file
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -272,6 +273,10 @@ def upload_logo():
     try:
         file.save(str(upload_path))
         
+        # Encrypt the file
+        if db.password:
+            encrypt_file(str(upload_path), db.password)
+        
         # Save filename to settings
         modified_at = int(time.time())
         
@@ -319,6 +324,10 @@ def upload_signature():
     
     try:
         file.save(str(upload_path))
+        
+        # Encrypt the file
+        if db.password:
+            encrypt_file(str(upload_path), db.password)
         
         # Save filename to settings
         modified_at = int(time.time())

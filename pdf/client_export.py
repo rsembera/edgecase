@@ -21,7 +21,7 @@ from reportlab.platypus import (
     PageBreak, Image, HRFlowable
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-
+from core.encryption import decrypt_file_to_bytes
 
 def get_styles():
     """Create custom paragraph styles for the export."""
@@ -215,7 +215,7 @@ def format_edit_history(edit_history_json, styles):
     
     return elements
 
-def build_session_entry(entry, client, styles, signature_path=None):
+def build_session_entry(entry, client, styles, signature_path=None, db=None):
     """Build PDF elements for a Session entry."""
     elements = []
     
@@ -314,7 +314,12 @@ def build_session_entry(entry, client, styles, signature_path=None):
     if signature_path and os.path.exists(signature_path):
         elements.append(Spacer(1, 24))
         try:
-            sig_img = Image(signature_path)
+            # Decrypt if encrypted
+            if db and db.password:
+                decrypted = decrypt_file_to_bytes(signature_path, db.password)
+                sig_img = Image(BytesIO(decrypted))
+            else:
+                sig_img = Image(signature_path)
             
             # Get original aspect ratio
             aspect = sig_img.imageWidth / sig_img.imageHeight
@@ -968,7 +973,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
             continue
         
         if entry_class == 'session':
-            elements.extend(build_session_entry(entry, client, styles, signature_path))
+            elements.extend(build_session_entry(entry, client, styles, signature_path, db))
         elif entry_class == 'communication':
             entry_elements, entry_pdfs = build_communication_entry_with_attachments(entry, client, styles, db)
             elements.extend(entry_elements)
