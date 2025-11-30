@@ -475,7 +475,7 @@ John Smith."></textarea>
             <label>Practice Logo</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="uploadLogo()">
-                <button type="button" onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <button type="button" id="logo-choose-button" onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                     Choose Logo
                 </button>
                 <span id="logo-current" style="color: #0E5346; font-size: 0.875rem;"></span>
@@ -489,7 +489,7 @@ John Smith."></textarea>
             <label>Digital Signature</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <input type="file" id="signature-upload" accept="image/*" style="display: none;" onchange="uploadSignature()">
-                <button type="button" onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <button type="button" id="signature-choose-button" onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                     Choose Signature
                 </button>
                 <span id="signature-current" style="color: #0E5346; font-size: 0.875rem;"></span>
