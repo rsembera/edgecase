@@ -1,10 +1,9 @@
 """
 EdgeCase Database Module
-Handles SQLite database operations.
-(SQLCipher encryption will be added in Phase 2)
+Handles SQLite database operations with SQLCipher encryption.
 """
 
-import sqlite3
+import sqlcipher3 as sqlite3  # Drop-in replacement with encryption
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import time
@@ -14,22 +13,30 @@ class Database:
     """
     Database interface for EdgeCase.
     Manages all SQLite operations using Entry-based architecture.
+    Uses SQLCipher for AES-256 encryption at rest.
     """
     
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, password: Optional[str] = None):
         """
         Initialize database connection.
         
         Args:
             db_path: Path to SQLite database file
+            password: Encryption password (required for encrypted databases)
         """
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.password = password
         self._initialize_schema()
         
     def connect(self):
-        """Create and return database connection."""
+        """Create and return database connection with encryption."""
         conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        
+        # Set encryption key FIRST, before any other operations
+        if self.password:
+            conn.execute(f"PRAGMA key = '{self.password}'")
+        
         # Enable WAL mode for better concurrent access
         conn.execute('PRAGMA journal_mode=WAL')
         return conn
@@ -65,6 +72,7 @@ class Database:
                 last_name TEXT NOT NULL,
                 type_id INTEGER NOT NULL,
                 session_offset INTEGER DEFAULT 0,
+                retention_days INTEGER,
                 created_at INTEGER NOT NULL,
                 modified_at INTEGER NOT NULL,
                 is_deleted INTEGER DEFAULT 0,

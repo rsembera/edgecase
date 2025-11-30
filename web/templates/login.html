@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if first_run %}Create Password{% else %}Login{% endif %} - EdgeCase Equalizer</title>
+    
+    <!-- Favicons-->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicons/apple-touch-icon.png') }}">
+    
+    <style>
+        /* Self-hosted Lexend fonts */
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf') }}") format('truetype');
+            font-weight: 300;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype');
+            font-weight: 600;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf') }}") format('truetype');
+            font-weight: 700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 0.25rem;
+        }
+        
+        .logo p {
+            color: #718096;
+            font-size: 0.875rem;
+            font-weight: 400;
+        }
+        
+        .lock-icon {
+            width: 56px;
+            height: 56px;
+            background: #BFDCDC;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+        
+        .lock-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: #115D4F;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #1F2937;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 1.75rem;
+            font-size: 0.9375rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #1F2937;
+            font-weight: 500;
+            font-size: 0.9375rem;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-family: 'Lexend', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #FAFBFC;
+        }
+        
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #1F8F74;
+            box-shadow: 0 0 0 3px rgba(31, 143, 116, 0.1);
+            background: white;
+        }
+        
+        .error {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #DC2626;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9375rem;
+        }
+        
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: #BFDCDC;
+            color: #115D4F;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Lexend', sans-serif;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        
+        button:hover {
+            background: #A8CFCF;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .first-run-notice {
+            background: #F0FDF9;
+            border: 1px solid #BFDCDC;
+            color: #115D4F;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+        }
+        
+        .first-run-notice strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        .password-hint {
+            font-size: 0.8125rem;
+            color: #718096;
+            margin-top: 0.5rem;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #E2E8F0;
+            color: #A0AEC0;
+            font-size: 0.8125rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <div class="lock-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"/>
+                </svg>
+            </div>
+            <h1>EdgeCase Equalizer</h1>
+            <p>Practice Management for Independent Therapists</p>
+        </div>
+        
+        {% if first_run %}
+        <div class="first-run-notice">
+            <strong>Welcome to EdgeCase!</strong>
+            Create a master password to encrypt your database. This password protects all your client data.
+        </div>
+        <h2>Create Master Password</h2>
+        <p class="subtitle">Choose a strong password you'll remember</p>
+        {% else %}
+        <h2>Unlock Database</h2>
+        <p class="subtitle">Enter your master password to continue</p>
+        {% endif %}
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST" autocomplete="on">
+            <!-- Hidden username field for password managers -->
+            <input type="text" name="username" value="edgecase" autocomplete="username" style="position: absolute; left: -9999px;" tabindex="-1" aria-hidden="true">
+            
+            <div class="form-group">
+                <label for="password">{% if first_run %}Master Password{% else %}Password{% endif %}</label>
+                <input type="password" id="password" name="password" required autofocus autocomplete="{% if first_run %}new-password{% else %}current-password{% endif %}">
+                {% if first_run %}
+                <p class="password-hint">Minimum 8 characters</p>
+                {% endif %}
+            </div>
+            
+            {% if first_run %}
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+            {% endif %}
+            
+            <button type="submit">
+                {% if first_run %}Create Database{% else %}Unlock{% endif %}
+            </button>
+        </form>
+        
+        <div class="footer">
+            Your data is encrypted with AES-256
+        </div>
+    </div>
+</body>
+</html>
