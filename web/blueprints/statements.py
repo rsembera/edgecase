@@ -475,7 +475,7 @@ def mark_sent(portion_id):
         comm_description,
         comm_content,
         now,
-        datetime.now().strftime('%I:%M %p')
+        datetime.now().strftime('%I:%M %p').lstrip('0')
     ))
     
     comm_entry_id = cursor.lastrowid
