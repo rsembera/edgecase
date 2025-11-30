@@ -13,6 +13,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+from core.encryption import decrypt_file_to_bytes
+from io import BytesIO
 
 
 class StatementPDFGenerator:
@@ -274,7 +276,12 @@ class StatementPDFGenerator:
         if logo_path:
             try:
                 # Logo exists - create two-column layout
-                logo = Image(logo_path)
+                # Decrypt if encrypted
+                if self.db.password:
+                    decrypted = decrypt_file_to_bytes(logo_path, self.db.password)
+                    logo = Image(BytesIO(decrypted))
+                else:
+                    logo = Image(logo_path)
                 # Scale logo to fit target size (will scale up or down)
                 # Sized to roughly match the height of the address block
                 logo = self._scale_image_to_fit(logo, 2.2 * inch, 1.5 * inch)
@@ -425,7 +432,12 @@ class StatementPDFGenerator:
         sig_content = ''
         if signature_path:
             try:
-                sig_img = Image(signature_path)
+                # Decrypt if encrypted
+                if self.db.password:
+                    decrypted = decrypt_file_to_bytes(signature_path, self.db.password)
+                    sig_img = Image(BytesIO(decrypted))
+                else:
+                    sig_img = Image(signature_path)
                 sig_img = self._scale_image_to_fit(sig_img, 2.0 * inch, 0.75 * inch)
                 sig_width = sig_img.drawWidth
                 sig_content = sig_img
@@ -511,7 +523,7 @@ class StatementPDFGenerator:
         """
         # Get the statement portion
         conn = self.db.connect()
-        conn.row_factory = __import__('sqlite3').Row
+        conn.row_factory = __import__('sqlcipher3').Row
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -782,7 +794,12 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
     sig_width = 2.0 * inch
     if signature_path:
         try:
-            sig_img = Image(signature_path)
+            # Decrypt if encrypted
+            if db.password:
+                decrypted = decrypt_file_to_bytes(signature_path, db.password)
+                sig_img = Image(BytesIO(decrypted))
+            else:
+                sig_img = Image(signature_path)
             sig_img = generator._scale_image_to_fit(sig_img, 2.0 * inch, 0.75 * inch)
             sig_width = sig_img.drawWidth
             sig_img.hAlign = 'LEFT'
