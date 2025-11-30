@@ -277,7 +277,7 @@ class StatementPDFGenerator:
                 logo = Image(logo_path)
                 # Scale logo to fit target size (will scale up or down)
                 # Sized to roughly match the height of the address block
-                logo = self._scale_image_to_fit(logo, 2.0 * inch, 1.1 * inch)
+                logo = self._scale_image_to_fit(logo, 2.2 * inch, 1.5 * inch)
                 
                 # Create table with logo and info - info column wider, flush right
                 header_data = [[logo, info_parts]]
