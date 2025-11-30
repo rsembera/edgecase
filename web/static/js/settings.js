@@ -388,6 +388,15 @@ async function saveSettings() {
             statement_email_body: document.getElementById('statement_email_body').value
         })
     });
+
+    // Save security settings
+    await fetch('/api/security_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            session_timeout: document.getElementById('session_timeout').value
+        })
+    });
     
     // Show success message and redirect
     const successMsg = document.getElementById('success-message');
@@ -880,8 +889,20 @@ function saveAndApplyBackground() {
 document.addEventListener('DOMContentLoaded', function() {
     loadBackgroundOptions();
     loadPracticeInfo();
-    loadFileNumberSettings();  // ADD THIS LINE
+    loadFileNumberSettings();
+    loadSecuritySettings();
 });
+
+function loadSecuritySettings() {
+    fetch('/api/security_settings')
+        .then(response => response.json())
+        .then(data => {
+            const timeout = document.getElementById('session_timeout');
+            if (timeout) {
+                timeout.value = data.session_timeout || '30';
+            }
+        });
+}
 
 function showAboutModal() {
     document.getElementById('about-modal').style.display = 'flex';
