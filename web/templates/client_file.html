@@ -285,6 +285,14 @@
                     onmouseout="this.style.background='transparent'">
                     <i data-lucide="calendar-plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Appointment
                     </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ url_for('clients.session_report', client_id=client.id) }}"
+                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
+                    onmouseover="this.style.background='#F3F4F6'" 
+                    onmouseout="this.style.background='transparent'">
+                        <i data-lucide="file-bar-chart" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Report
+                    </a>
                     <a href="{{ url_for('clients.export_client', client_id=client.id) }}"
                     style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
                     onmouseover="this.style.background='#F3F4F6'" 
