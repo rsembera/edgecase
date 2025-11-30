@@ -8,7 +8,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
 from datetime import datetime
 from werkzeug.utils import secure_filename
-import sqlite3
+import sqlcipher3 as sqlite3
 import os
 import shutil
 import time

@@ -1278,7 +1278,7 @@ class Database:
 
     def get_payee(self, payee_id: int) -> dict:
         """Get a single payee by ID."""
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1291,7 +1291,7 @@ class Database:
 
     def get_all_payees(self) -> list:
         """Get all payees ordered by name."""
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1360,7 +1360,7 @@ class Database:
 
     def get_expense_category(self, category_id: int) -> dict:
         """Get a single expense category by ID."""
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1373,7 +1373,7 @@ class Database:
 
     def get_all_expense_categories(self) -> list:
         """Get all expense categories ordered by name."""
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1436,7 +1436,7 @@ class Database:
         Returns:
             List of ledger entries sorted by date (newest first), then created_at
         """
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1482,7 +1482,7 @@ class Database:
         Returns:
             List of ledger entries in date range
         """
-        import sqlite3
+        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
