@@ -992,6 +992,7 @@ function toggleEmailFromField() {
             if (data.payment_instructions) document.getElementById('payment_instructions').value = data.payment_instructions;
             if (data.email_from_address) document.getElementById('email_from').value = data.email_from_address;
             if (data.statement_email_body) document.getElementById('statement_email_body').value = data.statement_email_body;
+            if (data.email_method) document.getElementById('email_method').value = data.email_method;
             toggleEmailFromField();
             
             const attestationCheckbox = document.getElementById('include_attestation');
