@@ -8,9 +8,8 @@ from werkzeug.utils import secure_filename
 import os
 import time
 import difflib
-
-
 import calendar
+from core.encryption import encrypt_file
 
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day'):
     """Convert year/month/day dropdowns to Unix timestamp.
@@ -225,6 +224,11 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             
             # Save file to disk
             file.save(filepath)
+            
+            # Encrypt the file
+            if db.password:
+                encrypt_file(filepath, db.password)
+            
             filesize = os.path.getsize(filepath)
             
             # Get description (use filename if not provided)

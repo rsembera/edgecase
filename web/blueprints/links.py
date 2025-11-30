@@ -7,7 +7,7 @@ Handles client linking for couples/family/group therapy
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from pathlib import Path
 import sys
-import sqlite3
+import sqlcipher3 as sqlite3
 import time
 
 # Add parent directory to path for database import

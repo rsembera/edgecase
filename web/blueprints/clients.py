@@ -8,7 +8,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from pathlib import Path
 from datetime import datetime, timedelta
 import sys
-import sqlite3
+import sqlcipher3 as sqlite3
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

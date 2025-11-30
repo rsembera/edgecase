@@ -9,11 +9,13 @@ from pathlib import Path
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import sys
-import sqlite3
+import sqlcipher3 as sqlite3
 import time
 import os
 import shutil
 from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
+from core.encryption import decrypt_file_to_bytes
+from io import BytesIO
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -1518,9 +1520,18 @@ def download_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
-    return send_file(attachment['filepath'], 
-                     as_attachment=True, 
-                     download_name=attachment['filename'])
+    # Decrypt file if database is encrypted
+    if db.password:
+        decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        return send_file(
+            BytesIO(decrypted),
+            as_attachment=True,
+            download_name=attachment['filename']
+        )
+    else:
+        return send_file(attachment['filepath'], 
+                         as_attachment=True, 
+                         download_name=attachment['filename'])
 
 
 @entries_bp.route('/attachment/<int:attachment_id>/view')
@@ -1537,7 +1548,20 @@ def view_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
-    return send_file(attachment['filepath'], as_attachment=False)
+    # Decrypt file if database is encrypted
+    if db.password:
+        decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        # Guess mimetype from filename
+        import mimetypes
+        mimetype = mimetypes.guess_type(attachment['filename'])[0] or 'application/octet-stream'
+        return send_file(
+            BytesIO(decrypted),
+            as_attachment=False,
+            download_name=attachment['filename'],
+            mimetype=mimetype
+        )
+    else:
+        return send_file(attachment['filepath'], as_attachment=False)
 
 
 @entries_bp.route('/attachment/<int:attachment_id>/delete', methods=['POST'])
