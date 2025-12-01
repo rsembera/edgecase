@@ -11,28 +11,8 @@ body * {
     font-size: inherit;
 }
 
-/* Stats cards - 6 cards in 2 rows of 3 */
-.stats-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    border-radius: 1rem;
-    padding: 1.5rem;
-    transition: transform 0.2s;
-    background: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); 
-}
-
-/* Drag and drop */
+/* Stats cards - base styles in shared.css */
+/* Drag and drop additions */
 .stat-card {
     cursor: move;
     cursor: grab;

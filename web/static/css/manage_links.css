@@ -1,40 +1,13 @@
-/* Match manage_types.html styling */
+/* Manage Links Page Styles */
+/* Shared patterns from shared.css: header-row, btn, btn-secondary, btn-danger, 
+   btn-icon, modal, modal-content, empty-state */
+
 .card {
     max-width: min(900px, 95vw);
     margin: 0 auto;
 }
 
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.header-row h2 {
-    color: #111827;
-    margin: 0;
-}
-
-.btn-add {
-    padding: 0.75rem 1.5rem;
-    background: #BFDCDC;
-    color: #115D4F;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-block;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-add:hover {
-    background: #9FCFC0;
-    transform: translateY(-1px);
-}
-
+/* Inline button variant */
 .btn-secondary-inline {
     padding: 0.75rem 1.5rem;
     background: #E3E9EE;
@@ -97,6 +70,7 @@
     font-size: 0.875rem;
 }
 
+/* Billing badges */
 .billing-badge {
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
@@ -124,24 +98,6 @@
     gap: 0.5rem;
 }
 
-.btn-icon {
-    padding: 0.5rem;
-    border: none;
-    background: transparent;
-    font-size: 1.25rem;
-    cursor: pointer;
-    border-radius: 0.375rem;
-    transition: background 0.2s;
-}
-
-.btn-icon:hover {
-    background: #F3F4F6;
-}
-
-.btn-danger:hover {
-    background: #FEE2E2;
-}
-
 /* Group Members */
 .group-members {
     display: grid;
@@ -160,7 +116,7 @@
     text-decoration: none;
     color: inherit;
     transition: all 0.2s;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
 }
 
 .member-card:hover {
@@ -170,8 +126,8 @@
 }
 
 .member-card.principal-payer {
-    background: #EFF6FF;  /* Light blue background */
-    border-color: #60A5FA;  /* Darker blue border */
+    background: #EFF6FF;
+    border-color: #60A5FA;
 }
 
 .member-badge {
@@ -203,14 +159,10 @@
     font-weight: 500;
 }
 
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    background: #FBFCFD;
+/* Empty state override */
+.manage-links-page .empty-state {
     border: 2px dashed #DEE2E6;
-    border-radius: 0.75rem;
-    margin-top: 1rem;
+    background: #FBFCFD;
 }
 
 .empty-icon {
@@ -224,40 +176,9 @@
     margin-top: 0.5rem;
 }
 
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
+/* Modal variant class for active state */
 .modal.active {
     display: flex;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 0.75rem;
-    max-width: 500px;
-    width: 90%;
-}
-
-.modal-content h3 {
-    margin: 0 0 1rem 0;
-    color: #111827;
-}
-
-.modal-content p {
-    margin: 0 0 1rem 0;
-    color: #374151;
 }
 
 .modal-actions {
@@ -265,38 +186,4 @@
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 1.5rem;
-}
-
-.btn-secondary {
-    padding: 0.75rem 1.5rem;
-    background: #E3E9EE;
-    color: #55607D;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-    background: #D1D9E0;
-}
-
-.btn-danger {
-    padding: 0.75rem 1.5rem;
-    background: #FEE2E2;
-    color: #DC2626;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-danger:hover {
-    background: #FCA5A5;
 }

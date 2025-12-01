@@ -58,42 +58,50 @@ button {
    BUTTONS
    ============================================ */
 
-/* Primary button */
-.btn {
+/* Base button styles - shared by all button types */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-add {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 0.5rem 1.25rem !important;
-    background: var(--color-primary-lighter);
-    color: var(--color-primary-dark);
-    text-decoration: none !important; /* Remove underline from <a> tags */
+    text-decoration: none !important;
     border-radius: 0.75rem;
     border: none;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    height: 46px !important; /* Standard button height */
-    line-height: 1 !important; /* Reset line-height to 1 for better flex alignment */
+    height: 46px !important;
+    line-height: 1 !important;
     box-sizing: border-box;
     vertical-align: middle;
 }
 
-.btn:hover {
+/* Primary button (default teal) */
+.btn,
+.btn-primary,
+.btn-add {
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+}
+
+.btn:hover,
+.btn-primary:hover,
+.btn-add:hover {
     background: var(--color-primary-light);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
-    text-decoration: none !important; /* Keep no underline on hover */
+    text-decoration: none !important;
 }
 
 /* Secondary button (grey) */
 .btn-secondary {
     background: #E5E7EB !important;
     color: var(--color-text-light) !important;
-    text-decoration: none !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
 }
 
 .btn-secondary:hover {
@@ -102,7 +110,7 @@ button {
     text-decoration: none !important;
 }
 
-/* Danger button (red) - need !important to override inline styles */
+/* Danger button (red) */
 .btn-danger {
     background: var(--color-danger) !important;
     color: white !important;
@@ -998,5 +1006,164 @@ tbody tr:hover {
     
     .filter-select {
         width: 100%;
+    }
+}
+
+/* ============================================
+   PAGE HEADER ROW
+   Used in: manage_links, add_edit_link_group, manage_types
+   ============================================ */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-row h2 {
+    color: #111827;
+    margin: 0;
+}
+
+/* ============================================
+   FORM SECTIONS (bordered containers)
+   Used in: add_edit_link_group, add_edit_type
+   ============================================ */
+.form-section {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #FBFCFD;
+    border: 1px solid #DEE2E6;
+    border-radius: 0.75rem;
+}
+
+.form-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #111827;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.form-section input[type="text"],
+.form-section input[type="number"],
+.form-section select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-section input[type="text"]:focus,
+.form-section input[type="number"]:focus,
+.form-section select:focus {
+    outline: none;
+    border-color: #9FCFC0;
+}
+
+.form-section small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #5B6571;
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   FORM ACTIONS (bottom button row)
+   Used in: add_edit_link_group, add_edit_type, etc.
+   ============================================ */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #DEE2E6;
+}
+
+/* ============================================
+   DROPDOWN MENUS
+   Used in: ledger, client_file
+   ============================================ */
+.dropdown-container {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 0.5rem;
+    min-width: 200px;
+    z-index: 100;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: #2d3748;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background: #F3F4F6;
+}
+
+/* ============================================
+   STATS CARDS
+   Used in: main_view, ledger
+   ============================================ */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: transform 0.2s;
+    background: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 1.125rem;
+    color: #5B6571;
+    font-weight: 600;
+}
+
+/* Responsive: 2 columns on smaller screens */
+@media (max-width: 900px) {
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-container {
+        grid-template-columns: 1fr;
     }
 }
