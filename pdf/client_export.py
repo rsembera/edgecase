@@ -1070,8 +1070,8 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
                 
                 # Add attachment pages (decrypt if needed)
                 if db.password:
-                    from core.encryption import decrypt_file
-                    decrypted_data = decrypt_file(att_filepath, db.password)
+                    from core.encryption import decrypt_file_to_bytes
+                    decrypted_data = decrypt_file_to_bytes(att_filepath, db.password)
                     att_buffer = BytesIO(decrypted_data)
                     att_reader = PdfReader(att_buffer)
                 else:
