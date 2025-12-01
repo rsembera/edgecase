@@ -1,15 +1,26 @@
-/* Outstanding Statements - JavaScript */
+/**
+ * Outstanding Statements JavaScript - EdgeCase Equalizer
+ * Handles statement listing, filtering, generation, payments, and write-offs.
+ */
 
-// Track current filter
+// ============================================================
+// STATE
+// ============================================================
+
 let currentFilter = 'all';
+let currentPaymentPortionId = null;
+let currentWriteOffPortionId = null;
+let currentWriteOffAmount = 0;
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
     
-    // Set up search input clear button visibility
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         updateClearButton();
@@ -23,12 +34,41 @@ document.addEventListener('DOMContentLoaded', function() {
             if (dropdown) dropdown.style.display = 'none';
         }
     });
+    
+    // Payment modal - close on outside click
+    const paymentModal = document.getElementById('payment-modal');
+    if (paymentModal) {
+        paymentModal.addEventListener('click', function(e) {
+            if (e.target === this) hidePaymentModal();
+        });
+    }
+    
+    // Payment amount - format on blur
+    const paymentAmount = document.getElementById('payment-amount');
+    if (paymentAmount) {
+        paymentAmount.addEventListener('blur', function() {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) this.value = val.toFixed(2);
+        });
+    }
+    
+    // Write-off modal - close on outside click
+    const writeoffModal = document.getElementById('writeoff-modal');
+    if (writeoffModal) {
+        writeoffModal.addEventListener('click', function(e) {
+            if (e.target === this) hideWriteOffModal();
+        });
+    }
 });
 
-// ============================================
-// DROPDOWN TOGGLE (matches main_view)
-// ============================================
+// ============================================================
+// DROPDOWN AND FILTER
+// ============================================================
 
+/**
+ * Toggle visibility of a dropdown by ID
+ * @param {string} id - DOM element ID
+ */
 function toggleDropdown(id) {
     const dropdown = document.getElementById(id);
     if (dropdown) {
@@ -36,12 +76,16 @@ function toggleDropdown(id) {
     }
 }
 
+/**
+ * Set the current filter and update UI
+ * @param {string} value - Filter value ('all', 'ready', 'sent', 'partial')
+ * @param {string} label - Display label for the filter
+ */
 function setFilter(value, label) {
     currentFilter = value;
     document.getElementById('filter-label').textContent = label;
     document.getElementById('filter-dropdown').style.display = 'none';
     
-    // Update active state on options
     document.querySelectorAll('.filter-option').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.value === value);
     });
@@ -49,27 +93,73 @@ function setFilter(value, label) {
     filterTable();
 }
 
-// ============================================
-// GENERATE SECTION TOGGLE
-// ============================================
+/**
+ * Filter and search the statements table
+ */
+function filterTable() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const rows = document.querySelectorAll('.statement-row');
+    
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const client = row.dataset.client;
+        const file = row.dataset.file;
+        
+        const statusMatch = currentFilter === 'all' || status === currentFilter;
+        const searchMatch = !searchTerm || client.includes(searchTerm) || file.includes(searchTerm);
+        
+        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+    });
+    
+    updateClearButton();
+}
 
+/**
+ * Update clear button visibility based on search input
+ */
+function updateClearButton() {
+    const searchInput = document.getElementById('search-input');
+    const clearBtn = document.querySelector('.clear-search');
+    if (searchInput && clearBtn) {
+        clearBtn.style.display = searchInput.value ? 'block' : 'none';
+    }
+}
+
+/**
+ * Clear the search input and re-filter
+ */
+function clearSearch() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        filterTable();
+    }
+}
+
+// ============================================================
+// GENERATE SECTION
+// ============================================================
+
+/**
+ * Toggle the generate statements section expand/collapse
+ */
 function toggleGenerateSection() {
     const content = document.getElementById('generate-content');
     const icon = document.getElementById('generate-toggle-icon');
     
-    if (content.classList.contains('expanded')) {
-        content.classList.remove('expanded');
-        icon.classList.remove('expanded');
-    } else {
-        content.classList.add('expanded');
-        icon.classList.add('expanded');
-    }
+    content.classList.toggle('expanded');
+    icon.classList.toggle('expanded');
 }
 
-// ============================================
+// ============================================================
 // DATE HELPERS
-// ============================================
+// ============================================================
 
+/**
+ * Get date string from dropdown selects
+ * @param {string} prefix - Prefix for element IDs (e.g., 'start' or 'end')
+ * @returns {string} Date in YYYY-MM-DD format
+ */
 function getDateFromDropdowns(prefix) {
     const year = document.getElementById(prefix + '-year').value;
     const month = document.getElementById(prefix + '-month').value.padStart(2, '0');
@@ -77,6 +167,11 @@ function getDateFromDropdowns(prefix) {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Set dropdown selects from a date string
+ * @param {string} prefix - Prefix for element IDs
+ * @param {string} date - Date string parseable by Date constructor
+ */
 function setDateInDropdowns(prefix, date) {
     const d = new Date(date);
     document.getElementById(prefix + '-year').value = d.getFullYear();
@@ -84,10 +179,13 @@ function setDateInDropdowns(prefix, date) {
     document.getElementById(prefix + '-day').value = d.getDate();
 }
 
-// ============================================
+// ============================================================
 // FIND UNBILLED CLIENTS
-// ============================================
+// ============================================================
 
+/**
+ * Find clients with unbilled sessions in the selected date range
+ */
 function findUnbilled() {
     const startDate = getDateFromDropdowns('start');
     const endDate = getDateFromDropdowns('end');
@@ -142,16 +240,22 @@ function findUnbilled() {
         });
 }
 
+/**
+ * Toggle all client checkboxes based on "Select All" state
+ */
 function toggleSelectAll() {
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('.client-checkbox');
     checkboxes.forEach(cb => cb.checked = selectAll.checked);
 }
 
-// ============================================
+// ============================================================
 // GENERATE STATEMENTS
-// ============================================
+// ============================================================
 
+/**
+ * Generate statements for selected clients
+ */
 function generateStatements() {
     const checkboxes = document.querySelectorAll('.client-checkbox:checked');
     const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
@@ -166,9 +270,7 @@ function generateStatements() {
     
     fetch('/statements/generate', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             client_ids: clientIds,
             start_date: startDate,
@@ -190,130 +292,91 @@ function generateStatements() {
     });
 }
 
-// ============================================
-// FILTER AND SEARCH
-// ============================================
-
-function filterTable() {
-    const searchTerm = document.getElementById('search-input').value.toLowerCase();
-    const rows = document.querySelectorAll('.statement-row');
-    
-    rows.forEach(row => {
-        const status = row.dataset.status;
-        const client = row.dataset.client;
-        const file = row.dataset.file;
-        
-        const statusMatch = currentFilter === 'all' || status === currentFilter;
-        const searchMatch = !searchTerm || 
-            client.includes(searchTerm) || 
-            file.includes(searchTerm);
-        
-        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
-    });
-    
-    // Update clear button visibility
-    updateClearButton();
-}
-
-function updateClearButton() {
-    const searchInput = document.getElementById('search-input');
-    const clearBtn = document.querySelector('.clear-search');
-    if (searchInput && clearBtn) {
-        clearBtn.style.display = searchInput.value ? 'block' : 'none';
-    }
-}
-
-function clearSearch() {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.value = '';
-        filterTable();
-    }
-}
-
-// ============================================
+// ============================================================
 // STATEMENT ACTIONS
-// ============================================
+// ============================================================
 
+/**
+ * Mark statement as sent and trigger email
+ * @param {number} portionId - Statement portion ID
+ */
 function markSent(portionId) {
-    fetch(`/statements/mark-sent/${portionId}`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Email method:', data.email_method);
-        if (data.success) {
-            // Store portion_id in data for mailto fallback
-            data.portion_id = portionId;
-            
-            // Trigger email client
-            if (data.email_method === 'applescript') {
-                triggerAppleScriptEmail(data);
+    fetch(`/statements/mark-sent/${portionId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                data.portion_id = portionId;
+                
+                if (data.email_method === 'applescript') {
+                    triggerAppleScriptEmail(data);
+                } else {
+                    triggerMailtoEmail(data);
+                }
             } else {
-                triggerMailtoEmail(data);
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error marking sent:', error);
-        alert('Error marking statement as sent');
-    });
+        })
+        .catch(error => {
+            console.error('Error marking sent:', error);
+            alert('Error marking statement as sent');
+        });
 }
 
+/**
+ * Generate PDF only (no email) - opens in new window
+ * @param {number} portionId - Statement portion ID
+ */
 function generateOnly(portionId) {
-    // Open window immediately (before async) to avoid popup blocker
+    // Open window immediately to avoid popup blocker
     const pdfWindow = window.open('about:blank', '_blank');
     
-    // Mark as sent but skip email - just view the PDF
-    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Navigate the already-open window to the PDF
-            pdfWindow.location.href = `/statements/view-pdf/${portionId}`;
-            // Reload page after short delay to update status
-            setTimeout(() => window.location.reload(), 500);
-        } else {
+    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                pdfWindow.location.href = `/statements/view-pdf/${portionId}`;
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                pdfWindow.close();
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
             pdfWindow.close();
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        pdfWindow.close();
-        console.error('Error generating statement:', error);
-        alert('Error generating statement');
-    });
+            console.error('Error generating statement:', error);
+            alert('Error generating statement');
+        });
 }
 
+/**
+ * Trigger mailto link with PDF download
+ * @param {Object} data - Email data from server
+ */
 function triggerMailtoEmail(data) {
     const subject = encodeURIComponent(data.subject);
     const body = encodeURIComponent(data.body + '\n\n[Please attach the downloaded PDF]');
     const mailto = `mailto:${data.recipient_email}?subject=${subject}&body=${body}`;
     
-    // Download PDF so user can attach it
+    // Download PDF for manual attachment
     const pdfLink = document.createElement('a');
     pdfLink.href = `/statements/pdf/${data.portion_id}`;
     pdfLink.download = '';
     pdfLink.click();
     
-    // Small delay then open mailto
     setTimeout(() => {
         window.location.href = mailto;
-        // Reload after mailto opens
         setTimeout(() => window.location.reload(), 1000);
     }, 300);
 }
 
+/**
+ * Send email via AppleScript with PDF attachment
+ * @param {Object} data - Email data from server
+ */
 function triggerAppleScriptEmail(data) {
     fetch('/statements/send-applescript-email', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             recipient_email: data.recipient_email,
             subject: data.subject,
@@ -325,7 +388,6 @@ function triggerAppleScriptEmail(data) {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            // Success - reload page
             window.location.reload();
         } else {
             alert('AppleScript email failed: ' + result.error + '\n\nFalling back to mailto...');
@@ -339,12 +401,15 @@ function triggerAppleScriptEmail(data) {
     });
 }
 
-// ============================================
+// ============================================================
 // PAYMENT MODAL
-// ============================================
+// ============================================================
 
-let currentPaymentPortionId = null;
-
+/**
+ * Show the payment modal for a statement portion
+ * @param {number} portionId - Statement portion ID
+ * @param {number} amountOwing - Amount still owed
+ */
 function showPaymentForm(portionId, amountOwing) {
     currentPaymentPortionId = portionId;
     const input = document.getElementById('payment-amount');
@@ -354,22 +419,26 @@ function showPaymentForm(portionId, amountOwing) {
     document.getElementById('payment-modal').classList.add('visible');
 }
 
+/**
+ * Hide the payment modal
+ */
 function hidePaymentModal() {
     document.getElementById('payment-modal').classList.remove('visible');
     currentPaymentPortionId = null;
 }
 
+/**
+ * Submit the payment
+ */
 function confirmPayment() {
     const amountInput = document.getElementById('payment-amount');
     const amount = parseFloat(amountInput.value);
     
-    // Validation
     if (isNaN(amount) || amount <= 0) {
         showSuccessModal('Please enter a valid positive amount', 'Invalid Amount');
         return;
     }
     
-    // Get max amount from data attribute
     const maxAmount = parseFloat(amountInput.dataset.max);
     if (amount > maxAmount) {
         showSuccessModal(`Amount cannot exceed $${maxAmount.toFixed(2)}`, 'Invalid Amount');
@@ -378,10 +447,8 @@ function confirmPayment() {
     
     fetch('/statements/mark-paid', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             portion_id: currentPaymentPortionId,
             payment_amount: amount,
             payment_type: amount >= maxAmount ? 'full' : 'partial'
@@ -402,33 +469,19 @@ function confirmPayment() {
     });
 }
 
-// Close modal when clicking outside
-document.getElementById('payment-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hidePaymentModal();
-    }
-});
-
-// Format amount to 2 decimal places on blur
-document.getElementById('payment-amount').addEventListener('blur', function() {
-    const val = parseFloat(this.value);
-    if (!isNaN(val)) {
-        this.value = val.toFixed(2);
-    }
-});
-
-// ============================================
+// ============================================================
 // WRITE-OFF MODAL
-// ============================================
+// ============================================================
 
-let currentWriteOffPortionId = null;
-let currentWriteOffAmount = 0;
-
+/**
+ * Show the write-off modal for a statement portion
+ * @param {number} portionId - Statement portion ID
+ * @param {number} amountOwing - Amount to write off
+ */
 function showWriteOffModal(portionId, amountOwing) {
     currentWriteOffPortionId = portionId;
     currentWriteOffAmount = amountOwing;
     
-    // Reset form
     document.getElementById('writeoff-reason').value = '';
     document.getElementById('writeoff-note').value = '';
     document.getElementById('writeoff-note-group').style.display = 'none';
@@ -438,34 +491,31 @@ function showWriteOffModal(portionId, amountOwing) {
     document.getElementById('writeoff-modal').classList.add('visible');
 }
 
+/**
+ * Hide the write-off modal
+ */
 function hideWriteOffModal() {
     document.getElementById('writeoff-modal').classList.remove('visible');
     currentWriteOffPortionId = null;
     currentWriteOffAmount = 0;
 }
 
+/**
+ * Toggle write-off note field visibility and update hint based on reason
+ */
 function toggleWriteOffNote() {
     const reason = document.getElementById('writeoff-reason').value;
     const noteGroup = document.getElementById('writeoff-note-group');
     const hint = document.getElementById('writeoff-hint');
     
-    // Show note field for "Other"
-    if (reason === 'other') {
-        noteGroup.style.display = 'block';
-    } else {
-        noteGroup.style.display = 'none';
-    }
+    noteGroup.style.display = reason === 'other' ? 'block' : 'none';
     
-    // Update hint text based on reason
-    switch(reason) {
+    switch (reason) {
         case 'uncollectible':
             hint.textContent = 'This will create a "Bad Debt" expense entry in the Ledger.';
             hint.style.color = '#B45309';
             break;
         case 'waived':
-            hint.textContent = 'The debt will be resolved. No ledger entry will be created.';
-            hint.style.color = '#718096';
-            break;
         case 'billing_error':
             hint.textContent = 'The debt will be resolved. No ledger entry will be created.';
             hint.style.color = '#718096';
@@ -479,11 +529,13 @@ function toggleWriteOffNote() {
     }
 }
 
+/**
+ * Submit the write-off
+ */
 function confirmWriteOff() {
     const reason = document.getElementById('writeoff-reason').value;
     const note = document.getElementById('writeoff-note').value.trim();
     
-    // Validation
     if (!reason) {
         showSuccessModal('Please select a reason', 'Missing Reason');
         return;
@@ -496,9 +548,7 @@ function confirmWriteOff() {
     
     fetch('/statements/write-off', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             portion_id: currentWriteOffPortionId,
             reason: reason,
@@ -521,23 +571,24 @@ function confirmWriteOff() {
     });
 }
 
-// Close write-off modal when clicking outside
-document.getElementById('writeoff-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideWriteOffModal();
-    }
-});
-
-// ============================================
+// ============================================================
 // SUCCESS MODAL
-// ============================================
+// ============================================================
 
+/**
+ * Show a success/info modal
+ * @param {string} message - Message to display
+ * @param {string} title - Modal title (default: 'Success')
+ */
 function showSuccessModal(message, title) {
     document.getElementById('success-title').textContent = title || 'Success';
     document.getElementById('success-message').textContent = message;
     document.getElementById('success-modal').classList.add('visible');
 }
 
+/**
+ * Close the success modal and reload page
+ */
 function closeSuccessModal() {
     document.getElementById('success-modal').classList.remove('visible');
     window.location.reload();

@@ -1,58 +1,65 @@
-// Settings page JavaScript - EdgeCase Equalizer
+/**
+ * Settings Page JavaScript - EdgeCase Equalizer
+ * Handles practice info, file uploads, theme settings, and various configuration options.
+ */
 
-// Load current settings on page load
-function loadCurrentSettings() {
-    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
-    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
-    
-    document.getElementById('card-style').value = cardStyle;
-    document.getElementById('background-style').value = backgroundStyle;
-    
-    // Load card positions
-    loadCardPositions();
-    
-    // Update delete button visibility
-    updateDeleteButton();
-}
+// ============================================================
+// CONFIRMATION MODAL
+// ============================================================
 
-// Confirmation modal helpers
 let confirmCallback = null;
 
+/**
+ * Show a confirmation modal with custom title and message
+ * @param {string} title - Modal title
+ * @param {string} message - Modal message
+ * @param {Function} onConfirm - Callback to execute on confirmation
+ */
 function showConfirmModal(title, message, onConfirm) {
-    console.log('showConfirmModal called with:', title, message);
     document.getElementById('confirm-title').textContent = title;
     document.getElementById('confirm-message').textContent = message;
     document.getElementById('confirm-modal').style.display = 'flex';
     
     confirmCallback = onConfirm;
-    console.log('confirmCallback set:', typeof confirmCallback);
     
-    // Set up the OK button click handler
-    const okButton = document.getElementById('confirm-ok-button');
-    console.log('OK button found:', okButton);
-    okButton.onclick = function() {
-        console.log('OK button clicked! Callback type:', typeof confirmCallback);
-        
-        // Save the callback BEFORE closing (which nulls it)
+    document.getElementById('confirm-ok-button').onclick = function() {
         const callback = confirmCallback;
         closeConfirmModal();
-        
-        if (callback) {
-            console.log('Executing callback...');
-            callback();
-        } else {
-            console.log('No callback to execute!');
-        }
+        if (callback) callback();
     };
 }
 
+/**
+ * Close the confirmation modal
+ */
 function closeConfirmModal() {
     document.getElementById('confirm-modal').style.display = 'none';
     confirmCallback = null;
 }
 
-// Card layout management
-const cardNames = {
+// ============================================================
+// ABOUT MODAL
+// ============================================================
+
+/**
+ * Show the about modal
+ */
+function showAboutModal() {
+    document.getElementById('about-modal').style.display = 'flex';
+}
+
+/**
+ * Close the about modal
+ */
+function closeAboutModal() {
+    document.getElementById('about-modal').style.display = 'none';
+}
+
+// ============================================================
+// CARD LAYOUT MANAGEMENT
+// ============================================================
+
+const CARD_NAMES = {
     'active-clients': 'Active Clients',
     'sessions-week': 'Sessions This Week',
     'pending-invoices': 'Pending Invoices',
@@ -61,67 +68,54 @@ const cardNames = {
     'navigation': 'Navigation'
 };
 
-// Load card positions from localStorage
+const DEFAULT_CARD_ORDER = [
+    'active-clients', 'sessions-week', 'pending-invoices',
+    'billable-month', 'current-time', 'navigation'
+];
+
+/**
+ * Load card positions from localStorage and populate dropdowns
+ * @returns {Array} Current card order
+ */
 function loadCardPositions() {
     const savedOrder = localStorage.getItem('cardOrder');
-    let currentOrder;
+    const currentOrder = savedOrder ? JSON.parse(savedOrder) : [...DEFAULT_CARD_ORDER];
     
-    if (savedOrder) {
-        currentOrder = JSON.parse(savedOrder);
-    } else {
-        // Default order
-        currentOrder = ['active-clients', 'sessions-week', 'pending-invoices', 
-                       'billable-month', 'current-time', 'navigation'];
-    }
-    
-    // Set dropdown values
     for (let i = 0; i < 6; i++) {
         const select = document.getElementById(`position-${i + 1}`);
-        if (select) {
-            select.value = currentOrder[i];
-        }
+        if (select) select.value = currentOrder[i];
     }
     
     return currentOrder;
 }
 
-// Handle card swap when dropdown changes
+/**
+ * Handle card position swap when dropdown changes
+ * @param {number} position - Zero-based position index
+ */
 function handleCardSwap(position) {
     const select = document.getElementById(`position-${position + 1}`);
     const newCardId = select.value;
     
-    // Get the SAVED order from localStorage (the truth)
     const savedOrder = localStorage.getItem('cardOrder');
-    let currentOrder;
+    const currentOrder = savedOrder ? JSON.parse(savedOrder) : [...DEFAULT_CARD_ORDER];
     
-    if (savedOrder) {
-        currentOrder = JSON.parse(savedOrder);
-    } else {
-        // Default order
-        currentOrder = ['active-clients', 'sessions-week', 'pending-invoices', 
-                       'billable-month', 'current-time', 'navigation'];
-    }
-    
-    // What card WAS in this position?
     const oldCardId = currentOrder[position];
-    
-    // Where is the newCardId currently?
     const existingPosition = currentOrder.indexOf(newCardId);
     
     if (existingPosition !== -1 && existingPosition !== position) {
-        // Swap them in the array
+        // Swap cards
         currentOrder[position] = newCardId;
         currentOrder[existingPosition] = oldCardId;
         
-        // Update all dropdowns to reflect the swap
+        // Update all dropdowns
         for (let i = 0; i < 6; i++) {
             document.getElementById(`position-${i + 1}`).value = currentOrder[i];
         }
         
-        // Save to localStorage
         localStorage.setItem('cardOrder', JSON.stringify(currentOrder));
         
-        // Show success message briefly
+        // Show success message
         const successMsg = document.getElementById('success-message');
         successMsg.textContent = '✓ Card positions updated! Changes will appear on the main page.';
         successMsg.classList.add('show');
@@ -132,35 +126,37 @@ function handleCardSwap(position) {
     }
 }
 
-// Track which backgrounds are user-uploaded
+// ============================================================
+// BACKGROUND MANAGEMENT
+// ============================================================
+
 let userBackgrounds = [];
 
-// Load available background images
+const SOLID_COLORS = [
+    { value: 'suit-grey', name: 'Suit Grey' },
+    { value: 'warm-stone', name: 'Warm Stone' },
+    { value: 'sage-mist', name: 'Sage Mist' },
+    { value: 'soft-cream', name: 'Soft Cream' }
+];
+
+/**
+ * Load available background images and populate dropdown
+ */
 async function loadBackgroundOptions() {
     try {
         const response = await fetch('/api/backgrounds');
         const data = await response.json();
         
-        // Separate system and user backgrounds
         const systemBackgrounds = data.system || [];
         userBackgrounds = data.user || [];
         
         const select = document.getElementById('background-style');
-        
-        // Clear all existing options
         select.innerHTML = '';
         
-        // Add solid color options
-        const solidColors = [
-            { value: 'suit-grey', name: 'Suit Grey' },
-            { value: 'warm-stone', name: 'Warm Stone' },
-            { value: 'sage-mist', name: 'Sage Mist' },
-            { value: 'soft-cream', name: 'Soft Cream' }
-        ];
-        
+        // Add solid colors
         const solidGroup = document.createElement('optgroup');
         solidGroup.label = 'Solid Colors';
-        solidColors.forEach(color => {
+        SOLID_COLORS.forEach(color => {
             const option = document.createElement('option');
             option.value = color.value;
             option.textContent = color.name;
@@ -173,7 +169,8 @@ async function loadBackgroundOptions() {
             const systemGroup = document.createElement('optgroup');
             systemGroup.label = 'System Backgrounds';
             systemBackgrounds.forEach(bg => {
-                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
                 const option = document.createElement('option');
                 option.value = 'system:' + bg;
                 option.textContent = displayName;
@@ -187,7 +184,8 @@ async function loadBackgroundOptions() {
             const userGroup = document.createElement('optgroup');
             userGroup.label = 'My Backgrounds';
             userBackgrounds.forEach(bg => {
-                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
                 const option = document.createElement('option');
                 option.value = 'user:' + bg;
                 option.textContent = displayName;
@@ -196,7 +194,6 @@ async function loadBackgroundOptions() {
             select.appendChild(userGroup);
         }
         
-        // Load current settings after options are populated
         loadCurrentSettings();
     } catch (error) {
         console.error('Failed to load background options:', error);
@@ -204,12 +201,27 @@ async function loadBackgroundOptions() {
     }
 }
 
-// Show/hide delete button based on selection
+/**
+ * Load current theme settings from localStorage
+ */
+function loadCurrentSettings() {
+    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
+    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+    
+    document.getElementById('card-style').value = cardStyle;
+    document.getElementById('background-style').value = backgroundStyle;
+    
+    loadCardPositions();
+    updateDeleteButton();
+}
+
+/**
+ * Show/hide delete button based on whether a user background is selected
+ */
 function updateDeleteButton() {
     const select = document.getElementById('background-style');
     const deleteBtn = document.getElementById('delete-bg-button');
     
-    // Show delete button only for user backgrounds
     if (select.value.startsWith('user:')) {
         deleteBtn.classList.add('visible');
     } else {
@@ -217,13 +229,81 @@ function updateDeleteButton() {
     }
 }
 
-// Delete user background
+/**
+ * Save and apply card style immediately
+ */
+function saveAndApplyCardStyle() {
+    const cardStyle = document.getElementById('card-style').value;
+    localStorage.setItem('cardStyle', cardStyle);
+    applyTheme();
+}
+
+/**
+ * Save and apply background immediately
+ */
+function saveAndApplyBackground() {
+    const backgroundStyle = document.getElementById('background-style').value;
+    localStorage.setItem('backgroundStyle', backgroundStyle);
+    applyTheme();
+    updateDeleteButton();
+}
+
+/**
+ * Upload a new background image
+ */
+async function uploadBackground() {
+    const fileInput = document.getElementById('background-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('background', file);
+    
+    try {
+        const response = await fetch('/upload_background', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.textContent = '✓ Background uploaded successfully!';
+            statusDiv.style.display = 'block';
+            
+            fileInput.value = '';
+            document.getElementById('upload-filename').textContent = '';
+            document.getElementById('upload-button').style.display = 'none';
+            
+            await loadBackgroundOptions();
+            document.getElementById('background-style').value = 'user:' + result.filename;
+            saveAndApplyBackground();
+            
+            setTimeout(() => statusDiv.style.display = 'none', 3000);
+        } else {
+            alert('Upload failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Upload failed: ' + error.message);
+    }
+}
+
+/**
+ * Delete a user-uploaded background
+ */
 async function deleteBackground() {
-    console.log('deleteBackground called');
     const select = document.getElementById('background-style');
     const selectedValue = select.value;
-    
-    console.log('Selected value:', selectedValue);
     
     if (!selectedValue.startsWith('user:')) {
         alert('Can only delete user-uploaded backgrounds');
@@ -231,22 +311,16 @@ async function deleteBackground() {
     }
     
     const filename = selectedValue.replace('user:', '');
-    console.log('Filename to delete:', filename);
     
     showConfirmModal('Delete Background', `Delete background "${filename}"?`, async function() {
-        console.log('Delete confirmed, making API call');
         try {
             const response = await fetch('/delete_background', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename: filename })
             });
             
-            console.log('Response received:', response);
             const result = await response.json();
-            console.log('Result:', result);
             
             if (result.success) {
                 const statusDiv = document.getElementById('upload-status');
@@ -260,10 +334,7 @@ async function deleteBackground() {
                 }
                 
                 await loadBackgroundOptions();
-                
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 3000);
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
             } else {
                 alert('Delete failed: ' + result.error);
             }
@@ -274,193 +345,74 @@ async function deleteBackground() {
     });
 }
 
-// Show filename when file is selected
-document.getElementById('background-upload').addEventListener('change', function(e) {
-    const filename = e.target.files[0]?.name;
-    if (filename) {
-        document.getElementById('upload-filename').textContent = filename;
-        document.getElementById('upload-button').style.display = 'inline-block';
-    }
-});
+// ============================================================
+// PRACTICE INFORMATION
+// ============================================================
 
-// Upload background image
-async function uploadBackground() {
-    const fileInput = document.getElementById('background-upload');
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        alert('Please select a file first');
-        return;
-    }
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
-        return;
-    }
-    
-    // Create form data
-    const formData = new FormData();
-    formData.append('background', file);
-    
-    try {
-        const response = await fetch('/upload_background', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Show success message
-            const statusDiv = document.getElementById('upload-status');
-            statusDiv.textContent = '✓ Background uploaded successfully!';
-            statusDiv.style.display = 'block';
-            
-            // Clear the file input
-            fileInput.value = '';
-            document.getElementById('upload-filename').textContent = '';
-            document.getElementById('upload-button').style.display = 'none';
-            
-            // Reload background options to include the new one
-            await loadBackgroundOptions();
-            
-            // Auto-select the newly uploaded background
-            document.getElementById('background-style').value = 'user:' + result.filename;
-            
-            // Apply the background immediately
-            saveAndApplyBackground();
-            
-            // Hide success message after 3 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
-        } else {
-            alert('Upload failed: ' + result.error);
-        }
-    } catch (error) {
-        alert('Upload failed: ' + error.message);
-    }
-}
-
-// Save settings
-async function saveSettings() {
-    // Validate phone number FIRST
-    const practicePhone = document.getElementById('practice-phone').value;
-
-    if (practicePhone && !validatePhone(practicePhone)) {
-        alert('Practice phone must be 10-15 digits');
-        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
-        return; // Stop here, don't save
-    }
-    
-    // Reset border color
-    document.getElementById('practice-phone').style.borderColor = '';
-    
-    // Save practice info to database
-    await savePracticeInfo();
-    
-    // Save file number settings
-    await saveFileNumberSettings();
-    
-    // Save calendar settings
-    await fetch('/api/calendar_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            calendar_method: document.getElementById('calendar_method').value,
-            calendar_name: document.getElementById('calendar_name').value
-        })
-    });
-
-    // Save statement settings
-    await fetch('/api/statement_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            currency: document.getElementById('currency').value,
-            registration_info: document.getElementById('registration_info').value,
-            payment_instructions: document.getElementById('payment_instructions').value,
-            include_attestation: document.getElementById('include_attestation').checked,
-            attestation_text: document.getElementById('attestation_text').value,
-            email_method: document.getElementById('email_method').value,
-            email_from_address: document.getElementById('email_from').value,
-            statement_email_body: document.getElementById('statement_email_body').value
-        })
-    });
-
-    // Save security settings
-    await fetch('/api/security_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            session_timeout: document.getElementById('session_timeout').value
-        })
-    });
-    
-    // Show success message and redirect
-    const successMsg = document.getElementById('success-message');
-    successMsg.classList.add('show');
-    setTimeout(() => {
-        successMsg.classList.remove('show');
-        // Redirect to main view after saving
-        window.location.href = '/';
-    }, 1000);
-}
-
-// Load practice information from database
+/**
+ * Load practice information from database
+ */
 async function loadPracticeInfo() {
     try {
         const response = await fetch('/api/practice_info');
         const data = await response.json();
         
         if (data.success && data.info) {
-            console.log('Practice info loaded:', data.info);
-            // Populate form fields
             document.getElementById('practice-name').value = data.info.practice_name || '';
             document.getElementById('therapist-name').value = data.info.therapist_name || '';
             document.getElementById('credentials').value = data.info.credentials || '';
             document.getElementById('practice-email').value = data.info.email || '';
             document.getElementById('practice-phone').value = data.info.phone || '';
-            document.getElementById('practice-address').value = data.info.address || '';  // CHANGED: single address field
+            document.getElementById('practice-address').value = data.info.address || '';
             document.getElementById('website').value = data.info.website || '';
             document.getElementById('consultation-base').value = parseFloat(data.info.consultation_base_price || 0).toFixed(2);
             document.getElementById('consultation-tax').value = parseFloat(data.info.consultation_tax_rate || 0).toFixed(2);
             document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
             document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
             
-            // Show current logo/signature status and hide/show buttons
-            const logoChooseBtn = document.getElementById('logo-choose-button');
-            const sigChooseBtn = document.getElementById('signature-choose-button');
-            
-            if (data.info.logo_filename) {
-                document.getElementById('logo-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
-                lucide.createIcons();
-                document.getElementById('logo-delete-button').classList.add('visible');
-                if (logoChooseBtn) logoChooseBtn.classList.add('hidden');
-            } else {
-                document.getElementById('logo-current').textContent = '';
-                document.getElementById('logo-delete-button').classList.remove('visible');
-                if (logoChooseBtn) logoChooseBtn.classList.remove('hidden');
-            }
-            
-            if (data.info.signature_filename) {
-                document.getElementById('signature-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
-                lucide.createIcons();
-                document.getElementById('signature-delete-button').classList.add('visible');
-                if (sigChooseBtn) sigChooseBtn.classList.add('hidden');
-            } else {
-                document.getElementById('signature-current').textContent = '';
-                document.getElementById('signature-delete-button').classList.remove('visible');
-                if (sigChooseBtn) sigChooseBtn.classList.remove('hidden');
-            }
+            updateLogoSignatureUI(data.info);
         }
     } catch (error) {
         console.error('Failed to load practice info:', error);
     }
 }
 
-// Save practice information to database
+/**
+ * Update logo and signature UI based on current state
+ * @param {Object} info - Practice info object
+ */
+function updateLogoSignatureUI(info) {
+    const logoChooseBtn = document.getElementById('logo-choose-button');
+    const sigChooseBtn = document.getElementById('signature-choose-button');
+    
+    if (info.logo_filename) {
+        document.getElementById('logo-current').innerHTML = 
+            '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
+        lucide.createIcons();
+        document.getElementById('logo-delete-button').classList.add('visible');
+        if (logoChooseBtn) logoChooseBtn.classList.add('hidden');
+    } else {
+        document.getElementById('logo-current').textContent = '';
+        document.getElementById('logo-delete-button').classList.remove('visible');
+        if (logoChooseBtn) logoChooseBtn.classList.remove('hidden');
+    }
+    
+    if (info.signature_filename) {
+        document.getElementById('signature-current').innerHTML = 
+            '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
+        lucide.createIcons();
+        document.getElementById('signature-delete-button').classList.add('visible');
+        if (sigChooseBtn) sigChooseBtn.classList.add('hidden');
+    } else {
+        document.getElementById('signature-current').textContent = '';
+        document.getElementById('signature-delete-button').classList.remove('visible');
+        if (sigChooseBtn) sigChooseBtn.classList.remove('hidden');
+    }
+}
+
+/**
+ * Save practice information to database
+ */
 async function savePracticeInfo() {
     const practiceData = {
         practice_name: document.getElementById('practice-name').value,
@@ -468,7 +420,7 @@ async function savePracticeInfo() {
         credentials: document.getElementById('credentials').value,
         email: document.getElementById('practice-email').value,
         phone: document.getElementById('practice-phone').value,
-        address: document.getElementById('practice-address').value,  // CHANGED: single address field
+        address: document.getElementById('practice-address').value,
         website: document.getElementById('website').value,
         consultation_base_price: document.getElementById('consultation-base').value,
         consultation_tax_rate: document.getElementById('consultation-tax').value,
@@ -479,24 +431,17 @@ async function savePracticeInfo() {
     try {
         const response = await fetch('/api/practice_info', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(practiceData)
         });
         
         const result = await response.json();
         
         if (result.success) {
-            // Show success message
             const statusDiv = document.getElementById('practice-info-status');
             statusDiv.textContent = '✓ Practice information saved successfully!';
             statusDiv.style.display = 'block';
-            
-            // Hide after 3 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
+            setTimeout(() => statusDiv.style.display = 'none', 3000);
         } else {
             alert('Failed to save practice information');
         }
@@ -505,21 +450,25 @@ async function savePracticeInfo() {
     }
 }
 
-// Phone number formatting with extension support (up to 5 digits) and international bypass
-const practicePhoneInput = document.getElementById('practice-phone');
+// ============================================================
+// PHONE NUMBER FORMATTING
+// ============================================================
 
-practicePhoneInput.addEventListener('input', function(e) {
+/**
+ * Format phone number as user types (supports NA and international)
+ * @param {Event} e - Input event
+ */
+function formatPhoneNumber(e) {
     let rawValue = e.target.value;
     
-    // If starts with +, it's international - don't format, just limit length
+    // International format - don't format, just limit length
     if (rawValue.startsWith('+')) {
-        // Allow + and up to 20 digits
         let cleaned = '+' + rawValue.slice(1).replace(/\D/g, '');
-        e.target.value = cleaned.substring(0, 21); // + plus 20 digits
+        e.target.value = cleaned.substring(0, 21);
         return;
     }
     
-    let value = rawValue.replace(/\D/g, ''); // Remove non-digits
+    let value = rawValue.replace(/\D/g, '');
     
     if (value.length <= 10) {
         // Format as (123) 456-7890
@@ -531,40 +480,41 @@ practicePhoneInput.addEventListener('input', function(e) {
             value = `(${value}`;
         }
     } else if (value.length <= 15) {
-        // Allow up to 15 digits (10 + 5 digit extension)
+        // 10 digits + extension
         value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
     } else {
-        // Truncate at 15 digits
         value = value.slice(0, 15);
         value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
     }
     
     e.target.value = value;
-});
+}
 
-// Validate phone number has 10-15 digits (or international format)
+/**
+ * Validate phone number has correct digit count
+ * @param {string} phoneValue - Phone number to validate
+ * @returns {boolean} True if valid
+ */
 function validatePhone(phoneValue) {
-    if (!phoneValue) return true; // Empty is okay
+    if (!phoneValue) return true;
     
-    // International format: starts with + and has 10-20 digits after it
     if (phoneValue.startsWith('+')) {
         const digitsOnly = phoneValue.slice(1).replace(/\D/g, '');
         return digitsOnly.length >= 10 && digitsOnly.length <= 20;
     }
     
-    // North American format: 10-15 digits
     const digitsOnly = phoneValue.replace(/\D/g, '');
     return digitsOnly.length >= 10 && digitsOnly.length <= 15;
 }
 
-// Validate phone number has 10-15 digits
-function validatePhone(phoneValue) {
-    if (!phoneValue) return true; // Empty is okay
-    const digitsOnly = phoneValue.replace(/\D/g, '');
-    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
-}
+// ============================================================
+// CONSULTATION FEE CALCULATION
+// ============================================================
 
-// Three-way calculation for consultation fee
+/**
+ * Three-way calculation for consultation fee
+ * @param {string} changedField - Which field was changed ('base', 'tax', or 'total')
+ */
 function calculateConsultationFee(changedField) {
     const baseInput = document.getElementById('consultation-base');
     const taxInput = document.getElementById('consultation-tax');
@@ -575,62 +525,47 @@ function calculateConsultationFee(changedField) {
     const total = parseFloat(totalInput.value) || 0;
     
     if (changedField === 'base' || changedField === 'tax') {
-        // Calculate total from base + tax
         const calculatedTotal = base * (1 + taxRate / 100);
         totalInput.value = calculatedTotal.toFixed(2);
     } else if (changedField === 'total') {
-        // Calculate base from total - tax
         if (taxRate > 0) {
             const calculatedBase = total / (1 + taxRate / 100);
             baseInput.value = calculatedBase.toFixed(2);
         } else {
-            // If no tax, total = base
             baseInput.value = total.toFixed(2);
         }
     }
 }
 
-// Auto-format consultation fee fields on blur
-document.getElementById('consultation-base').addEventListener('blur', function(e) {
+/**
+ * Format fee field to 2 decimal places on blur
+ * @param {Event} e - Blur event
+ */
+function formatFeeField(e) {
     let value = parseFloat(e.target.value);
     if (!isNaN(value)) {
         e.target.value = value.toFixed(2);
     }
-});
+}
 
-document.getElementById('consultation-tax').addEventListener('blur', function(e) {
+/**
+ * Format tax rate field to 1 decimal place on blur
+ * @param {Event} e - Blur event
+ */
+function formatTaxField(e) {
     let value = parseFloat(e.target.value);
     if (!isNaN(value)) {
         e.target.value = value.toFixed(1);
     }
-});
+}
 
-document.getElementById('consultation-total').addEventListener('blur', function(e) {
-    let value = parseFloat(e.target.value);
-    if (!isNaN(value)) {
-        e.target.value = value.toFixed(2);
-    }
-});
+// ============================================================
+// LOGO AND SIGNATURE UPLOADS
+// ============================================================
 
-// Show filename when logo is selected
-document.getElementById('logo-upload').addEventListener('change', function(e) {
-    const filename = e.target.files[0]?.name;
-    if (filename) {
-        document.getElementById('logo-filename').textContent = filename;
-        document.getElementById('logo-upload-button').style.display = 'inline-block';
-    }
-});
-
-// Show filename when signature is selected
-document.getElementById('signature-upload').addEventListener('change', function(e) {
-    const filename = e.target.files[0]?.name;
-    if (filename) {
-        document.getElementById('signature-filename').textContent = filename;
-        document.getElementById('signature-upload-button').style.display = 'inline-block';
-    }
-});
-
-// Upload logo (auto-triggered on file select)
+/**
+ * Upload practice logo
+ */
 async function uploadLogo() {
     const fileInput = document.getElementById('logo-upload');
     const file = fileInput.files[0];
@@ -647,15 +582,12 @@ async function uploadLogo() {
     formData.append('logo', file);
     
     try {
-        const response = await fetch('/upload_logo', {
-            method: 'POST',
-            body: formData
-        });
-        
+        const response = await fetch('/upload_logo', { method: 'POST', body: formData });
         const result = await response.json();
         
         if (result.success) {
-            document.getElementById('logo-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
+            document.getElementById('logo-current').innerHTML = 
+                '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Logo uploaded';
             lucide.createIcons();
             document.getElementById('logo-delete-button').classList.add('visible');
             document.getElementById('logo-choose-button').classList.add('hidden');
@@ -668,7 +600,9 @@ async function uploadLogo() {
     }
 }
 
-// Upload signature (auto-triggered on file select)
+/**
+ * Upload digital signature
+ */
 async function uploadSignature() {
     const fileInput = document.getElementById('signature-upload');
     const file = fileInput.files[0];
@@ -685,15 +619,12 @@ async function uploadSignature() {
     formData.append('signature', file);
     
     try {
-        const response = await fetch('/upload_signature', {
-            method: 'POST',
-            body: formData
-        });
-        
+        const response = await fetch('/upload_signature', { method: 'POST', body: formData });
         const result = await response.json();
         
         if (result.success) {
-            document.getElementById('signature-current').innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
+            document.getElementById('signature-current').innerHTML = 
+                '<i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -3px; color: #0E5346;"></i> Signature uploaded';
             lucide.createIcons();
             document.getElementById('signature-delete-button').classList.add('visible');
             document.getElementById('signature-choose-button').classList.add('hidden');
@@ -706,19 +637,14 @@ async function uploadSignature() {
     }
 }
 
-// Delete logo
+/**
+ * Delete practice logo
+ */
 async function deleteLogo() {
-    console.log('deleteLogo called');
     showConfirmModal('Delete Logo', 'Delete practice logo?', async function() {
-        console.log('Delete confirmed, making API call');
         try {
-            const response = await fetch('/delete_logo', {
-                method: 'POST'
-            });
-            
-            console.log('Response received:', response);
+            const response = await fetch('/delete_logo', { method: 'POST' });
             const result = await response.json();
-            console.log('Result:', result);
             
             if (result.success) {
                 const statusDiv = document.getElementById('practice-info-status');
@@ -729,9 +655,7 @@ async function deleteLogo() {
                 document.getElementById('logo-delete-button').classList.remove('visible');
                 document.getElementById('logo-choose-button').classList.remove('hidden');
                 
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 3000);
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
             } else {
                 alert('Delete failed: ' + result.error);
             }
@@ -742,19 +666,14 @@ async function deleteLogo() {
     });
 }
 
-// Delete signature
+/**
+ * Delete digital signature
+ */
 async function deleteSignature() {
-    console.log('deleteSignature called');
     showConfirmModal('Delete Signature', 'Delete digital signature?', async function() {
-        console.log('Delete confirmed, making API call');
         try {
-            const response = await fetch('/delete_signature', {
-                method: 'POST'
-            });
-            
-            console.log('Response received:', response);
+            const response = await fetch('/delete_signature', { method: 'POST' });
             const result = await response.json();
-            console.log('Result:', result);
             
             if (result.success) {
                 const statusDiv = document.getElementById('practice-info-status');
@@ -765,9 +684,7 @@ async function deleteSignature() {
                 document.getElementById('signature-delete-button').classList.remove('visible');
                 document.getElementById('signature-choose-button').classList.remove('hidden');
                 
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 3000);
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
             } else {
                 alert('Delete failed: ' + result.error);
             }
@@ -778,6 +695,13 @@ async function deleteSignature() {
     });
 }
 
+// ============================================================
+// FILE NUMBER SETTINGS
+// ============================================================
+
+/**
+ * Toggle visibility of prefix-counter options based on format selection
+ */
 function toggleFileNumberFields() {
     const format = document.getElementById('file-number-format').value;
     const options = document.getElementById('prefix-counter-options');
@@ -790,40 +714,37 @@ function toggleFileNumberFields() {
     }
 }
 
+/**
+ * Update file number preview based on current settings
+ */
 function updateFileNumberPreview() {
     const prefix = document.getElementById('file-number-prefix').value || '';
     const suffix = document.getElementById('file-number-suffix').value || '';
     const start = document.getElementById('file-number-start').value || '1';
     
-    // Pad number to 4 digits
     const paddedNumber = start.toString().padStart(4, '0');
     
-    // Build preview
     let preview = '';
     if (prefix) preview += prefix + '-';
     preview += paddedNumber;
     if (suffix) preview += '-' + suffix;
     
-    document.getElementById('file-number-preview').textContent = preview;
+    const previewEl = document.getElementById('file-number-preview');
+    previewEl.textContent = preview;
     
-    // Check length
+    // Warn if too long
     if (preview.length > 12) {
-        document.getElementById('file-number-preview').style.borderColor = '#B91C1C';
-        document.getElementById('file-number-preview').style.color = '#B91C1C';
+        previewEl.style.borderColor = '#B91C1C';
+        previewEl.style.color = '#B91C1C';
     } else {
-        document.getElementById('file-number-preview').style.borderColor = '#DEE2E6';
-        document.getElementById('file-number-preview').style.color = '#111827';
+        previewEl.style.borderColor = '#DEE2E6';
+        previewEl.style.color = '#111827';
     }
 }
 
-// Add event listeners for preview updates
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('file-number-prefix').addEventListener('input', updateFileNumberPreview);
-    document.getElementById('file-number-suffix').addEventListener('input', updateFileNumberPreview);
-    document.getElementById('file-number-start').addEventListener('input', updateFileNumberPreview);
-});
-
-// Load file number settings
+/**
+ * Load file number settings from server
+ */
 function loadFileNumberSettings() {
     fetch('/settings/file-number')
         .then(response => response.json())
@@ -843,7 +764,9 @@ function loadFileNumberSettings() {
         .catch(error => console.error('Error loading file number settings:', error));
 }
 
-// Save file number settings
+/**
+ * Save file number settings to server
+ */
 function saveFileNumberSettings() {
     const format = document.getElementById('file-number-format').value;
     const settings = {
@@ -855,7 +778,7 @@ function saveFileNumberSettings() {
     
     fetch('/settings/file-number', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
     })
     .then(response => response.json())
@@ -870,62 +793,33 @@ function saveFileNumberSettings() {
     .catch(error => console.error('Error saving file number settings:', error));
 }
 
-// Save and apply card style immediately
-function saveAndApplyCardStyle() {
-    const cardStyle = document.getElementById('card-style').value;
-    localStorage.setItem('cardStyle', cardStyle);
-    applyTheme();
+// ============================================================
+// CALENDAR SETTINGS
+// ============================================================
+
+/**
+ * Toggle calendar name field visibility based on method
+ */
+function toggleCalendarNameField() {
+    const method = document.getElementById('calendar_method').value;
+    const nameGroup = document.getElementById('calendar-name-group');
+    nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
 }
 
-// Save and apply background immediately
-function saveAndApplyBackground() {
-    const backgroundStyle = document.getElementById('background-style').value;
-    localStorage.setItem('backgroundStyle', backgroundStyle);
-    applyTheme();
-    updateDeleteButton();
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadBackgroundOptions();
-    loadPracticeInfo();
-    loadFileNumberSettings();
-    loadSecuritySettings();
-});
-
-function loadSecuritySettings() {
-    fetch('/api/security_settings')
-        .then(response => response.json())
-        .then(data => {
-            const timeout = document.getElementById('session_timeout');
-            if (timeout) {
-                timeout.value = data.session_timeout || '30';
-            }
-        });
-}
-
-function showAboutModal() {
-    document.getElementById('about-modal').style.display = 'flex';
-}
-
-function closeAboutModal() {
-    document.getElementById('about-modal').style.display = 'none';
-}
-
-// Calendar Settings
-(function() {
+/**
+ * Load calendar settings from server
+ */
+function loadCalendarSettings() {
     const calendarMethod = document.getElementById('calendar_method');
     const calendarNameGroup = document.getElementById('calendar-name-group');
     const calendarName = document.getElementById('calendar_name');
     
-    if (!calendarMethod) return; // Not on settings page
+    if (!calendarMethod) return;
     
-    // Show/hide calendar name based on method
     calendarMethod.addEventListener('change', function() {
         calendarNameGroup.style.display = this.value === 'applescript' ? 'block' : 'none';
     });
     
-    // Load calendar settings
     fetch('/api/calendar_settings')
         .then(response => response.json())
         .then(data => {
@@ -937,61 +831,24 @@ function closeAboutModal() {
                 calendarName.value = data.calendar_name;
             }
         });
-})();
-
-function saveCalendarSettings() {
-    const calendarMethod = document.getElementById('calendar_method');
-    const calendarName = document.getElementById('calendar_name');
-    
-    fetch('/api/calendar_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            calendar_method: calendarMethod.value,
-            calendar_name: calendarName.value
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Calendar settings saved!');
-        }
-    });
 }
 
-// Toggle calendar name field visibility
-function toggleCalendarNameField() {
-    const method = document.getElementById('calendar_method').value;
-    const nameGroup = document.getElementById('calendar-name-group');
-    nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
-}
+// ============================================================
+// STATEMENT SETTINGS
+// ============================================================
 
-function saveEmailSettings() {
-    const emailMethod = document.getElementById('email_method');
-    
-    fetch('/api/email_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            email_method: emailMethod.value
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Email settings saved!');
-        }
-    });
-}
-
-// Toggle attestation text field visibility
+/**
+ * Toggle attestation text field visibility
+ */
 function toggleAttestationText() {
     const checkbox = document.getElementById('include_attestation');
     const textGroup = document.getElementById('attestation-text-group');
     textGroup.style.display = checkbox.checked ? 'block' : 'none';
 }
 
-// Toggle email from field visibility based on email method
+/**
+ * Toggle email from field visibility based on email method
+ */
 function toggleEmailFromField() {
     const method = document.getElementById('email_method').value;
     const emailFromGroup = document.getElementById('email-from-group');
@@ -1000,10 +857,12 @@ function toggleEmailFromField() {
     }
 }
 
-// Statement Settings - Load on page load
-(function() {
+/**
+ * Load statement settings from server
+ */
+function loadStatementSettings() {
     const currencyField = document.getElementById('currency');
-    if (!currencyField) return; // Not on settings page
+    if (!currencyField) return;
     
     fetch('/api/statement_settings')
         .then(response => response.json())
@@ -1022,4 +881,141 @@ function toggleEmailFromField() {
             
             if (data.attestation_text) document.getElementById('attestation_text').value = data.attestation_text;
         });
-})();
+}
+
+// ============================================================
+// SECURITY SETTINGS
+// ============================================================
+
+/**
+ * Load security settings from server
+ */
+function loadSecuritySettings() {
+    fetch('/api/security_settings')
+        .then(response => response.json())
+        .then(data => {
+            const timeout = document.getElementById('session_timeout');
+            if (timeout) {
+                timeout.value = data.session_timeout || '30';
+            }
+        });
+}
+
+// ============================================================
+// SAVE ALL SETTINGS
+// ============================================================
+
+/**
+ * Save all settings and redirect to main view
+ */
+async function saveSettings() {
+    // Validate phone
+    const practicePhone = document.getElementById('practice-phone').value;
+    if (practicePhone && !validatePhone(practicePhone)) {
+        alert('Practice phone must be 10-15 digits');
+        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
+        return;
+    }
+    document.getElementById('practice-phone').style.borderColor = '';
+    
+    // Save all sections
+    await savePracticeInfo();
+    await saveFileNumberSettings();
+    
+    await fetch('/api/calendar_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            calendar_method: document.getElementById('calendar_method').value,
+            calendar_name: document.getElementById('calendar_name').value
+        })
+    });
+
+    await fetch('/api/statement_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            currency: document.getElementById('currency').value,
+            registration_info: document.getElementById('registration_info').value,
+            payment_instructions: document.getElementById('payment_instructions').value,
+            include_attestation: document.getElementById('include_attestation').checked,
+            attestation_text: document.getElementById('attestation_text').value,
+            email_method: document.getElementById('email_method').value,
+            email_from_address: document.getElementById('email_from').value,
+            statement_email_body: document.getElementById('statement_email_body').value
+        })
+    });
+
+    await fetch('/api/security_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            session_timeout: document.getElementById('session_timeout').value
+        })
+    });
+    
+    // Show success and redirect
+    const successMsg = document.getElementById('success-message');
+    successMsg.classList.add('show');
+    setTimeout(() => {
+        successMsg.classList.remove('show');
+        window.location.href = '/';
+    }, 1000);
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load all settings
+    loadBackgroundOptions();
+    loadPracticeInfo();
+    loadFileNumberSettings();
+    loadSecuritySettings();
+    loadCalendarSettings();
+    loadStatementSettings();
+    
+    // Phone formatting
+    const phoneInput = document.getElementById('practice-phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', formatPhoneNumber);
+    }
+    
+    // Fee field formatting
+    document.getElementById('consultation-base')?.addEventListener('blur', formatFeeField);
+    document.getElementById('consultation-total')?.addEventListener('blur', formatFeeField);
+    document.getElementById('consultation-tax')?.addEventListener('blur', formatTaxField);
+    
+    // File number preview updates
+    document.getElementById('file-number-prefix')?.addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-suffix')?.addEventListener('input', updateFileNumberPreview);
+    document.getElementById('file-number-start')?.addEventListener('input', updateFileNumberPreview);
+    
+    // Background upload filename display
+    document.getElementById('background-upload')?.addEventListener('change', function(e) {
+        const filename = e.target.files[0]?.name;
+        if (filename) {
+            document.getElementById('upload-filename').textContent = filename;
+            document.getElementById('upload-button').style.display = 'inline-block';
+        }
+    });
+    
+    // Logo upload filename display
+    document.getElementById('logo-upload')?.addEventListener('change', function(e) {
+        const filename = e.target.files[0]?.name;
+        if (filename) {
+            document.getElementById('logo-filename').textContent = filename;
+            document.getElementById('logo-upload-button').style.display = 'inline-block';
+        }
+    });
+    
+    // Signature upload filename display
+    document.getElementById('signature-upload')?.addEventListener('change', function(e) {
+        const filename = e.target.files[0]?.name;
+        if (filename) {
+            document.getElementById('signature-filename').textContent = filename;
+            document.getElementById('signature-upload-button').style.display = 'inline-block';
+        }
+    });
+});
