@@ -487,6 +487,11 @@ def mark_sent(portion_id):
     final_pdf_path = attachments_dir / pdf_filename
     shutil.copy2(temp_pdf_path, final_pdf_path)
     
+    # Encrypt the attachment if database is encrypted
+    if db.password:
+        from core.encryption import encrypt_file
+        encrypt_file(str(final_pdf_path), db.password)
+    
     cursor.execute("""
         INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
         VALUES (?, ?, ?, ?, ?, ?)
