@@ -1068,8 +1068,14 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
                 for page in header_reader.pages:
                     pdf_writer.add_page(page)
                 
-                # Add attachment pages
-                att_reader = PdfReader(att_filepath)
+                # Add attachment pages (decrypt if needed)
+                if db.password:
+                    from core.encryption import decrypt_file
+                    decrypted_data = decrypt_file(att_filepath, db.password)
+                    att_buffer = BytesIO(decrypted_data)
+                    att_reader = PdfReader(att_buffer)
+                else:
+                    att_reader = PdfReader(att_filepath)
                 for page in att_reader.pages:
                     pdf_writer.add_page(page)
                     
