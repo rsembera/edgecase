@@ -1,91 +1,9 @@
 /* Expense Entry Form Styles */
-
-/* Date input group - three dropdowns in a row, matching Total Amount width */
-.date-input-group {
-    display: flex;
-    gap: 0.75rem;
-    max-width: calc(50% - 0.75rem); /* Match half of two-column grid (same as Total Amount) */
-}
-
-.date-input-group select {
-    flex: 1;
-    padding: 0.75rem;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #323B45;
-    background: #FBFCFD;
-    cursor: pointer;
-    transition: all 0.2s;
-    height: 48px; /* Match text input height */
-}
-
-.date-input-group select:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-}
-
-/* Form groups */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #2D3748;
-}
-
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #323B45;
-    background: #FBFCFD;
-    transition: all 0.2s;
-    height: 48px; /* Consistent height for all inputs */
-    box-sizing: border-box;
-}
-
-.form-group input[type="text"]:focus,
-.form-group input[type="number"]:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-}
-
-.form-group select {
-    cursor: pointer;
-}
-
-.form-group textarea {
-    min-height: 100px;
-    height: auto; /* Override for textarea */
-    resize: vertical;
-    font-family: inherit;
-}
+/* Shared patterns from shared.css: .form-group, .btn*, .card */
 
 /* Expense Category dropdown - match Payee width */
 #category_id {
-    max-width: calc(50% - 0.75rem); /* Match half of two-column grid (same as Payee) */
-}
-
-/* Helper text */
-.helper-text {
-    font-size: 0.875rem;
-    color: #718096;
-    margin-top: 0.25rem;
+    max-width: calc(50% - 0.75rem);
 }
 
 /* Upload toggle button - looks like a form section header */
@@ -142,74 +60,13 @@
     margin-bottom: 0.5rem;
 }
 
-/* Buttons - FIXED COLORS AND HEIGHTS */
- .btn {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: #BFDCDC;
-    color: #115D4F;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    border: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn:hover {
-    background: #9FCFC0;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(31,143,116,0.2);
-}
-
-.btn-secondary {
-    background: #E5E7EB;
-    color: #4B5563;
-}
-
-.btn-secondary:hover {
-    background: #D1D5DB;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
+/* Small button variant */
 .btn-small {
     padding: 0.5rem 1rem;
-    background: #BFDCDC;
-    color: #115D4F;
-    border: none;
-    border-radius: 0.375rem;
     font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    height: 38px; /* Explicit height */
+    height: 38px;
     line-height: 1;
-    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    vertical-align: middle;
-}
-
-.btn-small:hover {
-    background: #9FCFC0;
-}
-
-.btn-danger {
-    background: #DC2626;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #B91C1C;
-}
-
-/* Card */
-.card {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
