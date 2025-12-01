@@ -3,160 +3,11 @@
 {% block title %}Manage Client Types - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Muted palette styling for manage types */
-    .card {
-        max-width: min(900px, 95vw);
-        margin: 0 auto;
-    }
-    
-    .header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
-    }
-    
-    h2 {
-        color: #111827;
-        margin: 0;
-    }
-    
-    .btn-add {
-        padding: 0.75rem 1.5rem;
-        background: #BFDCDC;
-        color: #115D4F;
-        text-decoration: none;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: all 0.2s;
-        display: inline-block;
-        border: none;
-        cursor: pointer;
-    }
-    
-    .btn-add:hover {
-        background: #9FCFC0;
-        transform: translateY(-1px);
-    }
-    
-    .type-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #323B45;
-    }
-    
-    /* Section headers */
-    .section-header {
-        background: #E3E9EE;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        color: #55607D;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 2rem;
-        border-radius: 0.5rem 0.5rem 0 0;
-    }
-    
-    .section-header:first-of-type {
-        margin-top: 1.5rem;
-    }
-    
-    /* Table styling */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #FBFCFD;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        margin-bottom: 0.5rem;
-    }
-    
-    thead tr {
-        background: #F2F4F5;
-        border-bottom: 2px solid #DEE2E6;
-    }
-    
-    th {
-        padding: 0.75rem 0.5rem;  /* Reduced padding */
-        text-align: left;
-        font-weight: 600;
-        color: #55607D;
-        font-size: 0.75rem;  /* Smaller font */
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    tbody tr {
-        border-bottom: 1px solid #DEE2E6;
-        transition: background 0.2s;
-        cursor: pointer;
-    }
-    
-    tbody tr:hover {
-        background: #F2F4F5;
-    }
-    
-    tbody tr.locked-type {
-        background: #FEF3C7;
-        cursor: default;
-    }
-    
-    tbody tr.locked-type:hover {
-        background: #FEF3C7;
-    }
-    
-    td {
-        padding: 0.75rem 0.5rem;  /* Reduced horizontal padding */
-        color: #323B45;
-        font-size: 0.875rem;  /* Slightly smaller */
-    }
-    
-    small {
-        color: #5B6571;
-        font-size: 0.75rem;
-    }
-    
-    .btn {
-        padding: 0.75rem 1.5rem;
-        background: #BFDCDC;
-        color: #115D4F;
-        text-decoration: none;
-        border-radius: 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: all 0.2s;
-        display: inline-block;
-        border: none;
-        cursor: pointer;
-        margin-top: 1.5rem;
-    }
-    
-    .btn:hover {
-        background: #9FCFC0;
-        transform: translateY(-1px);
-    }
-    
-    .locked-indicator {
-        display: inline-block;
-        padding: 0.25rem 0.5rem;
-        background: #FCD34D;
-        color: #92400E;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 0.25rem;
-        margin-left: 0.5rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage_types.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card types-page">
     <div class="header-row">
         <div>
             <h2><i data-lucide="tag" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Manage Client Types</h2>
@@ -167,7 +18,7 @@
     
     <!-- Locked system types -->
     <div class="section-header">Lifecycle States</div>
-    <table>
+    <table class="types-table">
         <thead>
             <tr>
                 <th>Name</th>
@@ -199,7 +50,7 @@
     
     <!-- Editable therapy types -->
     <div class="section-header">Custom Types</div>
-    <table>
+    <table class="types-table">
         <thead>
             <tr>
                 <th>Name</th>
