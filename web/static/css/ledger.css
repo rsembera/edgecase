@@ -1,6 +1,6 @@
 /* Ledger Page Styles */
-/* Shared styles imported from shared.css */
-/* Year/Month headers, table base, empty state, disabled buttons now in shared.css */
+/* Shared patterns from shared.css: controls-bar, search-box, dropdown-btn, 
+   stats-container, stat-card, year/month headers, table base, empty state */
 
 /* Ledger header (unique to ledger) */
 .ledger-header {
@@ -10,20 +10,7 @@
     margin-bottom: 2rem;
 }
 
-/* Controls bar */
-.controls-bar {
-    background: #E3E9EE;
-    border-radius: 1rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
+/* Filter/Search layout adjustments */
 .filter-search-group {
     display: flex;
     gap: 1rem;
@@ -38,66 +25,13 @@
     gap: 1rem;
 }
 
-/* Search box (unique to ledger) */
-.search-box {
-    position: relative;
+/* Search box width override for ledger */
+.ledger-page .search-box {
     flex: 1;
 }
 
-.search-box input {
+.ledger-page .search-box input {
     width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 2.5rem;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    background: #FBFCFD;
-    transition: all 0.2s;
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1rem;
-}
-
-/* Dropdown for Add Entry (unique to ledger) */
-.dropdown-container {
-    position: relative;
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 0.5rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    padding: 0.5rem;
-    min-width: 200px;
-    z-index: 100;
-}
-
-.dropdown-item {
-    display: block;
-    padding: 0.75rem 1rem;
-    text-decoration: none;
-    color: #2d3748;
-    border-radius: 0.5rem;
-    font-size: 0.9375rem;
-    transition: background 0.2s;
-}
-
-.dropdown-item:hover {
-    background: #F3F4F6;
 }
 
 /* Ledger-specific table column widths (7 columns) */
@@ -116,16 +50,16 @@
 .ledger-table th:nth-child(7), 
 .ledger-table td:nth-child(7) { width: 8%; }   /* Files */
 
-/* Truncate specific columns (override shared.css default) */
-.ledger-table td:nth-child(4),  /* Description */
-.ledger-table td:nth-child(5),  /* Source */
-.ledger-table td:nth-child(6) { /* Category */
+/* Truncate specific columns */
+.ledger-table td:nth-child(4),
+.ledger-table td:nth-child(5),
+.ledger-table td:nth-child(6) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Income/Expense badges (unique to ledger) */
+/* Income/Expense badges */
 .income-badge {
     background: #D1FAE5;
     color: #065F46;
@@ -136,7 +70,7 @@
     color: #991B1B;
 }
 
-/* Amount colors (unique to ledger) */
+/* Amount colors */
 .income-amount {
     color: #0E5346;
     font-weight: 600;
@@ -147,7 +81,68 @@
     font-weight: 600;
 }
 
-/* RESPONSIVE STYLES FOR IPAD PORTRAIT */
+/* Lucide icon sizing */
+svg[data-lucide] {
+    width: 14px !important;
+    height: 14px !important;
+    vertical-align: middle;
+}
+
+.dropdown-item svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 0.5rem;
+}
+
+.dropdown-btn svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 0.25rem;
+}
+
+.search-icon svg[data-lucide] {
+    color: #9CA3AF;
+}
+
+/* Dropdown button sizing override */
+.ledger-page .dropdown-btn {
+    padding: 0.75rem 1rem;
+    line-height: 1;
+}
+
+/* Theme-specific stat card colors - Tutti-Frutti */
+body.tutti-frutti .stat-card[data-card-id="ytd-income"] { background: #CFE7DA; }
+body.tutti-frutti .stat-card[data-card-id="ytd-expenses"] { background: #E9CFCF; }
+body.tutti-frutti .stat-card[data-card-id="ytd-net"] { background: #C8D8E0; }
+body.tutti-frutti .stat-card[data-card-id="mtd-income"] { background: #CFE7DA; }
+body.tutti-frutti .stat-card[data-card-id="mtd-expenses"] { background: #E9CFCF; }
+body.tutti-frutti .stat-card[data-card-id="top-categories"] { background: #DCD3E8; }
+
+/* Ocean Breeze */
+body.ocean-breeze .stat-card[data-card-id="ytd-income"] { background: #B5D8D8; }
+body.ocean-breeze .stat-card[data-card-id="ytd-expenses"] { background: #C2DDE8; }
+body.ocean-breeze .stat-card[data-card-id="ytd-net"] { background: #B8D4E3; }
+body.ocean-breeze .stat-card[data-card-id="mtd-income"] { background: #B5D8D8; }
+body.ocean-breeze .stat-card[data-card-id="mtd-expenses"] { background: #C2DDE8; }
+body.ocean-breeze .stat-card[data-card-id="top-categories"] { background: #A8C8D8; }
+
+/* Sunset Glow */
+body.sunset-glow .stat-card[data-card-id="ytd-income"] { background: #F0D8C4; }
+body.sunset-glow .stat-card[data-card-id="ytd-expenses"] { background: #EECFB8; }
+body.sunset-glow .stat-card[data-card-id="ytd-net"] { background: #F5DEB3; }
+body.sunset-glow .stat-card[data-card-id="mtd-income"] { background: #F0D8C4; }
+body.sunset-glow .stat-card[data-card-id="mtd-expenses"] { background: #EECFB8; }
+body.sunset-glow .stat-card[data-card-id="top-categories"] { background: #E8C4A8; }
+
+/* Garden Path */
+body.garden-path .stat-card[data-card-id="ytd-income"] { background: #C2D4BE; }
+body.garden-path .stat-card[data-card-id="ytd-expenses"] { background: #D4DCC8; }
+body.garden-path .stat-card[data-card-id="ytd-net"] { background: #C8D8C4; }
+body.garden-path .stat-card[data-card-id="mtd-income"] { background: #C2D4BE; }
+body.garden-path .stat-card[data-card-id="mtd-expenses"] { background: #D4DCC8; }
+body.garden-path .stat-card[data-card-id="top-categories"] { background: #B8CEB5; }
+
+/* RESPONSIVE - iPad Portrait */
 @media (max-width: 768px) {
     /* Hide Description, Source, Category, Files columns */
     .ledger-table th:nth-child(4),
@@ -163,139 +158,9 @@
     
     /* Adjust remaining column widths */
     .ledger-table th:nth-child(1), 
-    .ledger-table td:nth-child(1) { width: 30%; }  /* Date */
+    .ledger-table td:nth-child(1) { width: 30%; }
     .ledger-table th:nth-child(2), 
-    .ledger-table td:nth-child(2) { width: 35%; }  /* Transaction */
+    .ledger-table td:nth-child(2) { width: 35%; }
     .ledger-table th:nth-child(3), 
-    .ledger-table td:nth-child(3) { width: 35%; }  /* Amount */
-}
-
-/* Clear search button */
-.clear-search {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #9CA3AF;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    display: none;
-    transition: color 0.2s;
-    line-height: 1;
-}
-
-.clear-search:hover {
-    color: #6B7280;
-}
-
-/* Lucide icon sizing */
-svg[data-lucide] {
-    width: 14px !important;
-    height: 14px !important;
-    vertical-align: middle;
-}
-
-/* Icons in dropdown items */
-.dropdown-item svg[data-lucide] {
-    width: 16px !important;
-    height: 16px !important;
-    margin-right: 0.5rem;
-}
-
-/* Icons in dropdown button */
-.dropdown-btn svg[data-lucide] {
-    width: 16px !important;
-    height: 16px !important;
-    margin-right: 0.25rem;
-}
-
-/* Search icon color */
-.search-icon svg[data-lucide] {
-    color: #9CA3AF;
-}
-
-/* Dropdown button sizing */
-.dropdown-btn {
-    padding: 0.75rem 1rem;
-    line-height: 1;
-}
-
-/* Stats cards - 6 cards in 2 rows of 3 */
-.stats-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    border-radius: 1rem;
-    padding: 1.5rem;
-    transition: transform 0.2s;
-    background: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); 
-}
-
-.stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.stat-label {
-    font-size: 1.125rem;
-    color: #5B6571;
-    font-weight: 600;
-}
-
-/* Tutti-Frutti theme colors */
-body.tutti-frutti .stat-card[data-card-id="ytd-income"] { background: #CFE7DA; }
-body.tutti-frutti .stat-card[data-card-id="ytd-expenses"] { background: #E9CFCF; }
-body.tutti-frutti .stat-card[data-card-id="ytd-net"] { background: #C8D8E0; }
-body.tutti-frutti .stat-card[data-card-id="mtd-income"] { background: #CFE7DA; }
-body.tutti-frutti .stat-card[data-card-id="mtd-expenses"] { background: #E9CFCF; }
-body.tutti-frutti .stat-card[data-card-id="top-categories"] { background: #DCD3E8; }
-
-/* Ocean Breeze theme colors */
-body.ocean-breeze .stat-card[data-card-id="ytd-income"] { background: #B5D8D8; }
-body.ocean-breeze .stat-card[data-card-id="ytd-expenses"] { background: #C2DDE8; }
-body.ocean-breeze .stat-card[data-card-id="ytd-net"] { background: #B8D4E3; }
-body.ocean-breeze .stat-card[data-card-id="mtd-income"] { background: #B5D8D8; }
-body.ocean-breeze .stat-card[data-card-id="mtd-expenses"] { background: #C2DDE8; }
-body.ocean-breeze .stat-card[data-card-id="top-categories"] { background: #A8C8D8; }
-
-/* Sunset Glow theme colors */
-body.sunset-glow .stat-card[data-card-id="ytd-income"] { background: #F0D8C4; }
-body.sunset-glow .stat-card[data-card-id="ytd-expenses"] { background: #EECFB8; }
-body.sunset-glow .stat-card[data-card-id="ytd-net"] { background: #F5DEB3; }
-body.sunset-glow .stat-card[data-card-id="mtd-income"] { background: #F0D8C4; }
-body.sunset-glow .stat-card[data-card-id="mtd-expenses"] { background: #EECFB8; }
-body.sunset-glow .stat-card[data-card-id="top-categories"] { background: #E8C4A8; }
-
-/* Garden Path theme colors */
-body.garden-path .stat-card[data-card-id="ytd-income"] { background: #C2D4BE; }
-body.garden-path .stat-card[data-card-id="ytd-expenses"] { background: #D4DCC8; }
-body.garden-path .stat-card[data-card-id="ytd-net"] { background: #C8D8C4; }
-body.garden-path .stat-card[data-card-id="mtd-income"] { background: #C2D4BE; }
-body.garden-path .stat-card[data-card-id="mtd-expenses"] { background: #D4DCC8; }
-body.garden-path .stat-card[data-card-id="top-categories"] { background: #B8CEB5; }
-
-/* Responsive: 2 columns on smaller screens */
-@media (max-width: 900px) {
-    .stats-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 600px) {
-    .stats-container {
-        grid-template-columns: 1fr;
-    }
+    .ledger-table td:nth-child(3) { width: 35%; }
 }
