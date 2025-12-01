@@ -1,10 +1,16 @@
-// Upload Entry Form JavaScript
+/**
+ * Upload Entry Form JavaScript - EdgeCase Equalizer
+ * Handles file upload entry creation/editing with multiple file support.
+ */
 
 // Auto-expanding textarea for content/notes field
 const textarea = document.getElementById('content');
-const maxHeight = 400; // Smaller than communication since it's optional
+const maxHeight = 400;
 
 if (textarea) {
+    /**
+     * Auto-resize textarea to fit content up to maxHeight
+     */
     function autoResize() {
         textarea.style.height = 'auto';
         const newHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -21,7 +27,9 @@ if (textarea) {
     textarea.addEventListener('input', autoResize);
 }
 
-// Toggle upload section
+/**
+ * Toggle the file upload section visibility
+ */
 function toggleUploadSection() {
     const uploadSection = document.getElementById('upload-section');
     const toggleIcon = document.getElementById('upload-toggle-icon');
@@ -35,17 +43,24 @@ function toggleUploadSection() {
     }
 }
 
-// Show "Add Another File" button only after file is selected in current session
+/**
+ * Show "Add Another File" button after file is selected
+ */
 function handleFileSelected() {
     const addFileBtn = document.getElementById('add-file-btn');
     addFileBtn.style.display = 'block';
 }
 
-// File validation modal functions
+/**
+ * Show file validation modal
+ */
 function showFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'flex';
 }
 
+/**
+ * Close file validation modal
+ */
 function closeFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'none';
 }
@@ -55,10 +70,8 @@ const fileInputsContainer = document.getElementById('file-inputs');
 const addFileBtn = document.getElementById('add-file-btn');
 let fileInputCount = 1;
 
-// Add another file input row (only if current row has a file selected)
 if (addFileBtn) {
     addFileBtn.addEventListener('click', function() {
-        // Check if the last file input has a file selected
         const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
         const lastRow = allRows[allRows.length - 1];
         const lastFileInput = lastRow.querySelector('.file-input');
@@ -101,7 +114,6 @@ if (addFileBtn) {
         
         fileInputsContainer.appendChild(newRow);
         
-        // Add event listener to new remove button
         const removeBtn = newRow.querySelector('.remove-file-btn');
         removeBtn.addEventListener('click', function() {
             newRow.remove();
@@ -118,12 +130,10 @@ if (initialRemoveBtn) {
         const fileInput = row.querySelector('.file-input');
         const descInput = row.querySelector('input[name="file_descriptions[]"]');
         
-        // Clear the inputs instead of removing if it's the only row
         const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
         if (allRows.length === 1) {
             fileInput.value = '';
             descInput.value = '';
-            // Hide "Add Another File" button when cleared
             document.getElementById('add-file-btn').style.display = 'none';
         } else {
             row.remove();
@@ -135,16 +145,26 @@ if (initialRemoveBtn) {
 // Delete attachment (for edit mode)
 let deleteAttachmentId = null;
 
+/**
+ * Show delete attachment confirmation modal
+ * @param {number} attachmentId - ID of attachment to delete
+ */
 function deleteAttachment(attachmentId) {
     deleteAttachmentId = attachmentId;
     document.getElementById('delete-modal').style.display = 'flex';
 }
 
+/**
+ * Close the delete attachment modal
+ */
 function closeDeleteModal() {
     document.getElementById('delete-modal').style.display = 'none';
     deleteAttachmentId = null;
 }
 
+/**
+ * Confirm and execute attachment deletion
+ */
 function confirmDelete() {
     if (!deleteAttachmentId) return;
     

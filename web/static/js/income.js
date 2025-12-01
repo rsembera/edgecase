@@ -1,10 +1,16 @@
-// Income Entry Form JavaScript
+/**
+ * Income Entry Form JavaScript - EdgeCase Equalizer
+ * Handles income creation/editing with file uploads and deletion.
+ */
 
 // Auto-expanding textarea for content/notes field
 const textarea = document.getElementById('content');
 const maxHeight = 400;
 
 if (textarea) {
+    /**
+     * Auto-resize textarea to fit content up to maxHeight
+     */
     function autoResize() {
         textarea.style.height = 'auto';
         const newHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -41,7 +47,9 @@ if (taxAmountInput) {
     });
 }
 
-// Toggle upload section
+/**
+ * Toggle the file upload section visibility
+ */
 function toggleUploadSection() {
     const uploadSection = document.getElementById('upload-section');
     const toggleIcon = document.getElementById('upload-toggle-icon');
@@ -55,17 +63,24 @@ function toggleUploadSection() {
     }
 }
 
-// Show "Add Another File" button only after file is selected in current session
+/**
+ * Show "Add Another File" button after file is selected
+ */
 function handleFileSelected() {
     const addFileBtn = document.getElementById('add-file-btn');
     addFileBtn.style.display = 'block';
 }
 
-// File validation modal functions
+/**
+ * Show file validation modal
+ */
 function showFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'flex';
 }
 
+/**
+ * Close file validation modal
+ */
 function closeFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'none';
 }
@@ -155,16 +170,26 @@ if (initialRemoveBtn) {
 // Delete attachment (for edit mode)
 let deleteAttachmentId = null;
 
+/**
+ * Show delete attachment confirmation modal
+ * @param {number} attachmentId - ID of attachment to delete
+ */
 function deleteAttachment(attachmentId) {
     deleteAttachmentId = attachmentId;
     document.getElementById('delete-modal').style.display = 'flex';
 }
 
+/**
+ * Close the delete attachment modal
+ */
 function closeDeleteModal() {
     document.getElementById('delete-modal').style.display = 'none';
     deleteAttachmentId = null;
 }
 
+/**
+ * Confirm and execute attachment deletion
+ */
 function confirmDelete() {
     if (!deleteAttachmentId) return;
     
@@ -186,19 +211,27 @@ function confirmDelete() {
     });
 }
 
-// Delete entire income entry (edit mode only)
+/**
+ * Show delete entry confirmation modal (edit mode only)
+ */
 function confirmDeleteEntry() {
     document.getElementById('delete-entry-modal').style.display = 'flex';
 }
 
+/**
+ * Close the delete entry modal
+ */
 function closeDeleteEntryModal() {
     document.getElementById('delete-entry-modal').style.display = 'none';
 }
 
+/**
+ * Execute income entry deletion
+ */
 function deleteEntry() {
     // Get entry ID from URL (e.g., /ledger/income/123)
     const pathParts = window.location.pathname.split('/');
-    const entryId = pathParts[3]; // /ledger/income/[ID]
+    const entryId = pathParts[3];
     
     fetch(`/ledger/income/${entryId}/delete`, {
         method: 'POST'

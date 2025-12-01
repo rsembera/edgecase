@@ -1,4 +1,7 @@
-// Export Page JavaScript
+/**
+ * Export Page JavaScript - EdgeCase Equalizer
+ * Handles entry export to PDF with date range and type filtering.
+ */
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Lucide icons
@@ -33,11 +36,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+/**
+ * Get array of selected entry types
+ * @returns {Array} Array of selected type values
+ */
 function getSelectedEntryTypes() {
     const checkboxes = document.querySelectorAll('input[name="entry_type"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
+/**
+ * Get date range from form
+ * @returns {Object} Date range object with all_time flag or date components
+ */
 function getDateRange() {
     const allTime = document.getElementById('all-time').checked;
     
@@ -56,6 +67,9 @@ function getDateRange() {
     };
 }
 
+/**
+ * Calculate and display export counts
+ */
 function calculateExport() {
     const clientId = document.getElementById('client-id').value;
     const entryTypes = getSelectedEntryTypes();
@@ -66,7 +80,6 @@ function calculateExport() {
         return;
     }
     
-    // Build query string
     const params = new URLSearchParams();
     params.append('client_id', clientId);
     entryTypes.forEach(t => params.append('types', t));
@@ -111,6 +124,9 @@ function calculateExport() {
         });
 }
 
+/**
+ * Generate and download the PDF export
+ */
 function generateExport() {
     const clientId = document.getElementById('client-id').value;
     const entryTypes = getSelectedEntryTypes();
@@ -121,7 +137,6 @@ function generateExport() {
         return;
     }
     
-    // Build query string
     const params = new URLSearchParams();
     entryTypes.forEach(t => params.append('types', t));
     

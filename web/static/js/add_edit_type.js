@@ -1,3 +1,8 @@
+/**
+ * Add/Edit Client Type JavaScript - EdgeCase Equalizer
+ * Handles client type creation/editing with color picker and retention settings.
+ */
+
 // Color picker
 document.querySelectorAll('.color-option').forEach(option => {
     option.addEventListener('click', function() {
@@ -93,7 +98,6 @@ if (confirmDelete) {
         const typeId = form.dataset.typeId;
         if (!typeId) return;
         
-        // Send AJAX DELETE request
         fetch(`/types/${typeId}/delete`, {
             method: 'POST',
             headers: {
@@ -103,10 +107,8 @@ if (confirmDelete) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Success - redirect to types page
                 window.location.href = '/types';
             } else {
-                // Error - close delete modal, show error modal
                 deleteModal.classList.remove('active');
                 errorMessage.textContent = data.error || 'Failed to delete type';
                 errorModal.classList.add('active');

@@ -1,3 +1,9 @@
+/**
+ * Add/Edit Link Group JavaScript - EdgeCase Equalizer
+ * Handles link group creation/editing with client search,
+ * member selection, and per-member fee configuration.
+ */
+
 // Get all clients data from hidden div
 const allClientsData = JSON.parse(document.getElementById('all-clients-data').textContent);
 
@@ -41,7 +47,7 @@ searchInput.addEventListener('input', function(e) {
         // Skip already selected clients
         if (selectedClients.includes(client.id)) return false;
         
-        // Search in name and file number (include middle name)
+        // Search in name and file number
         const fullName = `${client.first_name} ${client.middle_name || ''} ${client.last_name}`.toLowerCase();
         const fileNumber = client.file_number.toLowerCase();
         
@@ -73,7 +79,10 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Select a client
+/**
+ * Select a client and add them to the group
+ * @param {number} clientId - ID of client to add
+ */
 function selectClient(clientId) {
     if (selectedClients.includes(clientId)) return;
     
@@ -106,7 +115,10 @@ function selectClient(clientId) {
     searchResults.innerHTML = '';
 }
 
-// Remove a client
+/**
+ * Remove a client from the group
+ * @param {number} clientId - ID of client to remove
+ */
 function removeClient(clientId) {
     selectedClients = selectedClients.filter(id => id !== clientId);
     
@@ -120,7 +132,9 @@ function removeClient(clientId) {
     updateMemberFees();
 }
 
-// Update member fees section
+/**
+ * Update the member fees section based on selected clients
+ */
 function updateMemberFees() {
     const feesSection = document.getElementById('member-fees-section');
     const feesContainer = document.getElementById('member-fees-container');
@@ -142,20 +156,17 @@ function updateMemberFees() {
         let defaultBase, defaultTax, defaultTotal;
 
         if (existingGroupData && existingGroupData.members) {
-            // Editing: find this member's saved fees
             const savedMember = existingGroupData.members.find(m => m.id === clientId);
             if (savedMember && savedMember.member_total_fee !== null) {
                 defaultBase = savedMember.member_base_fee || 0;
                 defaultTax = savedMember.member_tax_rate || 0;
                 defaultTotal = savedMember.member_total_fee || 0;
             } else {
-                // Fallback to client type
                 defaultBase = client.type.session_base_price || 0;
                 defaultTax = client.type.session_tax_rate || 0;
                 defaultTotal = client.type.session_fee || 0;
             }
         } else {
-            // Creating new: use Profile individual session fees
             defaultBase = client.profile_base_fee || 0;
             defaultTax = client.profile_tax_rate || 0;
             defaultTotal = client.profile_total_fee || 0;
@@ -210,7 +221,11 @@ function updateMemberFees() {
     }).join('');
 }
 
-// Three-way fee calculation (same logic as Item and Profile)
+/**
+ * Three-way fee calculation for member fees
+ * @param {number} clientId - ID of client
+ * @param {string} changedField - Which field was changed: 'base', 'tax', or 'total'
+ */
 function calculateFee(clientId, changedField) {
     const row = document.querySelector(`.member-fee-row[data-client-id="${clientId}"]`);
     if (!row) return;
@@ -224,11 +239,9 @@ function calculateFee(clientId, changedField) {
     const total = parseFloat(totalInput.value) || 0;
     
     if (changedField === 'base' || changedField === 'tax') {
-        // Calculate total from base + tax
         const calculatedTotal = base * (1 + taxRate / 100);
         totalInput.value = calculatedTotal.toFixed(2);
     } else if (changedField === 'total') {
-        // Calculate base from total - tax
         if (taxRate > 0) {
             const calculatedBase = total / (1 + taxRate / 100);
             baseInput.value = calculatedBase.toFixed(2);
@@ -268,10 +281,8 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
         };
     });
     
-   // Get session duration
     const sessionDuration = parseInt(document.getElementById('session_duration').value) || 50;
 
-    // Submit form data
     const formData = {
         client_ids: selectedClients,
         format: format,
@@ -301,13 +312,18 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
     });
 });
 
-// Show error modal
+/**
+ * Show error modal with message
+ * @param {string} message - Error message to display
+ */
 function showErrorModal(message) {
     document.getElementById('error-message').textContent = message;
     document.getElementById('error-modal').style.display = 'flex';
 }
 
-// Close error modal
+/**
+ * Close the error modal
+ */
 function closeErrorModal() {
     document.getElementById('error-modal').style.display = 'none';
 }
