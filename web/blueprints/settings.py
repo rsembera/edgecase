@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 EdgeCase Settings Blueprint
-Handles all settings-related routes
+Handles practice settings, uploads, and configuration
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, jsonify
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import sys
@@ -20,6 +20,7 @@ settings_bp = Blueprint('settings', __name__)
 
 # Database instance (set by init_blueprint)
 db = None
+
 
 def init_blueprint(database):
     """Initialize blueprint with database instance"""
@@ -145,8 +146,6 @@ def practice_info():
 @settings_bp.route('/api/backgrounds')
 def list_backgrounds():
     """Return list of available backgrounds separated by system and user"""
-    import os
-    
     # System backgrounds (bundled)
     system_dir = Path(__file__).parent.parent / 'static' / 'img'
     system_backgrounds = []
@@ -209,43 +208,39 @@ def upload_background():
 @settings_bp.route('/delete_background', methods=['POST'])
 def delete_background():
     """Delete a user-uploaded background"""
-    import os
-    
     data = request.get_json()
     filename = data.get('filename')
     
     if not filename:
         return jsonify({'success': False, 'error': 'No filename provided'})
     
-    # Only allow deleting from user_backgrounds directory
+    # Only allow deletion from user_backgrounds directory
     user_dir = Path(__file__).parent.parent / 'static' / 'user_backgrounds'
     file_path = user_dir / filename
     
-    # Security check: ensure the file is actually in user_backgrounds
+    # Security check: ensure the path is within user_backgrounds
     try:
-        file_path = file_path.resolve()
-        user_dir = user_dir.resolve()
-        
-        if not str(file_path).startswith(str(user_dir)):
-            return jsonify({'success': False, 'error': 'Invalid file path'})
-        
-        if file_path.exists():
-            os.remove(file_path)
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'error': 'File not found'})
-            
+        file_path.resolve().relative_to(user_dir.resolve())
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid file path'})
+    
+    if not file_path.exists():
+        return jsonify({'success': False, 'error': 'File not found'})
+    
+    try:
+        file_path.unlink()
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 
 # ============================================================================
-# LOGO AND SIGNATURE
+# LOGO & SIGNATURE
 # ============================================================================
 
 @settings_bp.route('/upload_logo', methods=['POST'])
 def upload_logo():
-    """Handle practice logo upload"""
+    """Handle logo upload"""
     if 'logo' not in request.files:
         return jsonify({'success': False, 'error': 'No file provided'})
     
@@ -406,6 +401,7 @@ def delete_signature():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
 # ============================================================================
 # CALENDAR SETTINGS
 # ============================================================================
@@ -427,12 +423,12 @@ def calendar_settings():
         db.set_setting('calendar_name', data.get('calendar_name', ''))
         
         return jsonify({'success': True})
-    
-        
+
+
 # ============================================================================
 # STATEMENT SETTINGS
 # ============================================================================
-        
+
 @settings_bp.route('/api/statement_settings', methods=['GET', 'POST'])
 def statement_settings():
     """Get or save statement settings."""
@@ -458,7 +454,8 @@ def statement_settings():
             'email_from_address': db.get_setting('email_from_address', ''),
             'statement_email_body': db.get_setting('statement_email_body', '')
         })
-        
+
+
 # ============================================================================
 # SECURITY SETTINGS
 # ============================================================================

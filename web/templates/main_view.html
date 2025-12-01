@@ -39,7 +39,7 @@
         <a href="{{ url_for('settings.settings_page') }}" class="nav-btn peach">
             <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Settings
         </a>
-        <a href="#" class="nav-btn sage" onclick="alert('Backup coming in Phase 2!'); return false;">
+        <a href="{{ url_for('backups.backups_page') }}" class="nav-btn sage">
             <i data-lucide="hard-drive-download" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Backup
         </a>
         <a href="{{ url_for('ledger.ledger') }}" class="nav-btn teal">
