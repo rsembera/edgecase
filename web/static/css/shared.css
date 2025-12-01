@@ -806,3 +806,197 @@ tbody tr:hover {
     margin-bottom: var(--space-xl);
     font-size: 0.9375rem;
 }
+
+/* ============================================
+   CONTROLS BAR (Search + Filter bar)
+   Used in: main_view, outstanding_statements
+   ============================================ */
+.controls-bar {
+    background: #E3E9EE;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.controls-left {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Search box */
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    width: 300px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF;
+    font-size: 1.125rem;
+}
+
+.clear-search {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    display: none;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.clear-search:hover {
+    color: #6B7280;
+}
+
+/* Filter select dropdown */
+.filter-select {
+    padding: 0.75rem 1.25rem;
+    background: #FBFCFD;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #323B45;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 42px;
+    box-sizing: border-box;
+}
+
+.filter-select:hover {
+    border-color: #1F8F74;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
+}
+
+/* ============================================
+   ICON BUTTONS
+   Used in: outstanding_statements, client_file
+   ============================================ */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: #BFDCDC;
+    color: #115D4F;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+    background: #9FCFC0;
+}
+
+.btn-icon i,
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Grey icon button variant */
+.btn-icon.btn-icon-grey {
+    background: #E5E7EB;
+    color: #6B7280;
+}
+
+.btn-icon.btn-icon-grey:hover {
+    background: #D1D5DB;
+    color: #4B5563;
+}
+
+/* ============================================
+   STATUS BADGES
+   Used in: outstanding_statements
+   ============================================ */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.ready {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-badge.sent {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-badge.partial {
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+.status-badge.paid {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+/* ============================================
+   RESPONSIVE - CONTROLS BAR
+   ============================================ */
+@media (max-width: 768px) {
+    .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .controls-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box input {
+        width: 100%;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+}
