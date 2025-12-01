@@ -27,28 +27,19 @@ class Database:
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.password = password
-        self._conn = None  # Persistent connection
         self._initialize_schema()
         
     def connect(self):
-        """Get database connection (reuses existing connection for performance)."""
-        if self._conn is None:
-            self._conn = sqlite3.connect(str(self.db_path), timeout=10.0)
-            
-            # Set encryption key FIRST, before any other operations
-            if self.password:
-                self._conn.execute(f"PRAGMA key = '{self.password}'")
-            
-            # Enable WAL mode for better concurrent access
-            self._conn.execute('PRAGMA journal_mode=WAL')
+        """Create and return database connection with encryption."""
+        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         
-        return self._conn
-    
-    def close(self):
-        """Close the database connection."""
-        if self._conn:
-            self._conn.close()
-            self._conn = None
+        # Set encryption key FIRST, before any other operations
+        if self.password:
+            conn.execute(f"PRAGMA key = '{self.password}'")
+        
+        # Enable WAL mode for better concurrent access
+        conn.execute('PRAGMA journal_mode=WAL')
+        return conn
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
