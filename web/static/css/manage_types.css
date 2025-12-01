@@ -1,0 +1,65 @@
+/* Manage Types Page Styles */
+/* Shared patterns from shared.css: header-row, btn, btn-add, type-badge, table base */
+
+.card {
+    max-width: min(900px, 95vw);
+    margin: 0 auto;
+}
+
+/* Section headers */
+.section-header {
+    background: #E3E9EE;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #55607D;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.section-header:first-of-type {
+    margin-top: 1.5rem;
+}
+
+/* Table overrides for types page */
+.types-table th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.types-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.types-table tbody tr {
+    cursor: pointer;
+}
+
+.types-table tbody tr.locked-type {
+    background: #FEF3C7;
+    cursor: default;
+}
+
+.types-table tbody tr.locked-type:hover {
+    background: #FEF3C7;
+}
+
+/* Locked indicator badge */
+.locked-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: #FCD34D;
+    color: #92400E;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+/* Back button spacing */
+.types-page .btn {
+    margin-top: 1.5rem;
+}
