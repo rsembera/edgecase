@@ -11,6 +11,28 @@ from werkzeug.utils import secure_filename
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# ============================================================================
+# STARTUP RESTORE CHECK
+# Must happen BEFORE database is opened
+# ============================================================================
+
+from utils import backup as backup_utils
+
+_restore_result = None
+_pending_restore = backup_utils.check_restore_pending()
+if _pending_restore:
+    try:
+        _restore_result = backup_utils.complete_restore()
+        print(f"✔ Restore completed from {_restore_result.get('original_date', 'unknown')[:10]}")
+    except Exception as e:
+        print(f"✗ Restore failed: {e}")
+        backup_utils.cancel_restore()
+        _restore_result = {'error': str(e)}
+
+# ============================================================================
+# FLASK APP SETUP
+# ============================================================================
+
 from web.blueprints.auth import auth_bp
 from web.blueprints.settings import settings_bp
 from web.blueprints.types import types_bp
@@ -20,12 +42,17 @@ from web.blueprints.entries import entries_bp
 from web.blueprints.ledger import ledger_bp
 from web.blueprints.scheduler import scheduler_bp
 from web.blueprints.statements import statements_bp
+from web.blueprints.backups import backups_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
 
 # Database will be set after login
 app.config['db'] = None
+
+# Store restore result for display (if any)
+if _restore_result and 'error' not in _restore_result:
+    app.config['RESTORE_COMPLETED'] = _restore_result
 
 def init_all_blueprints(db):
     """Initialize all blueprints with database instance after login."""
@@ -37,6 +64,7 @@ def init_all_blueprints(db):
     from web.blueprints.types import init_blueprint as init_types
     from web.blueprints.settings import init_blueprint as init_settings
     from web.blueprints.links import init_blueprint as init_links
+    from web.blueprints.backups import init_blueprint as init_backups
     
     init_clients(db)
     init_entries(db)
@@ -46,6 +74,7 @@ def init_all_blueprints(db):
     init_types(db)
     init_settings(db)
     init_links(db)
+    init_backups(db)
 
 # Ensure data directory exists
 project_root = Path(__file__).parent.parent
@@ -62,6 +91,7 @@ app.register_blueprint(entries_bp)
 app.register_blueprint(ledger_bp)
 app.register_blueprint(scheduler_bp)
 app.register_blueprint(statements_bp, url_prefix='/statements')
+app.register_blueprint(backups_bp)
 
 from datetime import datetime         
 
@@ -110,6 +140,68 @@ def require_login():
     
     # Update last activity timestamp
     session['last_activity'] = now
+    
+    # Check for restore completion message (show once)
+    if 'restore_shown' not in session:
+        restore_info = app.config.pop('RESTORE_COMPLETED', None)
+        if restore_info:
+            session['restore_shown'] = True
+            session['restore_message'] = f"Restored from backup: {restore_info['original_date'][:10]}"
+
+
+# ============================================================================
+# AUTO-BACKUP CHECK (called after login)
+# ============================================================================
+
+@app.route('/api/check-auto-backup', methods=['POST'])
+def check_auto_backup():
+    """
+    Check if auto-backup should run after login.
+    Called by frontend after successful authentication.
+    """
+    from utils import backup
+    
+    db = app.config.get('db')
+    if not db:
+        return jsonify({'backup_performed': False, 'error': 'Not logged in'})
+    
+    frequency = db.get_setting('backup_frequency', 'daily')
+    
+    needed = backup.check_backup_needed(frequency)
+    
+    if needed:
+        location = db.get_setting('backup_location', str(backup.BACKUPS_DIR))
+        try:
+            # Use create_backup() which auto-decides full vs incremental
+            result = backup.create_backup(location)
+            
+            return jsonify({
+                'backup_performed': True,
+                'result': result
+            })
+        except Exception as e:
+            return jsonify({
+                'backup_performed': False,
+                'error': str(e)
+            })
+    
+    return jsonify({'backup_performed': False, 'reason': 'not_needed'})
+
+
+# ============================================================================
+# RESTORE MESSAGE API
+# ============================================================================
+
+@app.route('/api/restore-message')
+def get_restore_message():
+    """Get and clear any pending restore completion message."""
+    message = session.pop('restore_message', None)
+    return jsonify({'message': message})
+
+
+# ============================================================================
+# PLACEHOLDER ROUTES
+# ============================================================================
 
 @app.route('/scheduler')
 def scheduler():

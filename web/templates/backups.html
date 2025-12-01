@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Backups - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/backups.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <div class="page-title">
+                <i data-lucide="hard-drive-download" class="icon" style="color: var(--accent-dark);"></i>
+                <h1>Backup & Restore</h1>
+            </div>
+            <p class="page-subtitle">Protect your data with regular backups</p>
+        </div>
+    </div>
+    
+    <!-- Status and Actions -->
+    <div class="backup-top-section">
+        <div class="backup-status-box">
+            <div class="status-row">
+                <span class="status-label">Last Backup</span>
+                <span class="status-value" id="last-backup-display">Loading...</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Total Backups</span>
+                <span class="status-value" id="backup-count">-</span>
+            </div>
+        </div>
+        <div class="backup-actions">
+            <button class="btn" id="backup-now-btn" onclick="performBackup()">
+                <span class="btn-text">Backup Now</span>
+                <span class="btn-spinner hidden"></span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Message area -->
+    <div id="backup-message" class="backup-message hidden"></div>
+    
+    <!-- Restore pending alert -->
+    <div id="restore-pending-alert" class="alert-warning hidden">
+        <div class="alert-warning-content">
+            <i data-lucide="alert-triangle" class="alert-icon"></i>
+            <span>Restore pending: <strong id="pending-restore-point"></strong> will be restored on next restart.</span>
+        </div>
+        <button class="btn-cancel" onclick="cancelRestore()">Cancel Restore</button>
+    </div>
+    
+    <!-- Settings Section -->
+    <div class="settings-section">
+        <h2>Backup Settings</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="backup-frequency">Automatic Backups</label>
+                <select id="backup-frequency">
+                    <option value="startup">Every Startup</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="manual">Manual Only</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="backup-location">Backup Location</label>
+                <select id="backup-location" onchange="updateLocationPath()">
+                    <option value="default">Default (~/edgecase/backups)</option>
+                </select>
+                <div id="location-path" class="location-path"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Backup History -->
+    <div class="history-section">
+        <h2>Backups</h2>
+        <div id="backup-list" class="backup-list">
+            <div class="backup-list-empty">Loading backups...</div>
+        </div>
+    </div>
+    
+    <!-- Restore Section -->
+    <div class="restore-section">
+        <h2>Restore from Backup</h2>
+        <p>Select a backup to restore. A safety backup will be created automatically before restoring.</p>
+        <div class="restore-row">
+            <select id="restore-point-select">
+                <option value="">Select a backup...</option>
+            </select>
+            <button id="prepare-restore-btn" class="btn btn-restore-action" disabled onclick="showRestoreModal()">Restore</button>
+        </div>
+    </div>
+    
+    <!-- Bottom buttons -->
+    <div class="bottom-buttons">
+        <a href="{{ url_for('clients.index') }}" class="btn-cancel-bottom">Cancel</a>
+        <button class="btn-save-settings" id="save-settings-btn" onclick="saveBackupSettings()">Save Settings</button>
+    </div>
+</div>
+
+<!-- Restore Confirmation Modal -->
+<div id="restore-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>Confirm Restore</h3>
+        <p>You are about to restore from:</p>
+        <div id="modal-restore-point" class="restore-point-name"></div>
+        <div class="warning-text">
+            <i data-lucide="alert-triangle" class="warning-icon"></i>
+            <span>Your current data will be replaced with the backup data. A safety backup will be created first.</span>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-modal-cancel" onclick="hideRestoreModal()">Cancel</button>
+            <button class="btn btn-confirm" onclick="confirmRestore()">Restore</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>Delete Backup</h3>
+        <p>Are you sure you want to delete this backup?</p>
+        <div id="modal-delete-backup-name" class="restore-point-name"></div>
+        <div id="delete-safety-warning" class="warning-text hidden">
+            <i data-lucide="alert-triangle" class="warning-icon"></i>
+            <span>This is a safety backup that was created before a restore. Deleting it removes your safety net.</span>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-modal-cancel" onclick="hideDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/backups.js') }}"></script>
+<script>
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>
+{% endblock %}
