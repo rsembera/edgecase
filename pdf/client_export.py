@@ -1071,15 +1071,9 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
                 # Add attachment pages (decrypt if needed)
                 if db.password:
                     from core.encryption import decrypt_file_to_bytes
-                    from cryptography.fernet import InvalidToken
-                    try:
-                        decrypted_data = decrypt_file_to_bytes(att_filepath, db.password)
-                        att_buffer = BytesIO(decrypted_data)
-                        att_reader = PdfReader(att_buffer)
-                    except InvalidToken:
-                        # File predates encryption - read directly
-                        print(f"Note: Attachment {att_filepath} is not encrypted (pre-dates encryption)")
-                        att_reader = PdfReader(att_filepath)
+                    decrypted_data = decrypt_file_to_bytes(att_filepath, db.password)
+                    att_buffer = BytesIO(decrypted_data)
+                    att_reader = PdfReader(att_buffer)
                 else:
                     att_reader = PdfReader(att_filepath)
                 for page in att_reader.pages:
