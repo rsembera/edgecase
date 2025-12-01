@@ -1,3 +1,6 @@
+/* Add/Edit Client Type Styles */
+/* Shared patterns from shared.css: .btn*, .form-actions, .modal* */
+
 .card {
     max-width: 700px;
     margin: 0 auto;
@@ -113,44 +116,7 @@ h2 {
     margin-top: 0.5rem;
 }
 
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-top: 2rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-primary {
-    background: #BFDCDC;
-    color: #115D4F;
-}
-
-.btn-primary:hover {
-    background: #9FCFC0;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: #E3E9EE;
-    color: #323B45;
-}
-
-.btn-secondary:hover {
-    background: #DEE2E6;
-}
-
+/* Delete button variant */
 .btn-delete {
     background: #F8DCDD;
     color: #6B2D2E;
@@ -159,51 +125,4 @@ h2 {
 
 .btn-delete:hover {
     background: #F5C2C4;
-}
-
-/* Delete confirmation modal */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-overlay.active {
-    display: flex;
-}
-
-.modal {
-    display: block;
-    position: static;
-    width: auto;
-    height: auto;
-    background: white;
-    padding: 2rem;
-    border-radius: 1rem;
-    max-width: 400px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-}
-
-.modal h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #111827;
-}
-
-.modal p {
-    color: #5B6571;
-    margin-bottom: 1.5rem;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
 }

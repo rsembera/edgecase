@@ -1,4 +1,5 @@
 /* Export Page Styles */
+/* Shared patterns from shared.css: .form-group, .btn, .type-badge, .date-input-group */
 
 .export-header {
     display: flex;
@@ -25,30 +26,7 @@
     color: #2D3748;
 }
 
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #4A5568;
-}
-
-.date-input-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.date-input-group select {
-    padding: 0.5rem;
-    border: 1px solid #CBD5E0;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    background: white;
-}
-
+/* Date select sizing for export page */
 .year-select {
     width: 90px;
 }
@@ -152,17 +130,6 @@
 .export-actions .btn {
     padding: 0.75rem 2rem;
     font-size: 1rem;
-}
-
-/* Type Badge */
-.type-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #1a202c;
-    margin-right: 0.5rem;
 }
 
 /* Responsive */

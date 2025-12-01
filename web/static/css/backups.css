@@ -1,4 +1,5 @@
 /* Backups page styles */
+/* Shared patterns from shared.css: .card, .form-group, .modal-overlay, .modal-content, .btn-danger */
 
 .card {
     max-width: 900px;
@@ -222,7 +223,7 @@
     margin: 0 0 1rem 0;
 }
 
-/* Form styling */
+/* Form styling - uses shared.css .form-group */
 .form-row {
     display: flex;
     gap: 2rem;
@@ -231,13 +232,6 @@
 
 .form-group {
     flex: 1;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 500;
-    color: var(--color-text, #323B45);
-    margin-bottom: 0.5rem;
 }
 
 .form-group select {
@@ -438,43 +432,9 @@
     background: var(--color-primary-light, #9FCFC0);
 }
 
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
+/* Modal - uses shared.css .modal-overlay, .modal-content base styles */
 .modal-overlay.hidden {
     display: none;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-}
-
-.modal-content h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--color-text, #323B45);
-}
-
-.modal-content p {
-    color: #6B7280;
-    margin: 0 0 0.5rem 0;
 }
 
 .restore-point-name {
@@ -549,20 +509,7 @@
     background: var(--color-primary-light, #9FCFC0);
 }
 
-.btn-danger {
-    background-color: #DC2626;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-danger:hover {
-    background-color: #B91C1C;
-}
+/* .btn-danger uses shared.css */
 
 /* Hidden utility */
 .hidden {

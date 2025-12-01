@@ -1,20 +1,5 @@
 /* Client File View - Custom Styles */
-/* Shared styles imported from shared.css */
-/* Year/Month headers, table base, empty state now in shared.css */
-
-/* Controls bar */
-.controls-bar {
-    background: #E3E9EE;
-    border-radius: 1rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
+/* Shared patterns from shared.css: controls-bar, search-box, table base, year/month headers, empty-state */
 
 /* Profile entry styling (unique to client file) */
 .profile-entry {
@@ -58,20 +43,9 @@ td:nth-child(5) { /* Details */
     font-size: 0.875rem;
 }
 
-.session-badge.consultation {
-    background: #FAF0DF;
-    color: #5A4823;
-}
-
-.session-badge.session {
-    background: #CFE7DA;
-    color: #0E5346;
-}
-
-.session-badge.draft {
-    background: #FED7D7;
-    color: #C53030;
-}
+.session-badge.consultation { background: #FAF0DF; color: #5A4823; }
+.session-badge.session { background: #CFE7DA; color: #0E5346; }
+.session-badge.draft { background: #FED7D7; color: #C53030; }
 
 /* Edit links */
 a.edit-link {
@@ -82,9 +56,7 @@ a.edit-link {
     transition: color 0.2s;
 }
 
-a.edit-link:hover {
-    color: #16735F;
-}
+a.edit-link:hover { color: #16735F; }
 
 /* Linked Clients Section (unique to client file) */
 .linked-client-card {
@@ -108,12 +80,8 @@ a.edit-link:hover {
 /* RESPONSIVE STYLES FOR IPAD PORTRAIT */
 @media (max-width: 768px) {
     /* Hide Time, Details, Info columns on narrow screens */
-    th:nth-child(4),
-    th:nth-child(5),
-    th:nth-child(6),
-    td:nth-child(4),
-    td:nth-child(5),
-    td:nth-child(6) {
+    th:nth-child(4), th:nth-child(5), th:nth-child(6),
+    td:nth-child(4), td:nth-child(5), td:nth-child(6) {
         display: none;
     }
     
@@ -121,51 +89,6 @@ a.edit-link:hover {
     th:nth-child(1), td:nth-child(1) { width: 20%; }  /* Date */
     th:nth-child(2), td:nth-child(2) { width: 30%; }  /* Class */
     th:nth-child(3), td:nth-child(3) { width: 50%; }  /* Description */
-}
-
-/* Search box - matches main_view */
-.search-box {
-    position: relative;
-}
-
-.search-box input {
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    width: 100%;
-    transition: all 0.2s;
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9CA3AF;
-}
-
-.clear-search {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #9CA3AF;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    display: none;
-}
-
-.clear-search:hover {
-    color: #6B7280;
 }
 
 /* Lucide icon sizing */
