@@ -1,18 +1,21 @@
-// Communication Entry Form JavaScript - Extracted from communication.html
+/**
+ * Communication Entry Form JavaScript - EdgeCase Equalizer
+ * Handles communication creation/editing with auto-expanding textarea
+ * and file upload functionality.
+ */
 
 // Auto-expanding textarea
 const textarea = document.getElementById('content');
 const maxHeight = 600; // About 30-35 lines
 
+/**
+ * Auto-resize textarea to fit content up to maxHeight
+ */
 function autoResize() {
-    // Reset height to auto to get the correct scrollHeight
     textarea.style.height = 'auto';
-    
-    // Set new height, but don't exceed maxHeight
     const newHeight = Math.min(textarea.scrollHeight, maxHeight);
     textarea.style.height = newHeight + 'px';
     
-    // Add scrollbar if content exceeds maxHeight
     if (textarea.scrollHeight > maxHeight) {
         textarea.style.overflowY = 'scroll';
     } else {
@@ -20,11 +23,9 @@ function autoResize() {
     }
 }
 
-// ============================================
-// FILE UPLOAD FUNCTIONALITY
-// ============================================
-
-// Toggle upload section
+/**
+ * Toggle the file upload section visibility
+ */
 function toggleUploadSection() {
     const uploadSection = document.getElementById('upload-section');
     const toggleIcon = document.getElementById('upload-toggle-icon');
@@ -38,7 +39,9 @@ function toggleUploadSection() {
     }
 }
 
-// Show "Add Another File" button only after file is selected
+/**
+ * Show "Add Another File" button after file is selected
+ */
 function handleFileSelected() {
     const addFileBtn = document.getElementById('add-file-btn');
     if (addFileBtn) {
@@ -46,11 +49,16 @@ function handleFileSelected() {
     }
 }
 
-// File validation modal functions
+/**
+ * Show file validation modal
+ */
 function showFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'flex';
 }
 
+/**
+ * Close file validation modal
+ */
 function closeFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'none';
 }
@@ -136,16 +144,26 @@ if (initialRemoveBtn) {
 // Delete attachment (for edit mode)
 let deleteAttachmentId = null;
 
+/**
+ * Show delete attachment confirmation modal
+ * @param {number} attachmentId - ID of attachment to delete
+ */
 function deleteAttachment(attachmentId) {
     deleteAttachmentId = attachmentId;
     document.getElementById('delete-modal').style.display = 'flex';
 }
 
+/**
+ * Close the delete attachment modal
+ */
 function closeDeleteModal() {
     document.getElementById('delete-modal').style.display = 'none';
     deleteAttachmentId = null;
 }
 
+/**
+ * Confirm and execute attachment deletion
+ */
 function confirmDelete() {
     if (!deleteAttachmentId) return;
     

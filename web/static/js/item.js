@@ -1,9 +1,17 @@
+/**
+ * Item Entry Form JavaScript - EdgeCase Equalizer
+ * Handles billable item creation/editing with three-way fee calculation.
+ */
+
 // Date dropdowns → hidden field
 const dateYear = document.getElementById('date_year');
 const dateMonth = document.getElementById('date_month');
 const dateDay = document.getElementById('date_day');
 const dateHidden = document.getElementById('item_date');
 
+/**
+ * Update hidden item_date field from dropdown selections
+ */
 function updateItemDate() {
     if (dateYear.value && dateMonth.value && dateDay.value) {
         dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
@@ -12,7 +20,10 @@ function updateItemDate() {
     }
 }
 
-// Three-way fee calculation
+/**
+ * Three-way fee calculation for item fees
+ * @param {string} changedField - Which field was changed: 'base', 'tax', or 'total'
+ */
 function calculateItemFee(changedField) {
     const baseInput = document.getElementById('base_price');
     const taxInput = document.getElementById('tax_rate');
@@ -23,22 +34,22 @@ function calculateItemFee(changedField) {
     const total = parseFloat(totalInput.value) || 0;
     
     if (changedField === 'base' || changedField === 'tax') {
-        // Calculate total from base + tax
         const calculatedTotal = base * (1 + taxRate / 100);
         totalInput.value = calculatedTotal.toFixed(2);
     } else if (changedField === 'total') {
-        // Calculate base from total - tax
         if (taxRate > 0) {
             const calculatedBase = total / (1 + taxRate / 100);
             baseInput.value = calculatedBase.toFixed(2);
         } else {
-            // If no tax, total = base
             baseInput.value = total.toFixed(2);
         }
     }
 }
 
-// Auto-format to 2 decimal places on blur
+/**
+ * Format input value to 2 decimal places
+ * @param {HTMLInputElement} input - Input element to format
+ */
 function formatToTwoDecimals(input) {
     const value = parseFloat(input.value);
     if (!isNaN(value)) {
@@ -52,17 +63,16 @@ dateDay.addEventListener('change', updateItemDate);
 
 // Auto-expanding textarea
 const contentTextarea = document.getElementById('content');
-const maxHeight = 600; // About 30-35 lines
+const maxHeight = 600;
 
+/**
+ * Auto-resize textarea to fit content up to maxHeight
+ */
 function autoResize() {
-    // Reset height to auto to get the correct scrollHeight
     contentTextarea.style.height = 'auto';
-    
-    // Set new height, but don't exceed maxHeight
     const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
     contentTextarea.style.height = newHeight + 'px';
     
-    // Add scrollbar if content exceeds maxHeight
     if (contentTextarea.scrollHeight > maxHeight) {
         contentTextarea.style.overflowY = 'scroll';
     } else {

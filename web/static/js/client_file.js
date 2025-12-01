@@ -1,5 +1,12 @@
-// Client File View JavaScript - Extracted from client_file.html
+/**
+ * Client File View JavaScript - EdgeCase Equalizer
+ * Handles entry timeline display with year/month collapse, filtering, and search.
+ */
 
+/**
+ * Toggle a year section expand/collapse
+ * @param {string} yearId - ID prefix for the year section
+ */
 function toggleYear(yearId) {
     const content = document.getElementById(yearId + '-content');
     const icon = document.getElementById(yearId + '-icon');
@@ -13,6 +20,10 @@ function toggleYear(yearId) {
     }
 }
 
+/**
+ * Toggle a month section expand/collapse
+ * @param {string} monthId - ID prefix for the month section
+ */
 function toggleMonth(monthId) {
     const content = document.getElementById(monthId + '-content');
     const icon = document.getElementById(monthId + '-icon');
@@ -26,7 +37,10 @@ function toggleMonth(monthId) {
     }
 }
 
-// Dropdown toggle for filters and type selector
+/**
+ * Toggle dropdown menu visibility, closing all others first
+ * @param {string} dropdownId - ID of dropdown element to toggle
+ */
 function toggleDropdown(dropdownId) {
     const dropdown = document.getElementById(dropdownId);
     const allDropdowns = document.querySelectorAll('[id$="-dropdown"]');
@@ -69,15 +83,19 @@ document.querySelectorAll('#filter-form input[type="checkbox"]').forEach(checkbo
 const entrySearchInput = document.getElementById('entry-search');
 const clearEntrySearchBtn = document.getElementById('clear-entry-search');
 
-// Get all entry rows (not the profile, just the entries)
+/**
+ * Get all entry rows (entries in the timeline, not the profile)
+ * @returns {NodeList} Entry row elements with onclick handlers
+ */
 function getEntryRows() {
-    // Get all entry rows - these are the <tr> elements with onclick handlers
     return document.querySelectorAll('tr[onclick*="window.location"]');
 }
 
-// Expand or collapse all year/month sections
+/**
+ * Expand or collapse all year/month sections
+ * @param {boolean} expand - True to expand all, false to collapse all
+ */
 function expandAllSections(expand) {
-    // Get all year sections
     document.querySelectorAll('[id$="-content"]').forEach(content => {
         const iconId = content.id.replace('-content', '-icon');
         const icon = document.getElementById(iconId);
@@ -92,7 +110,9 @@ function expandAllSections(expand) {
     });
 }
 
-// Search function
+/**
+ * Perform search on entries, showing/hiding based on search term
+ */
 function performEntrySearch() {
     const searchTerm = entrySearchInput.value.toLowerCase().trim();
     
@@ -178,19 +198,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== REAL-TIME ENTRY CLASS FILTER =====
 
-// Get selected entry classes
+/**
+ * Get currently selected entry class filter values
+ * @returns {Array} Array of selected class values
+ */
 function getSelectedClasses() {
     const checkboxes = document.querySelectorAll('#filter-form input[type="checkbox"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
-// Save filter state to sessionStorage
+/**
+ * Save current filter state to sessionStorage
+ */
 function saveFilterState() {
     const selected = getSelectedClasses();
     sessionStorage.setItem('entryClassFilter', JSON.stringify(selected));
 }
 
-// Restore filter state from sessionStorage
+/**
+ * Restore filter state from sessionStorage
+ */
 function restoreFilterState() {
     const saved = sessionStorage.getItem('entryClassFilter');
     if (saved) {
@@ -206,7 +233,9 @@ function restoreFilterState() {
     }
 }
 
-// Update filter button text
+/**
+ * Update filter button text to show count of selected types
+ */
 function updateFilterButtonText() {
     const checkedCount = document.querySelectorAll('#filter-form input[type="checkbox"]:checked').length;
     const filterButton = document.getElementById('class-filter-button');
@@ -215,7 +244,9 @@ function updateFilterButtonText() {
     }
 }
 
-// Apply filter (show/hide entries based on selected classes)
+/**
+ * Apply entry class filter - show/hide entries based on selected classes
+ */
 function applyEntryFilter() {
     const selectedClasses = getSelectedClasses();
     const entryRows = getEntryRows();

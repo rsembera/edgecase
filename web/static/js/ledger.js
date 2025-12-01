@@ -1,6 +1,12 @@
-// Ledger Page JavaScript
+/**
+ * Ledger Page JavaScript - EdgeCase Equalizer
+ * Handles year/month toggle, search, and entry display.
+ */
 
-// Year/month toggle functions
+/**
+ * Toggle a year section expand/collapse
+ * @param {string} yearId - ID prefix for the year section
+ */
 function toggleYear(yearId) {
     const yearContent = document.getElementById(`${yearId}-content`);
     const arrow = document.getElementById(`${yearId}-icon`);
@@ -14,6 +20,10 @@ function toggleYear(yearId) {
     }
 }
 
+/**
+ * Toggle a month section expand/collapse
+ * @param {string} monthId - ID prefix for the month section
+ */
 function toggleMonth(monthId) {
     const monthContent = document.getElementById(`${monthId}-content`);
     const arrow = document.getElementById(`${monthId}-icon`);
@@ -27,7 +37,9 @@ function toggleMonth(monthId) {
     }
 }
 
-// Search entries
+/**
+ * Search entries by description, amount, or payor
+ */
 function searchEntries() {
     const searchInput = document.getElementById('search-input');
     const clearBtn = document.querySelector('.clear-search');
@@ -114,7 +126,9 @@ function searchEntries() {
     });
 }
 
-// Collapse all and expand most recent (helper function)
+/**
+ * Collapse all sections and expand only the most recent year/month
+ */
 function collapseAllAndExpandRecent() {
     // Collapse all
     document.querySelectorAll('.year-content').forEach(el => {
@@ -163,7 +177,9 @@ function collapseAllAndExpandRecent() {
     }
 }
 
-// Clear search
+/**
+ * Clear search and reset view
+ */
 function clearSearch() {
     const searchInput = document.getElementById('search-input');
     searchInput.value = '';
@@ -171,7 +187,9 @@ function clearSearch() {
     searchInput.focus();
 }
 
-// Add Entry dropdown toggle
+/**
+ * Toggle Add Entry dropdown menu
+ */
 function toggleAddDropdown() {
     const dropdown = document.getElementById('add-dropdown');
     

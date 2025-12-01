@@ -1,16 +1,30 @@
-// Profile Entry Form JavaScript - Extracted from profile.html
+/**
+ * Profile Entry Form JavaScript - EdgeCase Equalizer
+ * Handles client profile creation/editing including guardian billing,
+ * fee overrides, phone formatting, and form validation.
+ */
 
-// Validation modal functions
+/**
+ * Display validation error modal with message
+ * @param {string} message - HTML message to display
+ */
 function showValidationModal(message) {
     document.getElementById('validation-errors').innerHTML = message;
     document.getElementById('validation-modal').style.display = 'flex';
 }
 
+/**
+ * Close the validation error modal
+ */
 function closeValidationModal() {
     document.getElementById('validation-modal').style.display = 'none';
 }
 
-// Phone number auto-formatting (supports 10-12 digits)
+/**
+ * Format phone number for display (North American format)
+ * @param {string} value - Raw phone input value
+ * @returns {string} Formatted phone number or raw digits
+ */
 function formatPhoneNumber(value) {
     // Remove all non-digit characters
     let cleaned = value.replace(/\D/g, '');
@@ -27,7 +41,11 @@ function formatPhoneNumber(value) {
     return cleaned;
 }
 
-// Validate phone number has 10-12 digits
+/**
+ * Validate phone number has 10-12 digits
+ * @param {string} phoneValue - Phone value to validate
+ * @returns {boolean} True if valid or empty
+ */
 function validatePhone(phoneValue) {
     if (!phoneValue) return true; // Empty is okay
     const digitsOnly = phoneValue.replace(/\D/g, '');
@@ -97,6 +115,10 @@ const feeOverrideTotal = document.getElementById('fee_override_total');
 
 let lastEditedFee = null;
 
+/**
+ * Calculate fee override using three-way calculation
+ * Updates total from base+tax, or base from total-tax
+ */
 function calculateOverrideFee() {
     const base = parseFloat(feeOverrideBase.value) || 0;
     const rate = parseFloat(feeOverrideTax.value) || 0;
@@ -205,7 +227,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Guardian percentage validation
+/**
+ * Validate that guardian payment percentages add up to 100%
+ * @returns {boolean} True if valid or not applicable
+ */
 function validateGuardianAmounts() {
     const validation = document.getElementById('guardian-validation');
     const validationMessage = document.getElementById('guardian-validation-message');
@@ -324,6 +349,9 @@ const dobMonth = document.getElementById('dob_month');
 const dobDay = document.getElementById('dob_day');
 const dobHidden = document.getElementById('date_of_birth');
 
+/**
+ * Update hidden date_of_birth field from dropdown selections
+ */
 function updateDOB() {
     if (dobYear.value && dobMonth.value && dobDay.value) {
         dobHidden.value = `${dobYear.value}-${dobMonth.value}-${dobDay.value}`;
@@ -340,6 +368,9 @@ dobDay.addEventListener('change', updateDOB);
 const additionalInfoTextarea = document.getElementById('additional_info');
 const maxHeight = 600; // About 30-35 lines
 
+/**
+ * Auto-resize textarea to fit content up to maxHeight
+ */
 function autoResize() {
     // Reset height to auto to get the correct scrollHeight
     additionalInfoTextarea.style.height = 'auto';
@@ -362,7 +393,10 @@ autoResize();
 // Run on input
 additionalInfoTextarea.addEventListener('input', autoResize);
 
-// Dropdown toggle for type selector
+/**
+ * Toggle dropdown menu visibility
+ * @param {string} dropdownId - ID of dropdown element to toggle
+ */
 function toggleDropdown(dropdownId) {
     const dropdown = document.getElementById(dropdownId);
     

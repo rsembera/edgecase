@@ -1,5 +1,8 @@
-// EdgeCase Equalizer - Backup System JavaScript
-// Simplified UI: One backup button, all backups are restore points
+/**
+ * EdgeCase Equalizer - Backup System JavaScript
+ * Handles backup creation, restore point selection, and settings management.
+ * Simplified UI: One backup button, all backups are valid restore points.
+ */
 
 document.addEventListener('DOMContentLoaded', function() {
     loadBackupStatus();
@@ -12,7 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Load backup status and settings
+/**
+ * Load backup status and settings from server
+ */
 async function loadBackupStatus() {
     try {
         const response = await fetch('/api/backup/status');
@@ -45,7 +50,11 @@ async function loadBackupStatus() {
     }
 }
 
-// Populate location dropdown with cloud folders
+/**
+ * Populate location dropdown with cloud folders
+ * @param {Array} cloudFolders - Array of {path, name} objects
+ * @param {string} savedLocation - Currently saved location path
+ */
 function populateLocationDropdown(cloudFolders, savedLocation) {
     const select = document.getElementById('backup-location');
     
@@ -70,7 +79,9 @@ function populateLocationDropdown(cloudFolders, savedLocation) {
     updateLocationPath();
 }
 
-// Update location path display
+/**
+ * Update the location path display below dropdown
+ */
 function updateLocationPath() {
     const select = document.getElementById('backup-location');
     const pathDisplay = document.getElementById('location-path');
@@ -82,7 +93,9 @@ function updateLocationPath() {
     }
 }
 
-// Load restore points (all backups are valid restore points)
+/**
+ * Load all available restore points (backups)
+ */
 async function loadRestorePoints() {
     try {
         const response = await fetch('/api/backup/restore-points');
@@ -121,8 +134,7 @@ async function loadRestorePoints() {
                 </div>
             `;
             
-            // Add to restore dropdown - display_name already includes "(Safety backup)" if applicable
-            // So we don't need to add anything extra here
+            // Add to restore dropdown
             const option = document.createElement('option');
             option.value = point.id;
             option.textContent = point.display_name;
@@ -138,7 +150,9 @@ async function loadRestorePoints() {
     }
 }
 
-// Perform backup - single button, system decides full vs incremental
+/**
+ * Perform backup - single button, system decides full vs incremental
+ */
 async function performBackup() {
     const btn = document.getElementById('backup-now-btn');
     const btnText = btn.querySelector('.btn-text');
@@ -153,7 +167,7 @@ async function performBackup() {
         const response = await fetch('/api/backup/now', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})  // No type needed - system decides
+            body: JSON.stringify({})
         });
         
         const data = await response.json();
@@ -180,7 +194,9 @@ async function performBackup() {
     }
 }
 
-// Save backup settings
+/**
+ * Save backup settings (frequency and location)
+ */
 async function saveBackupSettings() {
     const frequency = document.getElementById('backup-frequency').value;
     const locationSelect = document.getElementById('backup-location');
@@ -214,7 +230,12 @@ async function saveBackupSettings() {
     }
 }
 
-// Confirm delete backup
+/**
+ * Show delete confirmation modal
+ * @param {string} backupId - ID of backup to delete
+ * @param {string} displayName - Display name for confirmation
+ * @param {boolean} isSafety - Whether this is a safety backup
+ */
 function confirmDeleteBackup(backupId, displayName, isSafety) {
     const modal = document.getElementById('delete-modal');
     const nameEl = document.getElementById('modal-delete-backup-name');
@@ -233,12 +254,16 @@ function confirmDeleteBackup(backupId, displayName, isSafety) {
     modal.classList.remove('hidden');
 }
 
-// Hide delete modal
+/**
+ * Hide the delete confirmation modal
+ */
 function hideDeleteModal() {
     document.getElementById('delete-modal').classList.add('hidden');
 }
 
-// Confirm delete
+/**
+ * Confirm and execute backup deletion
+ */
 async function confirmDelete() {
     const modal = document.getElementById('delete-modal');
     const backupId = modal.dataset.backupId;
@@ -271,7 +296,9 @@ async function confirmDelete() {
     }
 }
 
-// Show restore modal
+/**
+ * Show restore confirmation modal
+ */
 function showRestoreModal() {
     const select = document.getElementById('restore-point-select');
     const selectedOption = select.options[select.selectedIndex];
@@ -280,12 +307,16 @@ function showRestoreModal() {
     document.getElementById('restore-modal').classList.remove('hidden');
 }
 
-// Hide restore modal
+/**
+ * Hide the restore confirmation modal
+ */
 function hideRestoreModal() {
     document.getElementById('restore-modal').classList.add('hidden');
 }
 
-// Confirm restore
+/**
+ * Confirm and prepare restore from selected point
+ */
 async function confirmRestore() {
     const restorePointId = document.getElementById('restore-point-select').value;
     
@@ -312,7 +343,9 @@ async function confirmRestore() {
     }
 }
 
-// Cancel pending restore
+/**
+ * Cancel a pending restore operation
+ */
 async function cancelRestore() {
     try {
         const response = await fetch('/api/backup/cancel-restore', {
@@ -333,7 +366,11 @@ async function cancelRestore() {
     }
 }
 
-// Show message
+/**
+ * Show a message to the user
+ * @param {string} text - Message text
+ * @param {string} type - Message type: 'success', 'error', or 'info'
+ */
 function showMessage(text, type) {
     const msgEl = document.getElementById('backup-message');
     msgEl.textContent = text;
