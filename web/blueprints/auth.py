@@ -64,6 +64,12 @@ def login():
             from web.app import init_all_blueprints
             init_all_blueprints(db)
             
+            # Run automatic backup check after successful login
+            _run_auto_backup_check(db)
+            
+            # Force session cookie to be written before redirect
+            session.modified = True
+            
             return redirect(url_for('clients.index'))
             
         except Exception as e:
@@ -75,6 +81,26 @@ def login():
             return render_template('login.html', first_run=first_run, error=error)
     
     return render_template('login.html', first_run=first_run)
+
+
+def _run_auto_backup_check(db):
+    """
+    Check if automatic backup should run after login.
+    Runs silently - errors are logged but don't affect login.
+    """
+    try:
+        from utils import backup
+        
+        frequency = db.get_setting('backup_frequency', 'daily')
+        
+        if backup.check_backup_needed(frequency):
+            location = db.get_setting('backup_location', str(backup.BACKUPS_DIR))
+            backup.create_backup(location)
+            print(f"[Backup] Automatic {frequency} backup completed")
+    except Exception as e:
+        # Log but don't fail login
+        print(f"[Backup] Auto-backup failed: {e}")
+
 
 @auth_bp.route('/logout')
 def logout():

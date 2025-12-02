@@ -753,6 +753,10 @@ def check_backup_needed(frequency='daily'):
     """
     Check if an automatic backup should run.
     
+    Uses CALENDAR DATE comparison, not hours:
+    - 'daily': backup if last backup was on a different calendar date
+    - 'weekly': backup if last backup was 7+ calendar days ago
+    
     Args:
         frequency: 'startup', 'daily', 'weekly', or 'manual'
     
@@ -778,12 +782,15 @@ def check_backup_needed(frequency='daily'):
         return True  # Always backup on startup
     
     now = datetime.now()
-    last_any = max(all_backups, key=lambda x: x['created_at'])
-    last_date = datetime.fromisoformat(last_any['created_at'])
+    today = now.date()
     
-    if frequency == 'daily' and now - last_date > timedelta(days=1):
+    last_any = max(all_backups, key=lambda x: x['created_at'])
+    last_date = datetime.fromisoformat(last_any['created_at']).date()
+    
+    # Use calendar date comparison
+    if frequency == 'daily' and today > last_date:
         return True
-    elif frequency == 'weekly' and now - last_date > timedelta(days=7):
+    elif frequency == 'weekly' and (today - last_date).days >= 7:
         return True
     
     return False
@@ -792,6 +799,8 @@ def check_backup_needed(frequency='daily'):
 def get_backup_status():
     """
     Get current backup status for display.
+    Uses CALENDAR DATE for "Today" comparison, not hours.
+    
     Returns dict with status info.
     """
     manifest = load_manifest()
@@ -806,26 +815,34 @@ def get_backup_status():
         }
     
     last = max(backups, key=lambda x: x['created_at'])
-    last_date = datetime.fromisoformat(last['created_at'])
+    last_datetime = datetime.fromisoformat(last['created_at'])
+    last_date = last_datetime.date()
     
-    # Format for display
+    # Format for display using CALENDAR DATE comparison
     now = datetime.now()
-    diff = now - last_date
+    today = now.date()
+    yesterday = today - timedelta(days=1)
     
-    if diff.days == 0:
-        if diff.seconds < 60:
+    time_str = last_datetime.strftime('%I:%M %p').lstrip('0')
+    
+    if last_date == today:
+        # Actually today
+        diff_seconds = (now - last_datetime).total_seconds()
+        if diff_seconds < 60:
             display = "Just now"
-        elif diff.seconds < 3600:
-            minutes = diff.seconds // 60
+        elif diff_seconds < 3600:
+            minutes = int(diff_seconds // 60)
             display = f"{minutes} minute{'s' if minutes != 1 else ''} ago"
         else:
-            display = f"Today at {last_date.strftime('%I:%M %p').lstrip('0')}"
-    elif diff.days == 1:
-        display = f"Yesterday at {last_date.strftime('%I:%M %p').lstrip('0')}"
-    elif diff.days < 7:
-        display = f"{diff.days} days ago"
+            display = f"Today at {time_str}"
+    elif last_date == yesterday:
+        display = f"Yesterday at {time_str}"
     else:
-        display = last_date.strftime('%B %d, %Y')
+        days_ago = (today - last_date).days
+        if days_ago < 7:
+            display = f"{days_ago} days ago"
+        else:
+            display = last_datetime.strftime('%B %d, %Y')
     
     return {
         'has_backups': True,
