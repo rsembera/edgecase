@@ -331,22 +331,32 @@
     </div>
     
     <script>
+        // Debug logging
+        console.log('[Login] Page loaded at', new Date().toISOString());
+        
         // Prevent double form submission AND handle autofill race condition
         document.getElementById('login-form').addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             const passwordField = document.getElementById('password');
             
+            console.log('[Login] Form submit triggered');
+            console.log('[Login] Password field value length:', passwordField.value ? passwordField.value.length : 0);
+            console.log('[Login] Button disabled:', submitBtn.disabled);
+            
             // If button already disabled, prevent duplicate submission
             if (submitBtn.disabled) {
+                console.log('[Login] Blocked - button already disabled');
                 e.preventDefault();
                 return false;
             }
             
             // Check if password field has a value (autofill race condition)
             if (!passwordField.value || passwordField.value.trim() === '') {
+                console.log('[Login] Blocked - password empty, waiting for autofill...');
                 e.preventDefault();
                 // Wait for autofill to complete, then retry
                 setTimeout(function() {
+                    console.log('[Login] Retry check - password length:', passwordField.value ? passwordField.value.length : 0);
                     if (passwordField.value && passwordField.value.trim() !== '') {
                         document.getElementById('login-form').submit();
                     }
@@ -354,8 +364,14 @@
                 return false;
             }
             
+            console.log('[Login] Submitting form...');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Please wait...';
+        });
+        
+        // Log if form is submitted by something other than our handler
+        window.addEventListener('beforeunload', function() {
+            console.log('[Login] Page unloading...');
         });
         
         // Re-enable button if page loaded from back-forward cache

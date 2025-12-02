@@ -4,6 +4,24 @@
  */
 
 // ============================================================
+// HELPER: SHOW SECTION STATUS
+// ============================================================
+
+/**
+ * Show a temporary success message in a section
+ * @param {string} statusId - The ID of the status element
+ * @param {string} message - Message to display (default: "✓ Saved!")
+ */
+function showSectionStatus(statusId, message = '✓ Saved!') {
+    const status = document.getElementById(statusId);
+    if (status) {
+        status.textContent = message;
+        status.classList.add('show');
+        setTimeout(() => status.classList.remove('show'), 2500);
+    }
+}
+
+// ============================================================
 // CONFIRMATION MODAL
 // ============================================================
 
@@ -56,7 +74,7 @@ function closeAboutModal() {
 }
 
 // ============================================================
-// CARD LAYOUT MANAGEMENT
+// CARD LAYOUT MANAGEMENT (auto-save, no confirmation)
 // ============================================================
 
 const CARD_NAMES = {
@@ -90,7 +108,7 @@ function loadCardPositions() {
 }
 
 /**
- * Handle card position swap when dropdown changes
+ * Handle card position swap when dropdown changes (auto-save, no message)
  * @param {number} position - Zero-based position index
  */
 function handleCardSwap(position) {
@@ -114,20 +132,11 @@ function handleCardSwap(position) {
         }
         
         localStorage.setItem('cardOrder', JSON.stringify(currentOrder));
-        
-        // Show success message
-        const successMsg = document.getElementById('success-message');
-        successMsg.textContent = '✓ Card positions updated! Changes will appear on the main page.';
-        successMsg.classList.add('show');
-        setTimeout(() => {
-            successMsg.classList.remove('show');
-            successMsg.textContent = '✓ Settings saved successfully!';
-        }, 2000);
     }
 }
 
 // ============================================================
-// BACKGROUND MANAGEMENT
+// BACKGROUND MANAGEMENT (auto-save, no confirmation for theme changes)
 // ============================================================
 
 let userBackgrounds = [];
@@ -230,7 +239,7 @@ function updateDeleteButton() {
 }
 
 /**
- * Save and apply card style immediately
+ * Save and apply card style immediately (no message)
  */
 function saveAndApplyCardStyle() {
     const cardStyle = document.getElementById('card-style').value;
@@ -239,7 +248,7 @@ function saveAndApplyCardStyle() {
 }
 
 /**
- * Save and apply background immediately
+ * Save and apply background immediately (no message)
  */
 function saveAndApplyBackground() {
     const backgroundStyle = document.getElementById('background-style').value;
@@ -346,7 +355,48 @@ async function deleteBackground() {
 }
 
 // ============================================================
-// PRACTICE INFORMATION
+// TIME FORMAT (auto-save with confirmation)
+// ============================================================
+
+/**
+ * Load time format setting from server
+ */
+function loadTimeFormat() {
+    fetch('/api/time_format')
+        .then(response => response.json())
+        .then(data => {
+            const timeFormat = document.getElementById('time-format');
+            if (timeFormat) {
+                timeFormat.value = data.time_format || '12h';
+            }
+        });
+}
+
+/**
+ * Save time format setting to server (auto-save with confirmation)
+ */
+async function saveTimeFormat() {
+    try {
+        const response = await fetch('/api/time_format', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                time_format: document.getElementById('time-format').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSectionStatus('time-format-status');
+        }
+    } catch (error) {
+        console.error('Failed to save time format:', error);
+    }
+}
+
+// ============================================================
+// PRACTICE INFORMATION (manual save with confirmation)
 // ============================================================
 
 /**
@@ -411,9 +461,18 @@ function updateLogoSignatureUI(info) {
 }
 
 /**
- * Save practice information to database
+ * Save practice information to database (manual save with confirmation)
  */
 async function savePracticeInfo() {
+    // Validate phone
+    const practicePhone = document.getElementById('practice-phone').value;
+    if (practicePhone && !validatePhone(practicePhone)) {
+        alert('Practice phone must be 10-15 digits');
+        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
+        return;
+    }
+    document.getElementById('practice-phone').style.borderColor = '';
+    
     const practiceData = {
         practice_name: document.getElementById('practice-name').value,
         therapist_name: document.getElementById('therapist-name').value,
@@ -438,10 +497,7 @@ async function savePracticeInfo() {
         const result = await response.json();
         
         if (result.success) {
-            const statusDiv = document.getElementById('practice-info-status');
-            statusDiv.textContent = '✓ Practice information saved successfully!';
-            statusDiv.style.display = 'block';
-            setTimeout(() => statusDiv.style.display = 'none', 3000);
+            showSectionStatus('practice-info-status');
         } else {
             alert('Failed to save practice information');
         }
@@ -647,15 +703,10 @@ async function deleteLogo() {
             const result = await response.json();
             
             if (result.success) {
-                const statusDiv = document.getElementById('practice-info-status');
-                statusDiv.textContent = '✓ Logo deleted successfully!';
-                statusDiv.style.display = 'block';
-                
                 document.getElementById('logo-current').textContent = '';
                 document.getElementById('logo-delete-button').classList.remove('visible');
                 document.getElementById('logo-choose-button').classList.remove('hidden');
-                
-                setTimeout(() => statusDiv.style.display = 'none', 3000);
+                showSectionStatus('statement-status', '✓ Logo deleted!');
             } else {
                 alert('Delete failed: ' + result.error);
             }
@@ -676,15 +727,10 @@ async function deleteSignature() {
             const result = await response.json();
             
             if (result.success) {
-                const statusDiv = document.getElementById('practice-info-status');
-                statusDiv.textContent = '✓ Signature deleted successfully!';
-                statusDiv.style.display = 'block';
-                
                 document.getElementById('signature-current').textContent = '';
                 document.getElementById('signature-delete-button').classList.remove('visible');
                 document.getElementById('signature-choose-button').classList.remove('hidden');
-                
-                setTimeout(() => statusDiv.style.display = 'none', 3000);
+                showSectionStatus('statement-status', '✓ Signature deleted!');
             } else {
                 alert('Delete failed: ' + result.error);
             }
@@ -696,7 +742,7 @@ async function deleteSignature() {
 }
 
 // ============================================================
-// FILE NUMBER SETTINGS
+// FILE NUMBER SETTINGS (auto-save with confirmation)
 // ============================================================
 
 /**
@@ -765,10 +811,14 @@ function loadFileNumberSettings() {
 }
 
 /**
- * Save file number settings to server
+ * Save file number settings to server (auto-save with confirmation)
  */
 function saveFileNumberSettings() {
     const format = document.getElementById('file-number-format').value;
+    
+    // Toggle the options visibility
+    toggleFileNumberFields();
+    
     const settings = {
         format: format,
         prefix: format === 'prefix-counter' ? document.getElementById('file-number-prefix').value : '',
@@ -784,17 +834,14 @@ function saveFileNumberSettings() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const status = document.getElementById('file-number-status');
-            status.textContent = '✓ File number format saved';
-            status.style.display = 'block';
-            setTimeout(() => status.style.display = 'none', 3000);
+            showSectionStatus('file-number-status');
         }
     })
     .catch(error => console.error('Error saving file number settings:', error));
 }
 
 // ============================================================
-// CALENDAR SETTINGS
+// CALENDAR SETTINGS (auto-save with confirmation)
 // ============================================================
 
 /**
@@ -816,10 +863,6 @@ function loadCalendarSettings() {
     
     if (!calendarMethod) return;
     
-    calendarMethod.addEventListener('change', function() {
-        calendarNameGroup.style.display = this.value === 'applescript' ? 'block' : 'none';
-    });
-    
     fetch('/api/calendar_settings')
         .then(response => response.json())
         .then(data => {
@@ -833,8 +876,75 @@ function loadCalendarSettings() {
         });
 }
 
+/**
+ * Save calendar settings to server (auto-save with confirmation)
+ */
+async function saveCalendarSettings() {
+    toggleCalendarNameField();
+    
+    try {
+        const response = await fetch('/api/calendar_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                calendar_method: document.getElementById('calendar_method').value,
+                calendar_name: document.getElementById('calendar_name').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSectionStatus('calendar-status');
+        }
+    } catch (error) {
+        console.error('Failed to save calendar settings:', error);
+    }
+}
+
 // ============================================================
-// STATEMENT SETTINGS
+// SECURITY SETTINGS (auto-save with confirmation)
+// ============================================================
+
+/**
+ * Load security settings from server
+ */
+function loadSecuritySettings() {
+    fetch('/api/security_settings')
+        .then(response => response.json())
+        .then(data => {
+            const timeout = document.getElementById('session_timeout');
+            if (timeout) {
+                timeout.value = data.session_timeout || '30';
+            }
+        });
+}
+
+/**
+ * Save security settings to server (auto-save with confirmation)
+ */
+async function saveSecuritySettings() {
+    try {
+        const response = await fetch('/api/security_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_timeout: document.getElementById('session_timeout').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSectionStatus('security-status');
+        }
+    } catch (error) {
+        console.error('Failed to save security settings:', error);
+    }
+}
+
+// ============================================================
+// STATEMENT SETTINGS (manual save with confirmation)
 // ============================================================
 
 /**
@@ -883,128 +993,36 @@ function loadStatementSettings() {
         });
 }
 
-// ============================================================
-// SECURITY SETTINGS
-// ============================================================
-
 /**
- * Load security settings from server
+ * Save statement settings to server (manual save with confirmation)
  */
-function loadSecuritySettings() {
-    fetch('/api/security_settings')
-        .then(response => response.json())
-        .then(data => {
-            const timeout = document.getElementById('session_timeout');
-            if (timeout) {
-                timeout.value = data.session_timeout || '30';
-            }
-        });
-}
-
-// ============================================================
-// TIME FORMAT SETTINGS
-// ============================================================
-
-/**
- * Load time format setting from server
- */
-function loadTimeFormat() {
-    fetch('/api/time_format')
-        .then(response => response.json())
-        .then(data => {
-            const timeFormat = document.getElementById('time-format');
-            if (timeFormat) {
-                timeFormat.value = data.time_format || '12h';
-            }
-        });
-}
-
-/**
- * Save time format setting to server
- */
-async function saveTimeFormat() {
+async function saveStatementSettings() {
     try {
-        const response = await fetch('/api/time_format', {
+        const response = await fetch('/api/statement_settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                time_format: document.getElementById('time-format').value
+                currency: document.getElementById('currency').value,
+                registration_info: document.getElementById('registration_info').value,
+                payment_instructions: document.getElementById('payment_instructions').value,
+                include_attestation: document.getElementById('include_attestation').checked,
+                attestation_text: document.getElementById('attestation_text').value,
+                email_method: document.getElementById('email_method').value,
+                email_from_address: document.getElementById('email_from').value,
+                statement_email_body: document.getElementById('statement_email_body').value
             })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            const statusDiv = document.getElementById('time-format-status');
-            statusDiv.textContent = '✓ Time format saved!';
-            statusDiv.style.display = 'block';
-            setTimeout(() => statusDiv.style.display = 'none', 3000);
+            showSectionStatus('statement-status');
+        } else {
+            alert('Failed to save statement settings');
         }
     } catch (error) {
-        console.error('Failed to save time format:', error);
+        alert('Failed to save statement settings: ' + error.message);
     }
-}
-
-// ============================================================
-// SAVE ALL SETTINGS
-// ============================================================
-
-/**
- * Save all settings and redirect to main view
- */
-async function saveSettings() {
-    // Validate phone
-    const practicePhone = document.getElementById('practice-phone').value;
-    if (practicePhone && !validatePhone(practicePhone)) {
-        alert('Practice phone must be 10-15 digits');
-        document.getElementById('practice-phone').style.borderColor = '#e53e3e';
-        return;
-    }
-    document.getElementById('practice-phone').style.borderColor = '';
-    
-    // Save all sections
-    await savePracticeInfo();
-    await saveFileNumberSettings();
-    
-    await fetch('/api/calendar_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            calendar_method: document.getElementById('calendar_method').value,
-            calendar_name: document.getElementById('calendar_name').value
-        })
-    });
-
-    await fetch('/api/statement_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            currency: document.getElementById('currency').value,
-            registration_info: document.getElementById('registration_info').value,
-            payment_instructions: document.getElementById('payment_instructions').value,
-            include_attestation: document.getElementById('include_attestation').checked,
-            attestation_text: document.getElementById('attestation_text').value,
-            email_method: document.getElementById('email_method').value,
-            email_from_address: document.getElementById('email_from').value,
-            statement_email_body: document.getElementById('statement_email_body').value
-        })
-    });
-
-    await fetch('/api/security_settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            session_timeout: document.getElementById('session_timeout').value
-        })
-    });
-    
-    // Show success and redirect
-    const successMsg = document.getElementById('success-message');
-    successMsg.classList.add('show');
-    setTimeout(() => {
-        successMsg.classList.remove('show');
-        window.location.href = '/';
-    }, 1000);
 }
 
 // ============================================================
@@ -1043,24 +1061,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (filename) {
             document.getElementById('upload-filename').textContent = filename;
             document.getElementById('upload-button').style.display = 'inline-block';
-        }
-    });
-    
-    // Logo upload filename display
-    document.getElementById('logo-upload')?.addEventListener('change', function(e) {
-        const filename = e.target.files[0]?.name;
-        if (filename) {
-            document.getElementById('logo-filename').textContent = filename;
-            document.getElementById('logo-upload-button').style.display = 'inline-block';
-        }
-    });
-    
-    // Signature upload filename display
-    document.getElementById('signature-upload')?.addEventListener('change', function(e) {
-        const filename = e.target.files[0]?.name;
-        if (filename) {
-            document.getElementById('signature-filename').textContent = filename;
-            document.getElementById('signature-upload-button').style.display = 'inline-block';
         }
     });
 });

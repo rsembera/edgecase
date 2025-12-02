@@ -85,6 +85,27 @@ details[open] .settings-section-header .arrow {
     border-radius: 0.5rem;
     margin-bottom: 1rem;
 }
+
+/* Section save row - button and status on same line */
+.section-save-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.section-status {
+    color: #0E5346;
+    font-size: 0.875rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.section-status.show {
+    opacity: 1;
+}
 </style>
 
 {% endblock %}
@@ -93,10 +114,6 @@ details[open] .settings-section-header .arrow {
 <div class="card">
     <h2><i data-lucide="sliders-horizontal" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Settings</h2>
     <p style="color: #5B6571; margin-top: 0.5rem; margin-bottom: 2rem;">Customize your EdgeCase experience</p>
-    
-    <div id="success-message" class="success-message">
-        <i data-lucide="check" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Settings saved successfully!
-    </div>
     
     <!-- Appearance Section -->
     <details class="settings-section-collapsible">
@@ -169,7 +186,7 @@ details[open] .settings-section-header .arrow {
         <div class="settings-section-content">
         
         <div class="form-row-half">
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 0;">
                 <label for="time-format">Time Format</label>
                 <select id="time-format" onchange="saveTimeFormat()">
                     <option value="12h">12-hour (2:30 PM)</option>
@@ -179,7 +196,7 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div id="time-format-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+        <span id="time-format-status" class="section-status">✓ Saved!</span>
         </div>
     </details>
     
@@ -368,7 +385,10 @@ details[open] .settings-section-header .arrow {
             </select>
         </div>
         
-        <div id="practice-info-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+        <div class="section-save-row">
+            <button onclick="savePracticeInfo()" class="btn">Save</button>
+            <span id="practice-info-status" class="section-status">✓ Saved!</span>
+        </div>
         </div>
     </details>
 
@@ -387,7 +407,7 @@ details[open] .settings-section-header .arrow {
         <div class="form-row-half">
         <div class="form-group">
             <label for="file-number-format">Format Type</label>
-            <select id="file-number-format" onchange="toggleFileNumberFields()">
+            <select id="file-number-format" onchange="saveFileNumberSettings()">
                 <option value="manual">Manual Entry - User types file number</option>
                 <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
                 <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
@@ -399,19 +419,19 @@ details[open] .settings-section-header .arrow {
         <div id="prefix-counter-options" style="display: none; margin-left: 2rem; padding: 1rem; background: #F2F4F5; border-radius: 0.5rem;">
             <div class="form-group">
                 <label for="file-number-prefix">Prefix (optional)</label>
-                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;">
+                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;" onchange="saveFileNumberSettings()">
                 <small>Up to 6 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-suffix">Suffix (optional)</label>
-                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;">
+                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;" onchange="saveFileNumberSettings()">
                 <small>Up to 4 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-start">Starting Number</label>
-                <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;">
+                <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;" onchange="saveFileNumberSettings()">
                 <small>Counter starts here and increments automatically</small>
             </div>
             
@@ -424,7 +444,7 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div id="file-number-status" style="color: #0E5346; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+        <span id="file-number-status" class="section-status" style="margin-top: 1rem; display: block;">✓ Saved!</span>
         </div>
     </details>
 
@@ -442,7 +462,7 @@ details[open] .settings-section-header .arrow {
         <div class="form-row-half">
         <div class="form-group">
             <label for="calendar_method">Add appointments via</label>
-            <select id="calendar_method" onchange="toggleCalendarNameField()">
+            <select id="calendar_method" onchange="saveCalendarSettings()">
                 <option value="ics">Download .ics file (works everywhere)</option>
                 <option value="applescript">Add directly to Calendar (Mac only)</option>
             </select>
@@ -451,9 +471,11 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group" id="calendar-name-group" style="display: none;">
             <label for="calendar_name">Calendar name</label>
-            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;">
+            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;" onchange="saveCalendarSettings()">
             <small>Exact name of the calendar in Apple Calendar app</small>
         </div>
+        
+        <span id="calendar-status" class="section-status">✓ Saved!</span>
         </div>
     </details>
     
@@ -485,9 +507,9 @@ details[open] .settings-section-header .arrow {
         </div>
 
         <div class="form-row-half">
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 0;">
             <label for="session_timeout">Auto-Logout After Inactivity</label>
-            <select id="session_timeout">
+            <select id="session_timeout" onchange="saveSecuritySettings()">
                 <option value="15">15 minutes</option>
                 <option value="30">30 minutes (default)</option>
                 <option value="60">1 hour</option>
@@ -498,6 +520,7 @@ details[open] .settings-section-header .arrow {
         </div>
         </div>
         
+        <span id="security-status" class="section-status" style="margin-top: 1rem; display: block;">✓ Saved!</span>
         </div>
     </details>
 
@@ -565,20 +588,21 @@ details[open] .settings-section-header .arrow {
         </div>  
 
         <div class="form-group" id="email-from-group" style="display: none;">
-                    <label for="email_from">Send From Address</label>
-                    <input type="email" id="email_from" placeholder="john.smith@geemail.com">
-                    <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Must match an account configured in Apple Mail</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="statement_email_body">Email Body Text</label>
-                    <textarea id="statement_email_body" rows="6" placeholder="If you have any questions or concerns, please don't hesitate to let me know.
+            <label for="email_from">Send From Address</label>
+            <input type="email" id="email_from" placeholder="john.smith@geemail.com">
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Must match an account configured in Apple Mail</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="statement_email_body">Email Body Text</label>
+            <textarea id="statement_email_body" rows="6" placeholder="If you have any questions or concerns, please don't hesitate to let me know.
 
 All the best,
 
 John Smith."></textarea>
-                    <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Text that follows "Please find attached your statement for [Month Year]."</small>
-                </div>
+            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Text that follows "Please find attached your statement for [Month Year]."</small>
+        </div>
+        
         <div class="form-group">
             <label>Practice Logo</label>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -606,12 +630,19 @@ John Smith."></textarea>
                 </button>
             </div>
         </div>
+        
+        <div class="section-save-row">
+            <button onclick="saveStatementSettings()" class="btn">Save</button>
+            <span id="statement-status" class="section-status">✓ Saved!</span>
+        </div>
         </div>
     </details>
 
-    <div class="button-group">
-        <a href="{{ url_for('clients.index') }}" class="btn btn-secondary">Cancel</a>
-        <button onclick="saveSettings()" class="btn">Save Settings</button>
+    <div style="text-align: right; margin-top: 2rem;">
+        <a href="{{ url_for('clients.index') }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            Back
+        </a>
     </div>
 
     <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e2e8f0;">
