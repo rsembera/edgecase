@@ -96,7 +96,6 @@ def practice_info():
         cursor = conn.cursor()
         cursor.execute(query, keys)
         rows = cursor.fetchall()
-        conn.close()
         
         info = {}
         for row in rows:
@@ -134,7 +133,6 @@ def practice_info():
                 ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
             """, (key, value, modified_at, value, modified_at))
         conn.commit()
-        conn.close()
         
         return jsonify({'success': True})
 
@@ -283,7 +281,6 @@ def upload_logo():
             ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
         """, (filename, modified_at, filename, modified_at))
         conn.commit()
-        conn.close()
         
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
@@ -335,7 +332,6 @@ def upload_signature():
             ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
         """, (filename, modified_at, filename, modified_at))
         conn.commit()
-        conn.close()
         
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
@@ -366,7 +362,6 @@ def delete_logo():
             cursor.execute("DELETE FROM settings WHERE key = 'logo_filename'")
             conn.commit()
         
-        conn.close()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -396,7 +391,6 @@ def delete_signature():
             cursor.execute("DELETE FROM settings WHERE key = 'signature_filename'")
             conn.commit()
         
-        conn.close()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})

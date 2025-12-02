@@ -523,7 +523,6 @@ def create_session(client_id):
     last_service_row = cursor.fetchone()
     last_service = last_service_row['service'] if last_service_row else None
     
-    conn.close()
 
     return render_template('entry_forms/session.html',
                         client=client,
@@ -801,7 +800,6 @@ def edit_session(client_id, entry_id):
                 'duration': row['session_duration'] or 50
             }
     
-    conn.close()
     
     # Check if entry is locked
     is_locked = db.is_entry_locked(entry_id)
@@ -1515,7 +1513,6 @@ def download_attachment(attachment_id):
     
     cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
     attachment = cursor.fetchone()
-    conn.close()
     
     if not attachment:
         return "Attachment not found", 404
@@ -1543,7 +1540,6 @@ def view_attachment(attachment_id):
     
     cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
     attachment = cursor.fetchone()
-    conn.close()
     
     if not attachment:
         return "Attachment not found", 404
@@ -1575,7 +1571,6 @@ def delete_attachment(attachment_id):
     attachment = cursor.fetchone()
     
     if not attachment:
-        conn.close()
         return "Attachment not found", 404
     
     cursor.execute("SELECT * FROM entries WHERE id = ?", (attachment['entry_id'],))
@@ -1594,6 +1589,5 @@ def delete_attachment(attachment_id):
         change_desc = f"Deleted file: {attachment['filename']}"
         db.add_to_edit_history(attachment['entry_id'], change_desc)
     
-    conn.close()
     
     return '', 200

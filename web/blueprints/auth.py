@@ -55,7 +55,6 @@ def login():
             # Test that password works by running a query
             conn = db.connect()
             conn.execute("SELECT count(*) FROM client_types")
-            conn.close()
             
             # Success! Store db in app config
             current_app.config['db'] = db
@@ -112,7 +111,6 @@ def change_password():
             conn.execute(f"PRAGMA rekey = '{new_password}'")
             
             # Step 3: Close the old connection completely
-            conn.close()
             
             # Step 4: Update the Database object's password
             db.password = new_password
@@ -120,7 +118,6 @@ def change_password():
             # Step 5: Verify new password works by opening fresh connection
             test_conn = db.connect()
             test_conn.execute("SELECT 1")  # This confirms rekey worked
-            test_conn.close()
             
             flash("Password changed successfully", "success")
             return redirect(url_for('settings.settings_page'))

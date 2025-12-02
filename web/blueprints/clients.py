@@ -115,7 +115,6 @@ def cleanup_inactive_client_links(client_id):
             groups_deleted += 1
     
     conn.commit()
-    conn.close()
 
 
 # ============================================================================
@@ -468,7 +467,6 @@ def client_file(client_id):
                 'members': members
             })
     
-    conn.close()
     
     # Get ALL entries for this client
     all_entries = db.get_client_entries(client_id)

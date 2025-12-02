@@ -242,7 +242,6 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (entry_id, filename, description, filepath, filesize, int(time.time())))
             conn.commit()
-            conn.close()
             
             saved_files.append(filename)
     
