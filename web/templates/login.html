@@ -331,13 +331,29 @@
     </div>
     
     <script>
-        // Prevent double form submission
+        // Prevent double form submission AND handle autofill race condition
         document.getElementById('login-form').addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
+            const passwordField = document.getElementById('password');
+            
+            // If button already disabled, prevent duplicate submission
             if (submitBtn.disabled) {
                 e.preventDefault();
                 return false;
             }
+            
+            // Check if password field has a value (autofill race condition)
+            if (!passwordField.value || passwordField.value.trim() === '') {
+                e.preventDefault();
+                // Wait for autofill to complete, then retry
+                setTimeout(function() {
+                    if (passwordField.value && passwordField.value.trim() !== '') {
+                        document.getElementById('login-form').submit();
+                    }
+                }, 100);
+                return false;
+            }
+            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Please wait...';
         });
