@@ -457,6 +457,13 @@ def mark_sent(portion_id):
         comm_description = f"Statement Sent - {statement_month_year}"
         comm_content = email_body
     
+    # Get time format preference
+    time_format = db.get_setting('time_format', '12h')
+    if time_format == '24h':
+        comm_time = datetime.now().strftime('%H:%M')
+    else:
+        comm_time = datetime.now().strftime('%I:%M %p').lstrip('0')
+    
     cursor.execute("""
         INSERT INTO entries (
             client_id, class, created_at, modified_at,
@@ -470,7 +477,7 @@ def mark_sent(portion_id):
         comm_description,
         comm_content,
         now,
-        datetime.now().strftime('%I:%M %p').lstrip('0')
+        comm_time
     ))
     
     comm_entry_id = cursor.lastrowid

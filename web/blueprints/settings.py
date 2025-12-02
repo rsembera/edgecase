@@ -465,3 +465,20 @@ def security_settings():
         return jsonify({
             'session_timeout': db.get_setting('session_timeout', '30')
         })
+
+
+# ============================================================================
+# TIME FORMAT SETTINGS
+# ============================================================================
+
+@settings_bp.route('/api/time_format', methods=['GET', 'POST'])
+def time_format():
+    """Get or save time format setting (12h or 24h)."""
+    if request.method == 'POST':
+        data = request.get_json()
+        db.set_setting('time_format', data.get('time_format', '12h'))
+        return jsonify({'success': True})
+    else:
+        return jsonify({
+            'time_format': db.get_setting('time_format', '12h')
+        })

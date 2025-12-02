@@ -1,25 +1,8 @@
 /**
  * Absence Entry Form JavaScript - EdgeCase Equalizer
  * Handles absence (cancellation/no-show) creation/editing with
- * three-way fee calculation.
+ * three-way fee calculation and date/time pickers.
  */
-
-// Date dropdowns → hidden field
-const dateYear = document.getElementById('date_year');
-const dateMonth = document.getElementById('date_month');
-const dateDay = document.getElementById('date_day');
-const dateHidden = document.getElementById('absence_date');
-
-/**
- * Update hidden absence_date field from dropdown selections
- */
-function updateAbsenceDate() {
-    if (dateYear.value && dateMonth.value && dateDay.value) {
-        dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
-    } else {
-        dateHidden.value = '';
-    }
-}
 
 /**
  * Three-way fee calculation for absence fees
@@ -58,10 +41,6 @@ function formatToTwoDecimals(input) {
     }
 }
 
-dateYear.addEventListener('change', updateAbsenceDate);
-dateMonth.addEventListener('change', updateAbsenceDate);
-dateDay.addEventListener('change', updateAbsenceDate);
-
 // Auto-expanding textarea
 const contentTextarea = document.getElementById('content');
 const maxHeight = 600;
@@ -70,6 +49,7 @@ const maxHeight = 600;
  * Auto-resize textarea to fit content up to maxHeight
  */
 function autoResize() {
+    if (!contentTextarea) return;
     contentTextarea.style.height = 'auto';
     const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
     contentTextarea.style.height = newHeight + 'px';
@@ -85,4 +65,54 @@ function autoResize() {
 autoResize();
 
 // Run on input
-contentTextarea.addEventListener('input', autoResize);
+if (contentTextarea) {
+    contentTextarea.addEventListener('input', autoResize);
+}
+
+// ============================================================
+// DATE/TIME PICKERS
+// ============================================================
+
+/**
+ * Initialize date and time pickers for absence form
+ */
+async function initAbsencePickers() {
+    // Get time format setting
+    const timeFormat = await getTimeFormatSetting();
+    
+    // Get initial values from hidden inputs
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('absence_time');
+    
+    // Initialize date picker
+    const datePicker = initDatePicker('absence-date-picker', {
+        initialDate: dateInput.value ? parseDateString(dateInput.value) : new Date(),
+        onSelect: (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+    });
+    
+    // Initialize time picker
+    const timePicker = initTimePicker('absence-time-picker', {
+        format: timeFormat,
+        initialTime: timeInput.value || null,
+        onSelect: (timeStr) => {
+            timeInput.value = timeStr;
+        }
+    });
+    
+    // If no initial time and not in edit mode, populate with current time
+    if (!timeInput.value) {
+        timeInput.value = timePicker.formatTime();
+    }
+}
+
+// Initialize pickers when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAbsencePickers);
+} else {
+    initAbsencePickers();
+}

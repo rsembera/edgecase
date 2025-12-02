@@ -902,6 +902,50 @@ function loadSecuritySettings() {
 }
 
 // ============================================================
+// TIME FORMAT SETTINGS
+// ============================================================
+
+/**
+ * Load time format setting from server
+ */
+function loadTimeFormat() {
+    fetch('/api/time_format')
+        .then(response => response.json())
+        .then(data => {
+            const timeFormat = document.getElementById('time-format');
+            if (timeFormat) {
+                timeFormat.value = data.time_format || '12h';
+            }
+        });
+}
+
+/**
+ * Save time format setting to server
+ */
+async function saveTimeFormat() {
+    try {
+        const response = await fetch('/api/time_format', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                time_format: document.getElementById('time-format').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const statusDiv = document.getElementById('time-format-status');
+            statusDiv.textContent = '✓ Time format saved!';
+            statusDiv.style.display = 'block';
+            setTimeout(() => statusDiv.style.display = 'none', 3000);
+        }
+    } catch (error) {
+        console.error('Failed to save time format:', error);
+    }
+}
+
+// ============================================================
 // SAVE ALL SETTINGS
 // ============================================================
 
@@ -975,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSecuritySettings();
     loadCalendarSettings();
     loadStatementSettings();
+    loadTimeFormat();
     
     // Phone formatting
     const phoneInput = document.getElementById('practice-phone');

@@ -80,18 +80,41 @@ function initDropdownCloseHandler() {
 // LIVE CLOCK
 // ============================================================
 
+let timeFormat = '12h'; // Default, fetched from server
+
+/**
+ * Fetch the time format setting from the server
+ */
+async function loadTimeFormat() {
+    try {
+        const response = await fetch('/api/time_format');
+        const data = await response.json();
+        timeFormat = data.time_format || '12h';
+    } catch (e) {
+        console.error('Error loading time format:', e);
+    }
+}
+
 /**
  * Update the clock display with current time and date
  */
 function updateClock() {
     const now = new Date();
     
-    // Format time: "12:45 PM"
-    let hours = now.getHours();
-    const minutes = now.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    const timeStr = `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    let timeStr;
+    if (timeFormat === '24h') {
+        // Format time: "14:05"
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        timeStr = `${hours}:${minutes}`;
+    } else {
+        // Format time: "2:05 PM"
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        timeStr = `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    }
     
     // Format date: "November 9, 2025"
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -577,10 +600,14 @@ function escapeHtml(text) {
 // INITIALIZATION
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     applyClientCardColors();
     initDropdownCloseHandler();
+    
+    // Load time format before starting clock
+    await loadTimeFormat();
     syncClock();
+    
     loadCardOrder();
     initCardDragDrop();
     initFilterDropdown();
