@@ -536,6 +536,7 @@ def client_file(client_id):
         for month in sorted(year_dict[year].keys(), reverse=True):
             # Sort entries by date, then manual time, then created_at
             def get_entry_sort_key(e):
+                # Get manual date field if set
                 date_val = 0
                 if e['class'] == 'session':
                     date_val = e.get('session_date', 0)
@@ -548,9 +549,18 @@ def client_file(client_id):
                 elif e['class'] == 'upload':
                     date_val = e.get('upload_date', 0)
                 
-                time_val = None
-                time_str = None
+                # Fall back to created_at if no manual date
+                created_at = e.get('created_at', 0)
+                if not date_val:
+                    date_val = created_at
                 
+                # Normalize date to midnight for consistent comparison
+                if date_val:
+                    entry_dt = datetime.fromtimestamp(date_val)
+                    date_val = int(datetime(entry_dt.year, entry_dt.month, entry_dt.day).timestamp())
+                
+                # Get manual time field if set
+                time_str = None
                 if e['class'] == 'session':
                     time_str = e.get('session_time')
                 elif e['class'] == 'communication':
@@ -562,17 +572,16 @@ def client_file(client_id):
                 elif e['class'] == 'upload':
                     time_str = e.get('upload_time')
                 
+                time_val = None
                 if time_str:
                     time_val = parse_time_to_seconds(time_str)
                 
+                # Fall back to time-of-day from created_at if no manual time
                 if time_val is None:
-                    created_timestamp = e.get('created_at', 0)
-                    created_dt = datetime.fromtimestamp(created_timestamp)
+                    created_dt = datetime.fromtimestamp(created_at)
                     time_val = created_dt.hour * 3600 + created_dt.minute * 60 + created_dt.second
                 
-                created_val = e.get('created_at', 0)
-                
-                return (date_val, time_val, created_val)
+                return (date_val, time_val, created_at)
             
             month_entries = sorted(year_dict[year][month], 
                                  key=get_entry_sort_key, 
