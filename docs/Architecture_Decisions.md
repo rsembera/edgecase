@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** November 25, 2025
+**Last Updated:** December 1, 2025
 
 ---
 
@@ -60,7 +60,7 @@ All client records (profiles, sessions, communications, etc.) are stored as entr
 
 ### The Decision
 
-Organize routes into 6 modular blueprints instead of one monolithic app.py.
+Organize routes into 11 modular blueprints instead of one monolithic app.py.
 
 ### Why?
 
@@ -71,13 +71,17 @@ Organize routes into 6 modular blueprints instead of one monolithic app.py.
 - Testing difficult
 
 **Blueprint organization:**
+- `auth.py` - Login/logout, session management (~155 lines)
+- `backups.py` - Backup/restore operations (~224 lines)
 - `clients.py` - Client management (~400 lines)
 - `entries.py` - Entry CRUD (~450 lines)
 - `ledger.py` - Income/Expense (~350 lines)
-- `scheduler.py` - Calendar integration (~200 lines) - NEW
+- `links.py` - Link group management (~193 lines)
+- `scheduler.py` - Calendar integration (~200 lines)
+- `statements.py` - Statement generation (~300 lines)
 - `types.py` - Client types (~100 lines)
 - `settings.py` - Configuration (~120 lines)
-- `app.py` - Just initialization (77 lines)
+- `app.py` - Just initialization (219 lines)
 
 **Benefits:**
 - ✅ **Maintainability** - Find code faster
@@ -407,7 +411,8 @@ Store files in organized directory hierarchy:
 ### Security
 
 - Files named with `secure_filename()` - Prevents directory traversal
-- Only accessible through authenticated routes (Phase 3 will add auth)
+- Only accessible through authenticated routes
+- Encrypted with Fernet (Phase 2)
 - Not in web/static/ - Not directly web-accessible
 
 ---
@@ -716,18 +721,6 @@ Could have implemented two-way calendar sync (EdgeCase ↔ Google/Apple Calendar
 
 ---
 
-*For database details, see Database_Schema.md*  
-*For route details, see Route_Reference.md* 
-
-*Last updated: November 25, 2025*
-
-# Architecture Decisions - Phase 1 Addendum
-
-**Purpose:** Additional decisions from final Phase 1 work
- **Date:** November 29, 2025
-
-------
-
 ## SAFARI POPUP BLOCKER PATTERN
 
 ### The Problem
@@ -793,7 +786,7 @@ document.getElementById('button').addEventListener('click', function() {
 
 The pattern separates "permission to open" (immediate on click) from "what to show" (can be async). Safari grants popup permission at click time; we use that permission later.
 
-------
+---
 
 ## SESSION SUMMARY REPORTS
 
@@ -831,7 +824,7 @@ Create a separate "session report" feature rather than reusing statements.
 - Optional fee inclusion checkbox
 - Access via client file "Add" dropdown
 
-------
+---
 
 ## SETTINGS UPLOAD BUTTON VISIBILITY
 
@@ -862,7 +855,7 @@ button.classList.remove('hidden');
 3. **Debuggability** - Can see `.hidden` in DOM inspector
 4. **Maintainability** - Logic in CSS, not scattered in JS
 
-------
+---
 
 ## PDF LINE WIDTH MATCHING
 
@@ -891,6 +884,8 @@ HRFlowable(width=sig_width, thickness=0.5, color=colors.black)
 - **Flexibility** - Different signature sizes work automatically
 - **Consistency** - Date line matches date text length
 
-------
+---
 
-*These patterns are now established for reuse in Phase 2 and beyond.*
+*For database details, see Database_Schema.md*  
+*For route details, see Route_Reference.md*  
+*Last Updated: December 1, 2025*

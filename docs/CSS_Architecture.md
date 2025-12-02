@@ -6,16 +6,16 @@
 
 EdgeCase uses a layered CSS architecture:
 
-1. **shared.css** (1,168 lines) - Common patterns used across multiple pages
+1. **shared.css** (1,180 lines) - Common patterns used across multiple pages
 2. **Page-specific CSS** - Styles unique to individual pages
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~4,600 lines across 24 files
+**Total CSS:** 4,641 lines across 24 files
 
 ---
 
-## shared.css Sections (1168 lines)
+## shared.css Sections (1,180 lines)
 
 | Line | Section | What's in it |
 |------|---------|--------------|
@@ -49,31 +49,31 @@ All pages load shared.css via base.html, then their own CSS via `{% block extra_
 
 ## Page-Specific CSS Files
 
-### Large Files (150+ lines)
+### Large Files (100+ lines)
 | File | Lines | Page | Notes |
 |------|-------|------|-------|
-| main_view.css | 663 | Client list | Filters, client cards, retention modal |
-| backups.css | 616 | Backup settings | Backup cards, progress bars |
+| main_view.css | 645 | Client list | Filters, client cards, retention modal |
+| backups.css | 563 | Backup settings | Backup cards, progress bars |
 | outstanding_statements.css | 429 | Billing | Statement cards, payment UI |
 | add_edit_link_group.css | 330 | Link groups | Member selection, fee allocation |
-| ledger_report.css | 255 | Financial report | Report form, preview |
-| expense.css | 215 | Expense entry | Receipt upload, category select |
-| add_edit_type.css | 208 | Client types | Color picker, type form |
 | manage_links.css | 189 | Link management | Link group list |
-| export.css | 185 | Export entries | Export options |
-| client_file.css | 175 | Client timeline | Entry list, profile card |
+| ledger_report.css | 171 | Financial report | Report form, preview |
 | ledger.css | 166 | Income/Expense | Ledger table, filters |
-| settings.css | 152 | Settings page | Tabs, upload areas |
+| export.css | 153 | Export entries | Export options |
+| add_edit_type.css | 128 | Client types | Color picker, type form |
+| client_file.css | 99 | Client timeline | Entry list, profile card |
 
 ### Small Files (<100 lines)
 | File | Lines | Notes |
 |------|-------|-------|
+| settings.css | 86 | Settings page |
 | profile.css | 78 | Profile entry form |
+| expense.css | 72 | Expense entry |
 | deleted_clients.css | 67 | Deleted clients view |
 | manage_types.css | 65 | Types table |
-| add_client.css | 64 | New client form |
 | schedule_form.css | 61 | Calendar scheduling |
 | upload.css | 57 | Upload entry |
+| add_client.css | 25 | New client form |
 | session.css | 22 | Session entry |
 | absence.css | 21 | Absence entry |
 | communication.css | 17 | Communication entry |
@@ -140,15 +140,6 @@ All pages load shared.css via base.html, then their own CSS via `{% block extra_
 .form-section h3     /* Section title */
 .form-actions        /* Bottom button row */
 ```
-
----
-
-## Files That May Need Cleanup
-
-These larger files likely have some duplication or unused styles:
-- backups.css (616 lines) - Recently cleaned but still large
-- outstanding_statements.css (429 lines)
-- add_edit_link_group.css (330 lines)
 
 ---
 
