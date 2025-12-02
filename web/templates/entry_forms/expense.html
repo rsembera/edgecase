@@ -4,9 +4,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/expense.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/expense.js') }}"></script>
 {% endblock %}
 
@@ -23,41 +25,11 @@
     </div>
     
     <form method="POST" id="expense-form" enctype="multipart/form-data">
-        <!-- Date fields on one line, NOT full width -->
-        <div class="form-group">
-            <label for="ledger_date">Date *</label>
-            <div class="date-input-group">
-                <select id="year" name="year" required>
-                    <option value="">Year</option>
-                    {% for year in range(2025, 2019, -1) %}
-                    <option value="{{ year }}" 
-                            {% if is_edit and expense_year == year %}selected
-                            {% elif not is_edit and today_year == year %}selected{% endif %}>
-                        {{ year }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <select id="month" name="month" required>
-                    <option value="">Month</option>
-                    {% for month in range(1, 13) %}
-                    <option value="{{ month }}" 
-                            {% if is_edit and expense_month == month %}selected
-                            {% elif not is_edit and today_month == month %}selected{% endif %}>
-                        {{ '%02d'|format(month) }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <select id="day" name="day" required>
-                    <option value="">Day</option>
-                    {% for day in range(1, 32) %}
-                    <option value="{{ day }}" 
-                            {% if is_edit and expense_day == day %}selected
-                            {% elif not is_edit and today_day == day %}selected{% endif %}>
-                        {{ '%02d'|format(day) }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+        <!-- Date field, NOT full width -->
+        <div class="form-group" style="max-width: 300px;">
+            <label>Date *</label>
+            <div id="expense-date-picker"></div>
+            <input type="hidden" id="date" name="date" value="{% if is_edit %}{{ '%04d-%02d-%02d' | format(expense_year, expense_month, expense_day) }}{% endif %}" required>
         </div>
         
         <!-- Total Amount and Tax Paid on same line -->

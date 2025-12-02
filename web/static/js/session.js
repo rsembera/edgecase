@@ -320,3 +320,67 @@ textarea.addEventListener('input', autoResize);
 function closeMissingLinkModal() {
     document.getElementById('missing-link-modal').style.display = 'none';
 }
+
+
+// ============================================================
+// DATE AND TIME PICKERS INITIALIZATION
+// ============================================================
+
+/**
+ * Initialize date and time pickers for session form
+ */
+async function initSessionPickers() {
+    // Get initial values from hidden inputs
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('session_time');
+    
+    // Parse initial date
+    let initialDate = new Date();
+    if (dateInput && dateInput.value) {
+        const parts = dateInput.value.split('-');
+        if (parts.length === 3) {
+            initialDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+    }
+    
+    // Get time format setting
+    const timeFormat = await getTimeFormatSetting();
+    
+    // Initialize date picker
+    const dateContainer = document.getElementById('session-date-picker');
+    if (dateContainer) {
+        const datePicker = new DatePicker(dateContainer, {
+            initialDate: initialDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                dateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+    
+    // Initialize time picker
+    const timeContainer = document.getElementById('session-time-picker');
+    if (timeContainer) {
+        const timePicker = new TimePicker(timeContainer, {
+            format: timeFormat,
+            initialTime: timeInput.value || null,
+            onSelect: (time) => {
+                timeInput.value = time;
+            }
+        });
+        
+        // Set initial value if not in edit mode
+        if (!timeInput.value) {
+            timeInput.value = timePicker.getTime();
+        }
+    }
+}
+
+// Initialize pickers when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSessionPickers);
+} else {
+    initSessionPickers();
+}

@@ -4,9 +4,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/communication.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/communication.js') }}"></script>
 {% endblock %}
 
@@ -36,48 +38,14 @@
         <!-- Date and Time (at the top like session.html) -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
             <div class="form-group">
-                <label for="comm_date">Date *</label>
-                <div class="date-input-group">
-                    <select id="year" name="year" required>
-                        <option value="">Year</option>
-                        {% for year in range(2025, 2019, -1) %}
-                        <option value="{{ year }}" 
-                                {% if is_edit and comm_year == year %}selected
-                                {% elif not is_edit and today[:4] == year|string %}selected{% endif %}>
-                            {{ year }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <select id="month" name="month" required>
-                        <option value="">Month</option>
-                        {% for month in range(1, 13) %}
-                        <option value="{{ month }}" 
-                                {% if is_edit and comm_month == month %}selected
-                                {% elif not is_edit and today[5:7] == '%02d'|format(month) %}selected{% endif %}>
-                            {{ '%02d'|format(month) }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <select id="day" name="day" required>
-                        <option value="">Day</option>
-                        {% for day in range(1, 32) %}
-                        <option value="{{ day }}" 
-                                {% if is_edit and comm_day == day %}selected
-                                {% elif not is_edit and today[8:10] == '%02d'|format(day) %}selected{% endif %}>
-                            {{ '%02d'|format(day) }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <label>Date *</label>
+                <div id="comm-date-picker"></div>
+                <input type="hidden" id="date" name="date" value="{% if is_edit %}{{ '%04d-%02d-%02d' | format(comm_year, comm_month, comm_day) }}{% endif %}" required>
             </div>
             <div class="form-group">
-                <label for="comm_time">Time</label>
-                <input type="text" 
-                       id="comm_time" 
-                       name="comm_time" 
-                       value="{% if entry %}{{ entry.comm_time or '' }}{% endif %}"
-                       placeholder="e.g., 2:00 PM or 14:00">
-                <p class="helper-text">Optional - use any format you prefer</p>
+                <label>Time</label>
+                <div id="comm-time-picker"></div>
+                <input type="hidden" id="comm_time" name="comm_time" value="{% if entry %}{{ entry.comm_time or '' }}{% endif %}">
             </div>
         </div>
         

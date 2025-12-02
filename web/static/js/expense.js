@@ -286,3 +286,33 @@ function deleteEntry() {
         closeDeleteEntryModal();
     });
 }
+
+// ============================================================
+// DATE PICKER
+// ============================================================
+
+/**
+ * Initialize date picker for expense form
+ */
+async function initExpensePickers() {
+    // Get initial value from hidden input
+    const dateInput = document.getElementById('date');
+    
+    // Initialize date picker
+    initDatePicker('expense-date-picker', {
+        initialDate: dateInput.value ? parseDateString(dateInput.value) : new Date(),
+        onSelect: (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+    });
+}
+
+// Initialize picker when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initExpensePickers);
+} else {
+    initExpensePickers();
+}

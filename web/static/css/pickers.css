@@ -1,0 +1,321 @@
+/**
+ * Date and Time Picker Components - EdgeCase Equalizer
+ * Grid-based pickers optimized for touch (iPad) and mouse
+ */
+
+/* ============================================================
+   PICKER CONTAINER
+   ============================================================ */
+
+.picker-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.picker-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 2px solid #DEE2E6;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #111827;
+    transition: border-color 0.15s ease;
+    min-height: 46px;
+}
+
+.picker-display:hover {
+    border-color: #1F8F74;
+}
+
+.picker-display:focus {
+    outline: none;
+    border-color: #1F8F74;
+    box-shadow: 0 0 0 3px rgba(31, 143, 116, 0.1);
+}
+
+.picker-display-value {
+    flex: 1;
+}
+
+.picker-display-placeholder {
+    color: #9CA3AF;
+}
+
+.picker-display-icon {
+    color: #6B7280;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   PICKER DROPDOWN
+   ============================================================ */
+
+.picker-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #DEE2E6;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    display: none;
+    min-width: 280px;
+}
+
+.picker-dropdown.show {
+    display: block;
+}
+
+.picker-dropdown.picker-right {
+    left: auto;
+    right: 0;
+}
+
+/* ============================================================
+   PICKER HEADER
+   ============================================================ */
+
+.picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.picker-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.picker-nav-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: #6B7280;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.picker-nav-btn:hover {
+    background: #F3F4F6;
+    color: #111827;
+}
+
+.picker-back-btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    color: #1F8F74;
+}
+
+.picker-back-btn:hover {
+    background: #E6F5F1;
+}
+
+/* ============================================================
+   PICKER GRID
+   ============================================================ */
+
+.picker-grid {
+    display: grid;
+    gap: 4px;
+}
+
+/* Date picker grids */
+.picker-grid-years {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.picker-grid-months {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.picker-grid-days {
+    grid-template-columns: repeat(7, 1fr);
+}
+
+/* Time picker grids */
+.picker-grid-hours-12 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.picker-grid-hours-24 {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.picker-grid-minutes {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.picker-grid-ampm {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   PICKER CELLS
+   ============================================================ */
+
+.picker-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 0.5rem;
+    background: #F9FAFB;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: #374151;
+    transition: all 0.1s ease;
+    min-height: 40px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.picker-cell:hover {
+    background: #E6F5F1;
+    border-color: #1F8F74;
+}
+
+.picker-cell:active {
+    background: #D1EDE6;
+}
+
+.picker-cell.selected {
+    background: #1F8F74;
+    color: white;
+    font-weight: 500;
+}
+
+.picker-cell.selected:hover {
+    background: #187A62;
+    border-color: #187A62;
+}
+
+.picker-cell.today {
+    border-color: #1F8F74;
+    font-weight: 600;
+}
+
+.picker-cell.other-month {
+    color: #9CA3AF;
+    background: transparent;
+}
+
+.picker-cell.disabled {
+    color: #D1D5DB;
+    cursor: not-allowed;
+    background: transparent;
+}
+
+.picker-cell.disabled:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+/* Day of week headers */
+.picker-dow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    padding: 0.25rem;
+    text-align: center;
+}
+
+/* ============================================================
+   TIME PICKER SPECIFIC
+   ============================================================ */
+
+.time-picker-section {
+    margin-bottom: 0.75rem;
+}
+
+.time-picker-section:last-child {
+    margin-bottom: 0;
+}
+
+.time-picker-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6B7280;
+    margin-bottom: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* AM/PM toggle */
+.picker-cell.ampm {
+    font-weight: 600;
+    padding: 0.75rem;
+}
+
+/* ============================================================
+   COMBINED DATE-TIME DISPLAY
+   ============================================================ */
+
+.datetime-picker-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+@media (max-width: 500px) {
+    .datetime-picker-wrapper {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes pickerFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.picker-dropdown.show {
+    animation: pickerFadeIn 0.15s ease-out;
+}
+
+/* ============================================================
+   MOBILE/TOUCH OPTIMIZATIONS
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .picker-cell {
+        min-height: 44px;
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .picker-dropdown {
+        min-width: 260px;
+    }
+}
+
+/* Prevent text selection during interaction */
+.picker-dropdown {
+    -webkit-user-select: none;
+    user-select: none;
+}

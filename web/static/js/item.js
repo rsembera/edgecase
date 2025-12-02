@@ -1,24 +1,8 @@
 /**
  * Item Entry Form JavaScript - EdgeCase Equalizer
- * Handles billable item creation/editing with three-way fee calculation.
+ * Handles billable item creation/editing with three-way fee calculation
+ * and date/time pickers.
  */
-
-// Date dropdowns → hidden field
-const dateYear = document.getElementById('date_year');
-const dateMonth = document.getElementById('date_month');
-const dateDay = document.getElementById('date_day');
-const dateHidden = document.getElementById('item_date');
-
-/**
- * Update hidden item_date field from dropdown selections
- */
-function updateItemDate() {
-    if (dateYear.value && dateMonth.value && dateDay.value) {
-        dateHidden.value = `${dateYear.value}-${dateMonth.value}-${dateDay.value}`;
-    } else {
-        dateHidden.value = '';
-    }
-}
 
 /**
  * Three-way fee calculation for item fees
@@ -57,10 +41,6 @@ function formatToTwoDecimals(input) {
     }
 }
 
-dateYear.addEventListener('change', updateItemDate);
-dateMonth.addEventListener('change', updateItemDate);
-dateDay.addEventListener('change', updateItemDate);
-
 // Auto-expanding textarea
 const contentTextarea = document.getElementById('content');
 const maxHeight = 600;
@@ -69,6 +49,7 @@ const maxHeight = 600;
  * Auto-resize textarea to fit content up to maxHeight
  */
 function autoResize() {
+    if (!contentTextarea) return;
     contentTextarea.style.height = 'auto';
     const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
     contentTextarea.style.height = newHeight + 'px';
@@ -84,4 +65,54 @@ function autoResize() {
 autoResize();
 
 // Run on input
-contentTextarea.addEventListener('input', autoResize);
+if (contentTextarea) {
+    contentTextarea.addEventListener('input', autoResize);
+}
+
+// ============================================================
+// DATE/TIME PICKERS
+// ============================================================
+
+/**
+ * Initialize date and time pickers for item form
+ */
+async function initItemPickers() {
+    // Get time format setting
+    const timeFormat = await getTimeFormatSetting();
+    
+    // Get initial values from hidden inputs
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('item_time');
+    
+    // Initialize date picker
+    const datePicker = initDatePicker('item-date-picker', {
+        initialDate: dateInput.value ? parseDateString(dateInput.value) : new Date(),
+        onSelect: (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+    });
+    
+    // Initialize time picker
+    const timePicker = initTimePicker('item-time-picker', {
+        format: timeFormat,
+        initialTime: timeInput.value || null,
+        onSelect: (timeStr) => {
+            timeInput.value = timeStr;
+        }
+    });
+    
+    // If no initial time and not in edit mode, populate with current time
+    if (!timeInput.value) {
+        timeInput.value = timePicker.formatTime();
+    }
+}
+
+// Initialize pickers when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initItemPickers);
+} else {
+    initItemPickers();
+}

@@ -204,7 +204,11 @@ def index():
                     
     # Get current date and time
     current_date = now.strftime('%B %d, %Y')
-    current_time = now.strftime('%I:%M %p')
+    time_format = db.get_setting('time_format', '12h')
+    if time_format == '24h':
+        current_time = now.strftime('%H:%M')
+    else:
+        current_time = now.strftime('%I:%M %p').lstrip('0')
     
     # Add type information and additional data to each client
     for client in clients:

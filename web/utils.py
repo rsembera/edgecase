@@ -11,9 +11,31 @@ import difflib
 import calendar
 from core.encryption import encrypt_file
 
-def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day'):
-    """Convert year/month/day dropdowns to Unix timestamp.
+def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
+    """Convert date form data to Unix timestamp.
+    
+    Accepts either:
+    - Single 'date' field in YYYY-MM-DD format (from new pickers)
+    - Separate year/month/day dropdowns (legacy forms)
+    
     Automatically clamps invalid days (e.g., Nov 31 → Nov 30)."""
+    
+    # Check for single date field first (new picker format)
+    date_str = form_data.get(date_key)
+    if date_str:
+        try:
+            parts = date_str.split('-')
+            if len(parts) == 3:
+                year = int(parts[0])
+                month = int(parts[1])
+                day = int(parts[2])
+                max_day = calendar.monthrange(year, month)[1]
+                day = min(day, max_day)
+                return int(datetime(year, month, day).timestamp())
+        except (ValueError, IndexError):
+            pass
+    
+    # Fall back to separate fields (legacy format)
     year = form_data.get(year_key)
     month = form_data.get(month_key)
     day = form_data.get(day_key)
