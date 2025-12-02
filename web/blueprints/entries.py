@@ -369,12 +369,33 @@ def edit_profile(client_id):
     is_locked = db.is_entry_locked(profile['id']) if profile else False
     edit_history = db.get_edit_history(profile['id']) if is_locked else []
     
+    # Calculate retention info for Inactive clients
+    retention_info = None
+    if client['type']['name'] == 'Inactive' and client.get('retention_days'):
+        # Get last contact (most recent entry, or fall back to modified_at)
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT MAX(created_at) FROM entries WHERE client_id = ?", (client_id,))
+        result = cursor.fetchone()
+        last_contact = result[0] if result and result[0] else client['modified_at']
+        
+        retention_days = client['retention_days']
+        retain_until = last_contact + (retention_days * 24 * 60 * 60)
+        
+        retention_info = {
+            'retention_days': retention_days,
+            'last_contact': datetime.fromtimestamp(last_contact).strftime('%B %d, %Y'),
+            'retain_until': datetime.fromtimestamp(retain_until).strftime('%B %d, %Y'),
+            'is_due': int(time.time()) >= retain_until
+        }
+    
     return render_template('entry_forms/profile.html',
                          client=client,
                          profile=profile,
                          all_types=all_types,
                          is_locked=is_locked,
-                         edit_history=edit_history)
+                         edit_history=edit_history,
+                         retention_info=retention_info)
 
 
 # ============================================================================

@@ -43,6 +43,31 @@
         </div>
     </div>
 
+    <!-- Retention Info Box (only for Inactive clients) -->
+    {% if retention_info %}
+    <div class="retention-info-box" style="background: {% if retention_info.is_due %}#FEF2F2{% else %}#FEF3C7{% endif %}; border: 1px solid {% if retention_info.is_due %}#FECACA{% else %}#FDE68A{% endif %}; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <i data-lucide="{% if retention_info.is_due %}alert-triangle{% else %}clock{% endif %}" style="width: 22px; height: 22px; color: {% if retention_info.is_due %}#DC2626{% else %}#D97706{% endif %}; flex-shrink: 0; margin-top: 2px;"></i>
+            <div style="flex: 1;">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: {% if retention_info.is_due %}#991B1B{% else %}#92400E{% endif %};">
+                    {% if retention_info.is_due %}Ready for Deletion{% else %}Retention Period Active{% endif %}
+                </h4>
+                <div style="font-size: 0.875rem; color: #4B5563; line-height: 1.6;">
+                    <p style="margin: 0 0 0.5rem 0;"><strong>Retention Period:</strong> {{ retention_info.retention_days }} day{% if retention_info.retention_days != 1 %}s{% endif %}</p>
+                    <p style="margin: 0 0 0.5rem 0;"><strong>Last Contact:</strong> {{ retention_info.last_contact }}</p>
+                    <p style="margin: 0;"><strong>Scheduled Deletion:</strong> {{ retention_info.retain_until }}</p>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button type="button" onclick="showDeleteConfirmModal()" class="btn btn-danger" style="font-size: 0.875rem;">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                        Delete Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <form method="post" id="profile-form">
     
     <div class="form-row">
@@ -440,6 +465,88 @@
         </button>
     </div>
 </div>
+
+<!-- Delete confirmation modal (for retention deletion) -->
+{% if retention_info %}
+<div id="delete-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
+        <h3 style="color: #991B1B; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">
+            <i data-lucide="alert-triangle" style="width: 24px; height: 24px; vertical-align: -5px; margin-right: 0.5rem;"></i>
+            Permanently Delete Client?
+        </h3>
+        <p style="color: #4B5563; margin-bottom: 1rem; line-height: 1.6;">
+            This will permanently delete <strong>{{ client.first_name }} {{ client.last_name }}</strong> and all associated entries.
+        </p>
+        <p style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.875rem;">
+            A minimal archive record will be kept for compliance purposes (file number, name, and dates only).
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="closeDeleteConfirmModal()" class="btn btn-secondary">Cancel</button>
+            <button onclick="confirmDelete()" class="btn btn-danger">
+                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                Delete Permanently
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * Show the delete confirmation modal
+ */
+function showDeleteConfirmModal() {
+    const modal = document.getElementById('delete-confirm-modal');
+    modal.style.display = 'flex';
+    lucide.createIcons();
+}
+
+/**
+ * Close the delete confirmation modal
+ */
+function closeDeleteConfirmModal() {
+    document.getElementById('delete-confirm-modal').style.display = 'none';
+}
+
+/**
+ * Confirm and execute client deletion
+ */
+async function confirmDelete() {
+    const clientId = {{ client.id }};
+    
+    try {
+        const response = await fetch('/api/retention-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_ids: [clientId] })
+        });
+        
+        if (response.ok) {
+            // Redirect to main view after successful deletion
+            window.location.href = '/';
+        } else {
+            const data = await response.json();
+            alert('Error deleting client: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error deleting client: ' + error.message);
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDeleteConfirmModal();
+    }
+});
+
+// Close modal on background click
+document.getElementById('delete-confirm-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteConfirmModal();
+    }
+});
+</script>
+{% endif %}
 
 
 {% endblock %}

@@ -1565,14 +1565,14 @@ class Database:
             client_id = client['id']
             retention_days = client['retention_days']
             
-            # Get last contact date (most recent entry)
+            # Get last contact date (most recent entry, or fall back to modified_at)
             cursor.execute("""
                 SELECT MAX(created_at) as last_contact
                 FROM entries
                 WHERE client_id = ?
             """, (client_id,))
             result = cursor.fetchone()
-            last_contact = result[0] if result and result[0] else client['created_at']
+            last_contact = result[0] if result and result[0] else client['modified_at']
             
             # Get profile to check for minor status
             cursor.execute("""
