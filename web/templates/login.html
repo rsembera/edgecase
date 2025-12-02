@@ -212,6 +212,11 @@
             transform: translateY(1px);
         }
         
+        button[type="submit"]:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
         .first-run-notice {
             background: #F0FDF9;
             border: 1px solid #BFDCDC;
@@ -272,7 +277,7 @@
         <div class="error">{{ error }}</div>
         {% endif %}
         
-        <form method="POST" autocomplete="on">
+        <form method="POST" autocomplete="on" id="login-form">
             <!-- Hidden username field for password managers -->
             <input type="text" name="username" value="edgecase" autocomplete="username" style="position: absolute; left: -9999px;" tabindex="-1" aria-hidden="true">
             
@@ -326,6 +331,26 @@
     </div>
     
     <script>
+        // Prevent double form submission
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn.disabled) {
+                e.preventDefault();
+                return false;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Please wait...';
+        });
+        
+        // Re-enable button if page loaded from back-forward cache
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                const submitBtn = document.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '{% if first_run %}Create Database{% else %}Unlock{% endif %}';
+            }
+        });
+        
         function togglePassword(inputId, button) {
             const input = document.getElementById(inputId);
             const eyeOpen = button.querySelector('.eye-open');
