@@ -576,44 +576,75 @@ if 'base_fee' not in columns:
 
 ### The Decision
 
-Manual testing with real workflows, no automated test suite.
+Hybrid approach: Automated tests for critical business logic, manual testing for UI/UX and integration.
 
 ### Why?
 
 **Context:**
-- Solo development
-- Rapid iteration
-- Features change daily
-- Need to test on actual Mac + iPad
+- Solo development with rapid iteration
+- Some logic is critical and easy to break (fee calculations, billing splits)
+- Some things are best tested manually (UI flows, iPad responsiveness)
 
 **Our approach:**
-- Build feature → Test immediately with real data
-- Test on both Mac and iPad
-- Test edge cases as discovered
-- Git commit when working
-- If breaks, git revert
+
+**Automated tests (pytest):** Cover business logic that could cause real problems:
+- Fee calculations (billing accuracy)
+- Session numbering (record integrity)
+- Payment status (visual indicators)
+- Guardian billing splits (percentage validation)
+- Edit history tracking (audit compliance)
+- Date parsing (data integrity)
+- Link groups (couples/family therapy)
+- Ledger totals (financial accuracy)
+
+**Manual testing:** Cover everything else:
+- UI/UX workflows
+- Cross-device testing (Mac + iPad)
+- PDF generation appearance
+- Email/calendar integration
+- Edge cases as discovered
+
+### Test Suite Details
+
+**Location:** `tests/test_edgecase.py` (874 lines)
+
+**Coverage:** 41 tests across 11 test classes:
+| Test Class | What It Covers |
+|------------|----------------|
+| TestFeeCalculations | Three-way fee math |
+| TestProfileFeeOverride | Client-specific fees |
+| TestGuardianBilling | Split percentages |
+| TestSessionNumbering | Numbering, offsets, consultations |
+| TestPaymentStatus | paid/pending/overdue logic |
+| TestEditHistory | Audit trail, locking |
+| TestDateParsing | Form validation, leap years |
+| TestContentDiff | Word-level diff |
+| TestLinkGroups | Couples/family linking |
+| TestLedger | Income/expense, totals |
+| TestSettings | Settings storage |
+
+**Run tests:**
+```bash
+cd ~/edgecase
+source venv/bin/activate
+pytest tests/ -v
+```
 
 **Benefits:**
-- ✅ **Fast** - No test maintenance overhead
-- ✅ **Real** - Tests actual user workflows
-- ✅ **Flexible** - Can change features quickly
-- ✅ **Sufficient** - Catches bugs before user does
+- ✅ **Critical logic protected** - Fee calculations can't silently break
+- ✅ **Fast feedback** - 41 tests run in 0.23 seconds
+- ✅ **Safe refactoring** - Catch regressions before they ship
+- ✅ **No over-testing** - UI flows tested manually where appropriate
 
 **Trade-offs:**
-- ❌ No regression detection (manual re-test)
-- ❌ No continuous integration
-- ❌ Requires discipline
+- ❌ No UI test automation (acceptable for solo dev)
+- ❌ No continuous integration (run manually before commits)
 
-**When we'd add automated tests:**
-- If team grows beyond solo developer
-- If regression bugs become frequent
-- If deployment becomes automated
-
-**Current verdict:** Manual testing is sufficient for current development velocity and team size.
+**Philosophy:** Test what matters most (money and compliance), trust manual testing for the rest.
 
 ---
 
-## CALENDAR INTEGRATION (NEW)
+## CALENDAR INTEGRATION
 
 ### The Decision
 

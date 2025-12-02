@@ -112,6 +112,12 @@ def edit_type(type_id):
     if request.method == 'POST':
         # Check for delete action
         if request.form.get('_method') == 'DELETE':
+            # Check if this is the last editable type
+            all_types = db.get_all_client_types()
+            editable_types = [t for t in all_types if not t.get('is_system_locked')]
+            if len(editable_types) <= 1:
+                return redirect(url_for('types.manage_types'))
+            
             # Check if any clients use this type
             clients = db.get_all_clients(type_id=type_id)
             if clients:
