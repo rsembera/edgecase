@@ -360,7 +360,7 @@ class TestPaymentStatus:
             VALUES (?, ?, ?, 'sent', ?, ?)
         """, (statement_id, client_id, 150.00, now, now))
         conn.commit()
-        conn.close()
+        # Note: Don't close connection - persistent connection pattern
         
         status = db.get_payment_status(client_id)
         
@@ -389,7 +389,7 @@ class TestPaymentStatus:
             VALUES (?, ?, ?, 'sent', ?, ?)
         """, (statement_id, client_id, 150.00, thirty_one_days_ago, thirty_one_days_ago))
         conn.commit()
-        conn.close()
+        # Note: Don't close connection - persistent connection pattern
         
         status = db.get_payment_status(client_id)
         
@@ -417,7 +417,7 @@ class TestPaymentStatus:
             VALUES (?, ?, ?, ?, 'partial', ?, ?)
         """, (statement_id, client_id, 150.00, 75.00, now, now))
         conn.commit()
-        conn.close()
+        # Note: Don't close connection - persistent connection pattern
         
         status = db.get_payment_status(client_id)
         
@@ -446,7 +446,7 @@ class TestPaymentStatus:
             VALUES (?, ?, ?, ?, 'paid', ?, ?)
         """, (statement_id, client_id, 150.00, 150.00, now, now))
         conn.commit()
-        conn.close()
+        # Note: Don't close connection - persistent connection pattern
         
         status = db.get_payment_status(client_id)
         

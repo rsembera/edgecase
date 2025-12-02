@@ -60,6 +60,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | JS Files | 24 |
 | Entry Types | 8 (6 client + 2 ledger) |
 | Routes | 60+ |
+| Automated Tests | 41 |
 
 ---
 
@@ -143,6 +144,9 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── fonts/                   # Lexend font family
 │   ├── favicons/
 │   └── img/                     # Background images
+├── tests/                       # Automated test suite
+│   ├── test_edgecase.py         # 41 tests, 874 lines
+│   └── pytest.ini               # Test configuration
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
 │   ├── {client_id}/{entry_id}/  # Client attachments
@@ -287,6 +291,13 @@ git status
 git add .
 git commit -m "message"
 git push
+```
+
+### Run Tests
+```bash
+cd ~/edgecase
+source venv/bin/activate
+pytest tests/ -v
 ```
 
 ---
