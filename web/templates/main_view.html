@@ -303,6 +303,39 @@
 {% endif %}
 
 <!-- ============================================================ -->
+<!-- BACKUP WARNING MODAL                                         -->
+<!-- ============================================================ -->
+{% if backup_warning %}
+<div id="backup-warning-modal" class="modal" style="display: flex;">
+    <div class="modal-content" style="border-top: 4px solid #D97706;">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="alert-triangle" style="width: 22px; height: 22px; color: #D97706;"></i>
+            Automatic Backup Failed
+        </h3>
+        <p>
+            The automatic backup could not be completed. Please check your backup settings.
+        </p>
+        <p style="background: #FEF3C7; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; color: #92400E;">
+            <strong>Error:</strong> {{ backup_warning }}
+        </p>
+        <div class="modal-actions" style="justify-content: flex-end;">
+            <button onclick="document.getElementById('backup-warning-modal').style.display='none'" class="btn btn-secondary">Dismiss</button>
+            <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary">
+                <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                Check Settings
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+    // Re-initialize Lucide icons for the modal
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>
+{% endif %}
+
+<!-- ============================================================ -->
 <!-- RETENTION REVIEW MODAL                                       -->
 <!-- Add this HTML to main_view.html, before the closing </body>  -->
 <!-- ============================================================ -->

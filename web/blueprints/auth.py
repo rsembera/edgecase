@@ -87,6 +87,7 @@ def _run_auto_backup_check(db):
     """
     Check if automatic backup should run after login.
     Runs silently - errors are logged but don't affect login.
+    Stores failure in session for user notification.
     """
     try:
         from utils import backup
@@ -94,12 +95,19 @@ def _run_auto_backup_check(db):
         frequency = db.get_setting('backup_frequency', 'daily')
         
         if backup.check_backup_needed(frequency):
-            location = db.get_setting('backup_location', str(backup.BACKUPS_DIR))
-            backup.create_backup(location)
-            print(f"[Backup] Automatic {frequency} backup completed")
+            location = db.get_setting('backup_location', '')
+            if not location:
+                location = None  # Use default BACKUPS_DIR
+            result = backup.create_backup(location)
+            if result:
+                print(f"[Backup] Automatic {frequency} backup completed: {result['filename']}")
+            else:
+                print(f"[Backup] No changes since last backup")
     except Exception as e:
-        # Log but don't fail login
-        print(f"[Backup] Auto-backup failed: {e}")
+        # Log and store for user notification
+        error_msg = str(e)
+        print(f"[Backup] Auto-backup failed: {error_msg}")
+        session['backup_warning'] = error_msg
 
 
 @auth_bp.route('/logout')

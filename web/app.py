@@ -170,7 +170,9 @@ def check_auto_backup():
     needed = backup.check_backup_needed(frequency)
     
     if needed:
-        location = db.get_setting('backup_location', str(backup.BACKUPS_DIR))
+        location = db.get_setting('backup_location', '')
+        if not location:
+            location = None  # Use default BACKUPS_DIR
         try:
             # Use create_backup() which auto-decides full vs incremental
             result = backup.create_backup(location)
