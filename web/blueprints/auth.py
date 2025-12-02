@@ -14,7 +14,6 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_app.config.get('db'):
-            print(f"[Auth] login_required: No db in config, redirecting to login")
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -61,7 +60,6 @@ def login():
             current_app.config['db'] = db
             session['authenticated'] = True
             session['login_time'] = int(__import__('time').time())
-            print(f"[Auth] Login successful, session authenticated")
             
             # Initialize all blueprints with the database
             from web.app import init_all_blueprints
@@ -74,7 +72,6 @@ def login():
             session.modified = True
             
             # Use make_response for explicit control over the redirect
-            print(f"[Auth] Redirecting to main view")
             response = make_response(redirect(url_for('clients.index')))
             return response
             
