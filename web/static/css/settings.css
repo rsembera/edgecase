@@ -36,14 +36,22 @@ h2 {
 }
 
 /* Settings-specific input max-width */
-.settings-section input[type="text"],
-.settings-section input[type="email"],
-.settings-section input[type="url"],
-.settings-section input[type="tel"],
-.settings-section input[type="number"],
-.settings-section select,
-.settings-section textarea {
+.settings-section-content input[type="text"],
+.settings-section-content input[type="email"],
+.settings-section-content input[type="tel"],
+.settings-section-content input[type="number"],
+.settings-section-content select {
     max-width: 400px;
+}
+
+/* URL fields need more space */
+.settings-section-content input[type="url"] {
+    max-width: 600px;
+}
+
+/* Textareas are fine at full width */
+.settings-section-content textarea {
+    max-width: 600px;
 }
 
 .button-group {

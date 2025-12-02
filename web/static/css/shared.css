@@ -189,6 +189,7 @@ button {
 .form-group input[type="number"],
 .form-group input[type="email"],
 .form-group input[type="tel"],
+.form-group input[type="url"],
 .form-group input[type="password"],
 .form-group select {
     width: 100%;
@@ -209,6 +210,7 @@ button {
 .form-group input[type="number"]:focus,
 .form-group input[type="email"]:focus,
 .form-group input[type="tel"]:focus,
+.form-group input[type="url"]:focus,
 .form-group input[type="password"]:focus,
 .form-group select:focus {
     outline: none;
@@ -328,6 +330,14 @@ input[type="number"] {
     margin-bottom: var(--space-xl);
 }
 
+/* Half-width form row (single field, constrained to left half) */
+.form-row-half {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
 /* Fee grid (3 columns: Base, Tax, Total) */
 .fee-grid {
     display: grid;
@@ -373,6 +383,7 @@ input[type="number"] {
 /* Responsive: stack on mobile */
 @media (max-width: 768px) {
     .form-row,
+    .form-row-half,
     .form-row-thirds,
     .fee-grid {
         grid-template-columns: 1fr;

@@ -109,28 +109,35 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
-        <div class="form-group">
-            <label for="card-style">Info Card Style</label>
-            <select id="card-style" onchange="saveAndApplyCardStyle()">
-                <option value="strait-laced">Strait-Laced (White)</option>
-                <option value="garden-path">Garden Path (Green/sage)</option>
-                <option value="ocean-breeze">Ocean Breeze (Blue/teal)</option>
-                <option value="sunset-glow">Sunset Glow (Warm peach)</option>
-                <option value="tutti-frutti">Tutti-Frutti (Mixed pastels)</option>
-            </select>
+        <div class="form-row-half">
+            <div class="form-group">
+                <label for="card-style">Info Card Style</label>
+                <select id="card-style" onchange="saveAndApplyCardStyle()">
+                    <option value="strait-laced">Strait-Laced (White)</option>
+                    <option value="garden-path">Garden Path (Green/sage)</option>
+                    <option value="ocean-breeze">Ocean Breeze (Blue/teal)</option>
+                    <option value="sunset-glow">Sunset Glow (Warm peach)</option>
+                    <option value="tutti-frutti">Tutti-Frutti (Mixed pastels)</option>
+                </select>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="background-style">Background</label>
-            <select id="background-style" onchange="saveAndApplyBackground()">
-                <option value="suit-grey">Suit Grey</option>
-                 <option value="sage-mist">Sage Mist</option>
-                <option value="soft-cream">Soft Cream</option>
-                <option value="warm-stone">Warm Stone</option>
-                <!-- Background images will be added by JavaScript -->
-            </select>
-            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; background: #E7CFD4; color: #6A243E;">
-                <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 0.25rem;"></i>Delete
+        <div class="form-row-half" style="margin-bottom: 0.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="background-style">Background</label>
+                <select id="background-style" onchange="saveAndApplyBackground()">
+                    <option value="suit-grey">Suit Grey</option>
+                    <option value="sage-mist">Sage Mist</option>
+                    <option value="soft-cream">Soft Cream</option>
+                    <option value="warm-stone">Warm Stone</option>
+                    <!-- Background images will be added by JavaScript -->
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 0.25rem;"></i>Delete Background
             </button>
         </div>
         
@@ -351,6 +358,7 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
+        <div class="form-row-half">
         <div class="form-group">
             <label for="file-number-format">Format Type</label>
             <select id="file-number-format" onchange="toggleFileNumberFields()">
@@ -358,6 +366,7 @@ details[open] .settings-section-header .arrow {
                 <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
                 <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
             </select>
+        </div>
         </div>
         
         <!-- Options for Prefix-Counter format -->
@@ -404,12 +413,14 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
+        <div class="form-row-half">
         <div class="form-group">
             <label for="calendar_method">Add appointments via</label>
             <select id="calendar_method" onchange="toggleCalendarNameField()">
                 <option value="ics">Download .ics file (works everywhere)</option>
                 <option value="applescript">Add directly to Calendar (Mac only)</option>
             </select>
+        </div>
         </div>
         
         <div class="form-group" id="calendar-name-group" style="display: none;">
@@ -447,6 +458,7 @@ details[open] .settings-section-header .arrow {
             </a>
         </div>
 
+        <div class="form-row-half">
         <div class="form-group">
             <label for="session_timeout">Auto-Logout After Inactivity</label>
             <select id="session_timeout">
@@ -457,6 +469,7 @@ details[open] .settings-section-header .arrow {
                 <option value="0">Never (not recommended)</option>
             </select>
             <small style="display: block; margin-top: 0.5rem; color: #6B7280;">For PHIPA compliance, shorter timeouts are recommended in shared spaces</small>
+        </div>
         </div>
         
         </div>
@@ -475,6 +488,7 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
+        <div class="form-row-half">
         <div class="form-group">
             <label for="currency">Currency</label>
             <select id="currency">
@@ -486,6 +500,7 @@ details[open] .settings-section-header .arrow {
                 <option value="INR">₹ INR - Indian Rupee</option>
                 <option value="JPY">¥ JPY - Japanese Yen</option>
             </select>
+        </div>
         </div>
         
         <div class="form-group">
@@ -512,6 +527,7 @@ details[open] .settings-section-header .arrow {
             <textarea id="attestation_text" rows="3" style="resize: vertical;">I attest that I have performed the services listed above.</textarea>
         </div>
         
+        <div class="form-row-half">
         <div class="form-group">
             <label for="email_method">Send statements via</label>
             <select id="email_method" onchange="toggleEmailFromField()">
@@ -519,6 +535,7 @@ details[open] .settings-section-header .arrow {
                 <option value="applescript">Compose in Mail.app (Mac only, attaches PDF)</option>
             </select>
             <small style="display: block; margin-top: 0.5rem; color: #6B7280;">AppleScript method can automatically attach the PDF statement</small>
+        </div>
         </div>  
 
         <div class="form-group" id="email-from-group" style="display: none;">
