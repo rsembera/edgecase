@@ -289,6 +289,9 @@ def index():
     elif sort_by == 'last_session':
         clients.sort(key=lambda c: c.get('last_session') or 0, reverse=(sort_order == 'desc'))
     
+    # Check for backup warning (pop so it only shows once)
+    backup_warning = session.pop('backup_warning', None)
+    
     return render_template('main_view.html',
                          clients=clients,
                          all_types=all_types,
@@ -302,7 +305,8 @@ def index():
                          pending_invoices=pending_invoices,
                          billable_this_month=billable_this_month,
                          current_date=current_date,
-                         current_time=current_time)
+                         current_time=current_time,
+                         backup_warning=backup_warning)
 
 
 @clients_bp.route('/add_client', methods=['GET', 'POST'])
