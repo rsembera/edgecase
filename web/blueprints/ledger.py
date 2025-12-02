@@ -311,7 +311,6 @@ def delete_income_entry(entry_id):
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
         
         conn.commit()
-        conn.close()
         
         return "", 200
     
@@ -501,7 +500,6 @@ def delete_expense_entry(entry_id):
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
         
         conn.commit()
-        conn.close()
         
         return "", 200
     
@@ -585,7 +583,6 @@ def calculate_report():
             'total': row[1]
         })
     
-    conn.close()
     
     return jsonify({
         'success': True,

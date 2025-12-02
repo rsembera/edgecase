@@ -69,7 +69,6 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     """, (start_ts, end_ts))
     category_totals = cursor.fetchall()
     
-    conn.close()
     
     # Calculate totals
     total_income = sum(e[1] for e in income_entries) if income_entries else 0

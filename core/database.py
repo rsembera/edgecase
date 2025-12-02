@@ -27,19 +27,26 @@ class Database:
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.password = password
+        self._conn = None
         self._initialize_schema()
         
     def connect(self):
-        """Create and return database connection with encryption."""
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
-        
-        # Set encryption key FIRST, before any other operations
-        if self.password:
-            conn.execute(f"PRAGMA key = '{self.password}'")
-        
-        # Enable WAL mode for better concurrent access
-        conn.execute('PRAGMA journal_mode=WAL')
-        return conn
+        """Return persistent database connection with encryption."""
+        if self._conn is None:
+            self._conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+            
+            # Set encryption key FIRST, before any other operations
+            if self.password:
+                self._conn.execute(f"PRAGMA key = '{self.password}'")
+            
+            # Enable WAL mode for better concurrent access
+            self._conn.execute('PRAGMA journal_mode=WAL')
+        return self._conn
+    
+    def close(self):
+        """Close database connection (call on app shutdown)."""
+        if self._conn:
+            self._conn = None
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
@@ -331,7 +338,6 @@ class Database:
         count = cursor.fetchone()[0]
         
         if count > 0:
-            conn.close()
             return
         
         now = int(time.time())
@@ -379,7 +385,6 @@ class Database:
             ))
         
         conn.commit()
-        conn.close()
         print("Created 2 default client types (Active, Inactive)")
     
     # ===== CLIENT TYPE OPERATIONS =====
@@ -412,7 +417,6 @@ class Database:
         
         type_id = cursor.lastrowid
         conn.commit()
-        conn.close()
         
         return type_id
 
@@ -425,7 +429,6 @@ class Database:
         
         cursor.execute("SELECT * FROM client_types WHERE id = ?", (type_id,))
         row = cursor.fetchone()
-        conn.close()
         
         return dict(row) if row else None
 
@@ -437,7 +440,6 @@ class Database:
         
         cursor.execute("SELECT * FROM client_types ORDER BY name")
         rows = cursor.fetchall()
-        conn.close()
         
         return [dict(row) for row in rows]
 
@@ -464,7 +466,6 @@ class Database:
         ))
         
         conn.commit()
-        conn.close()
         
         return True
 
@@ -478,7 +479,6 @@ class Database:
         cursor.execute("SELECT is_system FROM client_types WHERE id = ?", (type_id,))
         row = cursor.fetchone()
         if row and row[0] == 1:
-            conn.close()
             return False
         
         # Check if any clients use this type
@@ -486,13 +486,11 @@ class Database:
         count = cursor.fetchone()[0]
         
         if count > 0:
-            conn.close()
             return False
         
         # Safe to delete
         cursor.execute("DELETE FROM client_types WHERE id = ?", (type_id,))
         conn.commit()
-        conn.close()
         
         return True
 
@@ -524,7 +522,6 @@ class Database:
         
         client_id = cursor.lastrowid
         conn.commit()
-        conn.close()
         
         return client_id
     
@@ -536,7 +533,6 @@ class Database:
         
         cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
         row = cursor.fetchone()
-        conn.close()
         
         return dict(row) if row else None
     
@@ -555,7 +551,6 @@ class Database:
             cursor.execute("SELECT * FROM clients WHERE is_deleted = 0 ORDER BY file_number")
         
         rows = cursor.fetchall()
-        conn.close()
         
         return [dict(row) for row in rows]
     
@@ -586,7 +581,6 @@ class Database:
         """, values)
         
         conn.commit()
-        conn.close()
         
         return True
     
@@ -611,7 +605,6 @@ class Database:
         """, (f'%{search_term}%',) * 5)
         
         rows = cursor.fetchall()
-        conn.close()
         
         return [dict(row) for row in rows]
     
@@ -628,7 +621,6 @@ class Database:
         """, (client_id,))
         
         row = cursor.fetchone()
-        conn.close()
         
         return row[0] if row else 0
     
@@ -701,7 +693,6 @@ class Database:
         """, (client_id,))
         
         row = cursor.fetchone()
-        conn.close()
         
         return dict(row) if row else None
     
@@ -720,7 +711,6 @@ class Database:
         """, (int(time.time()), entry_id))
         
         conn.commit()
-        conn.close()
 
     def is_entry_locked(self, entry_id):
         """Check if an entry is locked."""
@@ -729,7 +719,6 @@ class Database:
         
         cursor.execute("SELECT locked FROM entries WHERE id = ?", (entry_id,))
         result = cursor.fetchone()
-        conn.close()
         
         return result[0] == 1 if result else False
 
@@ -761,7 +750,6 @@ class Database:
         """, (json.dumps(history), int(time.time()), entry_id))
         
         conn.commit()
-        conn.close()
 
     def get_edit_history(self, entry_id):
         """Get the edit history for an entry."""
@@ -771,7 +759,6 @@ class Database:
         
         cursor.execute("SELECT edit_history FROM entries WHERE id = ?", (entry_id,))
         result = cursor.fetchone()
-        conn.close()
         
         if result and result[0]:
             return json.loads(result[0])
@@ -808,7 +795,6 @@ class Database:
         for row in cursor.fetchall():
             existing_members = ','.join(map(str, sorted(map(int, row[1].split(',')))))
             if sorted_new_ids == existing_members:
-                conn.close()
                 raise ValueError("Link duplicates an existing arrangement. Please edit or delete the existing link.")
         
         # Create link group with format and duration
@@ -834,7 +820,6 @@ class Database:
             """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
         
         conn.commit()
-        conn.close()
         
         return group_id
 
@@ -856,7 +841,6 @@ class Database:
         group_row = cursor.fetchone()
         
         if not group_row:
-            conn.close()
             return None
         
         group = dict(group_row)
@@ -886,7 +870,6 @@ class Database:
         
         group['members'] = members
         
-        conn.close()
         return group
     
     def get_all_link_groups(self) -> List[Dict[str, Any]]:
@@ -933,7 +916,6 @@ class Database:
             group['members'] = members
             groups.append(group)
         
-        conn.close()
         return groups
     
     def get_linked_clients(self, client_id: int) -> List[Dict[str, Any]]:
@@ -958,7 +940,6 @@ class Database:
         group_ids = [row['group_id'] for row in cursor.fetchall()]
         
         if not group_ids:
-            conn.close()
             return []
         
         # Get all other clients in those groups
@@ -976,7 +957,6 @@ class Database:
                 if client_row:
                     linked_clients.append(dict(client_row))
         
-        conn.close()
         return linked_clients
     
     def is_client_linked(self, client_id: int) -> bool:
@@ -997,7 +977,6 @@ class Database:
         """, (client_id, client_id))
         
         count = cursor.fetchone()[0]
-        conn.close()
         
         return count > 0
     
@@ -1042,7 +1021,6 @@ class Database:
             """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
         
         conn.commit()
-        conn.close()
         
         return True
     
@@ -1065,7 +1043,6 @@ class Database:
         cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
         
         conn.commit()
-        conn.close()
         
         return True
     
@@ -1128,7 +1105,6 @@ class Database:
         
         entry_id = cursor.lastrowid
         conn.commit()
-        conn.close()
         
         return entry_id
     
@@ -1140,7 +1116,6 @@ class Database:
         
         cursor.execute("SELECT * FROM entries WHERE id = ?", (entry_id,))
         row = cursor.fetchone()
-        conn.close()
         
         return dict(row) if row else None
     
@@ -1173,7 +1148,6 @@ class Database:
             """, (client_id,))
         
         rows = cursor.fetchall()
-        conn.close()
         
         return [dict(row) for row in rows]
     
@@ -1202,7 +1176,6 @@ class Database:
         """, values)
         
         conn.commit()
-        conn.close()
         
         return True
     
@@ -1219,7 +1192,6 @@ class Database:
         """, (entry_id,))
         
         attachments = [dict(row) for row in cursor.fetchall()]
-        conn.close()
         
         return attachments
         
@@ -1239,7 +1211,6 @@ class Database:
         """, (key, value, now, value, now))
         
         conn.commit()
-        conn.close()
 
 
     def get_setting(self, key: str, default: str = '') -> str:
@@ -1249,7 +1220,6 @@ class Database:
         
         cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
         row = cursor.fetchone()
-        conn.close()
         
         return row[0] if row else default
     
@@ -1273,7 +1243,6 @@ class Database:
         
         payee_id = cursor.lastrowid
         conn.commit()
-        conn.close()
         return payee_id
 
     def get_payee(self, payee_id: int) -> dict:
@@ -1285,7 +1254,6 @@ class Database:
         
         cursor.execute("SELECT * FROM payees WHERE id = ?", (payee_id,))
         payee = cursor.fetchone()
-        conn.close()
         
         return dict(payee) if payee else None
 
@@ -1298,7 +1266,6 @@ class Database:
         
         cursor.execute("SELECT * FROM payees ORDER BY name ASC")
         payees = [dict(row) for row in cursor.fetchall()]
-        conn.close()
         
         return payees
 
@@ -1315,7 +1282,6 @@ class Database:
         
         success = cursor.rowcount > 0
         conn.commit()
-        conn.close()
         return success
 
     def delete_payee(self, payee_id: int) -> bool:
@@ -1328,13 +1294,11 @@ class Database:
         count = cursor.fetchone()[0]
         
         if count > 0:
-            conn.close()
             return False  # Cannot delete - has expenses
         
         cursor.execute("DELETE FROM payees WHERE id = ?", (payee_id,))
         success = cursor.rowcount > 0
         conn.commit()
-        conn.close()
         return success
 
 
@@ -1355,7 +1319,6 @@ class Database:
         
         category_id = cursor.lastrowid
         conn.commit()
-        conn.close()
         return category_id
 
     def get_expense_category(self, category_id: int) -> dict:
@@ -1367,7 +1330,6 @@ class Database:
         
         cursor.execute("SELECT * FROM expense_categories WHERE id = ?", (category_id,))
         category = cursor.fetchone()
-        conn.close()
         
         return dict(category) if category else None
 
@@ -1380,7 +1342,6 @@ class Database:
         
         cursor.execute("SELECT * FROM expense_categories ORDER BY name ASC")
         categories = [dict(row) for row in cursor.fetchall()]
-        conn.close()
         
         return categories
 
@@ -1397,7 +1358,6 @@ class Database:
         
         success = cursor.rowcount > 0
         conn.commit()
-        conn.close()
         return success
 
     def delete_expense_category(self, category_id: int) -> bool:
@@ -1410,13 +1370,11 @@ class Database:
         count = cursor.fetchone()[0]
         
         if count > 0:
-            conn.close()
             return False  # Cannot delete - has expenses
         
         cursor.execute("DELETE FROM expense_categories WHERE id = ?", (category_id,))
         success = cursor.rowcount > 0
         conn.commit()
-        conn.close()
         return success
 
 
@@ -1461,7 +1419,6 @@ class Database:
             """)
         
         entries = [dict(row) for row in cursor.fetchall()]
-        conn.close()
         
         return entries
 
@@ -1503,7 +1460,6 @@ class Database:
             """, (start_date, end_date))
         
         entries = [dict(row) for row in cursor.fetchall()]
-        conn.close()
         
         return entries
 
@@ -1555,7 +1511,6 @@ class Database:
         """, params)
         expense_row = cursor.fetchone()
         
-        conn.close()
         
         total_income = income_row[0]
         total_tax_collected = income_row[1]
@@ -1670,7 +1625,6 @@ class Database:
                     'is_minor': is_minor
                 })
         
-        conn.close()
         return clients_due
 
     def archive_and_delete_client(self, client_id):
@@ -1777,12 +1731,10 @@ class Database:
             cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
             
             conn.commit()
-            conn.close()
             return True
             
         except Exception as e:
             conn.rollback()
-            conn.close()
             print(f"Error archiving client {client_id}: {e}")
             return False
 
@@ -1798,7 +1750,6 @@ class Database:
         
         columns = [description[0] for description in cursor.description]
         archived = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        conn.close()
         return archived
 
     def snapshot_retention_on_inactive(self, client_id, retention_days):
@@ -1816,7 +1767,6 @@ class Database:
         """, (retention_days, int(time.time()), client_id))
         
         conn.commit()
-        conn.close()
 
 
     # ============================================================================

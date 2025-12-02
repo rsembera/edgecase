@@ -64,7 +64,6 @@ def outstanding_statements():
     
     columns = [col[0] for col in cursor.description]
     rows = cursor.fetchall()
-    conn.close()
     
     portions = []
     for row in rows:
@@ -176,7 +175,6 @@ def find_unbilled():
     
     columns = [col[0] for col in cursor.description]
     rows = cursor.fetchall()
-    conn.close()
     
     # Group by client
     clients = {}
@@ -363,7 +361,6 @@ def generate_statements():
         })
     
     conn.commit()
-    conn.close()
     
     return jsonify({
         'success': True,
@@ -399,7 +396,6 @@ def mark_sent(portion_id):
     
     row = cursor.fetchone()
     if not row:
-        conn.close()
         return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
     
     columns = [col[0] for col in cursor.description]
@@ -451,7 +447,6 @@ def mark_sent(portion_id):
     try:
         generate_statement_pdf(db, portion_id, str(temp_pdf_path), str(assets_path))
     except Exception as e:
-        conn.close()
         return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
     
     # Create Communication entry - description varies based on skip_email
@@ -512,7 +507,6 @@ def mark_sent(portion_id):
     """, (now, portion_id))
     
     conn.commit()
-    conn.close()
     
     # Return different response based on skip_email
     if skip_email:
@@ -557,7 +551,6 @@ def mark_paid():
     
     row = cursor.fetchone()
     if not row:
-        conn.close()
         return jsonify({'success': False, 'error': 'Portion not found'}), 404
     
     columns = [col[0] for col in cursor.description]
@@ -606,7 +599,6 @@ def mark_paid():
     ))
     
     conn.commit()
-    conn.close()
     
     return jsonify({
         'success': True,
@@ -629,7 +621,6 @@ def download_statement_pdf(portion_id):
         WHERE sp.id = ?
     """, (portion_id,))
     row = cursor.fetchone()
-    conn.close()
     
     if not row:
         return jsonify({'success': False, 'error': 'Statement not found'}), 404
@@ -671,7 +662,6 @@ def view_statement_pdf(portion_id):
         WHERE sp.id = ?
     """, (portion_id,))
     row = cursor.fetchone()
-    conn.close()
     
     if not row:
         return jsonify({'success': False, 'error': 'Statement not found'}), 404
@@ -817,7 +807,6 @@ def write_off_statement():
     
     row = cursor.fetchone()
     if not row:
-        conn.close()
         return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
     
     columns = [col[0] for col in cursor.description]
@@ -940,6 +929,5 @@ def write_off_statement():
         ))
     
     conn.commit()
-    conn.close()
     
     return jsonify({'success': True})
