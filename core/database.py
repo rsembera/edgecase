@@ -7,6 +7,7 @@ import sqlcipher3 as sqlite3  # Drop-in replacement with encryption
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import time
+import threading
 from datetime import datetime, timedelta
 
 class Database:
@@ -27,26 +28,28 @@ class Database:
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.password = password
-        self._conn = None
+        self._local = threading.local()  # Thread-local storage for connections
         self._initialize_schema()
         
     def connect(self):
-        """Return persistent database connection with encryption."""
-        if self._conn is None:
-            self._conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        """Return thread-local database connection with encryption."""
+        # Each thread gets its own connection
+        if not hasattr(self._local, 'conn') or self._local.conn is None:
+            self._local.conn = sqlite3.connect(str(self.db_path), timeout=10.0)
             
             # Set encryption key FIRST, before any other operations
             if self.password:
-                self._conn.execute(f"PRAGMA key = '{self.password}'")
+                self._local.conn.execute(f"PRAGMA key = '{self.password}'")
             
             # Enable WAL mode for better concurrent access
-            self._conn.execute('PRAGMA journal_mode=WAL')
-        return self._conn
+            self._local.conn.execute('PRAGMA journal_mode=WAL')
+        return self._local.conn
     
     def close(self):
-        """Close database connection (call on app shutdown)."""
-        if self._conn:
-            self._conn = None
+        """Close database connection for current thread."""
+        if hasattr(self._local, 'conn') and self._local.conn:
+            self._local.conn.close()
+            self._local.conn = None
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
