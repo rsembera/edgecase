@@ -28,11 +28,19 @@ def is_first_run():
 def login():
     """Login page - unlock the encrypted database."""
     from core.database import Database
+    import time as time_module
+    
+    # If already logged in, redirect to main view immediately
+    # This prevents double-login from Touch ID autofill race conditions
+    if current_app.config.get('db') and session.get('authenticated'):
+        print(f"[Auth] Already logged in - redirecting to main view (skipping {'POST' if request.method == 'POST' else 'GET'})")
+        return redirect(url_for('clients.index'))
     
     first_run = is_first_run()
     
     if request.method == 'POST':
         password = request.form.get('password', '')
+        print(f"[Auth] POST to /login - password length: {len(password)}, first_run: {first_run}")
         
         if first_run:
             # Creating new database - verify password confirmation
@@ -60,6 +68,7 @@ def login():
             current_app.config['db'] = db
             session['authenticated'] = True
             session['login_time'] = int(__import__('time').time())
+            print(f"[Auth] Login successful - initializing blueprints...")
             
             # Initialize all blueprints with the database
             from web.app import init_all_blueprints
@@ -70,6 +79,7 @@ def login():
             
             # Force session to be saved - do this AFTER all session modifications
             session.modified = True
+            print(f"[Auth] Redirecting to main view...")
             
             # Use make_response for explicit control over the redirect
             response = make_response(redirect(url_for('clients.index')))
@@ -77,12 +87,14 @@ def login():
             
         except Exception as e:
             error_msg = str(e)
+            print(f"[Auth] Login failed - exception: {error_msg}")
             if 'file is not a database' in error_msg or 'encrypted' in error_msg.lower():
                 error = "Incorrect password"
             else:
                 error = f"Database error: {error_msg}"
             return render_template('login.html', first_run=first_run, error=error)
     
+    print(f"[Auth] GET /login - first_run: {first_run}")
     return render_template('login.html', first_run=first_run)
 
 
