@@ -338,9 +338,11 @@ def schedule_for_client(client_id):
     
     # GET - show form
     date_parts = get_today_date_parts()
+    time_format = db.get_setting('time_format', '12h')
     
     return render_template('schedule_form.html',
                          client=client,
                          client_type=client_type,
                          default_duration=default_duration,
+                         time_format=time_format,
                          **date_parts)

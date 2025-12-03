@@ -4,16 +4,16 @@
  */
 
 let scheduleDatePicker = null;
+let scheduleTimePicker = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
     
-    // Initialize date picker
-    initSchedulePicker();
+    // Initialize pickers
+    initSchedulePickers();
     
     const quickEntry = document.getElementById('quick_entry');
     const preview = document.getElementById('parse-preview');
-    const timeInput = document.getElementById('appointment_time');
     
     let debounceTimer;
     
@@ -59,8 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 scheduleDatePicker.setDate(date, true);
             }
             
-            if (result.time) {
-                timeInput.value = result.time;
+            // Update time picker (setTime triggers onSelect which updates hidden input)
+            if (result.time && scheduleTimePicker) {
+                scheduleTimePicker.setTime(result.time);
             }
         } else {
             preview.innerHTML = 'Type a date like "Friday at 2pm" or "Nov 28 3:30"';
@@ -238,14 +239,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Initialize the date picker for scheduling
+ * Initialize the date and time pickers for scheduling
  */
-function initSchedulePicker() {
+function initSchedulePickers() {
     const dataEl = document.getElementById('schedule-data');
     if (!dataEl) return;
     
     const data = JSON.parse(dataEl.textContent);
     const dateInput = document.getElementById('schedule_date');
+    const timeInput = document.getElementById('appointment_time');
     
     const initialDate = new Date(
         data.todayYear,
@@ -253,15 +255,28 @@ function initSchedulePicker() {
         data.todayDay
     );
     
-    const container = document.getElementById('schedule-date-picker');
-    if (container) {
-        scheduleDatePicker = new DatePicker(container, {
+    // Initialize date picker
+    const dateContainer = document.getElementById('schedule-date-picker');
+    if (dateContainer) {
+        scheduleDatePicker = new DatePicker(dateContainer, {
             initialDate: initialDate,
             onSelect: (date) => {
                 const y = date.getFullYear();
                 const m = (date.getMonth() + 1).toString().padStart(2, '0');
                 const d = date.getDate().toString().padStart(2, '0');
                 dateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+    
+    // Initialize time picker
+    const timeContainer = document.getElementById('schedule-time-picker');
+    if (timeContainer) {
+        scheduleTimePicker = new TimePicker(timeContainer, {
+            format: data.timeFormat || '12h',
+            initialTime: '10:00 AM',
+            onSelect: (time) => {
+                timeInput.value = time;
             }
         });
     }
