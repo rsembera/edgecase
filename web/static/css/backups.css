@@ -258,12 +258,15 @@
     box-shadow: var(--shadow-focus, 0 0 0 3px rgba(31,143,116,0.06));
 }
 
-/* Backup list */
+/* ============================================
+   BACKUP LIST WITH CHAIN STRUCTURE
+   ============================================ */
+
 .backup-list {
     background: white;
     border: 1px solid var(--color-border, #DEE2E6);
     border-radius: 0.75rem;
-    max-height: 250px;
+    max-height: 300px;
     overflow-y: auto;
 }
 
@@ -274,28 +277,47 @@
     font-size: 0.875rem;
 }
 
+/* Legend for backup types */
+.backup-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #718096);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+/* Backup chain container - groups full + its incrementals */
+.backup-chain {
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.backup-chain:last-child {
+    border-bottom: none;
+}
+
+/* Individual backup item */
 .backup-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.625rem 1rem;
-    border-bottom: 1px solid #F3F4F6;
     font-size: 0.875rem;
-}
-
-.backup-item:last-child {
-    border-bottom: none;
-}
-
-.backup-item.safety {
-    background-color: #FFFBEB;
-    border-left: 3px solid #F59E0B;
+    position: relative;
 }
 
 .backup-item-info {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .backup-item-name {
@@ -303,15 +325,92 @@
     color: var(--color-text, #323B45);
 }
 
-/* Safety badge */
-.safety-badge {
+/* Backup type badges */
+.backup-type-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    flex-shrink: 0;
+}
+
+.badge-full {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.badge-incr {
+    background-color: #F1F5F9;
+    color: #64748B;
+}
+
+.badge-safety {
     background-color: #FEF3C7;
     color: #92400E;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    padding: 0.125rem 0.375rem;
-    border-radius: 9999px;
-    margin-left: 0.375rem;
+}
+
+/* Dependent count indicator */
+.dependent-count {
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #718096);
+    margin-left: 0.25rem;
+}
+
+/* Full backup styling */
+.backup-full {
+    background-color: #F8FAFC;
+}
+
+/* Incremental backup styling - indented with connecting line */
+.backup-incremental {
+    padding-left: 2.5rem;
+    background-color: white;
+}
+
+/* Connecting lines for incrementals */
+.backup-connector {
+    position: absolute;
+    left: 1.25rem;
+    width: 1rem;
+    height: 100%;
+    top: 0;
+}
+
+.backup-connector::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 50%;
+    width: 2px;
+    background-color: #CBD5E1;
+}
+
+.backup-connector::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0.75rem;
+    height: 2px;
+    background-color: #CBD5E1;
+}
+
+/* Last incremental - shorter vertical line */
+.connector-last::before {
+    bottom: 50%;
+}
+
+/* Middle incremental - full vertical line */
+.connector-mid::before {
+    bottom: 0;
+}
+
+/* Safety backup styling */
+.backup-safety {
+    background-color: #FFFBEB;
 }
 
 /* Delete button in backup list */
@@ -323,6 +422,7 @@
     padding: 0.375rem;
     border-radius: 4px;
     transition: color 0.2s, background-color 0.2s;
+    flex-shrink: 0;
 }
 
 .btn-delete-backup:hover {
@@ -330,40 +430,21 @@
     background-color: #FEE2E2;
 }
 
-/* Bottom buttons */
+/* ============================================
+   BOTTOM BUTTONS
+   ============================================ */
+
 .bottom-buttons {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-top: 1.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid var(--color-border, #DEE2E6);
 }
 
-.btn-cancel-bottom {
-    background-color: #E5E7EB;
-    color: #374151;
-    border: none;
-    padding: 0.5rem 1.25rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-    font-family: 'Lexend', sans-serif;
-    height: 46px;
-    line-height: 30px;
-    box-sizing: border-box;
-}
-
-.btn-cancel-bottom:hover {
-    background-color: #D1D5DB;
-}
-
-.btn-save-settings {
-    background: var(--color-primary-lighter, #BFDCDC);
+.btn-back {
+    background-color: var(--color-primary-lighter, #BFDCDC);
     color: var(--color-primary-dark, #115D4F);
     border: none;
     padding: 0.5rem 1.25rem;
@@ -372,16 +453,23 @@
     font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
     font-family: 'Lexend', sans-serif;
     height: 46px;
     box-sizing: border-box;
 }
 
-.btn-save-settings:hover {
-    background: var(--color-primary-light, #9FCFC0);
+.btn-back:hover {
+    background-color: var(--color-primary-light, #8ABFC0);
 }
 
-/* Modal styling */
+/* ============================================
+   MODALS
+   ============================================ */
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -403,7 +491,7 @@
     background: white;
     border-radius: 0.75rem;
     padding: 1.5rem;
-    max-width: 400px;
+    max-width: 450px;
     width: 90%;
     box-shadow: var(--shadow-md);
 }
@@ -430,6 +518,7 @@
     margin-bottom: 0.75rem;
 }
 
+/* Warning boxes in modals */
 .warning-text {
     background: #FEF3C7;
     color: #92400E;
@@ -440,6 +529,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
+    line-height: 1.4;
 }
 
 .warning-text span {
@@ -450,11 +540,23 @@
     display: none;
 }
 
+/* Danger variant for dependent deletion warning */
+.warning-text.warning-danger {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+}
+
+.warning-text.warning-danger .warning-icon {
+    color: #DC2626;
+}
+
 .warning-icon {
     width: 16px;
     height: 16px;
     color: #F59E0B;
     flex-shrink: 0;
+    margin-top: 1px;
 }
 
 .modal-buttons {
@@ -527,7 +629,10 @@
     display: none !important;
 }
 
-/* Responsive */
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
 @media (max-width: 768px) {
     .backup-top-section {
         flex-direction: column;
@@ -569,5 +674,10 @@
     .btn-save-settings {
         width: 100%;
         text-align: center;
+    }
+    
+    .backup-legend {
+        flex-direction: column;
+        gap: 0.5rem;
     }
 }

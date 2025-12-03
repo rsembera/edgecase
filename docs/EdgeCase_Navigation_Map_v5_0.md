@@ -1,21 +1,22 @@
-# EdgeCase Equalizer - Navigation Map v4.0
+# EdgeCase Equalizer - Navigation Map v5.0
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** December 1, 2025 - Phase 2 Complete
+**Last Updated:** December 2, 2025 - AI Scribe Complete
 
 ---
 
 ## PROJECT OVERVIEW
 
-EdgeCase Equalizer is a web-based practice management system for independent therapists. Built using **AI-assisted development** (Nov 7 - Dec 1, 2025) with Flask + SQLite/SQLCipher, it uses an **Entry-based architecture** where all client records are stored as unified entries.
+EdgeCase Equalizer is a web-based practice management system for independent therapists. Built using **AI-assisted development** (Nov 7 - Dec 2, 2025) with Flask + SQLite/SQLCipher, it uses an **Entry-based architecture** where all client records are stored as unified entries.
 
 **Tech Stack:**
-- Backend: Python 3.13, Flask with 11 Blueprints
+- Backend: Python 3.13, Flask with 12 Blueprints
 - Frontend: HTML, External CSS/JS files, Vanilla JavaScript
 - Database: SQLite with SQLCipher encryption (12 tables)
 - PDF Generation: ReportLab 4.4.5
 - Encryption: cryptography (Fernet for attachments)
+- AI: llama-cpp-python with Hermes 3 8B model
 - Development: MacBook Air M4, macOS Sequoia
 
 **Access:**
@@ -43,8 +44,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Auto-backup on login
 - Performance optimizations
 
-### Phase 3: AI Integration ⏸️ DEFERRED
-- Local LLM for note assistance (planned, not critical for launch)
+### Phase 3: AI Integration ✅ COMPLETE (Dec 2, 2025)
+- Local LLM integration (Hermes 3 8B)
+- AI Scribe for session notes
+- Four actions: Write Up, Proofread, Expand, Contract
+- Auto-platform detection (Mac/Windows/Linux)
+- Model download with progress tracking
+- Settings page model management
 
 ---
 
@@ -52,14 +58,19 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 | Metric | Count |
 |--------|-------|
-| Python Lines | ~12,000 |
-| Blueprints | 11 |
+| Python Lines | ~13,000 |
+| HTML Lines | ~6,400 |
+| JavaScript Lines | ~7,900 |
+| CSS Lines | ~5,300 |
+| **Total Lines** | **~32,600** |
+| Blueprints | 12 |
 | Database Tables | 12 |
-| Templates | 33 (23 main + 2 components + 8 entry forms) |
-| CSS Files | 25 |
+| Templates | 34 |
+| CSS Files | 26 |
 | JS Files | 24 |
+| Python Files | 35 |
 | Entry Types | 8 (6 client + 2 ledger) |
-| Routes | 60+ |
+| Routes | 65+ |
 | Automated Tests | 41 |
 
 ---
@@ -69,9 +80,9 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ```
 ~/edgecase/
 ├── main.py                      # Application entry point (21 lines)
-├── requirements.txt             # Python dependencies (13 packages)
+├── requirements.txt             # Python dependencies
 ├── core/
-│   ├── database.py              # Database class (1,788 lines)
+│   ├── database.py              # Database class (~1,800 lines)
 │   └── encryption.py            # Fernet file encryption (48 lines)
 ├── pdf/
 │   ├── generator.py             # Statement + Session report PDFs
@@ -80,17 +91,18 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── formatting.py            # PDF helpers
 │   └── templates.py             # PDF templates
 ├── utils/
-│   ├── backup.py                # Backup/restore system (915 lines)
+│   ├── backup.py                # Backup/restore system (~915 lines)
 │   ├── formatters.py            # Date/string formatting
 │   └── validators.py            # Input validation
-├── ai/                          # Placeholder for future AI features
-│   ├── assistant.py             # (empty)
-│   ├── model_manager.py         # (empty)
-│   └── prompts.py               # (empty)
+├── ai/
+│   ├── __init__.py
+│   ├── assistant.py             # Model loading and generation (~350 lines)
+│   └── prompts.py               # Prompt templates for AI actions
 ├── web/
-│   ├── app.py                   # Flask app initialization (219 lines)
-│   ├── utils.py                 # Shared web utilities
+│   ├── app.py                   # Flask app initialization (~240 lines)
+│   ├── utils.py                 # Shared web utilities (~260 lines)
 │   └── blueprints/
+│       ├── ai.py                # AI Scribe routes (~280 lines) NEW
 │       ├── auth.py              # Login/logout, session management
 │       ├── backups.py           # Backup/restore UI
 │       ├── clients.py           # Client management, session reports
@@ -101,7 +113,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │       ├── settings.py          # Practice configuration
 │       ├── statements.py        # Statement generation, payments
 │       └── types.py             # Client type management
-├── templates/                   # 33 HTML templates
+├── templates/                   # 34 HTML templates
 │   ├── base.html
 │   ├── login.html
 │   ├── change_password.html
@@ -121,6 +133,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── add_edit_type.html
 │   ├── manage_links.html
 │   ├── add_edit_link_group.html
+│   ├── ai_scribe.html           # NEW
 │   ├── components/
 │   │   ├── attachment_upload.html
 │   │   └── edit_history.html
@@ -134,23 +147,26 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │       ├── income.html
 │       └── expense.html
 ├── static/
-│   ├── css/                     # 25 CSS files
-│   │   ├── shared.css           # Common patterns (1,181 lines)
+│   ├── css/                     # 26 CSS files
+│   │   ├── shared.css           # Common patterns (~1,180 lines)
+│   │   ├── ai_scribe.css        # NEW
 │   │   └── [page-specific].css
-│   ├── js/                      # 24 JS files (all with JSDoc)
+│   ├── js/                      # 24 JS files
 │   │   ├── lucide.min.js        # Icon library
 │   │   ├── color_palette.js     # Type color picker
+│   │   ├── ai_scribe.js         # NEW (~200 lines)
 │   │   └── [page-specific].js
 │   ├── fonts/                   # Lexend font family
 │   ├── favicons/
 │   └── img/                     # Background images
+├── models/                      # AI models (git-ignored)
+│   └── hermes-3-8b/
+│       └── Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
 ├── tests/                       # Automated test suite
-│   ├── test_edgecase.py         # 41 tests, 874 lines
+│   ├── test_edgecase.py         # 41 tests, ~875 lines
 │   └── pytest.ini               # Test configuration
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
-│   ├── {client_id}/{entry_id}/  # Client attachments
-│   └── ledger/{entry_id}/       # Ledger attachments
 ├── backups/                     # Backup files + manifest.json
 └── data/
     └── edgecase.db              # SQLCipher encrypted database
@@ -158,74 +174,81 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## BLUEPRINTS OVERVIEW (11)
+## BLUEPRINTS OVERVIEW (12)
 
-### 1. auth_bp (auth.py) - NEW in Phase 2
+### 1. ai_bp (ai.py) - NEW
+- AI Scribe page
+- Model status/download/unload endpoints
+- Text processing with SSE streaming
+- Platform auto-detection
+
+### 2. auth_bp (auth.py)
 - Login/logout
 - Password change
 - Session management
 - Session timeout enforcement
 
-### 2. backups_bp (backups.py) - NEW in Phase 2
+### 3. backups_bp (backups.py)
 - Backup settings page
 - Create backup (auto full/incremental)
 - Restore from backup
 - Delete old backups
 - Cloud folder configuration
 
-### 3. clients_bp (clients.py)
+### 4. clients_bp (clients.py)
 - Main view with client list
 - Client file with entry timeline
 - Session summary reports
 - Export entries to PDF/Markdown
 - Deleted clients view
 
-### 4. entries_bp (entries.py)
+### 5. entries_bp (entries.py)
 - Profile, Session, Communication
 - Absence, Item, Upload
 - Edit history tracking
 - Attachment handling (encrypted)
 
-### 5. ledger_bp (ledger.py)
+### 6. ledger_bp (ledger.py)
 - Income and expense entries
 - Category and payee management
 - Financial reports with PDF
 
-### 6. links_bp (links.py) - Extracted from clients
+### 7. links_bp (links.py)
 - Link group CRUD
 - Member management
 - Fee allocation
 
-### 7. statements_bp (statements.py)
+### 8. statements_bp (statements.py)
 - Statement generation
 - PDF invoice creation
 - Email workflow (mailto + AppleScript)
 - Payment tracking
 - Write-off functionality
 
-### 8. scheduler_bp (scheduler.py)
+### 9. scheduler_bp (scheduler.py)
 - Calendar event creation
 - Natural language parsing
 - .ics file generation
 - AppleScript Calendar integration
 
-### 9. types_bp (types.py)
+### 10. types_bp (types.py)
 - Client type CRUD
 - Color palette management
 - Retention settings
 
-### 10. settings_bp (settings.py)
+### 11. settings_bp (settings.py)
 - Practice info
 - Logo/signature upload
 - File number settings
 - Statement settings
 - Email settings
 - Session timeout settings
+- 12h/24h time format
 
-### 11. Main App Routes (app.py)
+### 12. Main App Routes (app.py)
 - Auto-backup check
 - Restore message API
-- Placeholder routes (scheduler, billing)
+- Template filters (timestamp_to_date, close_tags)
 
 ---
 
@@ -262,7 +285,15 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - One-click restore with safety backup
 - Backup deletion with orphan handling
 
-### Performance (Phase 2)
+### AI Scribe (Phase 3)
+- Local LLM (Hermes 3 Llama 3.1 8B)
+- Four actions: Write Up, Proofread, Expand, Contract
+- SSE streaming for real-time output
+- Auto-platform detection (Metal on Mac, CPU elsewhere)
+- Model download with progress tracking
+- Integrated into Session entry form
+
+### Performance
 - Persistent database connections (4s → 100ms per page)
 - Thread-local storage for Flask workers
 
@@ -302,14 +333,13 @@ pytest tests/ -v
 
 ---
 
-## RECENT CHANGES (Dec 1, 2025)
+## RECENT CHANGES (Dec 2, 2025)
 
-- Auto-backup on login with configurable frequency
-- Thread-local storage for database connections
-- Performance optimization (persistent connections)
-- JSDoc comments added to all JS files
-- Form field width fixes
-- Session cookie reliability improvements
+- AI Scribe feature complete
+- Edit history diff improvements
+- Fixed unclosed HTML tag issues in edit history
+- Added close_tags template filter
+- models/ folder added to .gitignore
 
 ---
 
@@ -320,9 +350,10 @@ pytest tests/ -v
 - v2.1: Statement system (Nov 28, 2025)
 - v2.2: Ledger reports (Nov 29, 2025)
 - v3.0: Phase 1 Complete (Nov 29, 2025)
-- **v4.0: Phase 2 Complete (Dec 1, 2025)**
+- v4.0: Phase 2 Complete (Dec 1, 2025)
+- **v5.0: AI Scribe Complete (Dec 2, 2025)**
 
 ---
 
-*EdgeCase Equalizer - Phase 2 Complete*  
+*EdgeCase Equalizer - All Phases Complete*  
 *"Every practice is an edge case"*
