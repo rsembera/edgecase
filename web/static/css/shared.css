@@ -449,6 +449,28 @@ input[type="number"] {
     justify-content: center;
 }
 
+.modal.active {
+    display: flex;
+}
+
+/* Alternate naming convention (alias) */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
 .modal-content {
     background: white;
     padding: var(--space-2xl);
@@ -470,11 +492,70 @@ input[type="number"] {
     line-height: 1.6;
 }
 
-/* Modal buttons */
-.modal-buttons {
+/* Modal buttons - supports both naming conventions */
+.modal-buttons,
+.modal-actions {
     display: flex;
     gap: var(--space-lg);
     justify-content: flex-end;
+}
+
+/* Common modal button styles */
+.btn-modal-cancel {
+    background-color: #E5E7EB;
+    color: #374151;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Lexend', sans-serif;
+}
+
+.btn-modal-cancel:hover {
+    background-color: #D1D5DB;
+}
+
+/* Warning boxes in modals */
+.warning-text {
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    line-height: 1.4;
+}
+
+.warning-text span {
+    flex: 1;
+}
+
+.warning-text.hidden {
+    display: none;
+}
+
+.warning-text.warning-danger {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+}
+
+.warning-text.warning-danger .warning-icon {
+    color: #DC2626;
+}
+
+.warning-icon {
+    width: 16px;
+    height: 16px;
+    color: #F59E0B;
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 
 /* ============================================
