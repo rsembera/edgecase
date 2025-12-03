@@ -36,7 +36,7 @@
 
 .settings-section-header .arrow {
     font-size: 0.875rem;
-    color: #6B7280;
+    color: var(--color-text-muted);
     transition: transform 0.2s;
     flex-shrink: 0;
     line-height: 1.875rem;
@@ -55,7 +55,7 @@ details[open] .settings-section-header .arrow {
 
 .settings-section-header p {
     margin: 0.25rem 0 0 0;
-    color: #6B7280;
+    color: var(--color-text-muted);
     font-size: 0.9375rem;
 }
 
@@ -192,7 +192,7 @@ details[open] .settings-section-header .arrow {
                     <option value="12h">12-hour (2:30 PM)</option>
                     <option value="24h">24-hour (14:30)</option>
                 </select>
-                <p style="font-size: 0.875rem; color: #6B7280; margin-top: 0.5rem;">This affects how times are displayed in entries and auto-generated communications.</p>
+                <p class="text-muted" style="font-size: 0.875rem; margin-top: 0.5rem;">This affects how times are displayed in entries and auto-generated communications.</p>
             </div>
         </div>
         
@@ -339,7 +339,7 @@ details[open] .settings-section-header .arrow {
             <label>Consultation Fee</label>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 600px;">
                 <div>
-                    <label for="consultation-base" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Base Fee ($)</label>
+                    <label for="consultation-base" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Base Fee ($)</label>
                     <input type="number" 
                            id="consultation-base" 
                            step="0.01" 
@@ -348,7 +348,7 @@ details[open] .settings-section-header .arrow {
                            oninput="calculateConsultationFee('base')">
                 </div>
                 <div>
-                    <label for="consultation-tax" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Tax Rate (%)</label>
+                    <label for="consultation-tax" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Tax Rate (%)</label>
                     <input type="number" 
                            id="consultation-tax" 
                            step="0.01" 
@@ -358,7 +358,7 @@ details[open] .settings-section-header .arrow {
                            oninput="calculateConsultationFee('tax')">
                 </div>
                 <div>
-                    <label for="consultation-total" style="font-size: 0.875rem; color: #6B7280; font-weight: normal;">Total Fee ($)</label>
+                    <label for="consultation-total" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Total Fee ($)</label>
                     <input type="number" 
                            id="consultation-total" 
                            step="0.01" 
@@ -420,19 +420,19 @@ details[open] .settings-section-header .arrow {
             <div class="form-group">
                 <label for="file-number-prefix">Prefix (optional)</label>
                 <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;" onchange="saveFileNumberSettings()">
-                <small>Up to 6 characters</small>
+                <small class="helper-text">Up to 6 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-suffix">Suffix (optional)</label>
                 <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;" onchange="saveFileNumberSettings()">
-                <small>Up to 4 characters</small>
+                <small class="helper-text">Up to 4 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-start">Starting Number</label>
                 <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;" onchange="saveFileNumberSettings()">
-                <small>Counter starts here and increments automatically</small>
+                <small class="helper-text">Counter starts here and increments automatically</small>
             </div>
             
             <div class="form-group" style="margin-bottom: 0;">
@@ -440,7 +440,7 @@ details[open] .settings-section-header .arrow {
                 <div id="file-number-preview" style="font-family: monospace; font-size: 1.125rem; color: #111827; padding: 0.75rem; background: white; border: 2px solid #DEE2E6; border-radius: 0.5rem; max-width: 300px;">
                     0001
                 </div>
-                <small>Total length must not exceed 12 characters</small>
+                <small class="helper-text">Total length must not exceed 12 characters</small>
             </div>
         </div>
         
@@ -472,7 +472,7 @@ details[open] .settings-section-header .arrow {
         <div class="form-group" id="calendar-name-group" style="display: none;">
             <label for="calendar_name">Calendar name</label>
             <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;" onchange="saveCalendarSettings()">
-            <small>Exact name of the calendar in Apple Calendar app</small>
+            <small class="helper-text">Exact name of the calendar in Apple Calendar app</small>
         </div>
         
         <span id="calendar-status" class="section-status">✓ Saved!</span>
@@ -516,7 +516,7 @@ details[open] .settings-section-header .arrow {
                 <option value="120">2 hours</option>
                 <option value="0">Never (not recommended)</option>
             </select>
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">For PHIPA compliance, shorter timeouts are recommended in shared spaces</small>
+            <small class="helper-text">For PHIPA compliance, shorter timeouts are recommended in shared spaces</small>
         </div>
         </div>
         
@@ -557,7 +557,7 @@ details[open] .settings-section-header .arrow {
                 <div style="width: 100%; height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden;">
                     <div id="ai-download-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%); border-radius: 4px; transition: width 0.3s ease;"></div>
                 </div>
-                <p id="ai-download-size" style="color: #6B7280; font-size: 0.8125rem; margin-top: 0.5rem;"></p>
+                <p id="ai-download-size" class="text-muted" style="font-size: 0.8125rem; margin-top: 0.5rem;"></p>
             </div>
         </div>
         
@@ -580,7 +580,7 @@ details[open] .settings-section-header .arrow {
                 </button>
             </div>
             
-            <p style="color: #6B7280; font-size: 0.875rem; margin-top: 1rem;">Access AI Scribe from the Session entry form using the <i data-lucide="feather" style="width: 14px; height: 14px; vertical-align: -2px;"></i> button.</p>
+            <p class="text-muted" style="font-size: 0.875rem; margin-top: 1rem;">Access AI Scribe from the Session entry form using the <i data-lucide="feather" style="width: 14px; height: 14px; vertical-align: -2px;"></i> button.</p>
         </div>
         
         </div>
@@ -615,13 +615,13 @@ details[open] .settings-section-header .arrow {
         <div class="form-group">
             <label for="registration_info">Registration Info</label>
             <input type="text" id="registration_info" placeholder="e.g., CRPO Registration Nr. #001234">
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Appears in header next to your credentials</small>
+            <small class="helper-text">Appears in header next to your credentials</small>
         </div>
         
         <div class="form-group">
             <label for="payment_instructions">Payment Instructions</label>
             <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" style="resize: vertical;"></textarea>
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Appears at bottom of statement</small>
+            <small class="helper-text">Appears at bottom of statement</small>
         </div>
         
         <div class="form-group">
@@ -643,14 +643,14 @@ details[open] .settings-section-header .arrow {
                 <option value="mailto">Open mailto: link (works everywhere)</option>
                 <option value="applescript">Compose in Mail.app (Mac only, attaches PDF)</option>
             </select>
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">AppleScript method can automatically attach the PDF statement</small>
+            <small class="helper-text">AppleScript method can automatically attach the PDF statement</small>
         </div>
         </div>  
 
         <div class="form-group" id="email-from-group" style="display: none;">
             <label for="email_from">Send From Address</label>
             <input type="email" id="email_from" placeholder="john.smith@geemail.com">
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Must match an account configured in Apple Mail</small>
+            <small class="helper-text">Must match an account configured in Apple Mail</small>
         </div>
         
         <div class="form-group">
@@ -660,7 +660,7 @@ details[open] .settings-section-header .arrow {
 All the best,
 
 John Smith."></textarea>
-            <small style="display: block; margin-top: 0.5rem; color: #6B7280;">Text that follows "Please find attached your statement for [Month Year]."</small>
+            <small class="helper-text">Text that follows "Please find attached your statement for [Month Year]."</small>
         </div>
         
         <div class="form-group">

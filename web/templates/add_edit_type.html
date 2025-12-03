@@ -27,7 +27,7 @@
                    value="{{ type.name if type else '' }}" 
                    maxlength="9" required
                    placeholder="Max 9 characters">
-            <small class="text-muted" style="display: block; margin-top: 0.25rem;">
+            <small class="helper-text">
                 Keep it short for clean badge display (e.g., "Active", "Reduced", "Waitlist")
             </small>
         </div>
@@ -66,7 +66,7 @@
                     <option value="years" {% if retention_unit == 'years' %}selected{% endif %}>Years</option>
                 </select>
             </div>
-            <small class="text-muted" style="display: block; margin-top: 0.25rem;">
+            <small class="helper-text">
                 How long to keep inactive client records after last contact. For minors, records are retained until the longer of: this period after last contact, OR this period after the client's 18th birthday. If your jurisdiction uses age 21 as the age of majority, add 3 years to your retention period.
             </small>
         </div>

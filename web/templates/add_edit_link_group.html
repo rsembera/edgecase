@@ -10,7 +10,7 @@
 <div class="card">
     <div class="header-row">
         <div>
-            <h2><i data-lucide="link" style="width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>{% if group %}Edit{% else %}New{% endif %} Link</h2>
+            <h2><i data-lucide="link" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>{% if group %}Edit{% else %}New{% endif %} Link</h2>
             <p class="page-subtitle">Link clients for couples, family, or group therapy</p>
         </div>
     </div>
@@ -38,7 +38,7 @@
                     {% endfor %}
                 {% endif %}
             </div>
-            <small class="text-muted">Search and click to add clients. Minimum 2 clients required.</small>
+            <small class="helper-text">Search and click to add clients. Minimum 2 clients required.</small>
         </div>
 
         <!-- Format and Duration (side by side) -->
@@ -52,7 +52,7 @@
                         <option value="family" {% if group and group.format == 'family' %}selected{% endif %}>Family</option>
                         <option value="group" {% if group and group.format == 'group' %}selected{% endif %}>Group</option>
                     </select>
-                    <small>This determines which sessions will use these fees</small>
+                    <small class="helper-text">This determines which sessions will use these fees</small>
                 </div>
                 <div class="field-group">
                     <label for="session_duration">Session Duration (minutes) *</label>
@@ -60,7 +60,7 @@
                         min="5" step="5" required
                         value="{{ group.session_duration if group and group.session_duration else '50' }}"
                         placeholder="50">
-                    <small>Default duration for all members in this group</small>
+                    <small class="helper-text">Default duration for all members in this group</small>
                 </div>
             </div>
         </div>
