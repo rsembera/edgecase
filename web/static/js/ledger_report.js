@@ -3,36 +3,68 @@
  * Handles financial report generation with date range selection and preview.
  */
 
+// Global picker references for quick range buttons
+let startDatePicker = null;
+let endDatePicker = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // Initialize date pickers
+    initReportPickers();
 });
 
 /**
- * Get date string from dropdown selectors
- * @param {string} prefix - Prefix for element IDs ('start' or 'end')
- * @returns {string} Date in YYYY-MM-DD format
+ * Initialize date pickers
  */
-function getDateFromDropdowns(prefix) {
-    const year = document.getElementById(prefix + '-year').value;
-    const month = document.getElementById(prefix + '-month').value.padStart(2, '0');
-    const day = document.getElementById(prefix + '-day').value.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-/**
- * Set date in dropdown selectors
- * @param {string} prefix - Prefix for element IDs
- * @param {number} year - Year value
- * @param {number} month - Month value (1-12)
- * @param {number} day - Day value
- */
-function setDateInDropdowns(prefix, year, month, day) {
-    document.getElementById(prefix + '-year').value = year;
-    document.getElementById(prefix + '-month').value = month;
-    document.getElementById(prefix + '-day').value = day;
+function initReportPickers() {
+    const reportData = JSON.parse(document.getElementById('report-data').textContent);
+    
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Parse initial dates from hidden inputs
+    const startDate = new Date(
+        reportData.defaultStartYear,
+        reportData.defaultStartMonth - 1,
+        reportData.defaultStartDay
+    );
+    const endDate = new Date(
+        reportData.defaultEndYear,
+        reportData.defaultEndMonth - 1,
+        reportData.defaultEndDay
+    );
+    
+    // Initialize start date picker
+    const startContainer = document.getElementById('start-date-picker');
+    if (startContainer) {
+        startDatePicker = new DatePicker(startContainer, {
+            initialDate: startDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                startDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+    
+    // Initialize end date picker
+    const endContainer = document.getElementById('end-date-picker');
+    if (endContainer) {
+        endDatePicker = new DatePicker(endContainer, {
+            initialDate: endDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                endDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
 }
 
 /**
@@ -40,8 +72,12 @@ function setDateInDropdowns(prefix, year, month, day) {
  * @param {number} year - Year to set
  */
 function setYearRange(year) {
-    setDateInDropdowns('start', year, 1, 1);
-    setDateInDropdowns('end', year, 12, 31);
+    if (startDatePicker) {
+        startDatePicker.setDate(new Date(year, 0, 1));
+    }
+    if (endDatePicker) {
+        endDatePicker.setDate(new Date(year, 11, 31));
+    }
 }
 
 /**
@@ -49,17 +85,29 @@ function setYearRange(year) {
  */
 function setYTD() {
     const now = new Date();
-    const year = now.getFullYear();
-    setDateInDropdowns('start', year, 1, 1);
-    setDateInDropdowns('end', year, now.getMonth() + 1, now.getDate());
+    if (startDatePicker) {
+        startDatePicker.setDate(new Date(now.getFullYear(), 0, 1));
+    }
+    if (endDatePicker) {
+        endDatePicker.setDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    }
+}
+
+/**
+ * Get date string from hidden input
+ * @param {string} inputId - ID of hidden input
+ * @returns {string} Date in YYYY-MM-DD format
+ */
+function getDateFromInput(inputId) {
+    return document.getElementById(inputId).value;
 }
 
 /**
  * Calculate and display report preview
  */
 function calculateTotals() {
-    const startDate = getDateFromDropdowns('start');
-    const endDate = getDateFromDropdowns('end');
+    const startDate = getDateFromInput('start_date');
+    const endDate = getDateFromInput('end_date');
     
     fetch(`/ledger/report/calculate?start=${startDate}&end=${endDate}`)
         .then(response => response.json())
@@ -134,8 +182,8 @@ function formatCurrency(amount) {
  * Generate and open PDF report
  */
 function generateReport() {
-    const startDate = getDateFromDropdowns('start');
-    const endDate = getDateFromDropdowns('end');
+    const startDate = getDateFromInput('start_date');
+    const endDate = getDateFromInput('end_date');
     const includeDetails = document.getElementById('include-details').checked;
     
     const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}`;
