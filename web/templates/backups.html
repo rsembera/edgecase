@@ -52,7 +52,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="backup-frequency">Automatic Backups</label>
-                <select id="backup-frequency">
+                <select id="backup-frequency" onchange="saveSettingWithConfirm('frequency')">
                     <option value="startup">Every Startup</option>
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -61,7 +61,7 @@
             </div>
             <div class="form-group">
                 <label for="backup-location">Backup Location</label>
-                <select id="backup-location" onchange="updateLocationPath()">
+                <select id="backup-location" onchange="saveSettingWithConfirm('location')">
                     <option value="default">Default (~/edgecase/backups)</option>
                 </select>
                 <div id="location-path" class="location-path"></div>
@@ -72,6 +72,11 @@
     <!-- Backup History -->
     <div class="history-section">
         <h2>Backups</h2>
+        <p class="backup-legend">
+            <span class="legend-item"><span class="backup-type-badge badge-full">Full</span> Complete backup</span>
+            <span class="legend-item"><span class="backup-type-badge badge-incr">Incr</span> Changes only (depends on Full)</span>
+            <span class="legend-item"><span class="backup-type-badge badge-safety">Safety</span> Pre-restore backup</span>
+        </p>
         <div id="backup-list" class="backup-list">
             <div class="backup-list-empty">Loading backups...</div>
         </div>
@@ -91,8 +96,7 @@
     
     <!-- Bottom buttons -->
     <div class="bottom-buttons">
-        <a href="{{ url_for('clients.index') }}" class="btn-cancel-bottom">Cancel</a>
-        <button class="btn-save-settings" id="save-settings-btn" onclick="saveBackupSettings()">Save Settings</button>
+        <a href="{{ url_for('clients.index') }}" class="btn-back"><i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back</a>
     </div>
 </div>
 
@@ -119,10 +123,19 @@
         <h3>Delete Backup</h3>
         <p>Are you sure you want to delete this backup?</p>
         <div id="modal-delete-backup-name" class="restore-point-name"></div>
+        
+        <!-- Warning for safety backups -->
         <div id="delete-safety-warning" class="warning-text hidden">
             <i data-lucide="alert-triangle" class="warning-icon"></i>
             <span>This is a safety backup that was created before a restore. Deleting it removes your safety net.</span>
         </div>
+        
+        <!-- Warning for full backups with dependents -->
+        <div id="delete-dependent-warning" class="warning-text warning-danger hidden">
+            <i data-lucide="alert-triangle" class="warning-icon"></i>
+            <span>This full backup has <strong id="dependent-count-display">0</strong> dependent incremental backup(s). <strong>They will also be deleted</strong> because they cannot be restored without this full backup.</span>
+        </div>
+        
         <div class="modal-buttons">
             <button class="btn btn-modal-cancel" onclick="hideDeleteModal()">Cancel</button>
             <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>

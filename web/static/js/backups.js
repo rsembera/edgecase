@@ -1,7 +1,7 @@
 /**
  * EdgeCase Equalizer - Backup System JavaScript
  * Handles backup creation, restore point selection, and settings management.
- * Simplified UI: One backup button, all backups are valid restore points.
+ * Displays backup chains with visual hierarchy showing dependencies.
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -94,7 +94,7 @@ function updateLocationPath() {
 }
 
 /**
- * Load all available restore points (backups)
+ * Load all available restore points (backups) and display with chain structure
  */
 async function loadRestorePoints() {
     try {
@@ -114,32 +114,51 @@ async function loadRestorePoints() {
             return;
         }
         
-        // Build backup list HTML with delete buttons
+        // Group backups by chain for visual hierarchy
+        const chains = groupByChain(data.restore_points);
+        
+        // Build backup list HTML with chain structure
         let html = '';
-        data.restore_points.forEach(point => {
-            const safetyClass = point.is_safety ? 'safety' : '';
-            const safetyLabel = point.is_safety ? '<span class="safety-badge">Safety</span>' : '';
-            
-            html += `
-                <div class="backup-item ${safetyClass}">
-                    <div class="backup-item-info">
-                        <span class="backup-item-name">${point.display_name}</span>
-                        ${safetyLabel}
-                    </div>
-                    <button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', ${point.is_safety})" title="Delete this backup">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            
-            // Add to restore dropdown
-            const option = document.createElement('option');
-            option.value = point.id;
-            option.textContent = point.display_name;
-            selectEl.appendChild(option);
+        
+        // Render chains in order (newest first based on full backup date)
+        const sortedChainIds = Object.keys(chains).sort((a, b) => {
+            const aDate = chains[a].full ? chains[a].full.created_at : (chains[a].safety ? chains[a].safety.created_at : '');
+            const bDate = chains[b].full ? chains[b].full.created_at : (chains[b].safety ? chains[b].safety.created_at : '');
+            return bDate.localeCompare(aDate);
         });
+        
+        for (const chainId of sortedChainIds) {
+            const chain = chains[chainId];
+            
+            // Safety backups (standalone)
+            if (chain.safety) {
+                html += renderSafetyBackup(chain.safety);
+                addToRestoreDropdown(selectEl, chain.safety);
+                continue;
+            }
+            
+            // Full backup (chain header)
+            if (chain.full) {
+                html += renderFullBackup(chain.full);
+                addToRestoreDropdown(selectEl, chain.full);
+                
+                // Incremental backups (indented under full)
+                if (chain.incrementals && chain.incrementals.length > 0) {
+                    // Sort incrementals by date (oldest first for display order)
+                    chain.incrementals.sort((a, b) => a.created_at.localeCompare(b.created_at));
+                    
+                    for (let i = 0; i < chain.incrementals.length; i++) {
+                        const incr = chain.incrementals[i];
+                        const isLast = (i === chain.incrementals.length - 1);
+                        html += renderIncrementalBackup(incr, isLast);
+                        addToRestoreDropdown(selectEl, incr);
+                    }
+                }
+                
+                // Close the chain div
+                html += '        </div>';
+            }
+        }
         
         listEl.innerHTML = html;
         
@@ -151,102 +170,235 @@ async function loadRestorePoints() {
 }
 
 /**
- * Perform backup - single button, system decides full vs incremental
+ * Group restore points by chain_id
+ * @param {Array} points - Array of restore points
+ * @returns {Object} - Grouped by chain_id
+ */
+function groupByChain(points) {
+    const chains = {};
+    
+    for (const point of points) {
+        const chainId = point.chain_id;
+        
+        if (!chains[chainId]) {
+            chains[chainId] = { full: null, incrementals: [], safety: null };
+        }
+        
+        if (point.type === 'full') {
+            chains[chainId].full = point;
+        } else if (point.type === 'incremental') {
+            chains[chainId].incrementals.push(point);
+        } else if (point.type === 'pre_restore') {
+            chains[chainId].safety = point;
+        }
+    }
+    
+    return chains;
+}
+
+/**
+ * Render a full backup item (chain header)
+ */
+function renderFullBackup(point) {
+    const dependentText = point.dependent_count > 0 
+        ? `<span class="dependent-count">${point.dependent_count} dependent</span>` 
+        : '';
+    
+    return `
+        <div class="backup-chain">
+            <div class="backup-item backup-full" data-id="${point.id}" data-type="full" data-dependents="${point.dependent_count}">
+                <div class="backup-item-info">
+                    <span class="backup-type-badge badge-full">Full</span>
+                    <span class="backup-item-name">${point.display_name}</span>
+                    ${dependentText}
+                </div>
+                <button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', false, ${point.dependent_count})" title="Delete this backup">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                </button>
+            </div>
+    `;
+}
+
+/**
+ * Render an incremental backup item (indented under full)
+ */
+function renderIncrementalBackup(point, isLast) {
+    const connectorClass = isLast ? 'connector-last' : 'connector-mid';
+    
+    return `
+            <div class="backup-item backup-incremental" data-id="${point.id}" data-type="incremental">
+                <div class="backup-connector ${connectorClass}"></div>
+                <div class="backup-item-info">
+                    <span class="backup-type-badge badge-incr">Incr</span>
+                    <span class="backup-item-name">${point.display_name}</span>
+                </div>
+                <button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', false, 0)" title="Delete this backup">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                </button>
+            </div>
+    `;
+}
+
+/**
+ * Render a safety backup (pre-restore)
+ */
+function renderSafetyBackup(point) {
+    return `
+        <div class="backup-chain">
+            <div class="backup-item backup-safety" data-id="${point.id}" data-type="pre_restore">
+                <div class="backup-item-info">
+                    <span class="backup-type-badge badge-safety">Safety</span>
+                    <span class="backup-item-name">${point.display_name}</span>
+                </div>
+                <button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', true, 0)" title="Delete this backup">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Add a restore point to the dropdown
+ */
+function addToRestoreDropdown(selectEl, point) {
+    const option = document.createElement('option');
+    option.value = point.id;
+    
+    // Add type indicator to dropdown text
+    let typeLabel = '';
+    if (point.type === 'full') typeLabel = '[Full] ';
+    else if (point.type === 'incremental') typeLabel = '[Incr] ';
+    else if (point.type === 'pre_restore') typeLabel = '[Safety] ';
+    
+    option.textContent = typeLabel + point.display_name;
+    selectEl.appendChild(option);
+}
+
+/**
+ * Trigger backup creation
  */
 async function performBackup() {
     const btn = document.getElementById('backup-now-btn');
     const btnText = btn.querySelector('.btn-text');
-    const btnSpinner = btn.querySelector('.btn-spinner');
+    const spinner = btn.querySelector('.btn-spinner');
     
-    // Disable button and show spinner
+    // Show loading state
     btn.disabled = true;
     btnText.textContent = 'Backing up...';
-    btnSpinner.classList.remove('hidden');
+    spinner.classList.remove('hidden');
     
     try {
         const response = await fetch('/api/backup/now', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
+            headers: { 'Content-Type': 'application/json' }
         });
         
         const data = await response.json();
         
         if (data.success) {
             if (data.backup) {
-                showMessage('Backup created successfully!', 'success');
+                showMessage(`Backup created: ${data.backup.type}`, 'success');
             } else {
-                showMessage('No changes since last backup.', 'info');
+                showMessage('No changes since last backup', 'info');
             }
             loadBackupStatus();
             loadRestorePoints();
         } else {
-            showMessage(data.error || 'Backup failed', 'error');
+            showMessage('Backup failed: ' + (data.error || 'Unknown error'), 'error');
         }
     } catch (error) {
         console.error('Backup error:', error);
         showMessage('Backup failed: ' + error.message, 'error');
     } finally {
-        // Re-enable button
+        // Reset button state
         btn.disabled = false;
         btnText.textContent = 'Backup Now';
-        btnSpinner.classList.add('hidden');
+        spinner.classList.add('hidden');
     }
 }
 
 /**
- * Save backup settings (frequency and location)
+ * Save a single setting with confirmation message (auto-save on dropdown change)
+ * @param {string} settingType - 'frequency' or 'location'
  */
-async function saveBackupSettings() {
+async function saveSettingWithConfirm(settingType) {
     const frequency = document.getElementById('backup-frequency').value;
-    const locationSelect = document.getElementById('backup-location');
+    const location = document.getElementById('backup-location').value;
     
-    const body = { frequency: frequency };
-    
-    // Send location (empty string for default)
-    if (locationSelect.value !== 'default') {
-        body.location = locationSelect.value;
-    } else {
-        body.location = '';
+    // Update location path display if location changed
+    if (settingType === 'location') {
+        updateLocationPath();
     }
     
     try {
         const response = await fetch('/api/backup/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify({
+                frequency: frequency,
+                location: location === 'default' ? '' : location
+            })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            window.location.href = '/';
+            // Show brief confirmation message
+            const settingName = settingType === 'frequency' ? 'Automatic backup setting' : 'Backup location';
+            showMessage(`${settingName} saved`, 'success');
+            
+            // Auto-hide the message after 2 seconds
+            setTimeout(() => {
+                const msgEl = document.getElementById('backup-message');
+                if (msgEl && msgEl.classList.contains('success')) {
+                    msgEl.classList.add('hidden');
+                }
+            }, 2000);
         } else {
-            showMessage('Failed to save settings: ' + (data.error || 'Unknown error'), 'error');
+            showMessage('Failed to save: ' + (data.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        console.error('Save settings error:', error);
-        showMessage('Failed to save settings: ' + error.message, 'error');
+        console.error('Save setting error:', error);
+        showMessage('Failed to save: ' + error.message, 'error');
     }
 }
 
 /**
- * Show delete confirmation modal
+ * Show delete confirmation modal with dependency warning
  * @param {string} backupId - ID of backup to delete
  * @param {string} displayName - Display name for confirmation
  * @param {boolean} isSafety - Whether this is a safety backup
+ * @param {number} dependentCount - Number of dependent backups (for full backups)
  */
-function confirmDeleteBackup(backupId, displayName, isSafety) {
+function confirmDeleteBackup(backupId, displayName, isSafety, dependentCount) {
     const modal = document.getElementById('delete-modal');
     const nameEl = document.getElementById('modal-delete-backup-name');
-    const warningEl = document.getElementById('delete-safety-warning');
+    const safetyWarningEl = document.getElementById('delete-safety-warning');
+    const dependentWarningEl = document.getElementById('delete-dependent-warning');
+    const dependentCountEl = document.getElementById('dependent-count-display');
     
     nameEl.textContent = displayName;
     
+    // Show/hide safety warning
     if (isSafety) {
-        warningEl.classList.remove('hidden');
+        safetyWarningEl.classList.remove('hidden');
     } else {
-        warningEl.classList.add('hidden');
+        safetyWarningEl.classList.add('hidden');
+    }
+    
+    // Show/hide dependent warning
+    if (dependentCount > 0) {
+        dependentCountEl.textContent = dependentCount;
+        dependentWarningEl.classList.remove('hidden');
+    } else {
+        dependentWarningEl.classList.add('hidden');
     }
     
     // Store backup ID for confirm action
@@ -349,14 +501,16 @@ async function confirmRestore() {
 async function cancelRestore() {
     try {
         const response = await fetch('/api/backup/cancel-restore', {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
         });
         
         const data = await response.json();
         
         if (data.success) {
-            showMessage('Restore cancelled.', 'success');
+            showMessage('Restore cancelled.', 'info');
             document.getElementById('restore-pending-alert').classList.add('hidden');
+            loadBackupStatus();
         } else {
             showMessage('Failed to cancel restore: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -369,18 +523,18 @@ async function cancelRestore() {
 /**
  * Show a message to the user
  * @param {string} text - Message text
- * @param {string} type - Message type: 'success', 'error', or 'info'
+ * @param {string} type - Message type: 'success', 'error', 'info'
  */
 function showMessage(text, type) {
-    const msgEl = document.getElementById('backup-message');
-    msgEl.textContent = text;
-    msgEl.className = 'backup-message ' + type;
-    msgEl.classList.remove('hidden');
+    const messageEl = document.getElementById('backup-message');
+    messageEl.textContent = text;
+    messageEl.className = `backup-message ${type}`;
+    messageEl.classList.remove('hidden');
     
     // Auto-hide after 5 seconds for success/info messages
-    if (type === 'success' || type === 'info') {
+    if (type !== 'error') {
         setTimeout(() => {
-            msgEl.classList.add('hidden');
+            messageEl.classList.add('hidden');
         }, 5000);
     }
 }

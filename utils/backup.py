@@ -447,10 +447,13 @@ def get_restore_points():
                 
                 restore_points.append({
                     'id': f"pre_restore_{backup['filename']}",
+                    'filename': backup['filename'],
                     'display_name': f"{display_time} (Safety backup)",
                     'created_at': backup['created_at'],
                     'type': 'pre_restore',
                     'is_safety': True,
+                    'chain_id': 'pre_restore',
+                    'dependent_count': 0,
                     'files_needed': [str(backup_path)]
                 })
             continue
@@ -460,6 +463,9 @@ def get_restore_points():
         
         # Sort incrementals by date
         chain['incrementals'].sort(key=lambda x: x['created_at'])
+        
+        # Count dependents for this chain's full backup
+        dependent_count = len(chain['incrementals'])
         
         # Full backup as restore point
         full_backup = chain['full']
@@ -472,10 +478,13 @@ def get_restore_points():
             
             restore_points.append({
                 'id': f"{chain_id}_full",
+                'filename': full_backup['filename'],
                 'display_name': display_time,
                 'created_at': full_backup['created_at'],
                 'type': 'full',
                 'is_safety': False,
+                'chain_id': chain_id,
+                'dependent_count': dependent_count,
                 'files_needed': [str(backup_path)]
             })
         
@@ -492,10 +501,13 @@ def get_restore_points():
                 
                 restore_points.append({
                     'id': f"{chain_id}_incr_{i}",
+                    'filename': incr['filename'],
                     'display_name': display_time,
                     'created_at': incr['created_at'],
                     'type': 'incremental',
                     'is_safety': False,
+                    'chain_id': chain_id,
+                    'dependent_count': 0,
                     'files_needed': files_needed.copy()
                 })
     

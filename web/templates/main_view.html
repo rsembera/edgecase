@@ -318,9 +318,9 @@
         <p style="background: #FEF3C7; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; color: #92400E;">
             <strong>Error:</strong> {{ backup_warning }}
         </p>
-        <div class="modal-actions" style="justify-content: flex-end;">
+        <div class="modal-actions" style="justify-content: space-between;">
             <button onclick="document.getElementById('backup-warning-modal').style.display='none'" class="btn btn-secondary">Dismiss</button>
-            <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary">
+            <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.375rem;">
                 <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
                 Check Settings
             </a>
