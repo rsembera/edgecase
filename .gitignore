@@ -27,3 +27,7 @@ __pycache__/
 data/*.db-shm
 data/*.db-wal
 backups/
+# Models (large AI model files)
+models/
+*.gguf
+

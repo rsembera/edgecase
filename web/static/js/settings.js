@@ -1026,6 +1026,191 @@ async function saveStatementSettings() {
 }
 
 // ============================================================
+// AI SCRIBE SETTINGS
+// ============================================================
+
+/**
+ * Load AI Scribe status and update UI
+ */
+async function loadAIStatus() {
+    try {
+        // Check system capability
+        const capResp = await fetch('/api/ai/capability');
+        const capData = await capResp.json();
+        
+        const capStatus = document.getElementById('ai-capability-status');
+        if (capStatus) {
+            if (capData.capable) {
+                capStatus.innerHTML = `<p style="color: #0E5346; font-size: 0.875rem;"><i data-lucide="cpu" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>${capData.message}</p>`;
+            } else {
+                capStatus.innerHTML = `<p style="color: #991B1B; font-size: 0.875rem;"><i data-lucide="alert-circle" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>${capData.message}</p>`;
+            }
+        }
+        
+        // Check model status
+        const statusResp = await fetch('/api/ai/status');
+        const statusData = await statusResp.json();
+        
+        const notDownloaded = document.getElementById('ai-not-downloaded');
+        const downloaded = document.getElementById('ai-downloaded');
+        
+        if (statusData.downloaded) {
+            notDownloaded.style.display = 'none';
+            downloaded.style.display = 'block';
+            
+            const modelInfo = document.getElementById('ai-model-info');
+            if (modelInfo && statusData.size_gb) {
+                modelInfo.textContent = `${statusData.name} is installed (${statusData.size_gb}GB)`;
+            }
+            
+            const modelStatus = document.getElementById('ai-model-status');
+            if (modelStatus) {
+                if (statusData.loaded) {
+                    modelStatus.innerHTML = '<p style="color: #0369A1; font-size: 0.875rem;"><i data-lucide="zap" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>Model is loaded in memory (ready to use)</p>';
+                } else {
+                    modelStatus.innerHTML = '<p style="color: #6B7280; font-size: 0.875rem;"><i data-lucide="moon" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>Model is not loaded (will load automatically when needed)</p>';
+                }
+            }
+        } else {
+            notDownloaded.style.display = 'block';
+            downloaded.style.display = 'none';
+        }
+        
+        // Refresh Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    } catch (error) {
+        console.error('Error loading AI status:', error);
+    }
+}
+
+/**
+ * Download the AI model with progress tracking
+ */
+async function downloadAIModel() {
+    const btn = document.getElementById('ai-download-btn');
+    const progress = document.getElementById('ai-download-progress');
+    const statusText = document.getElementById('ai-download-status');
+    const progressBar = document.getElementById('ai-download-bar');
+    const sizeText = document.getElementById('ai-download-size');
+    
+    btn.disabled = true;
+    progress.style.display = 'block';
+    statusText.textContent = 'Starting download...';
+    progressBar.style.width = '0%';
+    sizeText.textContent = '';
+    
+    try {
+        const response = await fetch('/api/ai/download', { method: 'POST' });
+        
+        if (!response.ok) {
+            throw new Error('Download request failed');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let totalSize = null;
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete SSE messages
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop() || '';  // Keep incomplete message in buffer
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.substring(6));
+                        
+                        if (data.status === 'checking') {
+                            statusText.textContent = data.message;
+                        } else if (data.status === 'downloading') {
+                            statusText.textContent = 'Downloading Hermes 3...';
+                            if (data.total) {
+                                totalSize = data.total;
+                            }
+                        } else if (data.status === 'progress') {
+                            const downloaded = data.downloaded || 0;
+                            const total = data.total || totalSize;
+                            
+                            if (total) {
+                                const percent = Math.min(100, (downloaded / total) * 100);
+                                progressBar.style.width = percent.toFixed(1) + '%';
+                                const downloadedMB = (downloaded / (1024 * 1024)).toFixed(0);
+                                const totalMB = (total / (1024 * 1024)).toFixed(0);
+                                sizeText.textContent = `${downloadedMB} MB / ${totalMB} MB (${percent.toFixed(0)}%)`;
+                            } else {
+                                // Unknown total - just show downloaded size
+                                const downloadedMB = (downloaded / (1024 * 1024)).toFixed(0);
+                                sizeText.textContent = `${downloadedMB} MB downloaded...`;
+                            }
+                        } else if (data.status === 'complete') {
+                            progressBar.style.width = '100%';
+                            statusText.textContent = 'Download complete!';
+                            sizeText.textContent = '';
+                            // Reload status to update UI
+                            setTimeout(() => loadAIStatus(), 500);
+                        } else if (data.status === 'error') {
+                            throw new Error(data.message || 'Download failed');
+                        }
+                    } catch (parseError) {
+                        console.error('Failed to parse SSE data:', parseError);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        statusText.textContent = 'Download failed: ' + error.message;
+        sizeText.textContent = 'You can try again or check your internet connection.';
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Unload AI model from memory
+ */
+async function unloadAIModel() {
+    try {
+        const response = await fetch('/api/ai/unload', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            loadAIStatus();
+        }
+    } catch (error) {
+        alert('Failed to unload model: ' + error.message);
+    }
+}
+
+/**
+ * Delete the AI model
+ */
+async function deleteAIModel() {
+    if (!confirm('Are you sure you want to delete the AI model? You will need to download it again to use AI Scribe.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/ai/delete', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            loadAIStatus();
+        } else {
+            throw new Error(data.error || 'Delete failed');
+        }
+    } catch (error) {
+        alert('Failed to delete model: ' + error.message);
+    }
+}
+
+// ============================================================
 // EVENT LISTENERS
 // ============================================================
 
@@ -1038,6 +1223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCalendarSettings();
     loadStatementSettings();
     loadTimeFormat();
+    loadAIStatus();
     
     // Phone formatting
     const phoneInput = document.getElementById('practice-phone');

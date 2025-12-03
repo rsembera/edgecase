@@ -458,8 +458,8 @@ def create_session(client_id):
         # Save session entry
         entry_id = db.add_entry(session_data)
 
-        # Check if this is a draft save
-        is_draft_save = request.form.get('save_draft') == '1'
+        # Check if this is a draft save (or AI Scribe - treat as draft)
+        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
 
         # Only lock if NOT a draft save
         if not is_draft_save:
@@ -467,6 +467,10 @@ def create_session(client_id):
 
         # Renumber all sessions to maintain chronological order
         renumber_sessions(client_id)
+        
+        # Check if AI Scribe button was clicked - redirect there instead
+        if request.form.get('ai_scribe'):
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
                 
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -626,8 +630,8 @@ def edit_session(client_id, entry_id):
             # Keep existing session number
             session_data['description'] = f"Session {session['session_number']}"
         
-        # Check if this is a draft save
-        is_draft_save = request.form.get('save_draft') == '1'
+        # Check if this is a draft save (or AI Scribe - treat as draft)
+        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
 
         # Only lock and track history if NOT a draft save
         if not is_draft_save:
@@ -736,6 +740,10 @@ def edit_session(client_id, entry_id):
             
         # Save updated session
         db.update_entry(entry_id, session_data)
+        
+        # Check if AI Scribe button was clicked - redirect there instead
+        if request.form.get('ai_scribe'):
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
         
         return redirect(url_for('clients.client_file', client_id=client_id))
     

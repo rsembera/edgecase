@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}AI Scribe - {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_scribe.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 1400px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="header-row">
+        <div class="header-left">
+            <h2>
+                <i data-lucide="feather" style="color: #6366F1; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>
+                AI Scribe
+            </h2>
+            <span class="client-badge">{{ client.file_number }}</span>
+        </div>
+    </div>
+
+    <!-- Model Status Banner (if not loaded) -->
+    {% if not model_downloaded %}
+    <div class="status-banner status-error">
+        <i data-lucide="alert-circle"></i>
+        <span>AI model not downloaded. <a href="{{ url_for('settings.settings_page') }}#ai-scribe">Download in Settings</a></span>
+    </div>
+    {% elif not model_loaded %}
+    <div class="status-banner status-warning" id="model-loading-banner">
+        <i data-lucide="loader" class="spinning"></i>
+        <span>Loading AI model... This may take a moment.</span>
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <div class="scribe-container">
+        <!-- Left Column: Original Text -->
+        <div class="scribe-column">
+            <div class="column-header">
+                <h3>Original Notes</h3>
+                <span class="text-muted">Read-only reference</span>
+            </div>
+            <div class="text-area-container">
+                <textarea id="original-text" readonly>{{ original_text }}</textarea>
+            </div>
+        </div>
+
+        <!-- Center: Action Buttons -->
+        <div class="scribe-actions">
+            <div class="action-buttons">
+                {% for action in actions %}
+                <button type="button" 
+                        class="action-btn" 
+                        data-action="{{ action.id }}"
+                        title="{{ action.description }}"
+                        {% if not model_downloaded %}disabled{% endif %}>
+                    <i data-lucide="{{ action.icon }}"></i>
+                    <span>{{ action.label }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            
+            <!-- Progress indicator -->
+            <div id="generation-status" class="generation-status" style="display: none;">
+                <i data-lucide="loader" class="spinning"></i>
+                <span id="status-text">Generating...</span>
+            </div>
+        </div>
+
+        <!-- Right Column: Generated Text -->
+        <div class="scribe-column">
+            <div class="column-header">
+                <h3>AI Result</h3>
+                <span class="text-muted" id="result-hint">Click an action to generate</span>
+            </div>
+            <div class="text-area-container">
+                <textarea id="generated-text" placeholder="AI-generated text will appear here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="bottom-actions">
+        <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}" class="btn btn-secondary">
+            Cancel
+        </a>
+        <div class="action-group">
+            <button type="button" id="btn-revert" class="btn btn-secondary" disabled>
+                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                Revert
+            </button>
+            <button type="button" id="btn-keep" class="btn" disabled>
+                <i data-lucide="check" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                Keep Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Store entry ID for JavaScript -->
+<script>
+    window.ENTRY_ID = {{ entry.id }};
+    window.CLIENT_ID = {{ client.id }};
+    window.MODEL_DOWNLOADED = {{ 'true' if model_downloaded else 'false' }};
+    window.MODEL_LOADED = {{ 'true' if model_loaded else 'false' }};
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/ai_scribe.js') }}"></script>
+{% endblock %}
