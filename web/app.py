@@ -107,6 +107,25 @@ def timestamp_to_date(timestamp):
     from datetime import datetime
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
 
+@app.template_filter('close_tags')
+def close_tags(html_string):
+    """Ensure all HTML tags are properly closed to prevent DOM poisoning."""
+    if not html_string:
+        return html_string
+    
+    # Count unclosed tags
+    open_strong = html_string.count('<strong>') - html_string.count('</strong>')
+    open_del = html_string.count('<del>') - html_string.count('</del>')
+    
+    # Close any unclosed tags
+    result = html_string
+    for _ in range(max(0, open_strong)):
+        result += '</strong>'
+    for _ in range(max(0, open_del)):
+        result += '</del>'
+    
+    return result
+
 @app.before_request
 def require_login():
     """Redirect to login if not authenticated or session expired."""
