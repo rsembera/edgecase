@@ -15,7 +15,7 @@
     <div class="ledger-header">
         <div>
             <h2><i data-lucide="wallet" style="color: #1F8F74; width: 28px !important; height: 28px!important; vertical-align: -4px; margin-right: 0.5rem;"></i>Ledger</h2>
-            <p style="color: #718096; margin-top: 0.5rem;">Track income and expenses for your practice</p>
+            <p class="page-subtitle">Track income and expenses for your practice</p>
         </div>
         <a href="{{ url_for('clients.index') }}" class="btn">← Back</a>
     </div>
@@ -52,7 +52,7 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <div style="font-size: 0.875rem; color: #718096;">No expenses yet</div>
+                <div class="text-muted" style="font-size: 0.875rem;">No expenses yet</div>
             {% endif %}
         </div>
     </div>
@@ -181,7 +181,7 @@
                             {{ entry.category_name }}
                             {% endif %}
                         </td>
-                        <td style="color: #5B6571;">
+                        <td class="text-muted">
                             {% if entry.attachment_count == 0 %}
                             -
                             {% elif entry.attachment_count == 1 %}
