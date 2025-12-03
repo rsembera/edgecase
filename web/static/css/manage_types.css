@@ -16,7 +16,8 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 2rem;
-    border-radius: 0.5rem 0.5rem 0 0;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
 }
 
 .section-header:first-of-type {

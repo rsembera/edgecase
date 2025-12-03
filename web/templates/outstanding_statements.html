@@ -129,7 +129,7 @@
                     <td>{{ stmt.date_display }}</td>
                     <td>
                         <strong>{{ stmt.client_name }}</strong><br>
-                        <span style="color: #718096; font-size: 0.8125rem;">{{ stmt.file_number }}</span>
+                        <span class="text-muted" style="font-size: 0.8125rem;">{{ stmt.file_number }}</span>
                     </td>
                     <td>${{ "%.2f"|format(stmt.amount_owing) }}</td>
                     <td>

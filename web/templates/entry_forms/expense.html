@@ -18,7 +18,7 @@
     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
         <div>
             <h2><i data-lucide="trending-down" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Expense Entry</h2>
-            <div style="color: #718096;">
+            <div class="text-muted">
                 Record business expenses for your practice
             </div>
         </div>
@@ -37,7 +37,7 @@
             <div class="form-group">
                 <label for="total_amount">Total Amount *</label>
                 <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency|currency_symbol }}</span>
+                    <span class="input-prefix">{{ currency|currency_symbol }}</span>
                     <input type="number" 
                            id="total_amount" 
                            name="total_amount" 
@@ -54,7 +54,7 @@
             <div class="form-group">
                 <label for="tax_amount">Tax Paid</label>
                 <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #718096; font-weight: 500;">{{ currency|currency_symbol }}</span>
+                    <span class="input-prefix">{{ currency|currency_symbol }}</span>
                     <input type="number" 
                            id="tax_amount" 
                            name="tax_amount" 
