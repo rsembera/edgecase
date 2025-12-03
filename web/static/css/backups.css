@@ -20,7 +20,8 @@
 }
 
 .backup-status-box {
-    flex: 1;
+    width: 50%;
+    max-width: 400px;
     background: var(--color-background, #FBFCFD);
     border: 1px solid var(--color-border, #DEE2E6);
     border-radius: 0.75rem;
@@ -636,6 +637,11 @@
 @media (max-width: 768px) {
     .backup-top-section {
         flex-direction: column;
+    }
+    
+    .backup-status-box {
+        width: 100%;
+        max-width: none;
     }
     
     .backup-actions {
