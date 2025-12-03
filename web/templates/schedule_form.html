@@ -14,12 +14,12 @@
             <h2><i data-lucide="calendar-plus" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Schedule Appointment</h2>
             <div class="text-muted">
                 <div style="margin-bottom: 0.25rem;">
-                    {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }} {% endif %}{{ client['last_name'] }}
-                </div>
-                <div style="margin-bottom: 0.25rem;">
                     <span class="type-badge" style="background-color: {{ client_type['color'] }}">
                         {{ client_type['name'] }}
                     </span>
+                </div>
+                <div style="margin-bottom: 0.25rem;">
+                    {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }} {% endif %}{{ client['last_name'] }}
                 </div>
                 <div>
                     File #{{ client['file_number'] }}
