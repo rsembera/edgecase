@@ -43,6 +43,7 @@ from web.blueprints.ledger import ledger_bp
 from web.blueprints.scheduler import scheduler_bp
 from web.blueprints.statements import statements_bp
 from web.blueprints.backups import backups_bp
+from web.blueprints.ai import ai_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
@@ -65,6 +66,7 @@ def init_all_blueprints(db):
     from web.blueprints.settings import init_blueprint as init_settings
     from web.blueprints.links import init_blueprint as init_links
     from web.blueprints.backups import init_blueprint as init_backups
+    from web.blueprints.ai import init_blueprint as init_ai
     
     init_clients(db)
     init_entries(db)
@@ -75,6 +77,7 @@ def init_all_blueprints(db):
     init_settings(db)
     init_links(db)
     init_backups(db)
+    init_ai(db)
 
 # Ensure data directory exists
 project_root = Path(__file__).parent.parent
@@ -92,6 +95,7 @@ app.register_blueprint(ledger_bp)
 app.register_blueprint(scheduler_bp)
 app.register_blueprint(statements_bp, url_prefix='/statements')
 app.register_blueprint(backups_bp)
+app.register_blueprint(ai_bp)
 
 from datetime import datetime         
 

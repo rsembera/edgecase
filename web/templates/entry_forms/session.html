@@ -207,7 +207,17 @@
         <!-- Session notes -->
         <div class="form-row-full">
             <div class="form-group">
-                <label for="content">Session Notes *</label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="content">Session Notes *</label>
+                    {% if not is_locked %}
+                    <button type="submit" name="ai_scribe" value="1" 
+                            class="btn-ai-scribe" 
+                            title="AI Scribe - Expand, proofread, or refine your notes">
+                        <i data-lucide="feather" style="width: 16px; height: 16px;"></i>
+                        <span>AI Scribe</span>
+                    </button>
+                    {% endif %}
+                </div>
                 <textarea id="content" name="content" placeholder="Session notes..." required>{% if is_edit %}{{ session.content or '' }}{% endif %}</textarea>
                 <p class="help-text">Supports Markdown formatting</p>
             </div>

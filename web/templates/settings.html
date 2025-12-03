@@ -526,6 +526,66 @@ details[open] .settings-section-header .arrow {
 
 
 
+    <!-- AI Scribe Section -->
+    <details class="settings-section-collapsible" id="ai-scribe">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>AI Scribe</h3>
+                <p>Local AI assistant for session notes</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+        
+        <div id="ai-capability-status" style="margin-bottom: 1rem;"></div>
+        
+        <div id="ai-not-downloaded" style="display: none;">
+            <p style="color: #4B5563; font-size: 0.9375rem; margin-bottom: 1rem; line-height: 1.5;">AI Scribe uses a local language model (Hermes 3, ~5GB) to help you write professional clinical notes. The model runs entirely on your computer — no data is sent to external servers.</p>
+            
+            <div class="form-group">
+                <button onclick="downloadAIModel()" id="ai-download-btn" class="btn">
+                    <i data-lucide="download" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                    Download AI Model
+                </button>
+            </div>
+            
+            <div id="ai-download-progress" style="display: none; margin-top: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #0369a1; margin-bottom: 0.5rem;">
+                    <i data-lucide="loader" class="btn-spinner" style="width: 16px; height: 16px;"></i>
+                    <span id="ai-download-status">Starting download...</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden;">
+                    <div id="ai-download-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%); border-radius: 4px; transition: width 0.3s ease;"></div>
+                </div>
+                <p id="ai-download-size" style="color: #6B7280; font-size: 0.8125rem; margin-top: 0.5rem;"></p>
+            </div>
+        </div>
+        
+        <div id="ai-downloaded" style="display: none;">
+            <p style="color: #0E5346; font-size: 0.9375rem; margin-bottom: 1rem;">
+                <i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                <span id="ai-model-info">Hermes 3 is installed</span>
+            </p>
+            
+            <div id="ai-model-status" style="margin-bottom: 1rem;"></div>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button onclick="unloadAIModel()" id="ai-unload-btn" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                    <i data-lucide="power-off" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                    Unload from Memory
+                </button>
+                <button onclick="deleteAIModel()" id="ai-delete-btn" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                    Delete Model
+                </button>
+            </div>
+            
+            <p style="color: #6B7280; font-size: 0.875rem; margin-top: 1rem;">Access AI Scribe from the Session entry form using the <i data-lucide="feather" style="width: 14px; height: 14px; vertical-align: -2px;"></i> button.</p>
+        </div>
+        
+        </div>
+    </details>
+
     <!-- Statements Section -->
     <details class="settings-section-collapsible">
         <summary class="settings-section-header">
