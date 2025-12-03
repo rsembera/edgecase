@@ -1,6 +1,6 @@
 /* Manage Links Page Styles */
 /* Shared patterns from shared.css: header-row, btn, btn-secondary, btn-danger, 
-   btn-icon, modal, modal-content, empty-state */
+   btn-icon, modal, modal-content, modal-actions, empty-state */
 
 .card {
     max-width: min(900px, 95vw);
@@ -176,14 +176,4 @@
     margin-top: 0.5rem;
 }
 
-/* Modal variant class for active state */
-.modal.active {
-    display: flex;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
+/* Modal styles: .modal-actions now in shared.css */
