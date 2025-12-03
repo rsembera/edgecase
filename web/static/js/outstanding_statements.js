@@ -11,6 +11,8 @@ let currentFilter = 'all';
 let currentPaymentPortionId = null;
 let currentWriteOffPortionId = null;
 let currentWriteOffAmount = 0;
+let startDatePicker = null;
+let endDatePicker = null;
 
 // ============================================================
 // INITIALIZATION
@@ -20,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // Initialize date pickers
+    initStatementPickers();
     
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
@@ -152,31 +157,84 @@ function toggleGenerateSection() {
 }
 
 // ============================================================
-// DATE HELPERS
+// DATE PICKER FUNCTIONS
 // ============================================================
 
 /**
- * Get date string from dropdown selects
- * @param {string} prefix - Prefix for element IDs (e.g., 'start' or 'end')
- * @returns {string} Date in YYYY-MM-DD format
+ * Initialize date pickers for statement generation
  */
-function getDateFromDropdowns(prefix) {
-    const year = document.getElementById(prefix + '-year').value;
-    const month = document.getElementById(prefix + '-month').value.padStart(2, '0');
-    const day = document.getElementById(prefix + '-day').value.padStart(2, '0');
-    return `${year}-${month}-${day}`;
+function initStatementPickers() {
+    const dataEl = document.getElementById('statements-data');
+    if (!dataEl) return;
+    
+    const data = JSON.parse(dataEl.textContent);
+    
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Parse initial dates
+    const startDate = new Date(
+        data.defaultStartYear,
+        data.defaultStartMonth - 1,
+        data.defaultStartDay
+    );
+    const endDate = new Date(
+        data.defaultEndYear,
+        data.defaultEndMonth - 1,
+        data.defaultEndDay
+    );
+    
+    // Initialize start date picker
+    const startContainer = document.getElementById('start-date-picker');
+    if (startContainer) {
+        startDatePicker = new DatePicker(startContainer, {
+            initialDate: startDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                startDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+    
+    // Initialize end date picker
+    const endContainer = document.getElementById('end-date-picker');
+    if (endContainer) {
+        endDatePicker = new DatePicker(endContainer, {
+            initialDate: endDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                endDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
 }
 
 /**
- * Set dropdown selects from a date string
- * @param {string} prefix - Prefix for element IDs
+ * Get date string from hidden input
+ * @param {string} prefix - Prefix for element ID ('start' or 'end')
+ * @returns {string} Date in YYYY-MM-DD format
+ */
+function getDateFromDropdowns(prefix) {
+    // Now reads from hidden inputs instead of dropdowns
+    return document.getElementById(prefix + '_date').value;
+}
+
+/**
+ * Set date using the picker
+ * @param {string} prefix - Prefix ('start' or 'end')
  * @param {string} date - Date string parseable by Date constructor
  */
 function setDateInDropdowns(prefix, date) {
     const d = new Date(date);
-    document.getElementById(prefix + '-year').value = d.getFullYear();
-    document.getElementById(prefix + '-month').value = d.getMonth() + 1;
-    document.getElementById(prefix + '-day').value = d.getDate();
+    if (prefix === 'start' && startDatePicker) {
+        startDatePicker.setDate(d);
+    } else if (prefix === 'end' && endDatePicker) {
+        endDatePicker.setDate(d);
+    }
 }
 
 // ============================================================

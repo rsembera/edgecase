@@ -91,6 +91,23 @@ class DatePicker {
     }
     
     /**
+     * Programmatically set the selected date
+     * @param {Date} date - New date to select
+     * @param {boolean} triggerCallback - Whether to trigger onSelect callback (default: true)
+     */
+    setDate(date, triggerCallback = true) {
+        this.selectedDate = date;
+        this.viewYear = date.getFullYear();
+        this.viewMonth = date.getMonth();
+        this.updateDisplay();
+        this.renderView();
+        
+        if (triggerCallback) {
+            this.options.onSelect(date);
+        }
+    }
+    
+    /**
      * Render the current view (years, months, or days)
      */
     renderView() {

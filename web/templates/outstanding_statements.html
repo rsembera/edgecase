@@ -4,9 +4,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/outstanding_statements.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/outstanding_statements.js') }}"></script>
 {% endblock %}
 
@@ -30,48 +32,18 @@
             <span>Generate New Statements</span>
         </div>
             <div class="generate-content" id="generate-content">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1rem;">
+                <div class="form-row" style="margin-bottom: 1rem;">
                     <div class="form-group">
                         <label>From</label>
-                        <div class="date-input-group">
-                            <select id="start-year" class="year-select">
-                                {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == default_start_year %}selected{% endif %}>{{ y }}</option>
-                                {% endfor %}
-                            </select>
-                            <select id="start-month" class="month-select">
-                                {% for m in range(1, 13) %}
-                                <option value="{{ m }}" {% if m == default_start_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
-                                {% endfor %}
-                            </select>
-                            <select id="start-day" class="day-select">
-                                {% for d in range(1, 32) %}
-                                <option value="{{ d }}" {% if d == default_start_day %}selected{% endif %}>{{ d }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        <div id="start-date-picker"></div>
+                        <input type="hidden" id="start_date" value="{{ default_start_year }}-{{ '%02d'|format(default_start_month) }}-{{ '%02d'|format(default_start_day) }}">
                     </div>
-                <div class="form-group">
-                    <label>To</label>
-                        <div class="date-input-group">
-                            <select id="end-year" class="year-select">
-                                {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == default_end_year %}selected{% endif %}>{{ y }}</option>
-                                {% endfor %}
-                            </select>
-                            <select id="end-month" class="month-select">
-                                {% for m in range(1, 13) %}
-                                <option value="{{ m }}" {% if m == default_end_month %}selected{% endif %}>{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}</option>
-                                {% endfor %}
-                            </select>
-                            <select id="end-day" class="day-select">
-                                {% for d in range(1, 32) %}
-                                <option value="{{ d }}" {% if d == default_end_day %}selected{% endif %}>{{ d }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label>To</label>
+                        <div id="end-date-picker"></div>
+                        <input type="hidden" id="end_date" value="{{ default_end_year }}-{{ '%02d'|format(default_end_month) }}-{{ '%02d'|format(default_end_day) }}">
+                    </div>
                 </div>
-            </div>
         
         <div class="date-buttons">
             <button type="button" class="btn-small" onclick="findUnbilled()">Find Unbilled</button>
@@ -227,5 +199,17 @@
         </div>
     </div>
 </div>
+
+<!-- Hidden data for JavaScript -->
+<script id="statements-data" type="application/json">
+{
+    "defaultStartYear": {{ default_start_year }},
+    "defaultStartMonth": {{ default_start_month }},
+    "defaultStartDay": {{ default_start_day }},
+    "defaultEndYear": {{ default_end_year }},
+    "defaultEndMonth": {{ default_end_month }},
+    "defaultEndDay": {{ default_end_day }}
+}
+</script>
 
 {% endblock %}

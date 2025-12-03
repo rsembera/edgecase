@@ -3,14 +3,16 @@
  * Handles natural language date/time parsing for appointment scheduling.
  */
 
+let scheduleDatePicker = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
     
+    // Initialize date picker
+    initSchedulePicker();
+    
     const quickEntry = document.getElementById('quick_entry');
     const preview = document.getElementById('parse-preview');
-    const yearSelect = document.getElementById('year');
-    const monthSelect = document.getElementById('month');
-    const daySelect = document.getElementById('day');
     const timeInput = document.getElementById('appointment_time');
     
     let debounceTimer;
@@ -52,10 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
             preview.innerHTML = displayStr;
             preview.className = 'parse-preview parse-success';
             
-            // Auto-fill the dropdowns
-            yearSelect.value = date.getFullYear();
-            monthSelect.value = date.getMonth() + 1;
-            daySelect.value = date.getDate();
+            // Update date picker
+            if (scheduleDatePicker) {
+                scheduleDatePicker.setDate(date, true);
+            }
             
             if (result.time) {
                 timeInput.value = result.time;
@@ -234,3 +236,33 @@ document.addEventListener('DOMContentLoaded', function() {
         return result;
     }
 });
+
+/**
+ * Initialize the date picker for scheduling
+ */
+function initSchedulePicker() {
+    const dataEl = document.getElementById('schedule-data');
+    if (!dataEl) return;
+    
+    const data = JSON.parse(dataEl.textContent);
+    const dateInput = document.getElementById('schedule_date');
+    
+    const initialDate = new Date(
+        data.todayYear,
+        data.todayMonth - 1,
+        data.todayDay
+    );
+    
+    const container = document.getElementById('schedule-date-picker');
+    if (container) {
+        scheduleDatePicker = new DatePicker(container, {
+            initialDate: initialDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                dateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+}

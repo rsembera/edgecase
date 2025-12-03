@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
         lucide.createIcons();
     }
     
+    // Initialize date pickers
+    initExportPickers();
+    
     // All Time checkbox toggle
     const allTimeCheckbox = document.getElementById('all-time');
     const dateRangeSelectors = document.getElementById('date-range-selectors');
@@ -37,6 +40,56 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Initialize date pickers
+ */
+function initExportPickers() {
+    const exportData = JSON.parse(document.getElementById('export-data').textContent);
+    
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Parse initial dates
+    const startDate = new Date(
+        exportData.defaultStartYear,
+        exportData.defaultStartMonth - 1,
+        exportData.defaultStartDay
+    );
+    const endDate = new Date(
+        exportData.defaultEndYear,
+        exportData.defaultEndMonth - 1,
+        exportData.defaultEndDay
+    );
+    
+    // Initialize start date picker
+    const startContainer = document.getElementById('start-date-picker');
+    if (startContainer) {
+        new DatePicker(startContainer, {
+            initialDate: startDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                startDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+    
+    // Initialize end date picker
+    const endContainer = document.getElementById('end-date-picker');
+    if (endContainer) {
+        new DatePicker(endContainer, {
+            initialDate: endDate,
+            onSelect: (date) => {
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                endDateInput.value = `${y}-${m}-${d}`;
+            }
+        });
+    }
+}
+
+/**
  * Get array of selected entry types
  * @returns {Array} Array of selected type values
  */
@@ -47,7 +100,7 @@ function getSelectedEntryTypes() {
 
 /**
  * Get date range from form
- * @returns {Object} Date range object with all_time flag or date components
+ * @returns {Object} Date range object with all_time flag or date string
  */
 function getDateRange() {
     const allTime = document.getElementById('all-time').checked;
@@ -56,14 +109,22 @@ function getDateRange() {
         return { all_time: true };
     }
     
+    // Get dates from hidden inputs (YYYY-MM-DD format)
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    // Parse into components for API
+    const [startYear, startMonth, startDay] = startDate.split('-');
+    const [endYear, endMonth, endDay] = endDate.split('-');
+    
     return {
         all_time: false,
-        start_year: document.getElementById('start-year').value,
-        start_month: document.getElementById('start-month').value,
-        start_day: document.getElementById('start-day').value,
-        end_year: document.getElementById('end-year').value,
-        end_month: document.getElementById('end-month').value,
-        end_day: document.getElementById('end-day').value
+        start_year: startYear,
+        start_month: parseInt(startMonth),
+        start_day: parseInt(startDay),
+        end_year: endYear,
+        end_month: parseInt(endMonth),
+        end_day: parseInt(endDay)
     };
 }
 

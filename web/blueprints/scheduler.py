@@ -239,15 +239,19 @@ def schedule_for_client(client_id):
         default_duration = client_type['session_duration']
     
     if request.method == 'POST':
-        # Parse date from form
-        year = request.form.get('year')
-        month = request.form.get('month')
-        day = request.form.get('day')
-        
-        if year and month and day:
-            date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+        # Parse date from form - supports both new format (date) and legacy (year/month/day)
+        date_field = request.form.get('date')
+        if date_field:
+            date_str = date_field
         else:
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            # Legacy format fallback
+            year = request.form.get('year')
+            month = request.form.get('month')
+            day = request.form.get('day')
+            if year and month and day:
+                date_str = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            else:
+                date_str = datetime.now().strftime('%Y-%m-%d')
         
         appointment_time = request.form.get('appointment_time', '10:00 AM')
         hours, minutes = parse_time_string(appointment_time)
