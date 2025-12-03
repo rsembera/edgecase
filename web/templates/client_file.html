@@ -168,7 +168,7 @@
     {% endif %}
     {# End Linked Clients Section #}
     
-    <h3 style="color: #111827; margin-bottom: 1rem;">Session History 
+    <h3 class="section-heading" style="margin-bottom: 1rem;">Session History 
         {% if session_count > 0 or consultation_count > 0 or absence_count > 0 %}
             ({{ session_count }} Session{{ 's' if session_count != 1 else '' }}{% if consultation_count > 0 %}, {{ consultation_count }} Consultation{{ 's' if consultation_count != 1 else '' }}{% endif %}{% if absence_count > 0 %}, {{ absence_count }} Absence{{ 's' if absence_count != 1 else '' }} this year{% endif %})
         {% endif %}
