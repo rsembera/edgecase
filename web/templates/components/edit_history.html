@@ -5,7 +5,7 @@
         {% for edit in edit_history %}
         <div class="history-item">
             <span class="timestamp">{{ edit.timestamp | timestamp_to_date }}</span>
-            <span class="changes">{{ edit.description | safe }}</span>
+            <span class="changes">{{ edit.description | close_tags | safe }}</span>
         </div>
         {% endfor %}
     </div>
