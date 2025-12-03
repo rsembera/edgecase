@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="card">
-    <h2><i data-lucide="plus" style="width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Add New Client</h2>
+    <h2><i data-lucide="plus" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Add New Client</h2>
     <p class="page-subtitle">Create a new client record</p>
     
     <form method="post" data-file-number-format="{{ file_number_format }}">
@@ -28,7 +28,7 @@
             <label for="session_offset">Starting Session Number</label>
             <input type="number" id="session_offset" name="session_offset" 
                 value="0" min="0">
-            <small>For new clients, leave at 0.<br />For migrated clients: if they've had 15 sessions elsewhere, enter 15 (next session will be #16)</small>
+            <small class="helper-text">For new clients, leave at 0.<br />For migrated clients: if they've had 15 sessions elsewhere, enter 15 (next session will be #16)</small>
         </div>
         
         <div class="form-group">
@@ -58,7 +58,7 @@
                        placeholder="e.g., 20251108-RLS"
                    {% endif %}
                    required>
-            <small>
+            <small class="helper-text">
                 {% if file_number_readonly %}
                     Auto-generated based on settings ({% if 'ABC' in file_number_preview %}Date + Initials{% else %}Prefix + Counter{% endif %})
                 {% else %}

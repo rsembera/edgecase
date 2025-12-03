@@ -13,7 +13,7 @@
             <h2><i data-lucide="archive" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Deleted Clients</h2>
             <p class="page-subtitle">Records of deleted client files retained for audit purposes</p>
         </div>
-        <a href="{{ url_for('clients.index') }}" class="btn">← Back</a>
+        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back</a>
     </div>
     
     {% if deleted %}
@@ -42,7 +42,7 @@
         </tbody>
     </table>
     {% else %}
-    <div class="placeholder-message">
+    <div class="empty-state">
         <h3>No Deleted Clients</h3>
         <p>When client files are deleted after their retention period expires, records will appear here.</p>
     </div>
