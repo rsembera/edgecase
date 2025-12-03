@@ -106,9 +106,6 @@ def timestamp_to_date(timestamp):
 @app.before_request
 def require_login():
     """Redirect to login if not authenticated or session expired."""
-    # Log all requests for debugging
-    print(f"[Request] {request.method} {request.path} - endpoint: {request.endpoint}")
-    
     # Allow access to login page and static files without auth
     allowed_endpoints = ['auth.login', 'auth.logout', 'static']
     if request.endpoint in allowed_endpoints:
@@ -117,7 +114,6 @@ def require_login():
     # Check if database is connected (user is logged in)
     db = app.config.get('db')
     if not db:
-        print(f"[Request] No db in config - redirecting to login")
         return redirect(url_for('auth.login'))
     
     # Get session timeout from database (default 30 minutes)
