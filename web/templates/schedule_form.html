@@ -51,14 +51,9 @@
                 <input type="hidden" id="schedule_date" name="date" value="{{ today_year }}-{{ '%02d'|format(today_month) }}-{{ '%02d'|format(today_day) }}" required>
             </div>
             <div class="form-group">
-                <label for="appointment_time">Time *</label>
-                <input type="text" 
-                       id="appointment_time" 
-                       name="appointment_time" 
-                       value="10:00 AM"
-                       placeholder="e.g., 2:00 PM or 14:00"
-                       required>
-                <p class="helper-text">e.g., 2:00 PM or 14:00</p>
+                <label>Time *</label>
+                <div id="schedule-time-picker"></div>
+                <input type="hidden" id="appointment_time" name="appointment_time" value="10:00 AM" required>
             </div>
         </div>
         
@@ -150,7 +145,8 @@
 {
     "todayYear": {{ today_year }},
     "todayMonth": {{ today_month }},
-    "todayDay": {{ today_day }}
+    "todayDay": {{ today_day }},
+    "timeFormat": "{{ time_format }}"
 }
 </script>
 

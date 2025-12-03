@@ -769,11 +769,16 @@ class TimePicker {
     
     /**
      * Set the time programmatically
-     * @param {string} timeStr
+     * @param {string} timeStr - Time string like "10:00 AM" or "14:30"
+     * @param {boolean} triggerCallback - Whether to trigger onSelect callback (default: true)
      */
-    setTime(timeStr) {
+    setTime(timeStr, triggerCallback = true) {
         this.parseTimeString(timeStr);
         this.updateDisplay();
+        
+        if (triggerCallback) {
+            this.options.onSelect(this.formatTime());
+        }
     }
     
     /**
