@@ -17,42 +17,42 @@
             <h2><i data-lucide="wallet" class="page-icon"></i>Ledger</h2>
             <p class="page-subtitle">Track income and expenses for your practice</p>
         </div>
-        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back</a>
+        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
     </div>
     
     <!-- Stats Cards -->
     <div class="stats-container">
         <div class="stat-card" data-card-id="ytd-income">
-            <div class="stat-number" style="color: #059669;">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_income) }}</div>
+            <div class="stat-number text-income">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_income) }}</div>
             <div class="stat-label">YTD Income</div>
         </div>
         <div class="stat-card" data-card-id="ytd-expenses">
-            <div class="stat-number" style="color: #DC2626;">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_expenses) }}</div>
+            <div class="stat-number text-expense">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_expenses) }}</div>
             <div class="stat-label">YTD Expenses</div>
         </div>
         <div class="stat-card" data-card-id="ytd-net">
-            <div class="stat-number" style="color: {% if ytd_net >= 0 %}#059669{% else %}#DC2626{% endif %};">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_net) }}</div>
+            <div class="stat-number {% if ytd_net >= 0 %}text-income{% else %}text-expense{% endif %}">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_net) }}</div>
             <div class="stat-label">YTD Net ({{ current_year }})</div>
         </div>
         <div class="stat-card" data-card-id="mtd-income">
-            <div class="stat-number" style="color: #059669;">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_income) }}</div>
+            <div class="stat-number text-income">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_income) }}</div>
             <div class="stat-label">MTD Income</div>
         </div>
         <div class="stat-card" data-card-id="mtd-expenses">
-            <div class="stat-number" style="color: #DC2626;">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_expenses) }}</div>
+            <div class="stat-number text-expense">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_expenses) }}</div>
             <div class="stat-label">MTD Expenses</div>
         </div>
         <div class="stat-card category-card" data-card-id="top-categories">
-            <div class="stat-label" style="margin-bottom: 0.5rem; font-weight: 700;">Top Expenses (YTD)</div>
+            <div class="stat-label category-label">Top Expenses (YTD)</div>
             {% if ytd_category_breakdown %}
                 {% for cat in ytd_category_breakdown[:3] %}
-                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                <div class="category-row">
                     <span>{{ cat.name }}</span>
-                    <span style="color: #DC2626;">{{ currency|currency_symbol }}{{ "%.2f"|format(cat.amount) }}</span>
+                    <span class="text-expense">{{ currency|currency_symbol }}{{ "%.2f"|format(cat.amount) }}</span>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="text-muted" style="font-size: 0.875rem;">No expenses yet</div>
+                <div class="text-muted category-row">No expenses yet</div>
             {% endif %}
         </div>
     </div>
@@ -74,7 +74,7 @@
         
         <div class="action-buttons">
             <!-- Add Entry Dropdown -->
-            <div class="dropdown-container" style="position: relative;">
+            <div class="dropdown-container">
                 <button class="dropdown-btn" id="add-entry-btn" onclick="toggleAddDropdown()">
                     <i data-lucide="plus"></i> Create ▾
                 </button>
@@ -92,8 +92,8 @@
     <div class="empty-state">
         <h3>No Ledger Entries Yet</h3>
         <p>Start tracking your practice income and expenses.</p>
-        <p style="margin-top: 1rem;">
-            <a href="{{ url_for('ledger.create_income') }}" class="btn" style="margin-right: 0.5rem;">+ Add Income</a>
+        <p class="empty-state-actions">
+            <a href="{{ url_for('ledger.create_income') }}" class="btn">+ Add Income</a>
             <a href="{{ url_for('ledger.create_expense') }}" class="btn">+ Add Expense</a>
         </p>
     </div>
@@ -108,21 +108,21 @@
     {% endfor %}
     
     <div class="year-header" onclick="toggleYear('year-{{ year }}')">
-        <span style="font-size: 1.125rem; font-weight: 600;">
+        <span class="year-header-text">
             <span id="year-{{ year }}-icon">▶</span>
             {{ year }}
         </span>
-        <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_total.count }} Entr{{ 'y' if year_total.count == 1 else 'ies' }}</span>
+        <span class="entry-count">{{ year_total.count }} Entr{{ 'y' if year_total.count == 1 else 'ies' }}</span>
     </div>
     
     <div id="year-{{ year }}-content" class="year-content">
         {% for month_num, month_data in entries_by_year_month[year].items() %}
         <div class="month-header" onclick="toggleMonth('month-{{ year }}-{{ month_num }}')">
-            <span style="font-weight: 600;">
+            <span class="month-header-text">
                 <span id="month-{{ year }}-{{ month_num }}-icon">▶</span>
                 {{ month_data.name }}
             </span>
-            <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_data.entries|length }} Entr{{ 'y' if month_data.entries|length == 1 else 'ies' }}</span>
+            <span class="entry-count">{{ month_data.entries|length }} Entr{{ 'y' if month_data.entries|length == 1 else 'ies' }}</span>
         </div>
         
         <div id="month-{{ year }}-{{ month_num }}-content" class="month-content">
@@ -144,8 +144,7 @@
                         data-description="{{ entry.description or '' }}" 
                         data-amount="{{ entry.total_amount }}"
                         data-payor="{{ entry.source if entry.ledger_type == 'income' else entry.payee_name or '' }}"
-                        onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('ledger.edit_income', entry_id=entry.id) }}{% else %}{{ url_for('ledger.edit_expense', entry_id=entry.id) }}{% endif %}';"
-                        style="cursor: pointer;">
+                        onclick="window.location.href='{% if entry.ledger_type == 'income' %}{{ url_for('ledger.edit_income', entry_id=entry.id) }}{% else %}{{ url_for('ledger.edit_expense', entry_id=entry.id) }}{% endif %}';">
                         <td>
                             {% set entry_dt = entry.ledger_date | timestamp_to_datetime %}
                             {{ entry_dt.strftime('%Y-%m-%d') }}

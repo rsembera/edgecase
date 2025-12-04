@@ -1314,3 +1314,72 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================
+   ICON SIZING UTILITIES
+   Used in: buttons with icons across all templates
+   ============================================ */
+.icon-sm {
+    width: 16px;
+    height: 16px;
+}
+
+.icon-md {
+    width: 20px;
+    height: 20px;
+}
+
+/* ============================================
+   SEMANTIC TEXT COLORS
+   Used in: ledger stats, financial displays
+   ============================================ */
+.text-income { color: #059669; }
+.text-expense { color: #DC2626; }
+.text-success { color: #0E5346; }
+.text-danger { color: #DC2626; }
+
+/* ============================================
+   YEAR/MONTH TIMELINE HEADER TEXT
+   Used in: client_file, ledger (year/month groupings)
+   ============================================ */
+.year-header-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.month-header-text {
+    font-weight: 600;
+}
+
+.entry-count {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* ============================================
+   CATEGORY BREAKDOWN (Top Expenses card)
+   Used in: ledger stats
+   ============================================ */
+.category-label {
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.category-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   EMPTY STATE ACTION BUTTONS
+   Used in: ledger, client_file empty states
+   ============================================ */
+.empty-state-actions {
+    margin-top: 1rem;
+}
+
+.empty-state-actions .btn {
+    margin-right: 0.5rem;
+}
