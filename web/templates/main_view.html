@@ -117,16 +117,14 @@
             <button type="button" class="clear-search" style="display: none;"><i data-lucide="x"></i></button>
         </form>
         
-        <!-- View Toggle -->
+        <!-- View Toggle (JS-powered, no reload) -->
         <div class="view-toggle">
-            <a href="?view=detailed{% for t in type_filter %}&type={{ t }}{% endfor %}&sort={{ sort_by }}&order={{ sort_order }}&search={{ search }}" 
-               class="view-toggle-btn {{ 'active' if view_mode == 'detailed' else '' }}">
+            <button type="button" class="view-toggle-btn" id="view-detailed-btn" onclick="setViewMode('detailed')">
                 Detailed
-            </a>
-            <a href="?view=compact{% for t in type_filter %}&type={{ t }}{% endfor %}&sort={{ sort_by }}&order={{ sort_order }}&search={{ search }}" 
-               class="view-toggle-btn {{ 'active' if view_mode == 'compact' else '' }}">
+            </button>
+            <button type="button" class="view-toggle-btn" id="view-compact-btn" onclick="setViewMode('compact')">
                 Compact
-            </a>
+            </button>
         </div>
     </div>
     
@@ -166,9 +164,8 @@
 
 <!-- Clients List -->
 {% if clients %}
-    <!-- Column Headers (only for detailed view) -->
-    {% if view_mode == 'detailed' %}
-    <div class="column-headers">
+    <!-- Column Headers (visibility controlled by JS view mode) -->
+    <div class="column-headers" id="column-headers">
         <div class="col-status">Status/Type</div>
         <div class="col-type"></div>
         <div class="col-file">File #</div>
@@ -176,16 +173,16 @@
         <div class="col-contact">Contact</div>
         <div class="col-dates">Last Session / Created</div>
     </div>
-    {% endif %}
     
-    <div class="clients-container">
+    <div class="clients-container" id="clients-container">
         {% for client in clients %}
-        <div class="client-card {{ view_mode }}-view" 
+        <div class="client-card" 
             style="background-color: {{ client.type.bubble_color or '#FBFCFD' }}"
             data-type-id="{{ client.type_id }}"
             onclick="window.location='{{ url_for('clients.client_file', client_id=client.id) }}'">
-            {% if view_mode == 'detailed' %}
-                <!-- Detailed View: Single horizontal line with EXACT column alignment -->
+            
+            <!-- Detailed View Content -->
+            <div class="detailed-content">
                 <div class="payment-dot {{ client.payment_status }}"></div>
                 <span class="type-badge" style="background-color: {{ client.type.color }}">
                     {{ client.type.name }}
@@ -214,8 +211,10 @@
                     <span class="text-divider">/</span>
                     <span class="text-secondary-sm">{{ client.created_at|timestamp_to_date }}</span>
                 </div>
-            {% else %}
-                <!-- Compact View: Multi-line card -->
+            </div>
+            
+            <!-- Compact View Content -->
+            <div class="compact-content">
                 <div class="card-header">
                     <div class="payment-dot {{ client.payment_status }}"></div>
                     <span class="type-badge" style="background-color: {{ client.type.color }}">
@@ -244,7 +243,7 @@
                     <span>•</span>
                     <span>Created: {{ client.created_at|timestamp_to_date }}</span>
                 </div>
-            {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -315,7 +314,6 @@
 
 <!-- ============================================================ -->
 <!-- RETENTION REVIEW MODAL                                       -->
-<!-- Add this HTML to main_view.html, before the closing </body>  -->
 <!-- ============================================================ -->
 
 <!-- Retention Review Modal -->
@@ -344,8 +342,6 @@
         </div>
     </div>
 </div>
-
-<!-- Retention styles moved to main_view.css -->
 
 <!-- Delete Confirmation Modal -->
 <div id="delete-confirm-modal" class="modal-overlay darker">
