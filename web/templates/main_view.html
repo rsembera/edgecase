@@ -35,18 +35,18 @@
         <div class="stat-label" id="current-date">{{ current_date }}</div>
     </div>
     <div class="stat-card lavender nav-card" draggable="true" data-card-id="navigation">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+    <div class="grid-2-col">
         <a href="{{ url_for('settings.settings_page') }}" class="nav-btn peach">
-            <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Settings
+            <i data-lucide="sliders-horizontal" class="icon-sm icon-inline"></i>Settings
         </a>
         <a href="{{ url_for('backups.backups_page') }}" class="nav-btn sage">
-            <i data-lucide="hard-drive-download" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Backup
+            <i data-lucide="hard-drive-download" class="icon-sm icon-inline"></i>Backup
         </a>
         <a href="{{ url_for('ledger.ledger') }}" class="nav-btn teal">
-            <i data-lucide="wallet" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Ledger
+            <i data-lucide="wallet" class="icon-sm icon-inline"></i>Ledger
         </a>
         <a href="{{ url_for('statements.outstanding_statements') }}" class="nav-btn purple">
-            <i data-lucide="file-text" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.35rem;"></i>Statements
+            <i data-lucide="file-text" class="icon-sm icon-inline"></i>Statements
         </a>
     </div>
 </div>
@@ -56,23 +56,21 @@
 <div class="controls-bar">
     <div class="controls-left">
         <!-- Filter Dropdown -->
-        <div style="position: relative;">
+        <div class="dropdown-wrapper">
             <button class="dropdown-btn" id="filter-button">
                 Filter: {{ type_filter|length }} type{{ 's' if type_filter|length != 1 else '' }} ▾
             </button>
-            <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+            <div id="filter-dropdown" class="dropdown-menu-positioned min-width-200" style="display: none;">
                 <div id="filter-form">
                     <input type="hidden" name="sort" value="{{ sort_by }}">
                     <input type="hidden" name="order" value="{{ sort_order }}">
                     <input type="hidden" name="search" value="{{ search }}">
                     <input type="hidden" name="view" value="{{ view_mode }}">
                     {% for client_type in all_types %}
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                           onmouseover="this.style.background='#F3F4F6'" 
-                           onmouseout="this.style.background='transparent'">
+                    <label class="filter-type-label">
                         <input type="checkbox" name="type" value="{{ client_type.id }}" 
                                {% if client_type.id|string in type_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">{{ client_type.name }}</span>
+                        <span class="filter-type-name">{{ client_type.name }}</span>
                     </label>
                     {% endfor %}
                 </div>
@@ -80,34 +78,29 @@
         </div>
         
         <!-- Sort Dropdown -->
-        <div style="position: relative;">
+        <div class="dropdown-wrapper">
             <button class="dropdown-btn" onclick="toggleDropdown('sort-dropdown')">
                 Sort: {{ sort_by|replace('_', ' ')|title }} ▾
             </button>
-            <div id="sort-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+            <div id="sort-dropdown" class="dropdown-menu-positioned min-width-200" style="display: none;">
                 <a href="?sort=last_name&order={{ 'desc' if sort_by == 'last_name' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   style="display: block; padding: 0.5rem; color: #374151; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem;" 
-                   onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'">
+                   class="dropdown-link-item">
                     Last Name {{ '↓' if sort_by == 'last_name' and sort_order == 'desc' else '↑' if sort_by == 'last_name' else '' }}
                 </a>
                 <a href="?sort=first_name&order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   style="display: block; padding: 0.5rem; color: #374151; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem;" 
-                   onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'">
+                   class="dropdown-link-item">
                     First Name {{ '↓' if sort_by == 'first_name' and sort_order == 'desc' else '↑' if sort_by == 'first_name' else '' }}
                 </a>
                 <a href="?sort=file_number&order={{ 'desc' if sort_by == 'file_number' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   style="display: block; padding: 0.5rem; color: #374151; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem;" 
-                   onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'">
+                   class="dropdown-link-item">
                     File Number {{ '↓' if sort_by == 'file_number' and sort_order == 'desc' else '↑' if sort_by == 'file_number' else '' }}
                 </a>
                 <a href="?sort=last_session&order={{ 'desc' if sort_by == 'last_session' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   style="display: block; padding: 0.5rem; color: #374151; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem;" 
-                   onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'">
+                   class="dropdown-link-item">
                     Last Session {{ '↓' if sort_by == 'last_session' and sort_order == 'desc' else '↑' if sort_by == 'last_session' else '' }}
                 </a>
                 <a href="?sort=created&order={{ 'desc' if sort_by == 'created' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   style="display: block; padding: 0.5rem; color: #374151; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem;" 
-                   onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'">
+                   class="dropdown-link-item">
                     Created {{ '↓' if sort_by == 'created' and sort_order == 'desc' else '↑' if sort_by == 'created' else '' }}
                 </a>
             </div>
@@ -137,49 +130,34 @@
         </div>
     </div>
     
-    <div style="display: flex; align-items: center; gap: 1rem;">
+    <div class="flex-center-gap">
         
         <!-- Manage Dropdown -->
-        <div style="position: relative;">
+        <div class="dropdown-wrapper">
             <button class="dropdown-btn" onclick="toggleDropdown('manage-dropdown')">
                 <i data-lucide="settings"></i> Manage ▾
             </button>
-            <div id="manage-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 160px; z-index: 100;">
-                <a href="{{ url_for('clients.add_client') }}" 
-                style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                onmouseover="this.style.background='#F3F4F6'" 
-                onmouseout="this.style.background='transparent'">
-                    <i data-lucide="plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Add Client
+            <div id="manage-dropdown" class="dropdown-menu-positioned align-right padding-sm min-width-160" style="display: none;">
+                <a href="{{ url_for('clients.add_client') }}" class="dropdown-link-item-lg">
+                    <i data-lucide="plus" class="icon-sm icon-inline"></i>Add Client
                 </a>
-                <a href="{{ url_for('types.manage_types') }}" 
-                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                   onmouseover="this.style.background='#F3F4F6'" 
-                   onmouseout="this.style.background='transparent'">
-                    <i data-lucide="tag" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Edit Types
+                <a href="{{ url_for('types.manage_types') }}" class="dropdown-link-item-lg">
+                    <i data-lucide="tag" class="icon-sm icon-inline"></i>Edit Types
                 </a>
-                <a href="{{ url_for('links.manage_links') }}" 
-                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                   onmouseover="this.style.background='#F3F4F6'" 
-                   onmouseout="this.style.background='transparent'">
-                    <i data-lucide="link" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Edit Links
+                <a href="{{ url_for('links.manage_links') }}" class="dropdown-link-item-lg">
+                    <i data-lucide="link" class="icon-sm icon-inline"></i>Edit Links
                 </a>
 
-                <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #E2E8F0;">
+                <div class="dropdown-separator"></div>
 
-                <a href="{{ url_for('clients.deleted_clients') }}" 
-                style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                onmouseover="this.style.background='#F3F4F6'" 
-                onmouseout="this.style.background='transparent'">
-                    <i data-lucide="archive" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Deleted
+                <a href="{{ url_for('clients.deleted_clients') }}" class="dropdown-link-item-lg">
+                    <i data-lucide="archive" class="icon-sm icon-inline"></i>Deleted
                 </a>
 
-                <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #E2E8F0;">
+                <div class="dropdown-separator"></div>
                 
-                <a href="{{ url_for('auth.logout') }}" 
-                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #DC2626; border-radius: 0.5rem; font-size: 0.9375rem;"
-                   onmouseover="this.style.background='#FEF2F2'" 
-                   onmouseout="this.style.background='transparent'">
-                    <i data-lucide="log-out" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Logout
+                <a href="{{ url_for('auth.logout') }}" class="dropdown-link-item-lg danger">
+                    <i data-lucide="log-out" class="icon-sm icon-inline"></i>Logout
                 </a>
             </div>
         </div>
@@ -214,27 +192,27 @@
                 </span>
                 <span class="file-number">{{ client.file_number }}</span>
                 <div class="name-group">
-                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" style="width: 14px; height: 14px;"></i></span>{% endif %}
+                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" class="icon-sm"></i></span>{% endif %}
                     <span class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</span>
                 </div>
                 <div class="contact-info">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <span>{{ client.email }}</span>
+                        <i data-lucide="mail" class="icon-sm icon-middle"></i> <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}
+                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
                     </a>
                     {% endif %}
                 </div>
                 <div class="dates">
-                    <span style="color: #6B7280; font-size: 0.875rem;">{{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
-                    <span style="color: #9CA3AF;">/</span>
-                    <span style="color: #6B7280; font-size: 0.875rem;">{{ client.created_at|timestamp_to_date }}</span>
+                    <span class="text-secondary-sm">{{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
+                    <span class="text-divider">/</span>
+                    <span class="text-secondary-sm">{{ client.created_at|timestamp_to_date }}</span>
                 </div>
             {% else %}
                 <!-- Compact View: Multi-line card -->
@@ -243,21 +221,21 @@
                     <span class="type-badge" style="background-color: {{ client.type.color }}">
                         {{ client.type.name }}
                     </span>
-                    <span style="color: #6B7280; font-size: 0.875rem;">{{ client.file_number }}</span>
-                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" style="width: 14px; height: 14px;"></i></span>{% endif %}
+                    <span class="text-secondary-sm">{{ client.file_number }}</span>
+                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" class="icon-sm"></i></span>{% endif %}
                 </div>
                 <div class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</div>
                 <div class="contact-row">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <span>{{ client.email }}</span>
+                        <i data-lucide="mail" class="icon-sm icon-middle"></i> <span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}
+                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
                     </a>
                     {% endif %}
                 </div>
@@ -275,15 +253,15 @@
     <div class="legend-card">
         <div class="legend-section">
             <div class="legend-item">
-                <div class="legend-dot" style="background: #17976C;"></div>
+                <div class="legend-dot paid"></div>
                 <span>Paid / Up to date</span>
             </div>
             <div class="legend-item">
-                <div class="legend-dot" style="background: #D68A09;"></div>
+                <div class="legend-dot pending"></div>
                 <span>Payment pending</span>
             </div>
             <div class="legend-item">
-                <div class="legend-dot" style="background: #C93A3A;"></div>
+                <div class="legend-dot overdue"></div>
                 <span>Overdue (30+ days)</span>
             </div>
         </div>
@@ -292,13 +270,13 @@
                 <span><u>Underlined</u> = Preferred contact</span>
             </div>
             <div class="legend-item">
-                <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i> <span>= Do not leave message</span>
+                <i data-lucide="alert-triangle" class="icon-warning"></i> <span>= Do not leave message</span>
             </div>
         </div>
     </div>
 {% else %}
-<div style="text-align: center; padding: 4rem; background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <p style="color: #6B7280; font-size: 1.125rem; margin-bottom: 1.5rem;">No clients found.</p>
+<div class="empty-state-card">
+    <p>No clients found.</p>
 </div>
 {% endif %}
 
@@ -307,21 +285,21 @@
 <!-- ============================================================ -->
 {% if backup_warning %}
 <div id="backup-warning-modal" class="modal" style="display: flex;">
-    <div class="modal-content" style="border-top: 4px solid #D97706;">
-        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="alert-triangle" style="width: 22px; height: 22px; color: #D97706;"></i>
+    <div class="modal-content warning-border">
+        <h3 class="modal-header-flex">
+            <i data-lucide="alert-triangle" class="icon-warning-lg"></i>
             Automatic Backup Failed
         </h3>
         <p>
             The automatic backup could not be completed. Please check your backup settings.
         </p>
-        <p style="background: #FEF3C7; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; color: #92400E;">
+        <p class="warning-box">
             <strong>Error:</strong> {{ backup_warning }}
         </p>
-        <div class="modal-actions" style="justify-content: space-between;">
+        <div class="modal-actions space-between">
             <button onclick="document.getElementById('backup-warning-modal').style.display='none'" class="btn btn-secondary">Dismiss</button>
-            <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.375rem;">
-                <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+            <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary btn-with-icon">
+                <i data-lucide="settings" class="icon-sm"></i>
                 Check Settings
             </a>
         </div>
@@ -341,27 +319,27 @@
 <!-- ============================================================ -->
 
 <!-- Retention Review Modal -->
-<div id="retention-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 700px; width: 90%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #D97706;">
-        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">
-            <i data-lucide="alert-triangle" style="width: 20px; height: 20px; vertical-align: middle; color: #D97706; margin-right: 0.35rem;"></i>
+<div id="retention-modal" class="modal-overlay">
+    <div class="modal-box max-w-700 warning-border">
+        <h3 class="modal-title">
+            <i data-lucide="alert-triangle" class="icon-inline-alert"></i>
             File Retention Review Required
         </h3>
-        <p style="color: #4B5563; margin-bottom: 1rem; line-height: 1.6;">
+        <p class="modal-body-text">
             The following client files have exceeded their retention period and are due for deletion. 
             Select the files you wish to permanently delete. An archive record will be kept for audit purposes.
         </p>
         
-        <div id="retention-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #E5E7EB; border-radius: 0.5rem;">
+        <div id="retention-list" class="scrollable-list">
             <!-- Populated by JavaScript -->
         </div>
         
-        <p class="warning-text" style="color: #92400E; background: #FEF3C7; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem;">
+        <p class="warning-box mb-lg">
             <strong>Warning:</strong> This action cannot be undone. All entries, attachments, and client data will be permanently deleted.
         </p>
         
-        <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 0.75rem;">
-            <button onclick="deleteSelectedClients()" id="delete-selected-btn" style="padding: 0.625rem 1.25rem; background: #9CA3AF; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: not-allowed;" disabled>Delete Selected (0)</button>
+        <div class="flex-between-gap">
+            <button onclick="deleteSelectedClients()" id="delete-selected-btn" class="btn-disabled" disabled>Delete Selected (0)</button>
             <button onclick="closeRetentionModal()" class="btn">Review Later</button>
         </div>
     </div>
@@ -370,15 +348,15 @@
 <!-- Retention styles moved to main_view.css -->
 
 <!-- Delete Confirmation Modal -->
-<div id="delete-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 450px; width: 90%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
-        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Confirm Permanent Deletion</h3>
-        <p style="color: #4B5563; margin-bottom: 1.5rem; line-height: 1.6;">
+<div id="delete-confirm-modal" class="modal-overlay darker">
+    <div class="modal-box max-w-450 danger-border">
+        <h3 class="modal-title">Confirm Permanent Deletion</h3>
+        <p class="modal-body-text mb-lg">
             Are you sure you want to permanently delete <strong id="delete-count"></strong> client file(s)? This cannot be undone.
         </p>
-        <div style="display: flex; justify-content: space-between; gap: 0.75rem;">
+        <div class="flex-between-gap">
             <button onclick="cancelDeletion()" class="btn">Cancel</button>
-            <button onclick="confirmDeletion()" style="padding: 0.625rem 1.25rem; background: #DC2626; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer;">Delete Permanently</button>
+            <button onclick="confirmDeletion()" class="btn-danger-solid">Delete Permanently</button>
         </div>
     </div>
 </div>

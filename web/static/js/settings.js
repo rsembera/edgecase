@@ -292,7 +292,7 @@ async function uploadBackground() {
             
             fileInput.value = '';
             document.getElementById('upload-filename').textContent = '';
-            document.getElementById('upload-button').style.display = 'none';
+            document.getElementById('upload-button').classList.add('hidden');
             
             await loadBackgroundOptions();
             document.getElementById('background-style').value = 'user:' + result.filename;
@@ -517,33 +517,26 @@ async function savePracticeInfo() {
 function formatPhoneNumber(e) {
     let rawValue = e.target.value;
     
-    // International format - don't format, just limit length
+    // International format with + - don't format, just limit length
     if (rawValue.startsWith('+')) {
         let cleaned = '+' + rawValue.slice(1).replace(/\D/g, '');
         e.target.value = cleaned.substring(0, 21);
         return;
     }
     
-    let value = rawValue.replace(/\D/g, '');
+    // Remove all non-digit characters
+    let cleaned = rawValue.replace(/\D/g, '');
     
-    if (value.length <= 10) {
-        // Format as (123) 456-7890
-        if (value.length > 6) {
-            value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
-        } else if (value.length > 3) {
-            value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
-        } else if (value.length > 0) {
-            value = `(${value}`;
-        }
-    } else if (value.length <= 15) {
-        // 10 digits + extension
-        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+    // Limit to 12 digits (international support)
+    cleaned = cleaned.substring(0, 12);
+    
+    // Only format if exactly 10 digits (North American format)
+    if (cleaned.length === 10) {
+        e.target.value = '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
     } else {
-        value = value.slice(0, 15);
-        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)} ext ${value.slice(10)}`;
+        // For 11-12 digits or incomplete, just return digits as-is
+        e.target.value = cleaned;
     }
-    
-    e.target.value = value;
 }
 
 /**
@@ -1246,7 +1239,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filename = e.target.files[0]?.name;
         if (filename) {
             document.getElementById('upload-filename').textContent = filename;
-            document.getElementById('upload-button').style.display = 'inline-block';
+            document.getElementById('upload-button').classList.remove('hidden');
         }
     });
 });

@@ -139,8 +139,8 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div class="form-row-half" style="margin-bottom: 0.5rem;">
-            <div class="form-group" style="margin-bottom: 0;">
+        <div class="grid-2col mb-half">
+            <div class="form-group mb-0">
                 <label for="background-style">Background</label>
                 <select id="background-style" onchange="saveAndApplyBackground()">
                     <option value="suit-grey">Suit Grey</option>
@@ -152,20 +152,20 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div style="margin-bottom: 1.5rem;">
-            <button onclick="deleteBackground()" id="delete-bg-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
-                <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 0.25rem;"></i>Delete Background
+        <div class="mb-1-5">
+            <button onclick="deleteBackground()" id="delete-bg-button" class="btn btn-sm btn-danger-light">
+                <i data-lucide="trash-2" class="icon-sm icon-inline"></i>Delete Background
             </button>
         </div>
         
         <div class="form-group">
             <label for="background-upload">Upload New Background</label>
             <input type="file" id="background-upload" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('background-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+            <button onclick="document.getElementById('background-upload').click()" class="btn btn-sm">
                 Choose Image
             </button>
-            <span id="upload-filename" class="text-muted" style="margin-left: 1rem; font-size: 0.875rem;"></span>
-            <button onclick="uploadBackground()" id="upload-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; display: none;">
+            <span id="upload-filename" class="text-muted text-sm ml-1"></span>
+            <button onclick="uploadBackground()" id="upload-button" class="btn btn-sm ml-half hidden">
                 Upload
             </button>
         </div>
@@ -186,13 +186,13 @@ details[open] .settings-section-header .arrow {
         <div class="settings-section-content">
         
         <div class="form-row-half">
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label for="time-format">Time Format</label>
                 <select id="time-format" onchange="saveTimeFormat()">
                     <option value="12h">12-hour (2:30 PM)</option>
                     <option value="24h">24-hour (14:30)</option>
                 </select>
-                <p class="text-muted" style="font-size: 0.875rem; margin-top: 0.5rem;">This affects how times are displayed in entries and auto-generated communications.</p>
+                <p class="text-muted text-sm mt-half">This affects how times are displayed in entries and auto-generated communications.</p>
             </div>
         </div>
         
@@ -211,8 +211,8 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-            <div class="form-group" style="margin-bottom: 0;">
+        <div class="grid-3col mb-1">
+            <div class="form-group mb-0">
                 <label for="position-1">Position 1 (Top Left)</label>
                 <select id="position-1" onchange="handleCardSwap(0)">
                     <option value="active-clients">Active Clients</option>
@@ -224,7 +224,7 @@ details[open] .settings-section-header .arrow {
                 </select>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label for="position-2">Position 2 (Top Center)</label>
                 <select id="position-2" onchange="handleCardSwap(1)">
                     <option value="active-clients">Active Clients</option>
@@ -236,7 +236,7 @@ details[open] .settings-section-header .arrow {
                 </select>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label for="position-3">Position 3 (Top Right)</label>
                 <select id="position-3" onchange="handleCardSwap(2)">
                     <option value="active-clients">Active Clients</option>
@@ -249,8 +249,8 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-            <div class="form-group" style="margin-bottom: 0;">
+        <div class="grid-3col">
+            <div class="form-group mb-0">
                 <label for="position-4">Position 4 (Bottom Left)</label>
                 <select id="position-4" onchange="handleCardSwap(3)">
                     <option value="active-clients">Active Clients</option>
@@ -262,7 +262,7 @@ details[open] .settings-section-header .arrow {
                 </select>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label for="position-5">Position 5 (Bottom Center)</label>
                 <select id="position-5" onchange="handleCardSwap(4)">
                     <option value="active-clients">Active Clients</option>
@@ -274,7 +274,7 @@ details[open] .settings-section-header .arrow {
                 </select>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label for="position-6">Position 6 (Bottom Right)</label>
                 <select id="position-6" onchange="handleCardSwap(5)">
                     <option value="active-clients">Active Clients</option>
@@ -337,9 +337,9 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group">
             <label>Consultation Fee</label>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 600px;">
+            <div class="grid-3col max-w-600">
                 <div>
-                    <label for="consultation-base" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Base Fee ($)</label>
+                    <label for="consultation-base" class="text-muted label-light">Base Fee</label>
                     <input type="number" 
                            id="consultation-base" 
                            step="0.01" 
@@ -348,7 +348,7 @@ details[open] .settings-section-header .arrow {
                            oninput="calculateConsultationFee('base')">
                 </div>
                 <div>
-                    <label for="consultation-tax" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Tax Rate (%)</label>
+                    <label for="consultation-tax" class="text-muted label-light">Tax Rate (%)</label>
                     <input type="number" 
                            id="consultation-tax" 
                            step="0.01" 
@@ -358,7 +358,7 @@ details[open] .settings-section-header .arrow {
                            oninput="calculateConsultationFee('tax')">
                 </div>
                 <div>
-                    <label for="consultation-total" class="text-muted" style="font-size: 0.875rem; font-weight: normal;">Total Fee ($)</label>
+                    <label for="consultation-total" class="text-muted label-light">Total Fee</label>
                     <input type="number" 
                            id="consultation-total" 
                            step="0.01" 
@@ -371,7 +371,7 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group">
             <label for="consultation-duration">Consultation Duration</label>
-            <select id="consultation-duration" style="max-width: 200px;">
+            <select id="consultation-duration" class="max-w-200">
                 <option value="15">15 minutes</option>
                 <option value="20">20 minutes</option>
                 <option value="25">25 minutes</option>
@@ -416,35 +416,35 @@ details[open] .settings-section-header .arrow {
         </div>
         
         <!-- Options for Prefix-Counter format -->
-        <div id="prefix-counter-options" style="display: none; margin-left: 2rem; padding: 1rem; background: #F2F4F5; border-radius: 0.5rem;">
+        <div id="prefix-counter-options" class="options-panel" style="display: none;">
             <div class="form-group">
                 <label for="file-number-prefix">Prefix (optional)</label>
-                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" style="max-width: 200px;" onchange="saveFileNumberSettings()">
+                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" class="max-w-200" onchange="saveFileNumberSettings()">
                 <small class="helper-text">Up to 6 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-suffix">Suffix (optional)</label>
-                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" style="max-width: 200px;" onchange="saveFileNumberSettings()">
+                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" class="max-w-200" onchange="saveFileNumberSettings()">
                 <small class="helper-text">Up to 4 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-start">Starting Number</label>
-                <input type="number" id="file-number-start" value="1" min="1" style="max-width: 200px;" onchange="saveFileNumberSettings()">
+                <input type="number" id="file-number-start" value="1" min="1" class="max-w-200" onchange="saveFileNumberSettings()">
                 <small class="helper-text">Counter starts here and increments automatically</small>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group mb-0">
                 <label>Preview</label>
-                <div id="file-number-preview" style="font-family: monospace; font-size: 1.125rem; color: #111827; padding: 0.75rem; background: white; border: 2px solid #DEE2E6; border-radius: 0.5rem; max-width: 300px;">
+                <div id="file-number-preview" class="preview-box max-w-300">
                     0001
                 </div>
                 <small class="helper-text">Total length must not exceed 12 characters</small>
             </div>
         </div>
         
-        <span id="file-number-status" class="section-status" style="margin-top: 1rem; display: block;">✓ Saved!</span>
+        <span id="file-number-status" class="section-status mt-1">✓ Saved!</span>
         </div>
     </details>
 
@@ -471,7 +471,7 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group" id="calendar-name-group" style="display: none;">
             <label for="calendar_name">Calendar name</label>
-            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" style="display: block; margin-bottom: 0.25rem;" onchange="saveCalendarSettings()">
+            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" class="mb-half" onchange="saveCalendarSettings()">
             <small class="helper-text">Exact name of the calendar in Apple Calendar app</small>
         </div>
         
@@ -492,22 +492,22 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group">
             <label>Database Encryption</label>
-            <p style="color: #0E5346; font-size: 0.9375rem; margin-bottom: 1rem;">
-                <i data-lucide="shield-check" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            <p class="status-paragraph">
+                <i data-lucide="shield-check" class="icon-sm icon-inline"></i>
                 Your database is encrypted with AES-256 (SQLCipher)
             </p>
         </div>
         
         <div class="form-group">
             <label>Master Password</label>
-            <a href="{{ url_for('auth.change_password') }}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                <i data-lucide="key" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            <a href="{{ url_for('auth.change_password') }}" class="btn btn-sm">
+                <i data-lucide="key" class="icon-sm icon-inline"></i>
                 Change Password
             </a>
         </div>
 
         <div class="form-row-half">
-        <div class="form-group" style="margin-bottom: 0;">
+        <div class="form-group mb-0">
             <label for="session_timeout">Auto-Logout After Inactivity</label>
             <select id="session_timeout" onchange="saveSecuritySettings()">
                 <option value="15">15 minutes</option>
@@ -520,7 +520,7 @@ details[open] .settings-section-header .arrow {
         </div>
         </div>
         
-        <span id="security-status" class="section-status" style="margin-top: 1rem; display: block;">✓ Saved!</span>
+        <span id="security-status" class="section-status mt-1">✓ Saved!</span>
         </div>
     </details>
 
@@ -537,50 +537,50 @@ details[open] .settings-section-header .arrow {
         </summary>
         <div class="settings-section-content">
         
-        <div id="ai-capability-status" style="margin-bottom: 1rem;"></div>
+        <div id="ai-capability-status" class="mb-1"></div>
         
         <div id="ai-not-downloaded" style="display: none;">
-            <p style="color: #4B5563; font-size: 0.9375rem; margin-bottom: 1rem; line-height: 1.5;">AI Scribe uses a local language model (Hermes 3, ~5GB) to help you write professional clinical notes. The model runs entirely on your computer — no data is sent to external servers.</p>
+            <p class="info-paragraph">AI Scribe uses a local language model (Hermes 3, ~5GB) to help you write professional clinical notes. The model runs entirely on your computer — no data is sent to external servers.</p>
             
             <div class="form-group">
                 <button onclick="downloadAIModel()" id="ai-download-btn" class="btn">
-                    <i data-lucide="download" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                    <i data-lucide="download" class="icon-sm icon-inline"></i>
                     Download AI Model
                 </button>
             </div>
             
             <div id="ai-download-progress" style="display: none; margin-top: 1rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; color: #0369a1; margin-bottom: 0.5rem;">
-                    <i data-lucide="loader" class="btn-spinner" style="width: 16px; height: 16px;"></i>
+                <div class="download-status">
+                    <i data-lucide="loader" class="btn-spinner icon-sm"></i>
                     <span id="ai-download-status">Starting download...</span>
                 </div>
-                <div style="width: 100%; height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden;">
-                    <div id="ai-download-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%); border-radius: 4px; transition: width 0.3s ease;"></div>
+                <div class="progress-bar-container">
+                    <div id="ai-download-bar" class="progress-bar-fill" style="width: 0%;"></div>
                 </div>
-                <p id="ai-download-size" class="text-muted" style="font-size: 0.8125rem; margin-top: 0.5rem;"></p>
+                <p id="ai-download-size" class="text-muted text-xs mt-half"></p>
             </div>
         </div>
         
         <div id="ai-downloaded" style="display: none;">
-            <p style="color: #0E5346; font-size: 0.9375rem; margin-bottom: 1rem;">
-                <i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            <p class="status-paragraph">
+                <i data-lucide="check-circle" class="icon-sm icon-inline"></i>
                 <span id="ai-model-info">Hermes 3 is installed</span>
             </p>
             
-            <div id="ai-model-status" style="margin-bottom: 1rem;"></div>
+            <div id="ai-model-status" class="mb-1"></div>
             
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button onclick="unloadAIModel()" id="ai-unload-btn" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                    <i data-lucide="power-off" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            <div class="flex-gap-half flex-wrap">
+                <button onclick="unloadAIModel()" id="ai-unload-btn" class="btn btn-sm">
+                    <i data-lucide="power-off" class="icon-sm icon-inline"></i>
                     Unload from Memory
                 </button>
-                <button onclick="deleteAIModel()" id="ai-delete-btn" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
-                    <i data-lucide="trash-2" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                <button onclick="deleteAIModel()" id="ai-delete-btn" class="btn btn-sm btn-danger-light">
+                    <i data-lucide="trash-2" class="icon-sm icon-inline"></i>
                     Delete Model
                 </button>
             </div>
             
-            <p class="text-muted" style="font-size: 0.875rem; margin-top: 1rem;">Access AI Scribe from the Session entry form using the <i data-lucide="feather" style="width: 14px; height: 14px; vertical-align: -2px;"></i> button.</p>
+            <p class="text-muted text-sm mt-1">Access AI Scribe from the Session entry form using the <i data-lucide="feather" class="icon-sm icon-inline-no-mr"></i> button.</p>
         </div>
         
         </div>
@@ -620,20 +620,20 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-group">
             <label for="payment_instructions">Payment Instructions</label>
-            <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" style="resize: vertical;"></textarea>
+            <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" class="resize-v"></textarea>
             <small class="helper-text">Appears at bottom of statement</small>
         </div>
         
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                <input type="checkbox" id="include_attestation" onchange="toggleAttestationText()" style="width: auto;">
+            <label class="checkbox-label-inline">
+                <input type="checkbox" id="include_attestation" onchange="toggleAttestationText()" class="checkbox-auto">
                 Include attestation statement
             </label>
         </div>
         
         <div class="form-group" id="attestation-text-group" style="display: none;">
             <label for="attestation_text">Attestation Text</label>
-            <textarea id="attestation_text" rows="3" style="resize: vertical;">I attest that I have performed the services listed above.</textarea>
+            <textarea id="attestation_text" rows="3" class="resize-v">I attest that I have performed the services listed above.</textarea>
         </div>
         
         <div class="form-row-half">
@@ -665,28 +665,28 @@ John Smith."></textarea>
         
         <div class="form-group">
             <label>Practice Logo</label>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="flex-center-gap">
                 <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="uploadLogo()">
-                <button type="button" id="logo-choose-button" onclick="document.getElementById('logo-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <button type="button" id="logo-choose-button" onclick="document.getElementById('logo-upload').click()" class="btn btn-sm">
                     Choose Logo
                 </button>
-                <span id="logo-current" style="color: #0E5346; font-size: 0.875rem;"></span>
-                <button type="button" onclick="deleteLogo()" id="logo-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
+                <span id="logo-current" class="text-success text-sm"></span>
+                <button type="button" onclick="deleteLogo()" id="logo-delete-button" class="btn btn-sm btn-danger-light">
+                    <i data-lucide="trash-2" class="icon-sm icon-inline"></i>Delete
                 </button>
             </div>
         </div>
 
         <div class="form-group">
             <label>Digital Signature</label>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="flex-center-gap">
                 <input type="file" id="signature-upload" accept="image/*" style="display: none;" onchange="uploadSignature()">
-                <button type="button" id="signature-choose-button" onclick="document.getElementById('signature-upload').click()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <button type="button" id="signature-choose-button" onclick="document.getElementById('signature-upload').click()" class="btn btn-sm">
                     Choose Signature
                 </button>
-                <span id="signature-current" style="color: #0E5346; font-size: 0.875rem;"></span>
-                <button type="button" onclick="deleteSignature()" id="signature-delete-button" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #E7CFD4; color: #6A243E;">
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>Delete
+                <span id="signature-current" class="text-success text-sm"></span>
+                <button type="button" onclick="deleteSignature()" id="signature-delete-button" class="btn btn-sm btn-danger-light">
+                    <i data-lucide="trash-2" class="icon-sm icon-inline"></i>Delete
                 </button>
             </div>
         </div>
@@ -698,15 +698,15 @@ John Smith."></textarea>
         </div>
     </details>
 
-    <div style="text-align: right; margin-top: 2rem;">
+    <div class="text-right mt-2">
         <a href="{{ url_for('clients.index') }}" class="btn">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+            <i data-lucide="arrow-left" class="icon-sm icon-inline"></i>
             Back
         </a>
     </div>
 
-    <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e2e8f0;">
-        <a href="javascript:void(0);" onclick="showAboutModal()" style="color: #6B7280; font-size: 0.875rem; text-decoration: none;">
+    <div class="footer-section">
+        <a href="javascript:void(0);" onclick="showAboutModal()" class="about-link">
             About EdgeCase Equalizer
         </a>
     </div>

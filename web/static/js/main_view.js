@@ -495,7 +495,7 @@ function showRetentionModal(clients) {
     });
     
     listContainer.innerHTML = html;
-    modal.style.display = 'flex';
+    modal.classList.add('active');
     
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
