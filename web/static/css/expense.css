@@ -1,72 +1,162 @@
 /* Expense Entry Form Styles */
-/* Shared patterns from shared.css: .form-group, .btn*, .card */
+/* Shared patterns from shared.css: .form-group, .btn*, .card, .modal-* */
+
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.expense-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   PAGE HEADER
+   ============================================ */
+.expense-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   FORM LAYOUTS
+   ============================================ */
+
+/* Date field container - constrained width */
+.date-field-narrow {
+    max-width: 300px;
+}
 
 /* Expense Category dropdown - match Payee width */
 #category_id {
     max-width: calc(50% - 0.75rem);
 }
 
-/* Upload toggle button - looks like a form section header */
-.upload-toggle-btn {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: #F7FAFC;
-    border: 2px solid #E5E7EB;
-    border-radius: 0.75rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #2D3748;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    text-decoration: none;
+/* Currency input with prefix */
+.input-with-prefix {
+    position: relative;
 }
 
-.upload-toggle-btn:hover {
-    background: #EDF2F7;
-    border-color: #CBD5E0;
+.form-group .input-with-prefix input {
+    padding-left: 2.5rem;
 }
 
-.upload-toggle-btn span {
-    text-decoration: none;
+/* ============================================
+   SECTION DIVIDERS (border-top style)
+   ============================================ */
+.section-border-top {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #E5E7EB;
 }
 
-/* File upload section */
-.upload-section {
-    background: #F7FAFC;
-    padding: 1.5rem;
-    border-radius: 0.75rem;
+.section-label {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    display: block;
 }
 
-.file-input-row {
+/* ============================================
+   ATTACHMENTS
+   ============================================ */
+.attachment-details {
+    flex: 1;
+}
+
+.attachment-meta {
+    color: #6B7280;
+    font-size: 0.875rem;
+    margin-left: 0.5rem;
+}
+
+.attachment-size {
+    color: #9CA3AF;
+    font-size: 0.875rem;
+    margin-left: 0.5rem;
+}
+
+.attachment-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Upload toggle */
+.upload-toggle-wrapper {
     margin-bottom: 1rem;
 }
 
-.file-input {
-    width: 100%;
-}
-
-/* Attachment list */
-.attachment-list {
-    margin-bottom: 1.5rem;
-}
-
-.attachment-item {
+/* File input row - flex layout */
+.file-row-grid {
     display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    background: #F9FAFB;
-    border-radius: 0.375rem;
-    margin-bottom: 0.5rem;
+    gap: 1rem;
+    align-items: end;
 }
 
-/* Small button variant */
-.btn-small {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
+.file-row-grid .file-field {
+    flex: 2;
+}
+
+.file-row-grid .file-field label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.file-row-grid .file-field input[type="file"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+}
+
+.file-row-grid .file-field input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
     height: 38px;
-    line-height: 1;
-    display: inline-flex;
+}
+
+/* ============================================
+   EDIT HISTORY
+   ============================================ */
+.edit-history-container {
+    background: #F9FAFB;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.edit-history-item {
+    padding: 0.5rem 0;
+}
+
+.edit-history-item:not(:last-child) {
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.edit-history-timestamp {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+    margin-bottom: 0.25rem;
+}
+
+.edit-history-changes {
+    color: #4B5563;
+}
+
+/* ============================================
+   FORM ACTIONS (bottom buttons)
+   ============================================ */
+.expense-form-actions {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    margin-top: 2rem;
+}
+
+.expense-form-actions .action-group {
+    display: flex;
+    gap: 1rem;
 }
