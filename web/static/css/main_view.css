@@ -330,6 +330,8 @@ body.tutti-frutti .nav-btn.peach:hover {
     width: 12px; 
     flex-shrink: 0; 
     margin-right: 1rem;
+    white-space: nowrap;
+    overflow: visible;
 }
 
 .col-type { 
