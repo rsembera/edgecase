@@ -259,6 +259,15 @@ body.tutti-frutti .nav-btn.peach:hover {
     color: #5B6571;
     text-decoration: none;
     transition: all 0.2s;
+    cursor: pointer;
+    /* Reset button defaults */
+    background: transparent;
+    border: none;
+    font-family: inherit;
+}
+
+.view-toggle-btn:hover {
+    color: #1F8F74;
 }
 
 .view-toggle-btn.active {
@@ -372,14 +381,38 @@ body.tutti-frutti .nav-btn.peach:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
-/* Detailed view */
-.client-card.detailed-view {
+/* ============================================================
+   VIEW MODE TOGGLE (JS-powered, no reload)
+   ============================================================ */
+
+/* Hide the non-active view content */
+.clients-container.detailed-mode .compact-content,
+.clients-container.compact-mode .detailed-content {
+    display: none;
+}
+
+/* Column headers visibility */
+.column-headers.hidden {
+    display: none;
+}
+
+/* ============================================================
+   DETAILED VIEW STYLES
+   ============================================================ */
+
+/* Detailed content layout */
+.detailed-content {
     display: flex;
     align-items: center;
+    width: 100%;
+}
+
+/* Card padding in detailed mode */
+.clients-container.detailed-mode .client-card {
     padding: 0.875rem 1.25rem;
 }
 
-.client-card.detailed-view .payment-dot {
+.detailed-content .payment-dot {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -387,7 +420,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     margin-right: 1rem;
 }
 
-.client-card.detailed-view .type-badge {
+.detailed-content .type-badge {
     width: 80px;
     flex-shrink: 0;
     margin-right: 1rem;
@@ -398,7 +431,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     text-align: center;
 }
 
-.client-card.detailed-view .file-number {
+.detailed-content .file-number {
     width: 140px;
     flex-shrink: 0;
     margin-right: 1rem;
@@ -406,7 +439,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     font-size: 0.875rem;
 }
 
-.client-card.detailed-view .contact-info {
+.detailed-content .contact-info {
     min-width: 200px;
     margin-right: 1rem;
     display: flex;
@@ -414,7 +447,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     flex-wrap: wrap;
 }
 
-.client-card.detailed-view .dates {
+.detailed-content .dates {
     width: 220px;
     flex-shrink: 0;
     margin-left: auto;
@@ -424,7 +457,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     align-items: center;
 }
 
-.client-card.detailed-view .name-group {
+.detailed-content .name-group {
     width: 270px;
     flex-shrink: 0;
     margin-right: 1rem;
@@ -432,7 +465,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     align-items: center;
 }
 
-.client-card.detailed-view .link-icon {
+.detailed-content .link-icon {
     width: 20px;
     flex-shrink: 0;
     color: #6B7280;
@@ -442,7 +475,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     margin-right: 0;
 }
 
-.client-card.detailed-view .client-name {
+.detailed-content .client-name {
     font-weight: 600;
     color: #111827;
     font-size: 0.9375rem;
@@ -479,46 +512,50 @@ body.tutti-frutti .nav-btn.peach:hover {
     text-decoration: underline;
 }
 
-/* Compact view */
-.client-card.compact-view {
+/* ============================================================
+   COMPACT VIEW STYLES
+   ============================================================ */
+
+/* Card padding in compact mode */
+.clients-container.compact-mode .client-card {
     padding: 1rem 1.25rem;
 }
 
-.card-header {
+.compact-content .card-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.5rem;
 }
 
-.card-header .payment-dot {
+.compact-content .payment-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
 }
 
-.card-header .type-badge {
+.compact-content .type-badge {
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
     font-size: 0.75rem;
     font-weight: 600;
 }
 
-.compact-view .client-name {
+.compact-content .client-name {
     font-size: 1.125rem;
     font-weight: 600;
     color: #111827;
     margin-bottom: 0.5rem;
 }
 
-.contact-row {
+.compact-content .contact-row {
     display: flex;
     gap: 1rem;
     margin-bottom: 0.5rem;
     flex-wrap: wrap;
 }
 
-.dates-row {
+.compact-content .dates-row {
     display: flex;
     gap: 0.5rem;
     font-size: 0.875rem;

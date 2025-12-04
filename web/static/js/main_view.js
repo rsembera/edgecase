@@ -47,6 +47,53 @@ function applyClientCardColors() {
 }
 
 // ============================================================
+// VIEW MODE TOGGLE (JS-powered, no reload)
+// ============================================================
+
+/**
+ * Set the view mode (detailed or compact) without page reload
+ * @param {string} mode - 'detailed' or 'compact'
+ */
+function setViewMode(mode) {
+    const container = document.getElementById('clients-container');
+    const headers = document.getElementById('column-headers');
+    const detailedBtn = document.getElementById('view-detailed-btn');
+    const compactBtn = document.getElementById('view-compact-btn');
+    
+    if (!container) return;
+    
+    // Update container class
+    container.classList.remove('detailed-mode', 'compact-mode');
+    container.classList.add(mode + '-mode');
+    
+    // Show/hide column headers
+    if (headers) {
+        if (mode === 'detailed') {
+            headers.classList.remove('hidden');
+        } else {
+            headers.classList.add('hidden');
+        }
+    }
+    
+    // Update toggle button states
+    if (detailedBtn && compactBtn) {
+        detailedBtn.classList.toggle('active', mode === 'detailed');
+        compactBtn.classList.toggle('active', mode === 'compact');
+    }
+    
+    // Save preference to localStorage
+    localStorage.setItem('edgecase_view_mode', mode);
+}
+
+/**
+ * Initialize view mode from localStorage on page load
+ */
+function initViewMode() {
+    const savedMode = localStorage.getItem('edgecase_view_mode') || 'detailed';
+    setViewMode(savedMode);
+}
+
+// ============================================================
 // DROPDOWN MENUS
 // ============================================================
 
@@ -393,8 +440,6 @@ function initSearch() {
 // IPAD VIEW MANAGEMENT
 // ============================================================
 
-let detailedClickListenerAdded = false;
-
 /**
  * Manage view toggle availability based on device and orientation
  * Disables Detailed view on iPad portrait (too narrow)
@@ -406,34 +451,22 @@ function manageViewToggleForDevice() {
     const isPortrait = window.innerHeight > window.innerWidth;
     const isIPadWidth = window.innerWidth >= 700 && window.innerWidth <= 1366;
     
-    const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
-    let detailedBtn = null;
-    viewToggleBtns.forEach(btn => {
-        if (btn.textContent.trim() === 'Detailed') detailedBtn = btn;
-    });
-    
+    const detailedBtn = document.getElementById('view-detailed-btn');
     if (!detailedBtn) return;
     
     if (isPortrait && isIPadWidth) {
+        // Disable detailed view on iPad portrait
         detailedBtn.style.opacity = '0.5';
         detailedBtn.style.cursor = 'not-allowed';
         detailedBtn.style.pointerEvents = 'none';
         
-        if (!detailedClickListenerAdded) {
-            detailedBtn.addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            });
-            detailedClickListenerAdded = true;
-        }
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('view') === 'detailed') {
-            urlParams.set('view', 'compact');
-            window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+        // Force compact mode if currently in detailed
+        const container = document.getElementById('clients-container');
+        if (container && container.classList.contains('detailed-mode')) {
+            setViewMode('compact');
         }
     } else {
+        // Enable detailed view
         detailedBtn.style.opacity = '1';
         detailedBtn.style.cursor = 'pointer';
         detailedBtn.style.pointerEvents = 'auto';
@@ -603,6 +636,7 @@ function escapeHtml(text) {
 document.addEventListener('DOMContentLoaded', async function() {
     applyClientCardColors();
     initDropdownCloseHandler();
+    initViewMode();  // Initialize view mode from localStorage
     
     // Load time format before starting clock
     await loadTimeFormat();
