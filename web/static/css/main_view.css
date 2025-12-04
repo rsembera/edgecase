@@ -424,19 +424,27 @@ body.tutti-frutti .nav-btn.peach:hover {
     width: 80px;
     flex-shrink: 0;
     margin-right: 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
     font-size: 0.75rem;
     font-weight: 600;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .detailed-content .file-number {
     width: 140px;
     flex-shrink: 0;
     margin-right: 1rem;
+    margin-top: 0;
     color: #6B7280;
     font-size: 0.875rem;
+    display: flex;
+    align-items: center;
 }
 
 .detailed-content .contact-info {
@@ -461,6 +469,8 @@ body.tutti-frutti .nav-btn.peach:hover {
     width: 270px;
     flex-shrink: 0;
     margin-right: 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
 }
@@ -479,6 +489,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     font-weight: 600;
     color: #111827;
     font-size: 0.9375rem;
+    margin: 0;
 }
 
 /* Payment status dots */
@@ -506,10 +517,18 @@ body.tutti-frutti .nav-btn.peach:hover {
 
 .contact-link.preferred {
     color: #323B45;
+    font-weight: 600;
 }
 
 .contact-link.preferred span {
     text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-decoration-skip-ink: none;
+}
+
+/* Spacing between icon and text */
+.contact-link span {
+    margin-left: 0.25rem;
 }
 
 /* ============================================================

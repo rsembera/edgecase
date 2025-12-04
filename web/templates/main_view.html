@@ -195,14 +195,14 @@
                 <div class="contact-info">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        <i data-lucide="mail" class="icon-sm icon-middle"></i> <span>{{ client.email }}</span>
+                        <i data-lucide="mail" class="icon-sm icon-middle"></i><span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
+                        {{ client.contact_icon|safe }}<span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
                     </a>
                     {% endif %}
                 </div>
@@ -227,14 +227,14 @@
                 <div class="contact-row">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
-                        <i data-lucide="mail" class="icon-sm icon-middle"></i> <span>{{ client.email }}</span>
+                        <i data-lucide="mail" class="icon-sm icon-middle"></i><span>{{ client.email }}</span>
                     </a>
                     {% endif %}
                     {% if client.display_phone %}
                     <a href="{% if client.contact_type == 'text' %}sms:{% else %}tel:{% endif %}{{ client.display_phone }}" 
                        class="contact-link {{ 'preferred' if client.preferred_contact in ['call_cell', 'call_home', 'call_work', 'text'] else '' }}" 
                        onclick="event.stopPropagation()">
-                        {{ client.contact_icon|safe }} <span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
+                        {{ client.contact_icon|safe }}<span>{{ client.display_phone }}</span>{% if client.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-warning"></i>{% endif %}
                     </a>
                     {% endif %}
                 </div>
