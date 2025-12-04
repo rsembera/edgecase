@@ -142,6 +142,10 @@ h2 {
 }
 
 /* Button group in form actions */
+.form-actions {
+    justify-content: space-between;
+}
+
 .action-buttons {
     display: flex;
     gap: 1rem;
