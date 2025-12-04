@@ -695,6 +695,15 @@ input[type="number"] {
     color: var(--color-success);
 }
 
+/* Page header icon - used with Lucide icons in H2 headers */
+.page-icon {
+    color: #1F8F74;
+    width: 28px;
+    height: 28px;
+    vertical-align: -4px;
+    margin-right: 0.5rem;
+}
+
 .page-subtitle {
     color: var(--color-text-muted);
     margin-top: 0.5rem;
