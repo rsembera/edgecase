@@ -77,19 +77,19 @@ const closeError = document.getElementById('close-error');
 
 if (deleteBtn) {
     deleteBtn.addEventListener('click', function() {
-        deleteModal.classList.add('active');
+        deleteModal.classList.remove('hidden');
     });
 }
 
 if (cancelDelete) {
     cancelDelete.addEventListener('click', function() {
-        deleteModal.classList.remove('active');
+        deleteModal.classList.add('hidden');
     });
 }
 
 if (closeError) {
     closeError.addEventListener('click', function() {
-        errorModal.classList.remove('active');
+        errorModal.classList.add('hidden');
     });
 }
 
@@ -109,15 +109,15 @@ if (confirmDelete) {
             if (data.success) {
                 window.location.href = '/types';
             } else {
-                deleteModal.classList.remove('active');
+                deleteModal.classList.add('hidden');
                 errorMessage.textContent = data.error || 'Failed to delete type';
-                errorModal.classList.add('active');
+                errorModal.classList.remove('hidden');
             }
         })
         .catch(error => {
-            deleteModal.classList.remove('active');
+            deleteModal.classList.add('hidden');
             errorMessage.textContent = 'Network error: Could not delete type';
-            errorModal.classList.add('active');
+            errorModal.classList.remove('hidden');
             console.error('Delete error:', error);
         });
     });

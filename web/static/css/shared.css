@@ -1383,3 +1383,366 @@ tbody tr:hover {
 .empty-state-actions .btn {
     margin-right: 0.5rem;
 }
+
+/* ============================================
+   ADDITIONAL ICON UTILITIES
+   Used in: client_file, profile displays
+   ============================================ */
+.icon-xs {
+    width: 14px;
+    height: 14px;
+}
+
+.icon-inline {
+    vertical-align: middle;
+}
+
+/* ============================================
+   ENTRY TYPE BADGES
+   Used in: client_file entry table
+   ============================================ */
+.entry-badge-communication {
+    background: #DCD3E8;
+    color: #3F3358;
+}
+
+.entry-badge-absence {
+    background: #E9CFCF;
+    color: #6A243E;
+}
+
+.entry-badge-item {
+    background: #F5E6D3;
+    color: #7A5C3E;
+}
+
+.entry-badge-upload {
+    background: #D3E4F5;
+    color: #1E4D7B;
+}
+
+/* ============================================
+   DROPDOWN LABEL STYLING
+   Used in: filter dropdowns, type selectors
+   ============================================ */
+.dropdown-label {
+    display: block;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+}
+
+.dropdown-label:hover {
+    background: #F3F4F6;
+}
+
+.dropdown-label.selected {
+    font-weight: 600;
+    background: #F3F4F6;
+}
+
+.dropdown-label input {
+    margin-right: 0.5rem;
+}
+
+.dropdown-label span {
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   LINKED CLIENTS SECTION
+   Used in: client_file linked clients display
+   ============================================ */
+.linked-section {
+    margin: 1.5rem 0;
+}
+
+.linked-section h4 {
+    color: #111827;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.linked-group-card {
+    background: #F9FAFB;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #9FCFC0;
+}
+
+.linked-group-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.linked-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.linked-member-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #111827;
+}
+
+.linked-member-file {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-top: 0.125rem;
+}
+
+/* ============================================
+   PROFILE ENTRY HEADER
+   Used in: client_file profile section
+   ============================================ */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-title {
+    font-size: 1.125rem;
+    color: #0E5346;
+}
+
+.minor-badge {
+    background: #DBEAFE;
+    color: #1E40AF;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.contact-row {
+    font-size: 0.875rem;
+    color: #323B45;
+    margin: 0.25rem 0;
+}
+
+/* ============================================
+   CLIENT FILE HEADER
+   Used in: client_file top section
+   ============================================ */
+.client-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.client-name {
+    color: #111827;
+    margin-bottom: 0.5rem;
+}
+
+.file-number {
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+/* ============================================
+   TYPE BADGE WRAPPER
+   Used in: client_file type dropdown
+   ============================================ */
+.type-badge-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* ============================================
+   DROPDOWN MENU ITEM (link style)
+   Used in: add entry dropdown, action menus
+   ============================================ */
+.dropdown-menu-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: #2d3748;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.dropdown-menu-item:hover {
+    background: #F3F4F6;
+}
+
+/* ============================================
+   WARNING ICON (colored)
+   Used in: client_file "no message" indicator
+   ============================================ */
+.icon-warning {
+    color: #D97706;
+}
+
+/* ============================================
+   PROFILE ENTRY EMPTY STATE
+   Used in: client_file when no profile exists
+   ============================================ */
+.profile-entry-empty {
+    text-align: center;
+}
+
+.profile-empty-text {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* ============================================
+   TYPE BADGE VARIANTS
+   Used in: linked clients, entry tables
+   ============================================ */
+.type-badge-small {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.linked-member-content {
+    margin-top: 0.25rem;
+}
+
+/* ============================================
+   SEARCH BOX FLEXIBLE WIDTH
+   Used in: client_file, main_view controls bar
+   ============================================ */
+.search-box-flex {
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box-flex input {
+    width: 100%;
+}
+
+/* ============================================
+   ACTION BUTTONS CONTAINER
+   Used in: controls bar right-aligned actions
+   ============================================ */
+.controls-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 1rem;
+}
+
+/* ============================================
+   DROPDOWN WRAPPER
+   Used in: filter dropdowns, action menus
+   ============================================ */
+.dropdown-wrapper {
+    position: relative;
+}
+
+/* ============================================
+   SECTION HEADING VARIANTS
+   ============================================ */
+.section-heading-spaced {
+    margin-bottom: 1rem;
+}
+
+/* ============================================
+   TIMELINE STRUCTURE
+   Used in: client_file year/month groups
+   ============================================ */
+.timeline-container {
+    margin-top: 1.5rem;
+}
+
+.year-section {
+    margin-bottom: 1.5rem;
+}
+
+.month-section {
+    margin-top: 1rem;
+}
+
+.month-content {
+    margin-top: 0.5rem;
+}
+
+/* Entry type badge variants */
+.session-badge-communication {
+    background: #DCD3E8;
+    color: #3F3358;
+}
+
+.session-badge-absence {
+    background: #E9CFCF;
+    color: #6A243E;
+}
+
+.session-badge-item {
+    background: #F5E6D3;
+    color: #7A5C3E;
+}
+
+.session-badge-upload {
+    background: #D3E4F5;
+    color: #1E4D7B;
+}
+
+/* Year/month header text */
+.year-header-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.month-header-text {
+    font-weight: 600;
+}
+
+.entry-count {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* Empty entries message */
+.empty-entries-text {
+    margin-bottom: 1rem;
+}
+
+
+/* Dropdown menu positioning */
+.dropdown-menu-positioned {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 1rem;
+    z-index: 100;
+}
+
+.dropdown-menu-positioned.min-width-200 {
+    min-width: 200px;
+}
+
+.dropdown-menu-positioned.min-width-220 {
+    min-width: 220px;
+}
+
+
+/* Contact link styling */
+.contact-link {
+    color: #323B45;
+    text-decoration: none;
+}
+
+.contact-link.preferred {
+    text-decoration: underline;
+}
+
+
+/* Dropdown menu separator */
+.dropdown-separator {
+    height: 1px;
+    background-color: #E5E7EB;
+    margin: 0.5rem 0;
+}

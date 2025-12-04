@@ -13,29 +13,29 @@
 {% block content %}
 
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+    <div class="client-header">
         <div>
-            <h2 style="color: #111827; margin-bottom: 0.5rem;">{{ client.first_name }} {% if client.middle_name %}{{ client.middle_name }}{% endif %} {{ client.last_name }}</h2>
+            <h2 class="client-name">{{ client.first_name }} {% if client.middle_name %}{{ client.middle_name }}{% endif %} {{ client.last_name }}</h2>
             <div class="text-muted">
-                <div style="position: relative; display: inline-block;">
+                <div class="type-badge-wrapper">
                     <span class="type-badge" 
                           style="background-color: {{ client.type.color }}"
                           onclick="event.stopPropagation(); toggleDropdown('type-dropdown')">
                         {{ client.type.name }}
                     </span>
                     <!-- Type change dropdown -->
-                    <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+                    <div id="type-dropdown" class="dropdown-menu-positioned min-width-200" style="display: none;">
                         <form method="post" action="{{ url_for('clients.change_client_type', client_id=client.id) }}">
                             {% for type in all_types %}
                             {% if type.name != 'Deleted' %}
-                            <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
+                            <label class="dropdown-label{% if type.id == client.type_id %} selected{% endif %}" 
                                    onmouseover="if ({{ type.id }} != {{ client.type_id }}) this.style.background='#F3F4F6'" 
                                    onmouseout="if ({{ type.id }} != {{ client.type_id }}) this.style.background='transparent'">
                                 <input type="radio" name="type_id" value="{{ type.id }}" 
                                        {% if type.id == client.type_id %}checked{% endif %}
                                        onchange="this.form.submit()"
-                                       style="margin-right: 0.5rem;">
-                                <span style="font-size: 0.875rem;">{{ type.name }}</span>
+                                       >
+                                <span>{{ type.name }}</span>
                             </label>
                             {% endif %}
                             {% endfor %}
@@ -43,37 +43,37 @@
                     </div>
                 </div>
                 <br>
-                <span style="display: inline-block; margin-top: 0.5rem;">File #{{ client.file_number }}</span>
+                <span class="file-number">File #{{ client.file_number }}</span>
             </div>
         </div>
-        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back</a>
+        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
     </div>
     
     {# Profile Entry - Always at top if exists #}
     {% if profile_entry %}
     <div class="profile-entry" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <strong style="font-size: 1.125rem; color: #0E5346;">Profile</strong>
+        <div class="profile-header">
+            <strong class="profile-title">Profile</strong>
             
             {# Minor Badge #}
             {% if profile_entry.is_minor %}
-            <span style="background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
-                <i data-lucide="baby" style="width: 12px; height: 12px; vertical-align: middle;"></i> Minor
+            <span class="minor-badge">
+                <i data-lucide="baby" class="icon-xs icon-inline"></i> Minor
             </span>
             {% endif %}
         </div>
         
         {# Contact Information - matching main_view.html logic #}
         {% if profile_entry.email %}
-        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">
-            <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle;"></i> <a href="mailto:{{ profile_entry.email }}" 
-                  style="color: #323B45; text-decoration: {% if profile_entry.preferred_contact == 'email' %}underline{% else %}none{% endif %};" 
+        <p class="contact-row">
+            <i data-lucide="mail" class="icon-xs icon-inline"></i> <a href="mailto:{{ profile_entry.email }}" 
+                  class="contact-link{% if profile_entry.preferred_contact == 'email' %} preferred{% endif %}" 
                   onclick="event.stopPropagation();">{{ profile_entry.email }}</a>
         </p>
         {% endif %}
         
         {% if profile_entry.phone or profile_entry.home_phone or profile_entry.work_phone %}
-        <p style="font-size: 0.875rem; color: #323B45; margin: 0.25rem 0;">
+        <p class="contact-row">
             {# Determine which phone to display and link type based on preferred_contact #}
             {% set display_phone = '' %}
             {% set link_type = 'tel' %}
@@ -110,11 +110,11 @@
             {% endif %}
             
             {% if display_phone %}
-                {% if link_type == 'tel' %}<i data-lucide="phone" style="width: 14px; height: 14px; vertical-align: middle;"></i>{% else %}<i data-lucide="message-circle" style="width: 14px; height: 14px; vertical-align: middle;"></i>{% endif %} 
+                {% if link_type == 'tel' %}<i data-lucide="phone" class="icon-xs icon-inline"></i>{% else %}<i data-lucide="message-circle" class="icon-xs icon-inline"></i>{% endif %} 
                 <a href="{{ link_type }}:{{ display_phone }}" 
-                   style="color: #323B45; text-decoration: {% if is_preferred %}underline{% else %}none{% endif %};" 
+                   class="contact-link{% if is_preferred %} preferred{% endif %}" 
                    onclick="event.stopPropagation();">{{ display_phone }}</a>
-                {% if profile_entry.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; color: #D97706;"></i>{% endif %}
+                {% if profile_entry.ok_to_leave_message == 'no' %} <i data-lucide="alert-triangle" class="icon-xs icon-inline icon-warning"></i>{% endif %}
             {% endif %}
         </p>
         {% endif %}
@@ -123,39 +123,39 @@
     </div>
     {% else %}
     {# No profile - make it clickable to create one #}
-    <div class="profile-entry" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'" style="text-align: center;">
-        <strong style="font-size: 1.125rem; color: #0E5346;">+ Create Profile</strong>
-        <p class="text-muted" style="font-size: 0.875rem; margin-top: 0.5rem;">Click to add client contact information</p>
+    <div class="profile-entry profile-entry-empty" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
+        <strong class="profile-title">+ Create Profile</strong>
+        <p class="text-muted profile-empty-text">Click to add client contact information</p>
     </div>
     {% endif %}
 
 {# Linked Clients Section - NEW #}
     {% if linked_groups %}
-    <div style="margin: 1.5rem 0;">
-        <h4 style="color: #111827; font-size: 1rem; margin-bottom: 0.75rem;">Linked Clients</h4>
+    <div class="linked-section">
+        <h4>Linked Clients</h4>
         
         {% for group in linked_groups %}
-        <div style="background: #F9FAFB; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #9FCFC0;">
-            <div style="font-weight: 600; color: #374151; margin-bottom: 0.75rem; font-size: 0.875rem;">
+        <div class="linked-group-card">
+            <div class="linked-group-title">
                 {{ group.format_display }} Link
             </div>
             
-            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+            <div class="linked-members">
                 {% for member in group.members %}
                 <a href="{{ url_for('clients.client_file', client_id=member.id) }}" 
                    class="linked-client-card"
                    onclick="event.stopPropagation();">
-                    <span class="type-badge" 
-                          style="background-color: {{ member.type.color }}; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                    <span class="type-badge type-badge-small" 
+                          style="background-color: {{ member.type.color }};">
                         {{ member.type.name }}
                     </span>
-                    <div style="margin-top: 0.25rem;">
-                        <div style="font-weight: 600; font-size: 0.875rem; color: #111827;">
+                    <div class="linked-member-content">
+                        <div class="linked-member-name">
                             {{ member.first_name }} 
                             {% if member.middle_name %}{{ member.middle_name }}{% endif %} 
                             {{ member.last_name }}
                         </div>
-                        <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.125rem;">
+                        <div class="linked-member-file">
                             #{{ member.file_number }}
                         </div>
                     </div>
@@ -168,7 +168,7 @@
     {% endif %}
     {# End Linked Clients Section #}
     
-    <h3 class="section-heading" style="margin-bottom: 1rem;">Session History 
+    <h3 class="section-heading section-heading-spaced">Session History 
         {% if session_count > 0 or consultation_count > 0 or absence_count > 0 %}
             ({{ session_count }} Session{{ 's' if session_count != 1 else '' }}{% if consultation_count > 0 %}, {{ consultation_count }} Consultation{{ 's' if consultation_count != 1 else '' }}{% endif %}{% if absence_count > 0 %}, {{ absence_count }} Absence{{ 's' if absence_count != 1 else '' }} this year{% endif %})
         {% endif %}
@@ -176,60 +176,48 @@
     
     <!-- Entry Class Filter -->
     <div class="controls-bar">
-        <div style="position: relative;">
+        <div class="dropdown-wrapper">
             <button class="dropdown-btn" id="class-filter-button" onclick="toggleDropdown('filter-dropdown')">
                 Filter: {{ class_filter|length }} type{{ 's' if class_filter|length != 1 else '' }} ▾
             </button>
-            <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 220px; z-index: 100;">
+            <div id="filter-dropdown" class="dropdown-menu-positioned min-width-220" style="display: none;">
                 <div id="filter-form">
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="session" 
                             {% if 'session' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Session</span>
+                        <span>Session</span>
                     </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="communication" 
                             {% if 'communication' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Communication</span>
+                        <span>Communication</span>
                     </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="absence" 
                             {% if 'absence' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Absence</span>
+                        <span>Absence</span>
                     </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="item" 
                             {% if 'item' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Item</span>
+                        <span>Item</span>
                     </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="upload" 
                             {% if 'upload' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Upload</span>
+                        <span>Upload</span>
                     </label>
-                    <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem;" 
-                        onmouseover="this.style.background='#F3F4F6'" 
-                        onmouseout="this.style.background='transparent'">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="class" value="consultation" 
                             {% if 'consultation' in class_filter %}checked{% endif %}>
-                        <span style="margin-left: 0.5rem; font-size: 0.875rem;">Consultation</span>
+                        <span>Consultation</span>
                     </label>
                 </div>
             </div>
         </div>
         
         <!-- Search Box -->
-        <div class="search-box" style="flex: 1; max-width: 400px;">
+        <div class="search-box search-box-flex">
             <span class="search-icon"><i data-lucide="search"></i></span>
             <input type="text" 
                 id="entry-search" 
@@ -241,63 +229,37 @@
         </div>
         
         <!-- Action Buttons (right-aligned) -->
-        <div style="margin-left: auto; display: flex; gap: 1rem;">
+        <div class="controls-actions">
             <!-- Add Entry Dropdown -->
-            <div style="position: relative;">
+            <div class="dropdown-wrapper">
                 <button class="dropdown-btn" onclick="toggleDropdown('add-entry-dropdown')">
-                    <i data-lucide="plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.25rem;"></i> New ▾
+                    <i data-lucide="plus" class="icon-sm icon-inline"></i> New ▾
                 </button>
-                <div id="add-entry-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 200px; z-index: 100;">
-                    <a href="{{ url_for('entries.create_session', client_id=client.id) }}" 
-                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                       onmouseover="this.style.background='#F3F4F6'" 
-                       onmouseout="this.style.background='transparent'">
-                        <i data-lucide="clipboard" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Session
+                <div id="add-entry-dropdown" class="dropdown-menu dropdown-menu-right" style="display: none;">
+                    <a href="{{ url_for('entries.create_session', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="clipboard" class="icon-sm icon-inline"></i> Session
                     </a>
-                    <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" 
-                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                       onmouseover="this.style.background='#F3F4F6'" 
-                       onmouseout="this.style.background='transparent'">
-                        <i data-lucide="message-circle" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Communication
+                    <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="message-circle" class="icon-sm icon-inline"></i> Communication
                     </a>
-                    <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" 
-                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                       onmouseover="this.style.background='#F3F4F6'" 
-                       onmouseout="this.style.background='transparent'">
-                        <i data-lucide="x-circle" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Absence
+                    <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="x-circle" class="icon-sm icon-inline"></i> Absence
                     </a>
-                    <a href="{{ url_for('entries.create_item', client_id=client.id) }}" 
-                       style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                       onmouseover="this.style.background='#F3F4F6'" 
-                       onmouseout="this.style.background='transparent'">
-                        <i data-lucide="package" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Item
+                    <a href="{{ url_for('entries.create_item', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="package" class="icon-sm icon-inline"></i> Item
                     </a>
-                    <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" 
-                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                    onmouseover="this.style.background='#F3F4F6'" 
-                    onmouseout="this.style.background='transparent'">
-                        <i data-lucide="paperclip" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Upload
+                    <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="paperclip" class="icon-sm icon-inline"></i> Upload
                     </a>
-                    <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #E2E8F0;">
-                    <a href="{{ url_for('scheduler.schedule_for_client', client_id=client.id) }}" 
-                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                    onmouseover="this.style.background='#F3F4F6'" 
-                    onmouseout="this.style.background='transparent'">
-                    <i data-lucide="calendar-plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Appointment
+                    <div class="dropdown-separator"></div>
+                    <a href="{{ url_for('scheduler.schedule_for_client', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="calendar-plus" class="icon-sm icon-inline"></i> Appointment
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-divider"></div>
-                    <a href="{{ url_for('clients.session_report', client_id=client.id) }}"
-                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                    onmouseover="this.style.background='#F3F4F6'" 
-                    onmouseout="this.style.background='transparent'">
-                        <i data-lucide="file-bar-chart" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Report
+                    <a href="{{ url_for('clients.session_report', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="file-bar-chart" class="icon-sm icon-inline"></i> Report
                     </a>
-                    <a href="{{ url_for('clients.export_client', client_id=client.id) }}"
-                    style="display: block; padding: 0.75rem 1rem; text-decoration: none; color: #2d3748; border-radius: 0.5rem; font-size: 0.9375rem;"
-                    onmouseover="this.style.background='#F3F4F6'" 
-                    onmouseout="this.style.background='transparent'">
-                        <i data-lucide="file-text" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.5rem;"></i>Export
+                    <a href="{{ url_for('clients.export_client', client_id=client.id) }}" class="dropdown-menu-item">
+                        <i data-lucide="file-text" class="icon-sm icon-inline"></i> Export
                     </a>
                 </div>
             </div>
@@ -305,16 +267,16 @@
     </div>
     
     {% if entries_by_year %}
-    <div style="margin-top: 1.5rem;">
+    <div class="timeline-container">
         {% for year_group in entries_by_year %}
-        <div class="year-section" style="margin-bottom: 1.5rem;">
+        <div class="year-section">
             {# Year Header #}
             <div class="year-header" onclick="toggleYear('year-{{ year_group.year }}')">
-                <span style="font-size: 1.125rem; font-weight: 600;">
+                <span class="year-header-text">
                     <span id="year-{{ year_group.year }}-icon">{{ '▼' if year_group.is_current else '▶' }}</span>
                     {{ year_group.year }}
                 </span>
-                <span style="font-size: 0.875rem; opacity: 0.9;">{{ year_group.total }} Entr{{ 'y' if year_group.total == 1 else 'ies' }}</span>
+                <span class="entry-count">{{ year_group.total }} Entr{{ 'y' if year_group.total == 1 else 'ies' }}</span>
             </div>
             
             {# Year Content (collapsible) #}
@@ -322,20 +284,21 @@
                  style="{% if not year_group.is_current %}display: none;{% endif %}">
                 
                 {% for month_group in year_group.months %}
-                <div class="month-section" style="margin-top: 1rem;">
+                <div class="month-section">
                     {# Month Header #}
                     <div class="month-header"
                          onclick="toggleMonth('month-{{ year_group.year }}-{{ month_group.month_num }}')">
-                        <span style="font-weight: 600;">
+                        <span class="month-header-text">
                             <span id="month-{{ year_group.year }}-{{ month_group.month_num }}-icon">{{ '▼' if month_group.is_current else '▶' }}</span>
                             {{ month_group.month_name }}
                         </span>
-                        <span style="font-size: 0.875rem; opacity: 0.9;">{{ month_group.entries|length }} Entr{{ 'y' if month_group.entries|length == 1 else 'ies' }}</span>
+                        <span class="entry-count">{{ month_group.entries|length }} Entr{{ 'y' if month_group.entries|length == 1 else 'ies' }}</span>
                     </div>
                     
                     {# Month Content - Table #}
                     <div id="month-{{ year_group.year }}-{{ month_group.month_num }}-content"
-                         style="{% if not month_group.is_current %}display: none;{% endif %} margin-top: 0.5rem;">
+                         class="month-content"
+                         style="{% if not month_group.is_current %}display: none;{% endif %}">
                         <table>
                             <thead>
                                 <tr>
@@ -377,19 +340,19 @@
                                                 {% endif %}
                                             </span>
                                         {% elif entry.class == 'communication' %}
-                                            <span class="session-badge" style="background: #DCD3E8; color: #3F3358;">
+                                            <span class="session-badge session-badge-communication">
                                                 Communication
                                             </span>
                                         {% elif entry.class == 'absence' %}
-                                            <span class="session-badge" style="background: #E9CFCF; color: #6A243E;">
+                                            <span class="session-badge session-badge-absence">
                                                 Absence
                                             </span>
                                         {% elif entry.class == 'item' %}
-                                            <span class="session-badge" style="background: #F5E6D3; color: #7A5C3E;">
+                                            <span class="session-badge session-badge-item">
                                                 Item
                                             </span>
                                         {% elif entry.class == 'upload' %}
-                                            <span class="session-badge" style="background: #D3E4F5; color: #1E4D7B;">
+                                            <span class="session-badge session-badge-upload">
                                                 Upload
                                             </span>
                                         {% endif %}
@@ -461,7 +424,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <p class="text-muted" style="margin-bottom: 1rem;">No Entries yet.</p>
+        <p class="text-muted empty-entries-text">No Entries yet.</p>
     </div>
     {% endif %}
 </div>
