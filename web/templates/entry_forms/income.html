@@ -14,10 +14,10 @@
 
 {% block content %}
 
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+<div class="card income-card">
+    <div class="income-header">
         <div>
-            <h2><i data-lucide="trending-up" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Income Entry</h2>
+            <h2><i data-lucide="trending-up" class="page-icon"></i>Income Entry</h2>
             <div class="text-muted">
                 Record income received for your practice
             </div>
@@ -26,17 +26,17 @@
     
     <form method="POST" id="income-form" enctype="multipart/form-data">
         <!-- Date field, NOT full width -->
-        <div class="form-group" style="max-width: 300px;">
+        <div class="form-group date-field-narrow">
             <label>Date *</label>
             <div id="income-date-picker"></div>
             <input type="hidden" id="date" name="date" value="{% if is_edit %}{{ '%04d-%02d-%02d' | format(income_year, income_month, income_day) }}{% endif %}" required>
         </div>
         
         <!-- Total Amount and Tax Collected on same line -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <div class="form-group">
+        <div class="form-row">
+            <div class="form-group mb-0">
                 <label for="total_amount">Total Amount *</label>
-                <div style="position: relative;">
+                <div class="input-with-prefix">
                     <span class="input-prefix">{{ currency|currency_symbol }}</span>
                     <input type="number" 
                            id="total_amount" 
@@ -45,15 +45,14 @@
                            step="0.01"
                            min="0"
                            placeholder="0.00"
-                           style="padding-left: 2.5rem;"
                            required>
                 </div>
                 <div class="helper-text">Total amount received</div>
             </div>
             
-            <div class="form-group">
+            <div class="form-group mb-0">
                 <label for="tax_amount">Tax Collected</label>
-                <div style="position: relative;">
+                <div class="input-with-prefix">
                     <span class="input-prefix">{{ currency|currency_symbol }}</span>
                     <input type="number" 
                            id="tax_amount" 
@@ -61,16 +60,15 @@
                            value="{{ '%.2f'|format(entry.tax_amount) if entry and entry.tax_amount else '' }}"
                            step="0.01"
                            min="0"
-                           placeholder="0.00"
-                           style="padding-left: 2.5rem;">
+                           placeholder="0.00">
                 </div>
                 <div class="helper-text">Tax portion (0 if tax-exempt)</div>
             </div>
         </div>
         
         <!-- Payor and Description on same line -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <div class="form-group">
+        <div class="form-row">
+            <div class="form-group mb-0">
                 <label for="source">Payor *</label>
                 <input type="text" 
                        id="source" 
@@ -81,7 +79,7 @@
                 <div class="helper-text">Person or organization who paid</div>
             </div>
             
-            <div class="form-group">
+            <div class="form-group mb-0">
                 <label for="description">Description *</label>
                 <input type="text" 
                        id="description" 
@@ -105,37 +103,38 @@
         </div>
 
         <!-- Attachments Section -->
-        <div class="form-group" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E5E7EB;">
-            <label style="font-size: 1.125rem; margin-bottom: 1rem; display: block;">Attachments</label>
+        <div class="form-group section-border-top">
+            <label class="section-label">Attachments</label>
             
             {% if is_edit and attachments %}
             <!-- Existing attachments (always visible) -->
-            <div class="attachment-list" style="margin-bottom: 1.5rem;">
+            <div class="attachment-list">
                 {% for attachment in attachments %}
-                <div class="attachment-item" style="display: flex; align-items: center; padding: 0.75rem; background: #F9FAFB; border-radius: 0.375rem; margin-bottom: 0.5rem;">
-                    <span style="flex: 1;">
-                        <i data-lucide="file-text" style="width: 16px; height: 16px; vertical-align: 0px; color: #6B7280; margin-right: 0.25rem;"></i><strong>{{ attachment.filename }}</strong>
+                <div class="attachment-item">
+                    <span class="attachment-details">
+                        <i data-lucide="file-text" class="icon-sm icon-inline text-muted"></i><strong>{{ attachment.filename }}</strong>
                         {% if attachment.description and attachment.description != attachment.filename %}
-                        <span style="color: #6B7280; font-size: 0.875rem; margin-left: 0.5rem;">{{ attachment.description }}</span>
+                        <span class="attachment-meta">{{ attachment.description }}</span>
                         {% endif %}
-                        <span style="color: #9CA3AF; font-size: 0.875rem; margin-left: 0.5rem;">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
+                        <span class="attachment-size">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
                     </span>
-                    <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
-                        target="_blank" 
-                        class="btn-small" 
-                        style="margin-right: 0.5rem;">View</a>
-                    <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
-                       class="btn-small" style="margin-right: 0.5rem;">Download</a>
-                    <button type="button" 
-                            class="btn-small btn-danger" 
-                            onclick="deleteAttachment({{ attachment.id }})">Delete</button>
+                    <div class="attachment-actions">
+                        <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
+                            target="_blank" 
+                            class="btn-small">View</a>
+                        <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
+                           class="btn-small">Download</a>
+                        <button type="button" 
+                                class="btn-small btn-danger" 
+                                onclick="deleteAttachment({{ attachment.id }})">Delete</button>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
             
             <!-- Collapsible Upload Section -->
-            <div style="margin-bottom: 1rem;">
+            <div class="upload-toggle-wrapper">
                 <button type="button" 
                         class="upload-toggle-btn" 
                         onclick="toggleUploadSection()">
@@ -145,44 +144,37 @@
             </div>
             
             <div id="upload-section" style="display: none;">
-                <div class="helper-text" style="margin-bottom: 1rem;">Upload receipts, payment confirmations, or related documents</div>
+                <div class="helper-text mb-2">Upload receipts, payment confirmations, or related documents</div>
                 
                 <div class="upload-section">
                     <div id="file-inputs">
-                        <div class="file-input-row" style="margin-bottom: 1rem;">
-                            <div style="display: flex; gap: 1rem; align-items: end;">
-                                <div style="flex: 2;">
-                                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                                        Choose file
-                                    </label>
+                        <div class="file-input-row">
+                            <div class="file-row-grid">
+                                <div class="file-field">
+                                    <label>Choose file</label>
                                     <input type="file" 
                                            name="files[]" 
                                            class="file-input"
-                                           onchange="handleFileSelected()"
-                                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                                           onchange="handleFileSelected()">
                                 </div>
-                                <div style="flex: 2;">
-                                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                                        Description (optional)
-                                    </label>
+                                <div class="file-field">
+                                    <label>Description (optional)</label>
                                     <input type="text" 
                                            name="file_descriptions[]" 
-                                           placeholder="Brief description"
-                                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                                           placeholder="Brief description">
                                 </div>
                                 <button type="button" 
-                                        class="btn-small btn-danger remove-file-btn" 
-                                        style="white-space: nowrap;">Remove</button>
+                                        class="btn-small btn-danger remove-file-btn">Remove</button>
                             </div>
                         </div>
                     </div>
                     
                     <button type="button" 
                             id="add-file-btn" 
-                            class="btn"
-                            style="margin-top: 0.5rem; display: none;">Add Another File</button>
+                            class="btn mt-1"
+                            style="display: none;">Add Another File</button>
                     
-                    <div class="helper-text" style="margin-top: 1rem;">
+                    <div class="helper-text mt-2">
                         Maximum file size: 50MB per file. All file types accepted.
                     </div>
                 </div>
@@ -192,10 +184,10 @@
     </form>
     
     <!-- Navigation buttons OUTSIDE the form -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+    <div class="income-form-actions">
         <a href="{{ url_for('ledger.ledger') }}" class="btn btn-secondary">Cancel</a>
         
-        <div style="display: flex; gap: 1rem;">
+        <div class="action-group">
             {% if is_edit %}
             <button type="button" onclick="confirmDeleteEntry()" class="btn btn-danger">Delete Entry</button>
             {% endif %}
@@ -208,42 +200,42 @@
         </div>
     </div>
 
-    <!-- File Validation Modal (instead of alert) -->
-    <div id="file-validation-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
-            <h3 style="margin-top: 0; margin-bottom: 1rem;">No File Selected</h3>
-            <p style="margin-bottom: 2rem; color: #4A5568;">
+    <!-- File Validation Modal -->
+    <div id="file-validation-modal" class="modal-overlay">
+        <div class="modal-box max-w-450">
+            <h3 class="modal-title">No File Selected</h3>
+            <p class="modal-body-text mb-lg">
                 Please select a file before adding another upload row.
             </p>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <div class="modal-actions">
                 <button onclick="closeFileValidationModal()" class="btn">OK</button>
             </div>
         </div>
     </div>
 
     <!-- Delete File Confirmation Modal -->
-    <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
-            <h3 style="margin-top: 0; margin-bottom: 1rem;">Delete File?</h3>
-            <p id="delete-message" style="margin-bottom: 2rem; color: #4A5568;">
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-box max-w-450">
+            <h3 class="modal-title">Delete File?</h3>
+            <p id="delete-message" class="modal-body-text mb-lg">
                 Are you sure you want to delete this file? This cannot be undone.
             </p>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button onclick="closeDeleteModal()" class="btn">Cancel</button>
+            <div class="modal-actions">
+                <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
                 <button onclick="confirmDelete()" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
 
     <!-- Delete Entry Confirmation Modal -->
-    <div id="delete-entry-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; margin: 2rem;">
-            <h3 style="margin-top: 0; margin-bottom: 1rem;">Delete Income Entry?</h3>
-            <p style="margin-bottom: 2rem; color: #4A5568;">
+    <div id="delete-entry-modal" class="modal-overlay">
+        <div class="modal-box max-w-450">
+            <h3 class="modal-title">Delete Income Entry?</h3>
+            <p class="modal-body-text mb-lg">
                 Are you sure you want to delete this entire income entry? This will remove the entry and all its attachments. This cannot be undone.
             </p>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button onclick="closeDeleteEntryModal()" class="btn">Cancel</button>
+            <div class="modal-actions">
+                <button onclick="closeDeleteEntryModal()" class="btn btn-secondary">Cancel</button>
                 <button onclick="deleteEntry()" class="btn btn-danger">Delete Entry</button>
             </div>
         </div>
