@@ -1,14 +1,10 @@
 /* Backups page styles */
-/* Shared patterns from shared.css: .card, .form-group, .modal-overlay, .modal-content, .btn, .btn-danger */
+/* Shared patterns from shared.css: .card, .form-group, .modal-overlay, .modal-content, .btn, .btn-danger, .page-header */
 
 .card {
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;
-}
-
-.page-header {
-    margin-bottom: 1.5rem;
 }
 
 /* Status and Actions Row */
