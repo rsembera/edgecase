@@ -11,29 +11,26 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+<div class="card profile-card">
+    <div class="profile-header">
         <div>
-            <h2><i data-lucide="user-round" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Client Profile</h2>
-            <div class="text-muted" style="position: relative; display: inline-block;">
+            <h2><i data-lucide="user-round" class="page-icon"></i>Client Profile</h2>
+            <div class="text-muted type-badge-wrapper">
                 <span class="type-badge" 
                       id="profile-type-badge"
-                      style="background-color: {{ client.type.color }}; cursor: pointer;">
+                      style="background-color: {{ client.type.color }};">
                     {{ client.type.name }}
                 </span>
                 <!-- Type change dropdown -->
-                <div id="type-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 1rem; min-width: 200px; z-index: 100;">
+                <div id="type-dropdown" class="type-dropdown" style="display: none;">
                     <form method="post" action="{{ url_for('clients.change_client_type', client_id=client.id) }}">
                         {% for type in all_types %}
                         {% if type.name != 'Deleted' %}
-                        <label style="display: block; padding: 0.5rem; cursor: pointer; border-radius: 0.5rem; {% if type.id == client.type_id %}font-weight: 600; background: #F3F4F6;{% endif %}" 
-                               onmouseover="if ({{ type.id }} != {{ client.type_id }}) this.style.background='#F3F4F6'" 
-                               onmouseout="if ({{ type.id }} != {{ client.type_id }}) this.style.background='transparent'">
+                        <label class="type-dropdown-label {% if type.id == client.type_id %}selected{% endif %}">
                             <input type="radio" name="type_id" value="{{ type.id }}" 
                                    {% if type.id == client.type_id %}checked{% endif %}
-                                   onchange="this.form.submit()"
-                                   style="margin-right: 0.5rem;">
-                            <span style="font-size: 0.875rem;">{{ type.name }}</span>
+                                   onchange="this.form.submit()">
+                            <span>{{ type.name }}</span>
                         </label>
                         {% endif %}
                         {% endfor %}
@@ -45,21 +42,21 @@
 
     <!-- Retention Info Box (only for Inactive clients) -->
     {% if retention_info %}
-    <div class="retention-info-box" style="background: {% if retention_info.is_due %}#FEF2F2{% else %}#FEF3C7{% endif %}; border: 1px solid {% if retention_info.is_due %}#FECACA{% else %}#FDE68A{% endif %}; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-            <i data-lucide="{% if retention_info.is_due %}alert-triangle{% else %}clock{% endif %}" style="width: 22px; height: 22px; color: {% if retention_info.is_due %}#DC2626{% else %}#D97706{% endif %}; flex-shrink: 0; margin-top: 2px;"></i>
-            <div style="flex: 1;">
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: {% if retention_info.is_due %}#991B1B{% else %}#92400E{% endif %};">
+    <div class="retention-info-box {% if retention_info.is_due %}danger{% else %}warning{% endif %}">
+        <div class="retention-content">
+            <i data-lucide="{% if retention_info.is_due %}alert-triangle{% else %}clock{% endif %}" class="retention-icon {% if retention_info.is_due %}danger{% else %}warning{% endif %}"></i>
+            <div class="retention-body">
+                <h4 class="retention-title {% if retention_info.is_due %}danger{% else %}warning{% endif %}">
                     {% if retention_info.is_due %}Ready for Deletion{% else %}Retention Period Active{% endif %}
                 </h4>
-                <div style="font-size: 0.875rem; color: #4B5563; line-height: 1.6;">
-                    <p style="margin: 0 0 0.5rem 0;"><strong>Retention Period:</strong> {{ retention_info.retention_days }} day{% if retention_info.retention_days != 1 %}s{% endif %}</p>
-                    <p style="margin: 0 0 0.5rem 0;"><strong>Last Contact:</strong> {{ retention_info.last_contact }}</p>
-                    <p style="margin: 0;"><strong>Scheduled Deletion:</strong> {{ retention_info.retain_until }}</p>
+                <div class="retention-details">
+                    <p><strong>Retention Period:</strong> {{ retention_info.retention_days }} day{% if retention_info.retention_days != 1 %}s{% endif %}</p>
+                    <p><strong>Last Contact:</strong> {{ retention_info.last_contact }}</p>
+                    <p><strong>Scheduled Deletion:</strong> {{ retention_info.retain_until }}</p>
                 </div>
-                <div style="margin-top: 1rem;">
-                    <button type="button" onclick="showDeleteConfirmModal()" class="btn btn-danger" style="font-size: 0.875rem;">
-                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                <div class="retention-actions">
+                    <button type="button" onclick="showDeleteConfirmModal()" class="btn btn-danger btn-small">
+                        <i data-lucide="trash-2" class="btn-icon-sm"></i>
                         Delete Now
                     </button>
                 </div>
@@ -254,7 +251,7 @@
             </div>
         </div>
         
-        <!-- Individual Session Fee Section (renamed from Fee Override) -->
+        <!-- Individual Session Fee Section -->
         <div class="section-divider"></div>
         <h3 class="section-heading">Individual Session Fee</h3>
 
@@ -289,7 +286,7 @@
         <p class="help-text">Fill any two fields and the third calculates automatically. Leave blank if client only attends couples/family/group sessions.</p>
 
         <!-- Default Session Duration -->
-        <div class="form-row-full" style="margin-top: 1rem;">
+        <div class="form-row-full mt-2">
             <div class="form-group">
                 <label for="default_session_duration">Default Session Duration (minutes)</label>
                 <input type="number" id="default_session_duration" name="default_session_duration" 
@@ -301,7 +298,7 @@
         </div>
 
         <!-- Minor Client Checkbox -->
-        <div class="form-row-full" style="margin-top: 2rem; padding-top: 1.5rem;">
+        <div class="form-row-full section-border-top">
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="is_minor" name="is_minor" value="1"
@@ -313,13 +310,13 @@
         
         <!-- Guardian/Billing Section -->
         <div id="guardian-fields" style="display: {% if profile and profile.is_minor %}block{% else %}none{% endif %};">
-            <h3 class="section-heading" style="padding-top: 1.5rem;">
+            <h3 class="section-heading pt-2">
                 Guardian/Billing Information
             </h3>
             
             <!-- Total Session Fee Display for Reference -->
-            <div style="background: #F3F4F6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-                <div style="font-size: 0.875rem; color: #6B7280;">
+            <div class="guardian-info-box">
+                <div class="info-label">
                     <strong>Session Fee:</strong> 
                     {% if profile and profile.fee_override_total %}
                         ${{ '%.2f' | format(profile.fee_override_total) }}
@@ -327,7 +324,7 @@
                         (Not set - configure above)
                     {% endif %}
                 </div>
-                <div style="font-size: 0.75rem; color: #9CA3AF; margin-top: 0.25rem;">
+                <div class="info-note">
                     Guardian percentages will apply to all billable entries (sessions, items, absences)
                 </div>
             </div>
@@ -436,9 +433,9 @@
             </div>
             
             <!-- Validation Warning -->
-            <div id="guardian-validation" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 0.5rem; padding: 1rem; margin-top: 1rem;">
-                <div style="color: #991B1B; font-weight: 600; margin-bottom: 0.5rem;"><i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: -2px; color: #D97706; margin-right: 0.25rem;"></i>Validation Error</div>
-                <div id="guardian-validation-message" style="color: #7F1D1D; font-size: 0.875rem;"></div>
+            <div id="guardian-validation" class="guardian-validation-box" style="display: none;">
+                <div class="guardian-validation-header"><i data-lucide="alert-triangle" class="btn-icon-sm icon-warning"></i>Validation Error</div>
+                <div id="guardian-validation-message" class="guardian-validation-message"></div>
             </div>
         </div>
 
@@ -447,8 +444,8 @@
             {% include 'components/edit_history.html' %}
         {% endif %}
         
-        <!-- Form Buttons (INSIDE form, OUTSIDE guardian-fields) -->
-        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+        <!-- Form Buttons -->
+        <div class="profile-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn">Save Profile</button>
         </div>
@@ -456,11 +453,11 @@
 </div>
 
 <!-- Validation error modal -->
-<div id="validation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-top: 4px solid #e53e3e;">
-        <h3 style="color: #2d3748; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Validation Error</h3>
-        <div id="validation-errors" style="color: #4a5568; margin-bottom: 1.5rem; line-height: 1.6; font-size: 0.9375rem;"></div>
-        <button onclick="closeValidationModal()" style="padding: 0.625rem 1.25rem; background: #00aa88; color: white; border: none; border-radius: 0.375rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer; width: 100%;">
+<div id="validation-modal" class="modal-overlay" style="display: none;">
+    <div class="validation-modal-content">
+        <h3>Validation Error</h3>
+        <div id="validation-errors" class="errors"></div>
+        <button onclick="closeValidationModal()" class="btn-ok">
             OK
         </button>
     </div>
@@ -468,22 +465,22 @@
 
 <!-- Delete confirmation modal (for retention deletion) -->
 {% if retention_info %}
-<div id="delete-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
-        <h3 style="color: #991B1B; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">
-            <i data-lucide="alert-triangle" style="width: 24px; height: 24px; vertical-align: -5px; margin-right: 0.5rem;"></i>
+<div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="delete-modal-content">
+        <h3>
+            <i data-lucide="alert-triangle" class="page-icon icon-danger"></i>
             Permanently Delete Client?
         </h3>
-        <p style="color: #4B5563; margin-bottom: 1rem; line-height: 1.6;">
+        <p>
             This will permanently delete <strong>{{ client.first_name }} {{ client.last_name }}</strong> and all associated entries.
         </p>
-        <p style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.875rem;">
+        <p class="note">
             A minimal archive record will be kept for compliance purposes (file number, name, and dates only).
         </p>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <div class="modal-actions">
             <button onclick="closeDeleteConfirmModal()" class="btn btn-secondary">Cancel</button>
             <button onclick="confirmDelete()" class="btn btn-danger">
-                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="trash-2" class="btn-icon-sm"></i>
                 Delete Permanently
             </button>
         </div>
@@ -521,7 +518,6 @@ async function confirmDelete() {
         });
         
         if (response.ok) {
-            // Redirect to main view after successful deletion
             window.location.href = '/';
         } else {
             const data = await response.json();
@@ -547,6 +543,5 @@ document.getElementById('delete-confirm-modal')?.addEventListener('click', funct
 });
 </script>
 {% endif %}
-
 
 {% endblock %}
