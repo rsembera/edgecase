@@ -25,6 +25,11 @@
     display: inline-block;
 }
 
+/* Only in profile is the badge clickable */
+.type-badge-wrapper .type-badge {
+    cursor: pointer;
+}
+
 .type-dropdown {
     position: absolute;
     top: 100%;
