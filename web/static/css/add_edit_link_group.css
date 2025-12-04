@@ -316,7 +316,94 @@
     transform: none;
 }
 
-/* Responsive */
+/* ============================================
+   ICON UTILITIES
+   ============================================ */
+.icon-sm {
+    width: 14px;
+    height: 14px;
+}
+
+.icon-alert {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    color: #D97706;
+    margin-right: 0.25rem;
+}
+
+/* ============================================
+   MEMBER FEES SECTION
+   ============================================ */
+.member-fees-subtitle {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.link-form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+/* ============================================
+   ERROR MODAL
+   ============================================ */
+.error-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    max-width: 500px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-top: 4px solid #DC2626;
+}
+
+.error-modal-content h3 {
+    color: #111827;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.error-modal-content p {
+    color: #4B5563;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.btn-error-ok {
+    padding: 0.625rem 1.25rem;
+    background: #DC2626;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    font-family: 'Lexend', sans-serif;
+}
+
+.btn-error-ok:hover {
+    background: #B91C1C;
+}
+
+/* ============================================
+   HIDDEN DATA ELEMENTS
+   ============================================ */
+.hidden-data {
+    display: none;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
     .fee-inputs {
         grid-template-columns: 1fr;

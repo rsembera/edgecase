@@ -9,17 +9,17 @@
 
 {% block content %}
 
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+<div class="card absence-card">
+    <div class="absence-header">
         <div>
-            <h2><i data-lucide="x-circle" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Absence Entry</h2>
+            <h2><i data-lucide="x-circle" class="page-icon"></i>Absence Entry</h2>
             <div class="text-muted">
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     <span class="type-badge" style="background-color: {{ client_type['color'] }}">
                         {{ client_type['name'] }}
                     </span>
                 </div>
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }}{% endif %} {{ client['last_name'] }}
                 </div>
                 <div>
@@ -31,14 +31,14 @@
     
     <form method="POST">
         <!-- Date and Time on same line -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <div class="form-group" style="margin-bottom: 0;">
+        <div class="two-column-grid">
+            <div class="form-group">
                 <label>Date *</label>
                 <div id="absence-date-picker"></div>
                 <input type="hidden" id="date" name="date" value="{% if entry %}{{ absence_date }}{% else %}{{ today }}{% endif %}" required>
             </div>
             
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group">
                 <label>Time</label>
                 <div id="absence-time-picker"></div>
                 <input type="hidden" id="absence_time" name="absence_time" value="{{ entry.absence_time if entry else '' }}">
@@ -94,7 +94,7 @@
                 <small>With tax</small>
             </div>
         </div>
-        <p style="margin-bottom:2em" class="helper-text">Cancellation fee (if applicable). Edit any two fields and the third will auto-calculate.</p>
+        <p class="helper-text fee-helper-text">Cancellation fee (if applicable). Edit any two fields and the third will auto-calculate.</p>
         
         <!-- Content -->
         <div class="form-group">
@@ -113,7 +113,7 @@
         {% endif %}
         
         <!-- Form Actions -->
-        <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+        <div class="absence-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn">Save Absence</button>
         </div>

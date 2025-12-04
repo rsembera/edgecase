@@ -33,7 +33,7 @@
                         </span>
                         <span class="client-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
                         <span class="client-file">{{ member.file_number }}</span>
-                        <button type="button" class="remove-client" onclick="removeClient({{ member.id }})"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                        <button type="button" class="remove-client" onclick="removeClient({{ member.id }})"><i data-lucide="x" class="icon-sm"></i></button>
                     </div>
                     {% endfor %}
                 {% endif %}
@@ -68,7 +68,7 @@
         <!-- Member Fee Breakdown -->
         <div class="form-section" id="member-fees-section" style="display: none;">
             <label>Member Fees</label>
-            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
+            <p class="text-muted member-fees-subtitle">
                 Set the fee each member pays for this type of session. Fees are pulled from each client's profile by default.
             </p>
             
@@ -78,7 +78,7 @@
         </div>
 
         <!-- Form Actions -->
-        <div class="form-actions" style="justify-content: space-between;">
+        <div class="link-form-actions">
             <a href="{{ url_for('links.manage_links') }}" class="btn-secondary">Cancel</a>
             <button type="submit" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
         </div>
@@ -86,22 +86,20 @@
 </div>
 
 <!-- Error Modal -->
-<div id="error-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 0.75rem; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-top: 4px solid #DC2626;">
-        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;"><i data-lucide="alert-triangle" style="width: 18px; height: 18px; vertical-align: middle; color: #D97706; margin-right: 0.25rem;"></i> Cannot Save Link Group</h3>
-        <p id="error-message" style="color: #4B5563; margin-bottom: 1.5rem; line-height: 1.6;"></p>
-        <button onclick="closeErrorModal()" style="padding: 0.625rem 1.25rem; background: #DC2626; color: white; border: none; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 500; cursor: pointer; width: 100%;">
-            OK
-        </button>
+<div id="error-modal" class="modal" style="display: none;">
+    <div class="error-modal-content">
+        <h3><i data-lucide="alert-triangle" class="icon-alert"></i> Cannot Save Link Group</h3>
+        <p id="error-message"></p>
+        <button onclick="closeErrorModal()" class="btn-error-ok">OK</button>
     </div>
 </div>
 
 <!-- Hidden data for JavaScript -->
-<div id="all-clients-data" style="display: none;">
+<div id="all-clients-data" class="hidden-data">
     {{ all_clients | tojson }}
 </div>
 
-<div id="group-data" style="display: none;">
+<div id="group-data" class="hidden-data">
     {{ group | tojson if group else 'null' }}
 </div>
 {% endblock %}

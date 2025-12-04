@@ -1,25 +1,42 @@
-/* Schedule Form - minimal additions to shared.css */
+/* Schedule Form - Custom Styles */
+/* Shared styles imported from shared.css */
 
-/* Date input group layout */
-.date-input-group {
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.schedule-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.schedule-header {
     display: flex;
-    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
 }
 
-.date-input-group select {
-    flex: 1;
+.client-info-line {
+    margin-bottom: 0.25rem;
 }
 
-/* Ensure all input types match */
-#schedule-form input[type="number"],
-#schedule-form input[type="url"] {
-    font-size: 1rem;
-    padding: 0.75rem;
-    width: 100%;
-    box-sizing: border-box;
+/* ============================================
+   QUICK ENTRY SECTION
+   ============================================ */
+.quick-entry-group {
+    margin-bottom: 2rem;
 }
 
-/* Quick entry preview */
+#quick_entry {
+    font-size: 1.125rem;
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+}
+
+#quick_entry:focus {
+    border-color: #4299e1;
+}
+
 .parse-preview {
     margin-top: 0.5rem;
     padding: 0.5rem 0.75rem;
@@ -44,19 +61,63 @@
     border: 1px solid #FECACA;
 }
 
-/* Quick entry field emphasis */
-#quick_entry {
-    font-size: 1.125rem;
-    padding: 1rem;
-    border: 2px solid #e2e8f0;
-}
-
-#quick_entry:focus {
-    border-color: #4299e1;
-}
-
 .parse-hint {
     background: #F7FAFC;
     color: #718096;
     border: 1px solid #E2E8F0;
+}
+
+/* ============================================
+   SECTION DIVIDER
+   ============================================ */
+.schedule-divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 1.5rem 0;
+}
+
+/* ============================================
+   FORM GRID LAYOUTS
+   ============================================ */
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Date input group layout */
+.date-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.date-input-group select {
+    flex: 1;
+}
+
+/* Ensure all input types match */
+#schedule-form input[type="number"],
+#schedule-form input[type="url"] {
+    font-size: 1rem;
+    padding: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.schedule-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+}
+
+.schedule-form-actions .btn i {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 0.25rem;
 }

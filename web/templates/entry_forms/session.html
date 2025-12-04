@@ -13,17 +13,17 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+<div class="card session-card">
+    <div class="session-header">
         <div>
-            <h2><i data-lucide="clipboard" style="color: #1F8F74; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>Session Entry</h2>
+            <h2><i data-lucide="clipboard" class="page-icon"></i>Session Entry</h2>
             <div class="text-muted">
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     <span class="type-badge" style="background-color: {{ client_type.color }}">
                         {{ client_type.name }}
                     </span>
                 </div>
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }}
                 </div>
                 <div>
@@ -120,8 +120,8 @@
         <div class="section-divider"></div>
         <h3 class="section-heading">Session Fee</h3>
         
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-            <span id="fee-source" class="text-muted" style="font-size: 0.875rem;">Source: Client Type</span>
+        <div class="fee-source-row">
+            <span id="fee-source" class="text-muted fee-source-text">Source: Client Type</span>
         </div>
 
         <div class="fee-grid">
@@ -155,8 +155,7 @@
         <p class="help-text">Fees auto-populate from format selection but can be adjusted. Fill any two fields and the third calculates automatically.</p>
 
         <!-- Duration -->
-        <!-- Duration -->
-        <div class="form-row-half" style="margin-top: 1rem;">
+        <div class="form-row-half duration-section">
             <div class="form-group">
                 <label for="duration">Session Duration (minutes) *</label>
                 <input type="number" id="duration" name="duration" 
@@ -207,13 +206,13 @@
         <!-- Session notes -->
         <div class="form-row-full">
             <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="notes-label-row">
                     <label for="content">Session Notes *</label>
                     {% if not is_locked %}
                     <button type="submit" name="ai_scribe" value="1" 
                             class="btn-ai-scribe" 
                             title="AI Scribe - Expand, proofread, or refine your notes">
-                        <i data-lucide="feather" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="feather"></i>
                         <span>AI Scribe</span>
                     </button>
                     {% endif %}
@@ -229,22 +228,22 @@
         {% endif %}
         
         <!-- Navigation and Action Buttons -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+        <div class="session-form-actions">
             <!-- Cancel (Hard Left) -->
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
             
             <!-- Previous/Next (Center) -->
-            <div style="display: flex; gap: 1rem;">
+            <div class="nav-buttons">
                 {% if prev_session_id %}
                 <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
                 {% else %}
-                <button class="btn" style="opacity: 0.5; cursor: not-allowed;">← Prev</button>
+                <button class="btn btn-disabled" disabled>← Prev</button>
                 {% endif %}
                 
                 {% if next_session_id %}
                 <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=next_session_id) }}" class="btn">Next →</a>
                 {% else %}
-                <button class="btn" style="opacity: 0.5; cursor: not-allowed;">Next →</button>
+                <button class="btn btn-disabled" disabled>Next →</button>
                 {% endif %}
             </div>
             
@@ -255,14 +254,14 @@
                     <button type="submit" class="btn">Save Changes</button>
                 {% else %}
                     <!-- Unlocked draft - "Save Draft" + "Save & Lock" -->
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="save-buttons">
                         <button type="submit" name="save_draft" value="1" class="btn btn-secondary">Save Draft</button>
                         <button type="submit" class="btn">Save & Lock</button>
                     </div>
                 {% endif %}
             {% else %}
                 <!-- New entry - "Save Draft" + "Save Session" -->
-                <div style="display: flex; gap: 0.5rem;">
+                <div class="save-buttons">
                     <button type="submit" name="save_draft" value="1" class="btn btn-secondary">Save Draft</button>
                     <button type="submit" class="btn">Save Session</button>
                 </div>
@@ -272,20 +271,20 @@
     </form>
 
     <!-- Modal for missing link group -->
-    <div id="missing-link-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <h3 style="margin-top: 0; color: #DC2626;">Link Group Required</h3>
-            <p id="missing-link-message" style="color: #374151; line-height: 1.6;"></p>
-            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; gap: 1rem;">
-                <a href="{{ url_for('links.manage_links') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">Go to Link Groups</a>
-                <button onclick="closeMissingLinkModal()" class="btn" style="flex: 1;">Stay Here</button>
+    <div id="missing-link-modal" class="modal">
+        <div class="modal-content missing-link-modal-content">
+            <h3>Link Group Required</h3>
+            <p id="missing-link-message"></p>
+            <div class="missing-link-modal-actions">
+                <a href="{{ url_for('links.manage_links') }}" class="btn btn-secondary">Go to Link Groups</a>
+                <button onclick="closeMissingLinkModal()" class="btn">Stay Here</button>
             </div>
         </div>
     </div>
 
 </div>
 
-<div id="session-data" style="display: none;"
+<div id="session-data" class="hidden-data"
      data-is-edit="{% if is_edit %}true{% else %}false{% endif %}"
      data-next-session-number="{% if not is_edit %}{{ next_session_number }}{% endif %}">
 </div>

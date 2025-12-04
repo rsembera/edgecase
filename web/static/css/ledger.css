@@ -80,15 +80,6 @@ svg[data-lucide] {
     vertical-align: middle;
 }
 
-/* Page header icon - override for title */
-h2 svg[data-lucide].page-icon {
-    width: 28px !important;
-    height: 28px !important;
-    vertical-align: -4px;
-    margin-right: 0.5rem;
-    color: #1F8F74;
-}
-
 .dropdown-item svg[data-lucide] {
     width: 16px !important;
     height: 16px !important;

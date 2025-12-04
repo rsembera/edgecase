@@ -126,3 +126,43 @@ h2 {
 .btn-delete:hover {
     background: #F5C2C4;
 }
+
+/* Retention period row */
+.retention-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.retention-row input {
+    flex: 2;
+}
+
+.retention-row select {
+    flex: 1;
+}
+
+/* Button group in form actions */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Error modal specific styling */
+.error-modal-content {
+    border-top: 4px solid #e53e3e;
+}
+
+.error-modal-content h3 {
+    color: #2d3748;
+    margin-bottom: 1rem;
+}
+
+.error-modal-content p {
+    color: #4a5568;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.btn-full-width {
+    width: 100%;
+}

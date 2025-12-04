@@ -12,7 +12,7 @@
     <p class="page-subtitle">Client types are for filtering and organizing your client list</p>
 
     {% if error %}
-    <div style="background: #FEE2E2; border: 2px solid #EF4444; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+    <div class="error-box">
         {{ error }}
     </div>
     {% endif %}
@@ -43,7 +43,7 @@
                     <div class="color-swatch" style="background-color: {{ color.hex }}">
                         {{ color.name }}
                     </div>
-                    <div class="checkmark"><i data-lucide="check" style="width: 16px; height: 16px;"></i></div>
+                    <div class="checkmark"><i data-lucide="check" class="icon-md"></i></div>
                 </div>
                 {% endfor %}
             </div>
@@ -54,13 +54,13 @@
         
         <div class="form-group">
             <label for="retention_value">Retention Period</label>
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="retention-row">
                 <input type="number" id="retention_value" name="retention_value" 
-                       min="0" style="flex: 2;"
+                       min="0"
                        value="{{ retention_value if type else '' }}"
                        placeholder="1"
                        required>
-                <select id="retention_unit" name="retention_unit" style="flex: 1;">
+                <select id="retention_unit" name="retention_unit">
                     <option value="days" {% if retention_unit == 'days' %}selected{% endif %}>Days</option>
                     <option value="months" {% if retention_unit == 'months' or (type and not retention_unit) %}selected{% endif %}>Months</option>
                     <option value="years" {% if retention_unit == 'years' %}selected{% endif %}>Years</option>
@@ -74,7 +74,7 @@
         <div class="form-actions">
             <a href="{{ url_for('types.manage_types') }}" class="btn btn-secondary">Cancel</a>
             
-            <div style="display: flex; gap: 1rem;">
+            <div class="action-buttons">
                 {% if type and not type.is_system_locked %}
                 <button type="button" class="btn btn-delete" id="delete-btn">Delete Type</button>
                 {% endif %}
@@ -100,11 +100,11 @@
 
 <!-- Error Modal -->
 <div id="errorModal" class="modal-overlay hidden">
-    <div class="modal-content" style="border-top: 4px solid #e53e3e;">
-        <h3 style="color: #2d3748; margin-bottom: 1rem;">Cannot Delete Type</h3>
-        <p id="error-message" style="color: #4a5568; margin-bottom: 1.5rem; line-height: 1.6;"></p>
+    <div class="modal-content error-modal-content">
+        <h3>Cannot Delete Type</h3>
+        <p id="error-message"></p>
         <div class="modal-actions">
-            <button type="button" class="btn" id="close-error" style="width: 100%;">OK</button>
+            <button type="button" class="btn btn-full-width" id="close-error">OK</button>
         </div>
     </div>
 </div>
