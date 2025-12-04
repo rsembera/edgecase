@@ -97,6 +97,9 @@ def add_link_group():
     # GET: Show the form - exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
     
+    # Get all link groups for frontend validation
+    all_link_groups = db.get_all_link_groups()
+    
     # Filter out Inactive and Deleted clients and add type info + Profile fees
     active_clients = []
     for client in all_clients:
@@ -120,6 +123,7 @@ def add_link_group():
     
     return render_template('add_edit_link_group.html',
                          all_clients=active_clients,
+                         all_link_groups=all_link_groups,
                          group=None)
 
 
@@ -145,22 +149,28 @@ def edit_link_group(group_id):
         # Get duration (default to 50 if not provided)
         session_duration = int(data.get('session_duration', 50))
         
-        # Update link group
-        success = db.update_link_group(
-            group_id=group_id,
-            client_ids=data['client_ids'],
-            format=data['format'],
-            session_duration=session_duration,
-            member_fees=data['member_fees']
-        )
-        
-        if success:
-            return '', 204
-        else:
-            return 'Error updating link group', 500
+        # Update link group with error handling
+        try:
+            success = db.update_link_group(
+                group_id=group_id,
+                client_ids=data['client_ids'],
+                format=data['format'],
+                session_duration=session_duration,
+                member_fees=data['member_fees']
+            )
+            
+            if success:
+                return '', 204
+            else:
+                return 'Error updating link group', 500
+        except ValueError as e:
+            return str(e), 400
     
     # GET: Show the form with existing group data
     group = db.get_link_group(group_id)
+    
+    # Get all link groups for frontend validation
+    all_link_groups = db.get_all_link_groups()
     
     # Exclude Inactive and Deleted clients
     all_clients = db.get_all_clients()
@@ -180,6 +190,7 @@ def edit_link_group(group_id):
     
     return render_template('add_edit_link_group.html',
                          all_clients=active_clients,
+                         all_link_groups=all_link_groups,
                          group=group)
 
 

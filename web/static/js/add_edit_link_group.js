@@ -1,7 +1,7 @@
 /**
  * Add/Edit Link Group JavaScript - EdgeCase Equalizer
  * Handles link group creation/editing with client search,
- * member selection, and per-member fee configuration.
+ * member selection, per-member fee configuration, and format conflict validation.
  */
 
 // Get all clients data from hidden div
@@ -10,6 +10,13 @@ const allClientsData = JSON.parse(document.getElementById('all-clients-data').te
 // Get existing group data (if editing)
 const groupDataElement = document.getElementById('group-data');
 const existingGroupData = groupDataElement ? JSON.parse(groupDataElement.textContent) : null;
+
+// Get all link groups for conflict checking
+const allLinkGroupsElement = document.getElementById('all-link-groups-data');
+const allLinkGroups = allLinkGroupsElement ? JSON.parse(allLinkGroupsElement.textContent) : [];
+
+// Current group ID (if editing) - used to exclude self from conflict check
+const currentGroupId = existingGroupData ? existingGroupData.id : null;
 
 let selectedClients = [];
 
@@ -27,7 +34,81 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedClients.length > 0) {
         updateMemberFees();
     }
+    
+    // Check for format conflicts on initial load (when editing)
+    checkFormatConflicts();
+    
+    // Add event listener for format changes
+    document.getElementById('format').addEventListener('change', checkFormatConflicts);
 });
+
+/**
+ * Check if any selected client is already in a link group of the selected format
+ * Updates UI to show warning and disable submit if conflict exists
+ */
+function checkFormatConflicts() {
+    const format = document.getElementById('format').value;
+    const warningDiv = document.getElementById('format-conflict-warning');
+    const warningMessage = document.getElementById('format-conflict-message');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    // No format selected yet - no conflict possible
+    if (!format) {
+        warningDiv.style.display = 'none';
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    // Find conflicts - clients already in a group of the same format
+    const conflicts = [];
+    
+    for (const clientId of selectedClients) {
+        const client = allClientsData.find(c => c.id === clientId);
+        if (!client) continue;
+        
+        // Check each link group
+        for (const group of allLinkGroups) {
+            // Skip current group if editing
+            if (currentGroupId && group.id === currentGroupId) continue;
+            
+            // Check if this group has the same format
+            if (group.format !== format) continue;
+            
+            // Check if client is a member of this group
+            const isMember = group.members && group.members.some(m => m.id === clientId);
+            if (isMember) {
+                conflicts.push({
+                    clientId: clientId,
+                    clientName: `${client.first_name} ${client.last_name}`,
+                    format: format
+                });
+                break; // Only need to find one conflict per client
+            }
+        }
+    }
+    
+    // Update UI based on conflicts
+    if (conflicts.length > 0) {
+        // Build message
+        if (conflicts.length === 1) {
+            warningMessage.textContent = `${conflicts[0].clientName} is already in a ${format} link group. A client can only belong to one link group of each type.`;
+        } else {
+            const names = conflicts.map(c => c.clientName).join(', ');
+            warningMessage.textContent = `${names} are already in ${format} link groups. A client can only belong to one link group of each type.`;
+        }
+        
+        warningDiv.style.display = 'flex';
+        submitBtn.disabled = true;
+        
+        // Reinitialize Lucide icons for the warning icon
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    } else {
+        warningDiv.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+}
 
 // Client search functionality
 const searchInput = document.getElementById('client-search');
@@ -109,6 +190,9 @@ function selectClient(clientId) {
     // Update member fees
     updateMemberFees();
     
+    // Check for format conflicts
+    checkFormatConflicts();
+    
     // Clear search
     searchInput.value = '';
     searchResults.classList.remove('active');
@@ -130,6 +214,9 @@ function removeClient(clientId) {
     
     // Update member fees
     updateMemberFees();
+    
+    // Re-check format conflicts (removing client might resolve conflict)
+    checkFormatConflicts();
 }
 
 /**
