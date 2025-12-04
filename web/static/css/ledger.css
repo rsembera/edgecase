@@ -1,14 +1,6 @@
 /* Ledger Page Styles */
 /* Shared patterns from shared.css: controls-bar, search-box, dropdown-btn, 
-   stats-container, stat-card, year/month headers, table base, empty state */
-
-/* Ledger header (unique to ledger) */
-.ledger-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
+   stats-container, stat-card, year/month headers, table base, empty state, page-header */
 
 /* Filter/Search layout adjustments */
 .filter-search-group {

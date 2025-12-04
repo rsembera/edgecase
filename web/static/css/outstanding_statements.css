@@ -1,43 +1,10 @@
 /* Outstanding Statements - Custom Styles */
-/* Shared styles imported: controls-bar, search-box, btn-icon, status-badge from shared.css */
+/* Shared styles imported: controls-bar, search-box, btn-icon, status-badge, page-header from shared.css */
 
 .card {
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;
-}
-
-/* ============================================
-   HEADER
-   ============================================ */
-.statements-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.statements-header h2 {
-    margin: 0 0 0.25rem 0;
-    color: #2D3748;
-    font-size: 1.75rem;
-    font-weight: 600;
-}
-
-.statements-header h2 svg {
-    width: 28px;
-    height: 28px;
-    vertical-align: -4px;
-    margin-right: 0.5rem;
-    color: #1F8F74;
-}
-
-.statements-header p {
-    color: #718096;
-    margin: 0;
-    font-size: 0.9375rem;
 }
 
 /* ============================================
@@ -383,11 +350,6 @@
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-    .statements-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
     .date-range-row {
         flex-direction: column;
         align-items: flex-start;
