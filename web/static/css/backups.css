@@ -290,6 +290,13 @@
     gap: 0.375rem;
 }
 
+.backup-explainer {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #718096);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
 /* Backup chain container - groups full + its incrementals */
 .backup-chain {
     border-bottom: 1px solid #E5E7EB;
@@ -425,6 +432,16 @@
 .btn-delete-backup:hover {
     color: #DC2626;
     background-color: #FEE2E2;
+}
+
+.btn-delete-backup.btn-delete-disabled {
+    color: #CBD5E0;
+    cursor: not-allowed;
+}
+
+.btn-delete-backup.btn-delete-disabled:hover {
+    color: #CBD5E0;
+    background-color: transparent;
 }
 
 /* ============================================

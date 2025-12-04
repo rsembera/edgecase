@@ -674,11 +674,19 @@ def delete_backup(backup_filename):
     """
     Delete a specific backup.
     
+    Protection rules:
+    - Full backups: Can delete if a newer full backup exists (cascades to its incrementals)
+    - Full backups: Cannot delete if it's the only/newest full backup with incrementals
+    - Incrementals: Cannot delete if later incrementals in the same chain depend on it
+    
     Args:
         backup_filename: The filename of the backup to delete
     
     Returns:
         dict with success status and any warnings
+    
+    Raises:
+        ValueError: If backup not found or deletion would break restore chain
     """
     manifest = load_manifest()
     
@@ -695,19 +703,46 @@ def delete_backup(backup_filename):
     if backup['type'] == 'pre_restore':
         warnings.append("This is a safety backup created before a restore operation.")
     
-    # Check if deleting a full backup would orphan incrementals
+    # Check if deleting a full backup
     if backup['type'] == 'full':
         chain_id = backup['chain_id']
+        backup_date = backup['created_at']
+        
+        # Find incrementals in this chain
         incrementals_in_chain = [b for b in manifest['backups'] 
                                   if b['chain_id'] == chain_id and b['type'] == 'incremental']
+        
         if incrementals_in_chain:
-            # Delete the incrementals too since they depend on this full backup
+            # Check if there's a newer full backup
+            newer_full_exists = any(
+                b for b in manifest['backups'] 
+                if b['type'] == 'full' and b['created_at'] > backup_date
+            )
+            
+            if not newer_full_exists:
+                raise ValueError(f"Cannot delete: {len(incrementals_in_chain)} backup(s) depend on this, and no newer full backup exists.")
+            
+            # Newer full exists - cascade delete the incrementals
             for incr in incrementals_in_chain:
                 incr_path = Path(incr.get('backup_dir', BACKUPS_DIR)) / incr['filename']
                 if incr_path.exists():
                     incr_path.unlink()
                 manifest['backups'].remove(incr)
-            warnings.append(f"Also deleted {len(incrementals_in_chain)} dependent backup(s).")
+            warnings.append(f"Also deleted {len(incrementals_in_chain)} dependent incremental backup(s).")
+    
+    # Check if deleting an incremental would break later incrementals
+    if backup['type'] == 'incremental':
+        chain_id = backup['chain_id']
+        backup_date = backup['created_at']
+        
+        # Find incrementals in the same chain that are newer
+        later_incrementals = [b for b in manifest['backups'] 
+                              if b['chain_id'] == chain_id 
+                              and b['type'] == 'incremental'
+                              and b['created_at'] > backup_date]
+        
+        if later_incrementals:
+            raise ValueError(f"Cannot delete: {len(later_incrementals)} later backup(s) depend on this. Delete them first.")
     
     # Delete the file
     if backup_path.exists():

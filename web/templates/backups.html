@@ -77,6 +77,9 @@
             <span class="legend-item"><span class="backup-type-badge badge-incr">Incr</span> Changes only (depends on Full)</span>
             <span class="legend-item"><span class="backup-type-badge badge-safety">Safety</span> Pre-restore backup</span>
         </p>
+        <p class="backup-explainer">
+            EdgeCase automatically chooses between full and incremental backups. Full backups are created weekly or when no recent full backup exists. Incremental backups capture only changes since the last backup. You can delete recent backups, but older backups that others depend on are protected.
+        </p>
         <div id="backup-list" class="backup-list">
             <div class="backup-list-empty">Loading backups...</div>
         </div>
@@ -130,10 +133,10 @@
             <span>This is a safety backup that was created before a restore. Deleting it removes your safety net.</span>
         </div>
         
-        <!-- Warning for full backups with dependents -->
-        <div id="delete-dependent-warning" class="warning-text warning-danger hidden">
+        <!-- Warning for cascade deletion -->
+        <div id="delete-cascade-warning" class="warning-text hidden">
             <i data-lucide="alert-triangle" class="warning-icon"></i>
-            <span>This full backup has <strong id="dependent-count-display">0</strong> dependent incremental backup(s). <strong>They will also be deleted</strong> because they cannot be restored without this full backup.</span>
+            <span>This will also delete <strong id="cascade-count-display">0</strong> dependent incremental backup(s).</span>
         </div>
         
         <div class="modal-buttons">
