@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 700px; margin: 0 auto;">
+<div class="card card-narrow">
     <!-- Header -->
     <div class="report-header">
         <div>
@@ -21,7 +21,7 @@
             <p>Generate income and expense reports for tax filing</p>
         </div>
         <a href="{{ url_for('ledger.ledger') }}" class="btn">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+            <i data-lucide="arrow-left" class="icon-btn"></i> Back
         </a>
     </div>
     
@@ -64,7 +64,7 @@
         <p class="preview-hint">Click "Calculate" to see totals before generating PDF.</p>
         
         <button type="button" class="btn" onclick="calculateTotals()">
-            <i data-lucide="calculator" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Calculate
+            <i data-lucide="calculator" class="icon-btn"></i> Calculate
         </button>
         
         <div id="preview-results" style="display: none;">
@@ -92,7 +92,7 @@
     <!-- Generate Button -->
     <div class="report-actions">
         <button type="button" class="btn" onclick="generateReport()">
-            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate PDF
+            <i data-lucide="file-down" class="icon-btn"></i> Generate PDF
         </button>
     </div>
 </div>

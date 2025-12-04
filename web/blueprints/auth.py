@@ -58,6 +58,7 @@ def login():
             
             # Success! Store db in app config
             current_app.config['db'] = db
+            session.permanent = True  # Use PERMANENT_SESSION_LIFETIME
             session['authenticated'] = True
             session['login_time'] = int(__import__('time').time())
             

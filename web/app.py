@@ -48,6 +48,12 @@ from web.blueprints.ai import ai_bp
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
 
+# Session cookie configuration (explicit settings for cross-browser compatibility)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Set True if using HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours max cookie lifetime
+
 # Database will be set after login
 app.config['db'] = None
 

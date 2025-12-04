@@ -12,16 +12,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 700px; margin: 0 auto;">
+<div class="card card-narrow">
     <!-- Header -->
     <div class="export-header">
         <div>
             <h2><i data-lucide="file-bar-chart" class="page-icon"></i>Session Report</h2>
             <div class="text-muted">
-                <div style="margin-bottom: 0.25rem;">
+                <div class="mb-1">
                     <span class="type-badge" style="background-color: {{ client_type.color }}">{{ client_type.name }}</span>
                 </div>
-                <div style="margin-bottom: 0.25rem;">
+                <div class="mb-1">
                     {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }}
                 </div>
                 <div>
@@ -30,7 +30,7 @@
             </div>
         </div>
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+            <i data-lucide="arrow-left" class="icon-btn"></i> Back
         </a>
     </div>
     
@@ -70,7 +70,7 @@
     <!-- Generate Button -->
     <div class="export-actions">
         <button type="button" class="btn" id="generate-btn">
-            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate Report
+            <i data-lucide="file-down" class="icon-btn"></i> Generate Report
         </button>
     </div>
 </div>
