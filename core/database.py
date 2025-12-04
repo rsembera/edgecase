@@ -800,6 +800,19 @@ class Database:
             if sorted_new_ids == existing_members:
                 raise ValueError("Link duplicates an existing arrangement. Please edit or delete the existing link.")
         
+        # Check for format conflicts - client can only be in one group of each format
+        cursor.execute("""
+            SELECT cl.client_id_1, lg.format, c.first_name, c.last_name
+            FROM client_links cl
+            JOIN link_groups lg ON cl.group_id = lg.id
+            JOIN clients c ON cl.client_id_1 = c.id
+            WHERE cl.client_id_1 IN ({}) AND lg.format = ?
+        """.format(','.join('?' * len(client_ids))), (*client_ids, format))
+        
+        conflict = cursor.fetchone()
+        if conflict:
+            raise ValueError(f"{conflict[2]} {conflict[3]} is already in a {format} link group. A client can only belong to one link group of each type.")
+        
         # Create link group with format and duration
         cursor.execute("""
             INSERT INTO link_groups (format, session_duration, created_at)
@@ -999,6 +1012,20 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         now = int(time.time())
+        
+        # Check for format conflicts - client can only be in one group of each format
+        # Exclude current group from check
+        cursor.execute("""
+            SELECT cl.client_id_1, lg.format, c.first_name, c.last_name
+            FROM client_links cl
+            JOIN link_groups lg ON cl.group_id = lg.id
+            JOIN clients c ON cl.client_id_1 = c.id
+            WHERE cl.client_id_1 IN ({}) AND lg.format = ? AND cl.group_id != ?
+        """.format(','.join('?' * len(client_ids))), (*client_ids, format, group_id))
+        
+        conflict = cursor.fetchone()
+        if conflict:
+            raise ValueError(f"{conflict[2]} {conflict[3]} is already in a {format} link group. A client can only belong to one link group of each type.")
         
         # Update link group format and duration
         cursor.execute("""

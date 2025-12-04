@@ -64,6 +64,12 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Format Conflict Warning -->
+        <div id="format-conflict-warning" class="format-conflict-warning" style="display: none;">
+            <i data-lucide="alert-triangle" class="icon-warning"></i>
+            <span id="format-conflict-message"></span>
+        </div>
 
         <!-- Member Fee Breakdown -->
         <div class="form-section" id="member-fees-section" style="display: none;">
@@ -80,7 +86,7 @@
         <!-- Form Actions -->
         <div class="link-form-actions">
             <a href="{{ url_for('links.manage_links') }}" class="btn-secondary">Cancel</a>
-            <button type="submit" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
+            <button type="submit" id="submit-btn" class="btn-primary">{% if group %}Update{% else %}Create{% endif %}</button>
         </div>
     </form>
 </div>
@@ -101,6 +107,10 @@
 
 <div id="group-data" class="hidden-data">
     {{ group | tojson if group else 'null' }}
+</div>
+
+<div id="all-link-groups-data" class="hidden-data">
+    {{ all_link_groups | tojson if all_link_groups else '[]' }}
 </div>
 {% endblock %}
 
