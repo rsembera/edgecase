@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** December 2, 2025  
+**Last Updated:** December 4, 2025  
 **Status:** ALL PHASES COMPLETE ✅ - Production Ready
 
 ---
@@ -74,9 +74,31 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## RECENT ACCOMPLISHMENTS (Dec 2, 2025)
+## RECENT ACCOMPLISHMENTS
 
-### AI Scribe Feature
+### December 4, 2025
+
+**Backup Deletion Protection**
+- Protected backups with dependents from accidental deletion
+- Allow cascade deletion of old chains when newer full backup exists
+- Grayed-out delete buttons with explanatory tooltips
+- Cascade warning in delete confirmation modal
+- Backend validation prevents deletion even if UI bypassed
+- Added explanatory text on backups page
+
+**Main View Polish**
+- Fixed vertical alignment of file numbers and client names
+- Preferred contact links now bold with proper underline styling
+- Fixed Status/Type column header text wrapping
+- JS-powered Detailed/Compact toggle (no page reload)
+
+**Settings Improvements**
+- Manual Save button for file number prefix-counter format
+- Auto-save for simple format changes (Manual, Date+Initials)
+
+### December 2, 2025
+
+**AI Scribe Feature**
 - Local LLM integration using llama-cpp-python
 - Hermes 3 Llama 3.1 8B model (Q4_K_M quantization)
 - Four text processing actions
@@ -86,14 +108,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Model download with progress tracking
 - Settings page model management
 
-### Edit History Improvements
+**Edit History Improvements**
 - Simplified word-level diff algorithm
 - Smart truncation with context (... before/after)
 - Fixed unclosed HTML tag bug
 - Added close_tags template filter
 - Increased max_length to 500 characters
 
-### Additional Polish
+**Additional Polish**
 - 12h/24h time format setting
 - Custom date/time picker components
 - Form field width consistency

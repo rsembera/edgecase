@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** December 2, 2025 - AI Scribe Complete
+**Last Updated:** December 4, 2025 - Backup deletion protection, UI polish
 
 ---
 
@@ -333,13 +333,13 @@ pytest tests/ -v
 
 ---
 
-## RECENT CHANGES (Dec 2, 2025)
+## RECENT CHANGES (Dec 4, 2025)
 
-- AI Scribe feature complete
-- Edit history diff improvements
-- Fixed unclosed HTML tag issues in edit history
-- Added close_tags template filter
-- models/ folder added to .gitignore
+- Backup deletion protection (protect newest chain, allow cascade delete of old chains)
+- Main view: vertical alignment fix, preferred contact styling, Status/Type header fix
+- Main view: JS-powered Detailed/Compact toggle (no page reload)
+- Settings: Manual Save button for file number prefix-counter format
+- Explanatory text on backups page
 
 ---
 
@@ -351,7 +351,8 @@ pytest tests/ -v
 - v2.2: Ledger reports (Nov 29, 2025)
 - v3.0: Phase 1 Complete (Nov 29, 2025)
 - v4.0: Phase 2 Complete (Dec 1, 2025)
-- **v5.0: AI Scribe Complete (Dec 2, 2025)**
+- v5.0: AI Scribe Complete (Dec 2, 2025)
+- **v5.1: Backup protection, UI polish (Dec 4, 2025)**
 
 ---
 

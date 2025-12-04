@@ -917,6 +917,62 @@ HRFlowable(width=sig_width, thickness=0.5, color=colors.black)
 
 ---
 
+## BACKUP DELETION PROTECTION
+
+### The Problem
+
+EdgeCase uses incremental backups that depend on previous backups in a chain:
+- Full backup → Incremental 1 → Incremental 2 → Incremental 3
+- Each incremental only contains changes since the previous backup
+- Deleting a backup in the middle breaks the chain for all later backups
+
+### The Solution
+
+**Protection Rule:** You can only delete a backup if nothing depends on it, OR if a newer full backup exists.
+
+**Behavior by backup type:**
+
+| Backup Type | Has Dependents | Newer Full Exists | Can Delete? |
+|-------------|----------------|-------------------|-------------|
+| Full | No | N/A | ✅ Yes |
+| Full | Yes | No | ❌ No (protected) |
+| Full | Yes | Yes | ✅ Yes (cascades) |
+| Incremental | No (is newest) | N/A | ✅ Yes |
+| Incremental | Yes (later incr exist) | N/A | ❌ No (protected) |
+
+**Cascade deletion:** When deleting an old full backup that has a newer full backup available, all its dependent incrementals are automatically deleted too. The user sees a warning in the confirmation modal.
+
+### Why This Design?
+
+**Alternative considered:** Cascade delete always (delete full → delete all its incrementals)
+- Problem: User could accidentally delete their only backup chain
+- Too dangerous for a backup system
+
+**Alternative considered:** Never allow deletion of backups with dependents
+- Problem: Old backup chains accumulate forever
+- Users can't clean up after a new full backup is created
+
+**Chosen approach:** Protect the newest chain, allow cleanup of older chains
+- ✅ Always have at least one complete restore chain
+- ✅ Can clean up old backups when no longer needed
+- ✅ UI clearly shows which backups are protected (grayed out button)
+- ✅ Backend validates even if UI bypassed
+
+### Implementation Details
+
+**Frontend (backups.js):**
+- Calculates `newerFullExists` for each full backup
+- Calculates `laterCount` for each incremental
+- Disables delete button with tooltip for protected backups
+- Shows cascade warning in modal when dependents will be deleted
+
+**Backend (backup.py):**
+- `delete_backup()` validates protection rules
+- Raises `ValueError` if deletion would break restore chain
+- Cascades deletion to dependents when allowed
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: December 1, 2025*
+*Last Updated: December 4, 2025*
