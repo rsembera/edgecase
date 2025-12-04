@@ -49,7 +49,7 @@ ACTION_LABELS = {
     'writeup': 'Write Up',
     'proofread': 'Proofread',
     'expand': 'Expand',
-    'contract': 'Contract',
+    'contract': 'Condense',
 }
 
 # Action descriptions for tooltips/help

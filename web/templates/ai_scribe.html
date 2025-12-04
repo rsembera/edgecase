@@ -7,12 +7,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 1400px; margin: 0 auto;">
+<div class="card card-wide">
     <!-- Header -->
     <div class="header-row">
         <div class="header-left">
             <h2>
-                <i data-lucide="feather" style="color: #6366F1; width: 28px; height: 28px; vertical-align: -4px; margin-right: 0.5rem;"></i>
+                <i data-lucide="feather" class="icon-header icon-purple"></i>
                 AI Scribe
             </h2>
             <span class="client-badge">{{ client.file_number }}</span>
@@ -86,11 +86,11 @@
         </a>
         <div class="action-group">
             <button type="button" id="btn-revert" class="btn btn-secondary" disabled>
-                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                <i data-lucide="rotate-ccw" class="btn-icon-sm"></i>
                 Revert
             </button>
             <button type="button" id="btn-keep" class="btn" disabled>
-                <i data-lucide="check" style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.25rem;"></i>
+                <i data-lucide="check" class="btn-icon-sm"></i>
                 Keep Changes
             </button>
         </div>

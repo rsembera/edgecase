@@ -217,7 +217,7 @@ def ai_process():
     Process text with AI and stream the response.
     
     POST JSON:
-        action: 'writeup', 'proofread', 'expand', or 'condense'
+        action: 'writeup', 'proofread', 'expand', or 'contract'
         text: The notes to process
     
     Returns: Server-Sent Events stream

@@ -866,6 +866,7 @@ input[type="number"] {
 .icon-success { color: #059669; }
 .icon-muted { color: #6B7280; }
 .icon-teal { color: #1F8F74; }
+.icon-purple { color: #6366F1; }
 
 /* Header icon (in h2 titles - general utility) */
 .icon-header {
@@ -903,7 +904,7 @@ input[type="number"] {
 .flex-1 { flex: 1; }
 .flex-2 { flex: 2; }
 
-/* Small centered card (for export, etc.) */
+/* Centered card width utilities */
 .card-narrow {
     max-width: 700px;
     margin: 0 auto;
@@ -913,6 +914,16 @@ input[type="number"] {
     max-width: 900px;
     margin: 0 auto;
 }
+
+.card-wide {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Margin utilities */
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
 
 /* Error/Warning boxes */
 .error-box {
