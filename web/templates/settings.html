@@ -407,7 +407,7 @@ details[open] .settings-section-header .arrow {
         <div class="form-row-half">
         <div class="form-group">
             <label for="file-number-format">Format Type</label>
-            <select id="file-number-format" onchange="saveFileNumberSettings()">
+            <select id="file-number-format" onchange="handleFileNumberFormatChange()">
                 <option value="manual">Manual Entry - User types file number</option>
                 <option value="date-initials">Auto: Date + Initials (YYYYMMDD-ABC)</option>
                 <option value="prefix-counter">Auto: Prefix + Counter + Suffix</option>
@@ -419,19 +419,19 @@ details[open] .settings-section-header .arrow {
         <div id="prefix-counter-options" class="options-panel" style="display: none;">
             <div class="form-group">
                 <label for="file-number-prefix">Prefix (optional)</label>
-                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" class="max-w-200" onchange="saveFileNumberSettings()">
+                <input type="text" id="file-number-prefix" placeholder="e.g., CLI or 2025" maxlength="6" class="max-w-200" oninput="updateFileNumberPreview()">
                 <small class="helper-text">Up to 6 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-suffix">Suffix (optional)</label>
-                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" class="max-w-200" onchange="saveFileNumberSettings()">
+                <input type="text" id="file-number-suffix" placeholder="e.g., A or -ON" maxlength="4" class="max-w-200" oninput="updateFileNumberPreview()">
                 <small class="helper-text">Up to 4 characters</small>
             </div>
             
             <div class="form-group">
                 <label for="file-number-start">Starting Number</label>
-                <input type="number" id="file-number-start" value="1" min="1" class="max-w-200" onchange="saveFileNumberSettings()">
+                <input type="number" id="file-number-start" value="1" min="1" class="max-w-200" oninput="updateFileNumberPreview()">
                 <small class="helper-text">Counter starts here and increments automatically</small>
             </div>
             
@@ -442,9 +442,14 @@ details[open] .settings-section-header .arrow {
                 </div>
                 <small class="helper-text">Total length must not exceed 12 characters</small>
             </div>
+            
+            <div class="section-save-row">
+                <button onclick="saveFileNumberSettings()" class="btn">Save</button>
+                <span id="file-number-status" class="section-status"></span>
+            </div>
         </div>
         
-        <span id="file-number-status" class="section-status mt-1">✓ Saved!</span>
+        <span id="file-number-format-status" class="section-status mt-1"></span>
         </div>
     </details>
 

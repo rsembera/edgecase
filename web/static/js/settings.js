@@ -739,6 +739,42 @@ async function deleteSignature() {
 // ============================================================
 
 /**
+ * Handle file number format dropdown change
+ * - Auto-saves for manual and date-initials (clear, immediate actions)
+ * - Just shows options panel for prefix-counter (user fills in, then clicks Save)
+ */
+function handleFileNumberFormatChange() {
+    const format = document.getElementById('file-number-format').value;
+    
+    // Toggle the options visibility
+    toggleFileNumberFields();
+    
+    // Auto-save for simple formats (no text input needed)
+    if (format !== 'prefix-counter') {
+        const settings = {
+            format: format,
+            prefix: '',
+            suffix: '',
+            counter: 1
+        };
+        
+        fetch('/settings/file-number', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSectionStatus('file-number-format-status');
+            }
+        })
+        .catch(error => console.error('Error saving file number settings:', error));
+    }
+    // For prefix-counter, user will click Save button after filling in fields
+}
+
+/**
  * Toggle visibility of prefix-counter options based on format selection
  */
 function toggleFileNumberFields() {
@@ -804,13 +840,10 @@ function loadFileNumberSettings() {
 }
 
 /**
- * Save file number settings to server (auto-save with confirmation)
+ * Save file number settings to server (called by Save button in prefix-counter panel)
  */
 function saveFileNumberSettings() {
     const format = document.getElementById('file-number-format').value;
-    
-    // Toggle the options visibility
-    toggleFileNumberFields();
     
     const settings = {
         format: format,
