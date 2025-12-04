@@ -191,7 +191,8 @@ function updateMemberFees() {
                                min="0"
                                value="${defaultBase.toFixed(2)}"
                                data-client-id="${clientId}"
-                               onchange="calculateFee(${clientId}, 'base')">
+                               oninput="calculateFee(${clientId}, 'base')"
+                               onblur="formatToTwoDecimals(this)">
                     </div>
                     <div class="fee-input-group">
                         <label>Tax Rate (%)</label>
@@ -202,7 +203,8 @@ function updateMemberFees() {
                                min="0"
                                value="${defaultTax.toFixed(2)}"
                                data-client-id="${clientId}"
-                               onchange="calculateFee(${clientId}, 'tax')">
+                               oninput="calculateFee(${clientId}, 'tax')"
+                               onblur="formatToTwoDecimals(this)">
                     </div>
                     <div class="fee-input-group">
                         <label>Total Fee</label>
@@ -213,12 +215,22 @@ function updateMemberFees() {
                                min="0"
                                value="${defaultTotal.toFixed(2)}"
                                data-client-id="${clientId}"
-                               onchange="calculateFee(${clientId}, 'total')">
+                               oninput="calculateFee(${clientId}, 'total')"
+                               onblur="formatToTwoDecimals(this)">
                     </div>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+/**
+ * Format input value to two decimal places on blur
+ * @param {HTMLInputElement} input - The input element to format
+ */
+function formatToTwoDecimals(input) {
+    const value = parseFloat(input.value) || 0;
+    input.value = value.toFixed(2);
 }
 
 /**
