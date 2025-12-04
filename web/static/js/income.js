@@ -117,6 +117,7 @@ if (addFileBtn) {
                     <input type="file" 
                            name="files[]" 
                            class="file-input"
+                           onchange="handleFileSelected()"
                            style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
                 </div>
                 <div style="flex: 2;">
@@ -252,4 +253,49 @@ function deleteEntry() {
         alert('Error deleting income entry');
         closeDeleteEntryModal();
     });
+}
+
+// ============================================================
+// DATE PICKER INITIALIZATION
+// ============================================================
+
+/**
+ * Initialize date picker for income form
+ */
+async function initIncomePickers() {
+    // Get initial value from hidden input
+    const dateInput = document.getElementById('date');
+    
+    // Determine initial date
+    let initialDate;
+    if (dateInput.value) {
+        // Edit mode: use existing date
+        initialDate = parseDateString(dateInput.value);
+    } else {
+        // New entry: use today
+        initialDate = new Date();
+        // CRITICAL: Set hidden field to today's date immediately
+        const year = initialDate.getFullYear();
+        const month = String(initialDate.getMonth() + 1).padStart(2, '0');
+        const day = String(initialDate.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
+    
+    // Initialize date picker
+    initDatePicker('income-date-picker', {
+        initialDate: initialDate,
+        onSelect: (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+    });
+}
+
+// Initialize picker when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initIncomePickers);
+} else {
+    initIncomePickers();
 }

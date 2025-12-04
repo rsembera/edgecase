@@ -298,9 +298,24 @@ async function initExpensePickers() {
     // Get initial value from hidden input
     const dateInput = document.getElementById('date');
     
+    // Determine initial date
+    let initialDate;
+    if (dateInput.value) {
+        // Edit mode: use existing date
+        initialDate = parseDateString(dateInput.value);
+    } else {
+        // New entry: use today
+        initialDate = new Date();
+        // CRITICAL: Set hidden field to today's date immediately
+        const year = initialDate.getFullYear();
+        const month = String(initialDate.getMonth() + 1).padStart(2, '0');
+        const day = String(initialDate.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
+    
     // Initialize date picker
     initDatePicker('expense-date-picker', {
-        initialDate: dateInput.value ? parseDateString(dateInput.value) : new Date(),
+        initialDate: initialDate,
         onSelect: (date) => {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
