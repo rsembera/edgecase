@@ -1,9 +1,131 @@
-/* Income Entry Form - Custom Styles */
-/* Shared styles imported from shared.css */
+/* Income Entry Form Styles */
+/* Shared patterns from shared.css: .form-group, .btn*, .card, .modal-* */
+/* Reuses patterns from expense.css */
 
-/* Income-specific overrides */
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.income-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
 
-/* Date fields constrained to left half of page */
-.date-input-group {
-    max-width: 48%;
+/* ============================================
+   PAGE HEADER
+   ============================================ */
+.income-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   FORM LAYOUTS
+   ============================================ */
+
+/* Date field container - constrained width */
+.date-field-narrow {
+    max-width: 300px;
+}
+
+/* Currency input with prefix */
+.input-with-prefix {
+    position: relative;
+}
+
+.form-group .input-with-prefix input {
+    padding-left: 2.5rem;
+}
+
+/* ============================================
+   SECTION DIVIDERS (border-top style)
+   ============================================ */
+.section-border-top {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #E5E7EB;
+}
+
+.section-label {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* ============================================
+   ATTACHMENTS
+   ============================================ */
+.attachment-details {
+    flex: 1;
+}
+
+.attachment-meta {
+    color: #6B7280;
+    font-size: 0.875rem;
+    margin-left: 0.5rem;
+}
+
+.attachment-size {
+    color: #9CA3AF;
+    font-size: 0.875rem;
+    margin-left: 0.5rem;
+}
+
+.attachment-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Upload toggle */
+.upload-toggle-wrapper {
+    margin-bottom: 1rem;
+}
+
+/* File input row - flex layout */
+.file-row-grid {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+}
+
+.file-row-grid .file-field {
+    flex: 2;
+}
+
+.file-row-grid .file-field label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.file-row-grid .file-field input[type="file"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+}
+
+.file-row-grid .file-field input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    height: 38px;
+}
+
+/* ============================================
+   FORM ACTIONS (bottom buttons)
+   ============================================ */
+.income-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+}
+
+.income-form-actions .action-group {
+    display: flex;
+    gap: 1rem;
 }
