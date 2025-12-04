@@ -1,8 +1,59 @@
 /* Item Entry Form - Custom Styles */
 /* Shared styles imported from shared.css */
-/* Form groups, buttons, inputs, fee-grid now in shared.css */
 
-/* Item-specific textarea height */
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.item-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.client-info-line {
+    margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   FORM GRID LAYOUTS
+   ============================================ */
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.two-column-grid .form-group {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   FEE SECTION
+   ============================================ */
+.fee-helper-text {
+    margin-bottom: 2.5rem;
+}
+
+/* ============================================
+   TEXTAREA
+   ============================================ */
 .form-group textarea {
     min-height: 300px;
+}
+
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.item-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
 }

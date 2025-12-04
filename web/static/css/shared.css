@@ -653,8 +653,115 @@ input[type="number"] {
     gap: var(--space-lg);
     padding: var(--space-md);
     background: var(--color-background-tertiary);
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     margin-bottom: var(--space-sm);
+    border: 1px solid #E5E7EB;
+}
+
+.attachment-item-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.attachment-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    color: #6B7280;
+}
+
+.attachment-filename {
+    color: #111827;
+    font-weight: 600;
+}
+
+.attachment-desc {
+    color: #6B7280;
+    font-size: 0.875rem;
+}
+
+.attachment-meta {
+    color: #9CA3AF;
+    font-size: 0.75rem;
+}
+
+.attachment-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.attachment-actions form {
+    display: inline;
+    margin: 0;
+}
+
+.empty-attachments {
+    color: #6B7280;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* Attachments section header */
+.attachments-section h4 {
+    color: #111827;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+/* Upload form with dashed border */
+.upload-form-dashed {
+    background: #F3F4F6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 2px dashed #D1D5DB;
+}
+
+.upload-form-grid {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.upload-form-grid .file-field {
+    flex: 1;
+    min-width: 200px;
+}
+
+.upload-form-grid .desc-field {
+    flex: 2;
+    min-width: 250px;
+}
+
+.upload-form-grid label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+.upload-form-grid input[type="file"],
+.upload-form-grid input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.upload-form-grid input[type="file"] {
+    background: white;
+}
+
+.upload-form-grid .btn-upload {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .attachment-item-name {
@@ -754,6 +861,82 @@ input[type="number"] {
 .icon-danger { color: #DC2626; }
 .icon-success { color: #059669; }
 .icon-muted { color: #6B7280; }
+.icon-teal { color: #1F8F74; }
+
+/* Header icon (in h2 titles - general utility) */
+.icon-header {
+    width: 28px;
+    height: 28px;
+    vertical-align: -4px;
+    margin-right: 0.5rem;
+}
+
+/* Icon sizing utilities */
+.icon-xs { width: 12px; height: 12px; }
+.icon-sm { width: 14px; height: 14px; }
+.icon-md { width: 16px; height: 16px; }
+.icon-lg { width: 18px; height: 18px; }
+.icon-xl { width: 20px; height: 20px; }
+
+/* Icon in button (with margin) */
+.icon-btn {
+    width: 16px;
+    height: 16px;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+}
+
+/* Flex utilities */
+.flex { display: flex; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-1 { gap: 0.5rem; }
+.gap-2 { gap: 1rem; }
+.gap-3 { gap: 1.5rem; }
+.align-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+
+/* Small centered card (for export, etc.) */
+.card-narrow {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.card-medium {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Error/Warning boxes */
+.error-box {
+    background: #FEE2E2;
+    border: 2px solid #EF4444;
+    color: #991B1B;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.warning-box {
+    background: #FEF3C7;
+    border: 2px solid #F59E0B;
+    color: #92400E;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Page header icon (in h2 titles) */
+h2 svg[data-lucide].page-icon {
+    width: 28px;
+    height: 28px;
+    vertical-align: -4px;
+    margin-right: 0.5rem;
+    color: #1F8F74;
+}
 
 /* ============================================
    SESSION-SPECIFIC (kept for compatibility)

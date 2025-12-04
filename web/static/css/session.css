@@ -1,7 +1,55 @@
 /* Session Entry Form - Custom Styles */
 /* Shared styles imported from shared.css */
 
-/* AI Scribe button next to Notes label */
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.session-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.client-info-line {
+    margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   FEE SOURCE DISPLAY
+   ============================================ */
+.fee-source-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.fee-source-text {
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   DURATION SECTION
+   ============================================ */
+.duration-section {
+    margin-top: 1rem;
+}
+
+/* ============================================
+   AI SCRIBE BUTTON
+   ============================================ */
+.notes-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .btn-ai-scribe {
     display: inline-flex;
     align-items: center;
@@ -26,7 +74,69 @@
     background: #4F46E5;
 }
 
-/* Session-specific overrides */
+.btn-ai-scribe i {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.session-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.save-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ============================================
+   MISSING LINK MODAL
+   ============================================ */
+.missing-link-modal-content {
+    max-width: 500px;
+}
+
+.missing-link-modal-content h3 {
+    margin-top: 0;
+    color: #DC2626;
+}
+
+.missing-link-modal-content p {
+    color: #374151;
+    line-height: 1.6;
+}
+
+.missing-link-modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+
+.missing-link-modal-actions .btn,
+.missing-link-modal-actions .btn-secondary {
+    flex: 1;
+    text-align: center;
+}
+
+/* ============================================
+   SESSION-SPECIFIC OVERRIDES
+   ============================================ */
 
 /* Make Session Notes textarea taller */
 #id_content,
@@ -44,4 +154,11 @@ textarea[name="content"] {
 /* For date fields NOT in form-row, constrain to half */
 .form-group:not(.form-row .form-group) .date-input-group {
     max-width: 48%;
+}
+
+/* ============================================
+   HIDDEN DATA ELEMENT
+   ============================================ */
+.hidden-data {
+    display: none;
 }

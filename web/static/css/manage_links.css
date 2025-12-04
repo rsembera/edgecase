@@ -177,3 +177,73 @@
 }
 
 /* Modal styles: .modal-actions now in shared.css */
+
+/* ============================================
+   HEADER ACTIONS ROW
+   ============================================ */
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* ============================================
+   GROUP ACTION BUTTONS
+   ============================================ */
+.btn-edit-link {
+    padding: 0.375rem 1.2rem;
+    font-size: 0.875rem;
+    background: #9FCFC0;
+    text-decoration: none;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    font-family: 'Lexend', sans-serif;
+    font-weight: 500;
+}
+
+.btn-edit-link:hover {
+    background: #8AC4B3;
+}
+
+.btn-delete-link {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: #DC2626;
+    color: white;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    font-family: 'Lexend', sans-serif;
+    font-weight: 500;
+}
+
+.btn-delete-link:hover {
+    background: #B91C1C;
+}
+
+/* ============================================
+   EMPTY STATE OVERRIDES
+   ============================================ */
+.empty-state h2 {
+    margin: 0 0 0.5rem 0;
+    color: #111827;
+}
+
+.empty-state p {
+    margin: 0 0 0.5rem 0;
+    color: #6B7280;
+}
+
+/* ============================================
+   BACK BUTTON SECTION
+   ============================================ */
+.back-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #DEE2E6;
+}
+
+.back-section .btn .icon-sm {
+    width: 16px;
+    height: 16px;
+}

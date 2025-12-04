@@ -6,7 +6,9 @@
     margin: 0 auto;
 }
 
-/* Section headers */
+/* ============================================
+   SECTION HEADERS
+   ============================================ */
 .section-header {
     background: #E3E9EE;
     padding: 0.75rem 1rem;
@@ -24,7 +26,9 @@
     margin-top: 1.5rem;
 }
 
-/* Table overrides for types page */
+/* ============================================
+   TABLE OVERRIDES
+   ============================================ */
 .types-table th {
     padding: 0.75rem 0.5rem;
     font-size: 0.75rem;
@@ -48,7 +52,14 @@
     background: #FEF3C7;
 }
 
-/* Locked indicator badge */
+/* Center align utility for table cells */
+.types-table .text-center {
+    text-align: center;
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
 .locked-indicator {
     display: inline-block;
     padding: 0.25rem 0.5rem;
@@ -60,7 +71,46 @@
     margin-left: 0.5rem;
 }
 
-/* Back button spacing */
+.locked-indicator .icon-xs {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.editable-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: #D1FAE5;
+    color: #065F46;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+.editable-indicator .icon-xs {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+/* ============================================
+   HELPER TEXT SPACING
+   ============================================ */
+.helper-text.mb-1 {
+    margin-bottom: 1rem;
+}
+
+/* ============================================
+   BACK BUTTON
+   ============================================ */
 .types-page .btn {
     margin-top: 1.5rem;
+}
+
+.btn .icon-sm {
+    width: 16px;
+    height: 16px;
 }

@@ -13,16 +13,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 700px; margin: 0 auto;">
+<div class="card card-narrow">
     <!-- Header -->
     <div class="export-header">
         <div>
             <h2><i data-lucide="file-output" class="page-icon"></i>Export Client File</h2>
             <div class="text-muted">
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     <span class="type-badge" style="background-color: {{ client_type.color }}">{{ client_type.name }}</span>
                 </div>
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     {{ client.first_name }} {{ client.middle_name or '' }} {{ client.last_name }}
                 </div>
                 <div>
@@ -31,7 +31,7 @@
             </div>
         </div>
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+            <i data-lucide="arrow-left" class="icon-btn"></i> Back
         </a>
     </div>
     
@@ -39,7 +39,7 @@
     <div class="export-options">
         <h3>Date Range</h3>
         
-        <div class="checkbox-group" style="margin-bottom: 1rem;">
+        <div class="checkbox-group mb-2">
             <label class="checkbox-label">
                 <input type="checkbox" id="all-time" checked>
                 <span>All time (export entire client file)</span>
@@ -110,7 +110,7 @@
         <p class="preview-hint">Click "Calculate" to see what will be exported.</p>
         
         <button type="button" class="btn" onclick="calculateExport()">
-            <i data-lucide="calculator" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Calculate
+            <i data-lucide="calculator" class="icon-btn"></i> Calculate
         </button>
         
         <div id="export-summary" style="display: none;">
@@ -150,7 +150,7 @@
     <!-- Generate Button -->
     <div class="export-actions">
         <button type="button" class="btn" onclick="generateExport()">
-            <i data-lucide="file-down" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Generate PDF
+            <i data-lucide="file-down" class="icon-btn"></i> Generate PDF
         </button>
     </div>
 </div>

@@ -1,15 +1,44 @@
 /* Absence Entry Form - Custom Styles */
 /* Shared styles imported from shared.css */
-/* Form groups, buttons, inputs, fee-grid now in shared.css */
 
-/* Absence-specific textarea height */
-.form-group textarea {
-    min-height: 300px;
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.absence-card {
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-/* Help text - extra spacing after fee section */
-p.help-text {
-    margin-bottom: 2.5rem;  /* Extra space before Notes */
+.absence-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.client-info-line {
+    margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   FORM GRID LAYOUTS
+   ============================================ */
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.two-column-grid .form-group {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   FEE SECTION
+   ============================================ */
+.fee-helper-text {
+    margin-bottom: 2rem;
 }
 
 /* Section heading - override h3 defaults for absence */
@@ -18,4 +47,21 @@ h3.section-heading {
     font-weight: 600;
     color: #374151;
     margin: 0 0 0.75rem 0;
+}
+
+/* ============================================
+   TEXTAREA
+   ============================================ */
+.form-group textarea {
+    min-height: 300px;
+}
+
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.absence-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
 }

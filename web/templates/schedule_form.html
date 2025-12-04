@@ -9,17 +9,17 @@
 
 {% block content %}
 
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+<div class="card schedule-card">
+    <div class="schedule-header">
         <div>
             <h2><i data-lucide="calendar-plus" class="page-icon"></i>Schedule Appointment</h2>
             <div class="text-muted">
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     <span class="type-badge" style="background-color: {{ client_type['color'] }}">
                         {{ client_type['name'] }}
                     </span>
                 </div>
-                <div style="margin-bottom: 0.25rem;">
+                <div class="client-info-line">
                     {{ client['first_name'] }} {% if client['middle_name'] %}{{ client['middle_name'] }} {% endif %}{{ client['last_name'] }}
                 </div>
                 <div>
@@ -31,7 +31,7 @@
     
     <form method="POST" id="schedule-form">
         <!-- Quick Entry -->
-        <div class="form-group" style="margin-bottom: 2rem;">
+        <div class="form-group quick-entry-group">
             <label for="quick_entry">Quick Entry</label>
             <input type="text" 
                    id="quick_entry" 
@@ -41,10 +41,10 @@
             <p class="helper-text">Type naturally - date and time will auto-fill below</p>
         </div>
         
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
+        <hr class="schedule-divider">
         
         <!-- Date and Time -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="two-column-grid">
             <div class="form-group">
                 <label>Date *</label>
                 <div id="schedule-date-picker"></div>
@@ -58,7 +58,7 @@
         </div>
         
         <!-- Duration and Meet Link side by side -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="two-column-grid">
             <div class="form-group">
                 <label for="duration">Duration (minutes)</label>
                 <input type="number" 
@@ -80,7 +80,7 @@
         </div>
         
         <!-- Repeat -->
-        <div class="form-group" style="margin-bottom: 1.5rem;">
+        <div class="form-group mb-2">
             <label for="repeat">Repeat</label>
             <select id="repeat" name="repeat">
                 <option value="none">Does not repeat</option>
@@ -91,7 +91,7 @@
         </div>
         
         <!-- Alerts side by side -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="two-column-grid">
             <div class="form-group">
                 <label for="alert1">First Alert</label>
                 <select id="alert1" name="alert1">
@@ -131,10 +131,10 @@
     </form>
     
     <!-- Buttons OUTSIDE the form -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+    <div class="schedule-form-actions">
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
         <button type="submit" form="schedule-form" class="btn">
-            <i data-lucide="calendar-plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 0.25rem;"></i>
+            <i data-lucide="calendar-plus"></i>
             Add to Calendar
         </button>
     </div>

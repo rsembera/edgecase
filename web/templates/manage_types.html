@@ -23,7 +23,7 @@
             <tr>
                 <th>Name</th>
                 <th>Color</th>
-                <th style="text-align: center;">Status</th>
+                <th class="text-center">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -37,14 +37,14 @@
                         {{ type.color_name or type.color }}
                     </span>
                 </td>
-                <td style="text-align: center;">
-                    <span class="locked-indicator"><i data-lucide="lock" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 0.25rem;"></i>LOCKED</span>
+                <td class="text-center">
+                    <span class="locked-indicator"><i data-lucide="lock" class="icon-xs"></i>LOCKED</span>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    <small class="helper-text" style="margin-bottom: 1rem;">
+    <small class="helper-text mb-1">
         Locked system types for client lifecycle management (cannot be edited or deleted)
     </small>
     
@@ -55,7 +55,7 @@
             <tr>
                 <th>Name</th>
                 <th>Colour</th>
-                <th style="text-align: center;">Status</th>
+                <th class="text-center">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -69,8 +69,8 @@
                         {{ type.color_name or type.color }}
                     </span>
                 </td>
-                <td style="text-align: center;">
-                    <span class="locked-indicator" style="background: #D1FAE5; color: #065F46;"><i data-lucide="check" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 0.25rem;"></i>EDITABLE</span>
+                <td class="text-center">
+                    <span class="editable-indicator"><i data-lucide="check" class="icon-xs"></i>EDITABLE</span>
                 </td>
             </tr>
             {% endfor %}
@@ -80,6 +80,6 @@
         Click any row to edit. Custom types can be renamed, recoloured, or deleted (if no clients assigned).
     </small>
     
-    <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back</a>
+    <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
 </div>
 {% endblock %}
