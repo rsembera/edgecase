@@ -2,7 +2,144 @@
 /* Shared styles imported from shared.css */
 /* Form rows, form groups, buttons, inputs, fee-grid now in shared.css */
 
-/* Profile-specific textarea heights */
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.profile-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   TYPE BADGE DROPDOWN
+   ============================================ */
+.type-badge-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.type-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 1rem;
+    min-width: 200px;
+    z-index: 100;
+}
+
+.type-dropdown-label {
+    display: block;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+}
+
+.type-dropdown-label:hover {
+    background: #F3F4F6;
+}
+
+.type-dropdown-label.selected {
+    font-weight: 600;
+    background: #F3F4F6;
+}
+
+.type-dropdown-label input {
+    margin-right: 0.5rem;
+}
+
+.type-dropdown-label span {
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   RETENTION INFO BOX
+   ============================================ */
+.retention-info-box {
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.retention-info-box.warning {
+    background: #FEF3C7;
+    border: 1px solid #FDE68A;
+}
+
+.retention-info-box.danger {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+
+.retention-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.retention-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.retention-icon.warning {
+    color: #D97706;
+}
+
+.retention-icon.danger {
+    color: #DC2626;
+}
+
+.retention-body {
+    flex: 1;
+}
+
+.retention-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.retention-title.warning {
+    color: #92400E;
+}
+
+.retention-title.danger {
+    color: #991B1B;
+}
+
+.retention-details {
+    font-size: 0.875rem;
+    color: #4B5563;
+    line-height: 1.6;
+}
+
+.retention-details p {
+    margin: 0 0 0.5rem 0;
+}
+
+.retention-details p:last-child {
+    margin-bottom: 0;
+}
+
+.retention-actions {
+    margin-top: 1rem;
+}
+
+/* ============================================
+   PROFILE-SPECIFIC TEXTAREA HEIGHTS
+   ============================================ */
 textarea[name="address"] {
     min-height: 120px;
 }
@@ -12,7 +149,9 @@ textarea[name="additional_info"] {
     min-height: 300px;
 }
 
-/* Guardian section styling (unique to profile) */
+/* ============================================
+   GUARDIAN SECTION
+   ============================================ */
 .guardian-heading {
     color: #374151;
     font-size: 1rem;
@@ -22,55 +161,124 @@ textarea[name="additional_info"] {
     border-bottom: 1px solid #e2e8f0;
 }
 
-.guardian-fee-display {
-    background: #f7fafc;
-    border: 2px solid #e2e8f0;
+.guardian-info-box {
+    background: #F3F4F6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.guardian-info-box .info-label {
+    font-size: 0.875rem;
+    color: #6B7280;
+}
+
+.guardian-info-box .info-note {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+    margin-top: 0.25rem;
+}
+
+.guardian-validation-box {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
     border-radius: 0.5rem;
     padding: 1rem;
-}
-
-.guardian-fee-display label {
-    display: block;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.fee-display-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #00aa88;
-    margin-bottom: 0.25rem;
-}
-
-.guardian-fee-display small {
-    color: #718096;
-    font-size: 0.75rem;
-}
-
-.guardian-validation {
-    background: #fef2f2;
-    border: 2px solid #fca5a5;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
     margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
-.validation-icon {
-    font-size: 1.25rem;
+.guardian-validation-header {
+    color: #991B1B;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-.validation-message {
-    color: #991b1b;
+.guardian-validation-message {
+    color: #7F1D1D;
     font-size: 0.875rem;
-    font-weight: 500;
 }
 
-/* Responsive adjustments */
+/* ============================================
+   FORM ACTIONS
+   ============================================ */
+.profile-form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+/* ============================================
+   VALIDATION MODAL (profile-specific)
+   ============================================ */
+.validation-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    max-width: 400px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border-top: 4px solid #e53e3e;
+}
+
+.validation-modal-content h3 {
+    color: #2d3748;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.validation-modal-content .errors {
+    color: #4a5568;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+}
+
+.validation-modal-content .btn-ok {
+    padding: 0.625rem 1.25rem;
+    background: #00aa88;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* ============================================
+   DELETE CONFIRM MODAL
+   ============================================ */
+.delete-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    max-width: 450px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border-top: 4px solid #DC2626;
+}
+
+.delete-modal-content h3 {
+    color: #991B1B;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.delete-modal-content p {
+    color: #4B5563;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.delete-modal-content .note {
+    color: #6B7280;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
     .fee-grid {
         grid-template-columns: 1fr;
