@@ -741,6 +741,9 @@ def edit_session(client_id, entry_id):
         # Save updated session
         db.update_entry(entry_id, session_data)
         
+        # Renumber sessions in case consultation status changed
+        renumber_sessions(client_id)
+        
         # Check if AI Scribe button was clicked - redirect there instead
         if request.form.get('ai_scribe'):
             return redirect(url_for('ai.scribe_page', entry_id=entry_id))
