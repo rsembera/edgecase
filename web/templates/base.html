@@ -99,6 +99,23 @@
         }
     </style>
     
+    <!-- Session timeout warning overlay -->
+    <div id="timeout-warning-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 1rem; max-width: 400px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <h2 style="color: #1F2937; margin-bottom: 0.75rem; font-size: 1.375rem; font-weight: 700;">Session Expiring Soon</h2>
+            <p style="color: #6B7280; margin-bottom: 0.5rem; font-size: 0.9375rem;">Your session will expire in <strong id="timeout-countdown">--</strong> seconds.</p>
+            <p style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.875rem;">Any unsaved work may be lost.</p>
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="stayLoggedIn()" style="flex: 1; padding: 0.75rem 1rem; background: #BFDCDC; color: #115D4F; border: none; border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; font-family: 'Lexend', sans-serif;">
+                    Stay Logged In
+                </button>
+                <button onclick="window.location.href='/logout'" style="flex: 1; padding: 0.75rem 1rem; background: #f3f4f6; color: #374151; border: none; border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; font-family: 'Lexend', sans-serif;">
+                    Log Out
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Server disconnect detection
         let disconnectShown = false;
@@ -202,6 +219,83 @@
     
 <!-- Lucide Icons -->
     <script src="{{ url_for('static', filename='js/lucide.min.js') }}"></script>
+    
+    <!-- Session timeout warning system -->
+    <script>
+    (function() {
+        let warningShown = false;
+        let countdownInterval = null;
+        let secondsRemaining = 0;
+        
+        // Check session status periodically
+        function checkSession() {
+            fetch('/api/session-status')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.logged_in) return;
+                    if (data.timeout_minutes === 0) return; // "Never" timeout
+                    
+                    secondsRemaining = data.seconds_remaining;
+                    
+                    if (data.warning_needed && !warningShown) {
+                        showWarning();
+                    } else if (!data.warning_needed && warningShown) {
+                        hideWarning();
+                    }
+                    
+                    if (warningShown) {
+                        updateCountdown();
+                    }
+                })
+                .catch(() => {}); // Ignore errors (server disconnect handled elsewhere)
+        }
+        
+        function showWarning() {
+            warningShown = true;
+            document.getElementById('timeout-warning-overlay').style.display = 'flex';
+            updateCountdown();
+            // Update countdown every second
+            countdownInterval = setInterval(function() {
+                secondsRemaining = Math.max(0, secondsRemaining - 1);
+                updateCountdown();
+                if (secondsRemaining <= 0) {
+                    clearInterval(countdownInterval);
+                    window.location.href = '/logout';
+                }
+            }, 1000);
+        }
+        
+        function hideWarning() {
+            warningShown = false;
+            document.getElementById('timeout-warning-overlay').style.display = 'none';
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+        
+        function updateCountdown() {
+            document.getElementById('timeout-countdown').textContent = secondsRemaining;
+        }
+        
+        // Expose stayLoggedIn to global scope
+        window.stayLoggedIn = function() {
+            fetch('/api/keepalive', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        hideWarning();
+                    }
+                })
+                .catch(() => {});
+        };
+        
+        // Check every 30 seconds
+        setInterval(checkSession, 30000);
+        // Initial check after 5 seconds (let page load)
+        setTimeout(checkSession, 5000);
+    })();
+    </script>
     
     <!-- Double-click protection for all forms -->
     <script>
