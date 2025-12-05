@@ -86,8 +86,16 @@ def get_file_hashes():
 def load_manifest():
     """Load backup manifest from disk."""
     if MANIFEST_FILE.exists():
-        with open(MANIFEST_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(MANIFEST_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, ValueError) as e:
+            # Manifest corrupted - backup the bad file and start fresh
+            corrupted_path = MANIFEST_FILE.with_suffix('.json.corrupted')
+            shutil.copy(MANIFEST_FILE, corrupted_path)
+            print(f"Warning: manifest.json was corrupted, backed up to {corrupted_path.name}")
+            # Return fresh manifest - existing backup files still exist,
+            # they just won't appear in the UI until next full backup
     return {
         'backups': [],
         'last_full_hashes': {},
