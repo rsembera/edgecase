@@ -49,6 +49,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
+app.config['SESSION_COOKIE_NAME'] = 'edgecase_session'  # Unique name to avoid conflicts
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Set True if using HTTPS

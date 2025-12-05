@@ -6,6 +6,7 @@ Handles login/logout and database encryption
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash, make_response
 from pathlib import Path
 from functools import wraps
+import time
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -58,9 +59,14 @@ def login():
             
             # Success! Store db in app config
             current_app.config['db'] = db
+            
+            # Clear any old session data first, then set new values
+            session.clear()
             session.permanent = True  # Use PERMANENT_SESSION_LIFETIME
             session['authenticated'] = True
-            session['login_time'] = int(__import__('time').time())
+            session['login_time'] = int(time.time())
+            session['last_activity'] = time.time()  # Set immediately to prevent timeout race
+            session.modified = True
             
             # Initialize all blueprints with the database
             from web.app import init_all_blueprints
@@ -69,10 +75,9 @@ def login():
             # Run automatic backup check after successful login
             _run_auto_backup_check(db)
             
-            # Force session to be saved
-            session.modified = True
-            
-            return redirect(url_for('clients.index'))
+            # Use make_response to ensure cookie is properly set before redirect
+            response = make_response(redirect(url_for('clients.index')))
+            return response
             
         except Exception as e:
             error_msg = str(e)
