@@ -434,6 +434,10 @@ async function loadPracticeInfo() {
 function updateLogoSignatureUI(info) {
     const logoChooseBtn = document.getElementById('logo-choose-button');
     const sigChooseBtn = document.getElementById('signature-choose-button');
+    const logoPreviewContainer = document.getElementById('logo-preview-container');
+    const logoPreview = document.getElementById('logo-preview');
+    const sigPreviewContainer = document.getElementById('signature-preview-container');
+    const sigPreview = document.getElementById('signature-preview');
     
     if (info.logo_filename) {
         document.getElementById('logo-current').innerHTML = 
@@ -441,10 +445,17 @@ function updateLogoSignatureUI(info) {
         lucide.createIcons();
         document.getElementById('logo-delete-button').classList.add('visible');
         if (logoChooseBtn) logoChooseBtn.classList.add('hidden');
+        // Show preview
+        if (logoPreviewContainer && logoPreview) {
+            logoPreview.src = '/view_logo?' + new Date().getTime(); // Cache bust
+            logoPreviewContainer.style.display = 'block';
+        }
     } else {
         document.getElementById('logo-current').textContent = '';
         document.getElementById('logo-delete-button').classList.remove('visible');
         if (logoChooseBtn) logoChooseBtn.classList.remove('hidden');
+        // Hide preview
+        if (logoPreviewContainer) logoPreviewContainer.style.display = 'none';
     }
     
     if (info.signature_filename) {
@@ -453,10 +464,17 @@ function updateLogoSignatureUI(info) {
         lucide.createIcons();
         document.getElementById('signature-delete-button').classList.add('visible');
         if (sigChooseBtn) sigChooseBtn.classList.add('hidden');
+        // Show preview
+        if (sigPreviewContainer && sigPreview) {
+            sigPreview.src = '/view_signature?' + new Date().getTime(); // Cache bust
+            sigPreviewContainer.style.display = 'block';
+        }
     } else {
         document.getElementById('signature-current').textContent = '';
         document.getElementById('signature-delete-button').classList.remove('visible');
         if (sigChooseBtn) sigChooseBtn.classList.remove('hidden');
+        // Hide preview
+        if (sigPreviewContainer) sigPreviewContainer.style.display = 'none';
     }
 }
 
@@ -641,6 +659,13 @@ async function uploadLogo() {
             document.getElementById('logo-delete-button').classList.add('visible');
             document.getElementById('logo-choose-button').classList.add('hidden');
             fileInput.value = '';
+            // Show preview
+            const previewContainer = document.getElementById('logo-preview-container');
+            const preview = document.getElementById('logo-preview');
+            if (previewContainer && preview) {
+                preview.src = '/view_logo?' + new Date().getTime();
+                previewContainer.style.display = 'block';
+            }
         } else {
             alert('Upload failed: ' + result.error);
         }
@@ -678,6 +703,13 @@ async function uploadSignature() {
             document.getElementById('signature-delete-button').classList.add('visible');
             document.getElementById('signature-choose-button').classList.add('hidden');
             fileInput.value = '';
+            // Show preview
+            const previewContainer = document.getElementById('signature-preview-container');
+            const preview = document.getElementById('signature-preview');
+            if (previewContainer && preview) {
+                preview.src = '/view_signature?' + new Date().getTime();
+                previewContainer.style.display = 'block';
+            }
         } else {
             alert('Upload failed: ' + result.error);
         }
@@ -699,6 +731,9 @@ async function deleteLogo() {
                 document.getElementById('logo-current').textContent = '';
                 document.getElementById('logo-delete-button').classList.remove('visible');
                 document.getElementById('logo-choose-button').classList.remove('hidden');
+                // Hide preview
+                const previewContainer = document.getElementById('logo-preview-container');
+                if (previewContainer) previewContainer.style.display = 'none';
                 showSectionStatus('statement-status', '✓ Logo deleted!');
             } else {
                 alert('Delete failed: ' + result.error);
@@ -723,6 +758,9 @@ async function deleteSignature() {
                 document.getElementById('signature-current').textContent = '';
                 document.getElementById('signature-delete-button').classList.remove('visible');
                 document.getElementById('signature-choose-button').classList.remove('hidden');
+                // Hide preview
+                const previewContainer = document.getElementById('signature-preview-container');
+                if (previewContainer) previewContainer.style.display = 'none';
                 showSectionStatus('statement-status', '✓ Signature deleted!');
             } else {
                 alert('Delete failed: ' + result.error);

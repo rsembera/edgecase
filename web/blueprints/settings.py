@@ -4,12 +4,13 @@ EdgeCase Settings Blueprint
 Handles practice settings, uploads, and configuration
 """
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, send_file, Response
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import sys
 import time
-from core.encryption import encrypt_file
+import io
+from core.encryption import encrypt_file, decrypt_file_to_bytes
 
 # Add parent directory to path for database import
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -235,6 +236,74 @@ def delete_background():
 # ============================================================================
 # LOGO & SIGNATURE
 # ============================================================================
+
+@settings_bp.route('/view_logo')
+def view_logo():
+    """Serve the practice logo (decrypted if needed)"""
+    try:
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key = 'logo_filename'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return Response('No logo uploaded', status=404)
+        
+        filename = row[0]
+        assets_dir = Path(__file__).parent.parent.parent / 'assets'
+        logo_path = assets_dir / filename
+        
+        if not logo_path.exists():
+            return Response('Logo file not found', status=404)
+        
+        # Determine content type
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'png'
+        content_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif'}
+        content_type = content_types.get(ext, 'image/png')
+        
+        # Decrypt if password is set
+        if db.password:
+            decrypted_data = decrypt_file_to_bytes(str(logo_path), db.password)
+            return Response(decrypted_data, mimetype=content_type)
+        else:
+            return send_file(str(logo_path), mimetype=content_type)
+    except Exception as e:
+        return Response(f'Error: {str(e)}', status=500)
+
+
+@settings_bp.route('/view_signature')
+def view_signature():
+    """Serve the digital signature (decrypted if needed)"""
+    try:
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key = 'signature_filename'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return Response('No signature uploaded', status=404)
+        
+        filename = row[0]
+        assets_dir = Path(__file__).parent.parent.parent / 'assets'
+        sig_path = assets_dir / filename
+        
+        if not sig_path.exists():
+            return Response('Signature file not found', status=404)
+        
+        # Determine content type
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'png'
+        content_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif'}
+        content_type = content_types.get(ext, 'image/png')
+        
+        # Decrypt if password is set
+        if db.password:
+            decrypted_data = decrypt_file_to_bytes(str(sig_path), db.password)
+            return Response(decrypted_data, mimetype=content_type)
+        else:
+            return send_file(str(sig_path), mimetype=content_type)
+    except Exception as e:
+        return Response(f'Error: {str(e)}', status=500)
+
 
 @settings_bp.route('/upload_logo', methods=['POST'])
 def upload_logo():
