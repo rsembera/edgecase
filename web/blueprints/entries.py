@@ -1569,9 +1569,16 @@ def download_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
+    # Check file exists
+    if not os.path.exists(attachment['filepath']):
+        return "Attachment file is missing from disk", 404
+    
     # Decrypt file if database is encrypted
     if db.password:
-        decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        try:
+            decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        except Exception as e:
+            return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
         return send_file(
             BytesIO(decrypted),
             as_attachment=True,
@@ -1596,9 +1603,16 @@ def view_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
+    # Check file exists
+    if not os.path.exists(attachment['filepath']):
+        return "Attachment file is missing from disk", 404
+    
     # Decrypt file if database is encrypted
     if db.password:
-        decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        try:
+            decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+        except Exception as e:
+            return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
         # Guess mimetype from filename
         import mimetypes
         mimetype = mimetypes.guess_type(attachment['filename'])[0] or 'application/octet-stream'
