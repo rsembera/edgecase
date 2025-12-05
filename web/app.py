@@ -234,6 +234,68 @@ def check_auto_backup():
 
 
 # ============================================================================
+# SESSION TIMEOUT WARNING API
+# ============================================================================
+
+@app.route('/api/session-status')
+def session_status():
+    """Return session timeout status for frontend warning system."""
+    db = app.config.get('db')
+    if not db:
+        return jsonify({'logged_in': False})
+    
+    try:
+        timeout_minutes = int(db.get_setting('session_timeout', '30'))
+    except (ValueError, TypeError):
+        timeout_minutes = 30
+    
+    # If timeout is 0 ("Never"), no warning needed
+    if timeout_minutes == 0:
+        return jsonify({
+            'logged_in': True,
+            'timeout_minutes': 0,
+            'seconds_remaining': None,
+            'warning_needed': False
+        })
+    
+    last_activity = session.get('last_activity', time.time())
+    elapsed = time.time() - last_activity
+    timeout_seconds = timeout_minutes * 60
+    seconds_remaining = max(0, timeout_seconds - elapsed)
+    
+    # Warning thresholds (proportional to timeout):
+    # 15 min -> warn at 2 min (120s)
+    # 30 min -> warn at 3 min (180s)
+    # 60+ min -> warn at 5 min (300s)
+    if timeout_minutes <= 15:
+        warning_threshold = 120
+    elif timeout_minutes <= 30:
+        warning_threshold = 180
+    else:
+        warning_threshold = 300
+    
+    return jsonify({
+        'logged_in': True,
+        'timeout_minutes': timeout_minutes,
+        'seconds_remaining': int(seconds_remaining),
+        'warning_threshold': warning_threshold,
+        'warning_needed': seconds_remaining <= warning_threshold and seconds_remaining > 0
+    })
+
+
+@app.route('/api/keepalive', methods=['POST'])
+def keepalive():
+    """Extend session when user clicks 'Stay Logged In'."""
+    db = app.config.get('db')
+    if not db:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    # Update last activity timestamp
+    session['last_activity'] = time.time()
+    return jsonify({'success': True})
+
+
+# ============================================================================
 # RESTORE MESSAGE API
 # ============================================================================
 
