@@ -62,13 +62,9 @@ def currency_symbol_filter(currency_code):
 def ledger():
     """Display the ledger with all income and expense entries."""
     
-    # Get all ledger entries
     entries = db.get_all_ledger_entries()
-    
-    # Get currency code from settings
     currency = db.get_setting('currency', 'CAD')
     
-    # Calculate YTD and MTD stats
     now = datetime.now()
     current_year = now.year
     current_month = now.month
@@ -78,8 +74,6 @@ def ledger():
     mtd_income = 0
     mtd_expenses = 0
     ytd_expenses_by_category = {}
-    
-    # Organize entries by year and month
     entries_by_year_month = {}
     
     for entry in entries:
@@ -90,26 +84,22 @@ def ledger():
             month_name = entry_dt.strftime('%B')
             amount = entry.get('total_amount', 0) or 0
             
-            # YTD calculations
             if year == current_year:
                 if entry['ledger_type'] == 'income':
                     ytd_income += amount
                 elif entry['ledger_type'] == 'expense':
                     ytd_expenses += amount
-                    # Track by category name (text field)
                     cat_name = entry.get('category_name') or 'Uncategorized'
                     if cat_name not in ytd_expenses_by_category:
                         ytd_expenses_by_category[cat_name] = 0
                     ytd_expenses_by_category[cat_name] += amount
             
-            # MTD calculations
             if year == current_year and month == current_month:
                 if entry['ledger_type'] == 'income':
                     mtd_income += amount
                 elif entry['ledger_type'] == 'expense':
                     mtd_expenses += amount
             
-            # Organize by year/month
             if year not in entries_by_year_month:
                 entries_by_year_month[year] = {}
             
@@ -121,26 +111,17 @@ def ledger():
             
             entries_by_year_month[year][month]['entries'].append(entry)
     
-    # Calculate net
     ytd_net = ytd_income - ytd_expenses
     mtd_net = mtd_income - mtd_expenses
     
-    # YTD category breakdown
     ytd_category_breakdown = []
     for cat_name, amount in sorted(ytd_expenses_by_category.items(), key=lambda x: x[1], reverse=True):
-        ytd_category_breakdown.append({
-            'name': cat_name,
-            'amount': amount
-        })
+        ytd_category_breakdown.append({'name': cat_name, 'amount': amount})
     
-    # Sort years (newest first) and months (newest first within year)
     years = sorted(entries_by_year_month.keys(), reverse=True)
     for year in years:
-        entries_by_year_month[year] = dict(
-            sorted(entries_by_year_month[year].items(), reverse=True)
-        )
+        entries_by_year_month[year] = dict(sorted(entries_by_year_month[year].items(), reverse=True))
     
-    # Sort entries within each month by date DESC, then created_at DESC
     for year in entries_by_year_month:
         for month in entries_by_year_month[year]:
             entries_by_year_month[year][month]['entries'].sort(
@@ -195,9 +176,11 @@ def create_income():
     
     date_parts = get_today_date_parts()
     currency = db.get_setting('currency', '$')
+    payor_suggestions = db.get_distinct_payor_sources()
     
     return render_template('entry_forms/income.html',
                          **date_parts,
+                         payor_suggestions=payor_suggestions,
                          currency=currency,
                          is_edit=False)
 
@@ -230,7 +213,6 @@ def edit_income(entry_id):
         
         return redirect(url_for('ledger.ledger'))
     
-    # Parse income date for form
     income_year = income_month = income_day = None
     if income.get('ledger_date'):
         income_dt = datetime.fromtimestamp(income['ledger_date'])
@@ -240,12 +222,14 @@ def edit_income(entry_id):
     
     attachments = db.get_attachments(entry_id)
     currency = db.get_setting('currency', '$')
+    payor_suggestions = db.get_distinct_payor_sources()
     
     return render_template('entry_forms/income.html',
                          entry=income,
                          income_year=income_year,
                          income_month=income_month,
                          income_day=income_day,
+                         payor_suggestions=payor_suggestions,
                          attachments=attachments,
                          currency=currency,
                          is_edit=True)
@@ -285,11 +269,9 @@ def create_expense():
     """Create new expense entry."""
     
     if request.method == 'POST':
-        # Get payee and category directly as text
         payee_name = request.form.get('payee_name', '').strip()
         category_name = request.form.get('category_name', '').strip()
         
-        # Add category to suggestions if new
         if category_name:
             existing = db.get_expense_category_by_name(category_name)
             if not existing:
@@ -318,14 +300,10 @@ def create_expense():
         
         return redirect(url_for('ledger.ledger'))
     
-    # GET - show form
     date_parts = get_today_date_parts()
-    
-    # Get suggestions for autocomplete
     categories = db.get_all_expense_categories()
     category_suggestions = [c['name'] for c in categories]
     payee_suggestions = db.get_distinct_payee_names()
-    
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/expense.html',
@@ -348,7 +326,6 @@ def edit_expense(entry_id):
         payee_name = request.form.get('payee_name', '').strip()
         category_name = request.form.get('category_name', '').strip()
         
-        # Add category to suggestions if new
         if category_name:
             existing = db.get_expense_category_by_name(category_name)
             if not existing:
@@ -374,7 +351,6 @@ def edit_expense(entry_id):
         
         return redirect(url_for('ledger.ledger'))
     
-    # Parse expense date for form
     expense_year = expense_month = expense_day = None
     if expense.get('ledger_date'):
         expense_dt = datetime.fromtimestamp(expense['ledger_date'])
@@ -382,11 +358,9 @@ def edit_expense(entry_id):
         expense_month = expense_dt.month
         expense_day = expense_dt.day
     
-    # Get suggestions for autocomplete
     categories = db.get_all_expense_categories()
     category_suggestions = [c['name'] for c in categories]
     payee_suggestions = db.get_distinct_payee_names()
-    
     attachments = db.get_attachments(entry_id)
     currency = db.get_setting('currency', '$')
     
@@ -467,6 +441,15 @@ def remove_category_suggestion():
         return jsonify({'error': str(e)}), 500
 
 
+@ledger_bp.route('/ledger/suggestion/payor/remove', methods=['POST'])
+def remove_payor_suggestion():
+    """Remove a payor from the suggestions list (removes from source field history)."""
+    # Note: Payors are stored directly in the 'source' field of income entries,
+    # so we can't actually delete them without modifying existing entries.
+    # For now, this is a no-op but we keep the endpoint for future use.
+    return jsonify({'success': True})
+
+
 # ============================================================================
 # REPORTS
 # ============================================================================
@@ -501,7 +484,6 @@ def calculate_report():
     conn = db.connect()
     cursor = conn.cursor()
     
-    # Get total income
     cursor.execute("""
         SELECT COALESCE(SUM(total_amount), 0) as total
         FROM entries
@@ -510,7 +492,6 @@ def calculate_report():
     """, (start_ts, end_ts))
     total_income = cursor.fetchone()[0] or 0
     
-    # Get total expenses
     cursor.execute("""
         SELECT COALESCE(SUM(total_amount), 0) as total
         FROM entries
@@ -519,7 +500,6 @@ def calculate_report():
     """, (start_ts, end_ts))
     total_expenses = cursor.fetchone()[0] or 0
     
-    # Get expenses by category (using category_name text field)
     cursor.execute("""
         SELECT COALESCE(category_name, 'Uncategorized') as cat_name, 
                COALESCE(SUM(total_amount), 0) as total

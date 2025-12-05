@@ -25,14 +25,14 @@
     </div>
     
     <form method="POST" id="income-form" enctype="multipart/form-data">
-        <!-- Date field, NOT full width -->
+        <!-- Date field -->
         <div class="form-group date-field-narrow">
             <label>Date *</label>
             <div id="income-date-picker"></div>
             <input type="hidden" id="date" name="date" value="{% if is_edit %}{{ '%04d-%02d-%02d' | format(income_year, income_month, income_day) }}{% endif %}" required>
         </div>
         
-        <!-- Total Amount and Tax Collected on same line -->
+        <!-- Total Amount and Tax Collected -->
         <div class="form-row">
             <div class="form-group mb-0">
                 <label for="total_amount">Total Amount *</label>
@@ -66,16 +66,13 @@
             </div>
         </div>
         
-        <!-- Payor and Description on same line -->
+        <!-- Payor and Description -->
         <div class="form-row">
             <div class="form-group mb-0">
                 <label for="source">Payor *</label>
-                <input type="text" 
-                       id="source" 
-                       name="source" 
-                       value="{{ entry.source if entry else '' }}"
-                       placeholder="e.g., 'Jane Smith (20240502-JS)'"
-                       required>
+                <div class="autocomplete-wrapper" id="payor-autocomplete"></div>
+                <input type="hidden" id="source" name="source" 
+                       value="{{ entry.source if entry else '' }}" required>
                 <div class="helper-text">Person or organization who paid</div>
             </div>
             
@@ -91,15 +88,12 @@
             </div>
         </div>
         
-        <!-- Content (optional notes) -->
+        <!-- Notes -->
         <div class="form-group">
             <label for="content">Notes (optional)</label>
             <textarea id="content" 
                       name="content" 
                       placeholder="Additional notes...">{{ entry.content if entry else '' }}</textarea>
-            <div class="helper-text">
-                Supports Markdown formatting
-            </div>
         </div>
 
         <!-- Attachments Section -->
@@ -107,12 +101,12 @@
             <label class="section-label">Attachments</label>
             
             {% if is_edit and attachments %}
-            <!-- Existing attachments (always visible) -->
             <div class="attachment-list">
                 {% for attachment in attachments %}
                 <div class="attachment-item">
                     <span class="attachment-details">
-                        <i data-lucide="file-text" class="icon-sm icon-inline text-muted"></i><strong>{{ attachment.filename }}</strong>
+                        <i data-lucide="file-text" class="icon-sm icon-inline text-muted"></i>
+                        <strong>{{ attachment.filename }}</strong>
                         {% if attachment.description and attachment.description != attachment.filename %}
                         <span class="attachment-meta">{{ attachment.description }}</span>
                         {% endif %}
@@ -120,12 +114,10 @@
                     </span>
                     <div class="attachment-actions">
                         <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
-                            target="_blank" 
-                            class="btn-small">View</a>
+                            target="_blank" class="btn-small">View</a>
                         <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
                            class="btn-small">Download</a>
-                        <button type="button" 
-                                class="btn-small btn-danger" 
+                        <button type="button" class="btn-small btn-danger" 
                                 onclick="deleteAttachment({{ attachment.id }})">Delete</button>
                     </div>
                 </div>
@@ -133,11 +125,8 @@
             </div>
             {% endif %}
             
-            <!-- Collapsible Upload Section -->
             <div class="upload-toggle-wrapper">
-                <button type="button" 
-                        class="upload-toggle-btn" 
-                        onclick="toggleUploadSection()">
+                <button type="button" class="upload-toggle-btn" onclick="toggleUploadSection()">
                     <span id="upload-toggle-icon">▶</span>
                     <span>Upload New Files</span>
                 </button>
@@ -145,54 +134,37 @@
             
             <div id="upload-section" style="display: none;">
                 <div class="helper-text mb-2">Upload receipts, payment confirmations, or related documents</div>
-                
                 <div class="upload-section">
                     <div id="file-inputs">
                         <div class="file-input-row">
                             <div class="file-row-grid">
                                 <div class="file-field">
                                     <label>Choose file</label>
-                                    <input type="file" 
-                                           name="files[]" 
-                                           class="file-input"
+                                    <input type="file" name="files[]" class="file-input"
                                            onchange="handleFileSelected()">
                                 </div>
                                 <div class="file-field">
                                     <label>Description (optional)</label>
-                                    <input type="text" 
-                                           name="file_descriptions[]" 
-                                           placeholder="Brief description">
+                                    <input type="text" name="file_descriptions[]" placeholder="Brief description">
                                 </div>
-                                <button type="button" 
-                                        class="btn-small btn-danger remove-file-btn">Remove</button>
+                                <button type="button" class="btn-small btn-danger remove-file-btn">Remove</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <button type="button" 
-                            id="add-file-btn" 
-                            class="btn mt-1"
-                            style="display: none;">Add Another File</button>
-                    
-                    <div class="helper-text mt-2">
-                        Maximum file size: 50MB per file. All file types accepted.
-                    </div>
+                    <button type="button" id="add-file-btn" class="btn mt-1" style="display: none;">
+                        Add Another File
+                    </button>
                 </div>
             </div>
         </div>
 
     </form>
     
-    <!-- Navigation buttons OUTSIDE the form -->
     <div class="income-form-actions">
         <a href="{{ url_for('ledger.ledger') }}" class="btn btn-secondary">Cancel</a>
-        
         <div class="action-group">
             {% if is_edit %}
             <button type="button" onclick="confirmDeleteEntry()" class="btn btn-danger">Delete Entry</button>
-            {% endif %}
-            
-            {% if is_edit %}
             <button type="submit" form="income-form" class="btn">Save Changes</button>
             {% else %}
             <button type="submit" form="income-form" class="btn">Save Income</button>
@@ -200,26 +172,21 @@
         </div>
     </div>
 
-    <!-- File Validation Modal -->
+    <!-- Modals -->
     <div id="file-validation-modal" class="modal-overlay">
         <div class="modal-box max-w-450">
             <h3 class="modal-title">No File Selected</h3>
-            <p class="modal-body-text mb-lg">
-                Please select a file before adding another upload row.
-            </p>
+            <p class="modal-body-text mb-lg">Please select a file before adding another.</p>
             <div class="modal-actions">
                 <button onclick="closeFileValidationModal()" class="btn">OK</button>
             </div>
         </div>
     </div>
 
-    <!-- Delete File Confirmation Modal -->
     <div id="delete-modal" class="modal-overlay">
         <div class="modal-box max-w-450">
             <h3 class="modal-title">Delete File?</h3>
-            <p id="delete-message" class="modal-body-text mb-lg">
-                Are you sure you want to delete this file? This cannot be undone.
-            </p>
+            <p class="modal-body-text mb-lg">This cannot be undone.</p>
             <div class="modal-actions">
                 <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
                 <button onclick="confirmDelete()" class="btn btn-danger">Delete</button>
@@ -227,20 +194,22 @@
         </div>
     </div>
 
-    <!-- Delete Entry Confirmation Modal -->
     <div id="delete-entry-modal" class="modal-overlay">
         <div class="modal-box max-w-450">
             <h3 class="modal-title">Delete Income Entry?</h3>
-            <p class="modal-body-text mb-lg">
-                Are you sure you want to delete this entire income entry? This will remove the entry and all its attachments. This cannot be undone.
-            </p>
+            <p class="modal-body-text mb-lg">This will remove the entry and all attachments.</p>
             <div class="modal-actions">
                 <button onclick="closeDeleteEntryModal()" class="btn btn-secondary">Cancel</button>
                 <button onclick="deleteEntry()" class="btn btn-danger">Delete Entry</button>
             </div>
         </div>
     </div>
-
 </div>
+
+<!-- Pass suggestions to JavaScript -->
+<script>
+    const payorSuggestions = {{ payor_suggestions | tojson }};
+    const initialPayor = {{ (entry.source if entry else '') | tojson }};
+</script>
 
 {% endblock %}

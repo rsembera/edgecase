@@ -1411,6 +1411,22 @@ class Database:
         
         return [row[0] for row in cursor.fetchall()]
 
+    def get_distinct_payor_sources(self) -> list:
+        """Get distinct payor/source names from income entries for autocomplete."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT DISTINCT source 
+            FROM entries 
+            WHERE ledger_type = 'income' 
+            AND source IS NOT NULL 
+            AND source != ''
+            ORDER BY source ASC
+        """)
+        
+        return [row[0] for row in cursor.fetchall()]
+
     def update_expense_category(self, category_id: int, name: str) -> bool:
         """Update an expense category's name."""
         conn = self.connect()
