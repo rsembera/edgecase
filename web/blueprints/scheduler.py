@@ -24,6 +24,35 @@ def init_blueprint(database):
     db = database
 
 
+def escape_ics_text(text):
+    """Escape text for ICS format per RFC 5545.
+    
+    Must escape: backslash, semicolon, comma, newline
+    Order matters: backslash first to avoid double-escaping.
+    """
+    if not text:
+        return ''
+    text = text.replace('\\', '\\\\')  # Backslash first!
+    text = text.replace(';', '\\;')
+    text = text.replace(',', '\\,')
+    text = text.replace('\n', '\\n')
+    return text
+
+
+def escape_applescript_text(text):
+    """Escape text for AppleScript string literals.
+    
+    Must escape: backslash, double quote, newline
+    Order matters: backslash first to avoid double-escaping.
+    """
+    if not text:
+        return ''
+    text = text.replace('\\', '\\\\')  # Backslash first!
+    text = text.replace('"', '\\"')
+    text = text.replace('\n', '\\n')
+    return text
+
+
 def parse_time_string(time_str):
     """Parse time string like '2:30 PM' or '14:00' into hours and minutes."""
     time_str = time_str.strip().upper()
@@ -127,7 +156,7 @@ def generate_ics(file_number, start_dt, duration, meet_link, notes, contact_info
         desc_parts.append(f'\n---\n{notes}')
     
     if desc_parts:
-        description = ''.join(desc_parts).replace('\n', '\\n')
+        description = escape_ics_text(''.join(desc_parts))
         lines.append(f'DESCRIPTION:{description}')
     
     # Add recurrence rule
@@ -174,7 +203,7 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
         desc_parts.append(contact_info)
     if notes:
         desc_parts.append(f'\n---\n{notes}')
-    description = ''.join(desc_parts).replace('"', '\\"').replace('\n', '\\n')
+    description = escape_applescript_text(''.join(desc_parts))
     
     # Build recurrence part
     recurrence = ''
