@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** December 4, 2025  
+**Last Updated:** December 5, 2025  
 **Status:** ALL PHASES COMPLETE ✅ - Production Ready
 
 ---
@@ -75,6 +75,28 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### December 5, 2025
+
+**Bug Investigation Complete**
+- Systematic review of 41 potential issues from checklist
+- 38 items confirmed resolved (fixed, handled, or by design)
+- 3 minor theoretical edge cases that fail gracefully
+- Created Bug_Investigation_Log.md for reference
+- System ready for production launch
+
+**Double-Login Fix**
+- Fixed Safari/Firefox requiring two logins
+- Root cause: session cookie race condition on redirect
+- Solution: Clear stale session, set last_activity immediately, unique cookie name
+
+**Ledger Autocomplete Refactor**
+- Unified architecture for all three autocomplete fields
+- Expense categories, expense payees, income payors now use identical pattern
+- Each uses dedicated table for suggestions
+- X button removes from table, save adds to table
+- Removed legacy blacklist workaround
+- Added income_payors table to schema
 
 ### December 4, 2025
 

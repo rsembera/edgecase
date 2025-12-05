@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** December 4, 2025 - Backup deletion protection, UI polish
+**Last Updated:** December 5, 2025 - Bug investigation complete, ledger autocomplete refactor, double-login fix
 
 ---
 
@@ -262,9 +262,10 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 6. **attachments** - Encrypted file uploads
 7. **expense_categories** - User-defined categories
 8. **payees** - Expense payee names
-9. **settings** - Application configuration
-10. **archived_clients** - Retention archives
-11. **statement_portions** - Payment tracking
+9. **income_payors** - Income payor names (NEW)
+10. **settings** - Application configuration
+11. **archived_clients** - Retention archives
+12. **statement_portions** - Payment tracking
 
 ---
 
@@ -333,13 +334,13 @@ pytest tests/ -v
 
 ---
 
-## RECENT CHANGES (Dec 4, 2025)
+## RECENT CHANGES (Dec 5, 2025)
 
-- Backup deletion protection (protect newest chain, allow cascade delete of old chains)
-- Main view: vertical alignment fix, preferred contact styling, Status/Type header fix
-- Main view: JS-powered Detailed/Compact toggle (no page reload)
-- Settings: Manual Save button for file number prefix-counter format
-- Explanatory text on backups page
+- Bug investigation complete: 41 items reviewed, 38 resolved, 3 minor theoretical
+- Double-login fix for Safari/Firefox (session cookie race condition)
+- Ledger autocomplete refactor: unified table-based architecture
+- Added income_payors table, removed blacklist workaround
+- Created Bug_Investigation_Log.md documentation
 
 ---
 
@@ -352,7 +353,8 @@ pytest tests/ -v
 - v3.0: Phase 1 Complete (Nov 29, 2025)
 - v4.0: Phase 2 Complete (Dec 1, 2025)
 - v5.0: AI Scribe Complete (Dec 2, 2025)
-- **v5.1: Backup protection, UI polish (Dec 4, 2025)**
+- v5.1: Backup protection, UI polish (Dec 4, 2025)
+- **v5.2: Bug investigation complete, autocomplete refactor (Dec 5, 2025)**
 
 ---
 

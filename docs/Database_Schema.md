@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** November 28, 2025
+**Last Updated:** December 5, 2025
 
 ---
 
@@ -20,9 +20,10 @@ EdgeCase uses SQLite with 12 tables organized around an entry-based architecture
 6. attachments - File uploads
 7. expense_categories - User-defined expense categories
 8. payees - Expense payee names
-9. settings - Application settings
-10. archived_clients - Retention system archives
-11. statement_portions - Statement tracking (NEW)
+9. income_payors - Income payor names (NEW)
+10. settings - Application settings
+11. archived_clients - Retention system archives
+12. statement_portions - Statement tracking
 
 ---
 
@@ -333,7 +334,21 @@ CREATE TABLE payees (
 
 ---
 
-### 9. settings
+### 9. income_payors
+
+Income payor names (reusable, for autocomplete).
+
+```sql
+CREATE TABLE income_payors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    created_at INTEGER NOT NULL
+);
+```
+
+---
+
+### 10. settings
 
 Application configuration.
 
@@ -362,7 +377,7 @@ CREATE TABLE settings (
 
 ---
 
-### 10. archived_clients
+### 11. archived_clients
 
 Retention system archives (minimal info kept after deletion).
 
@@ -383,7 +398,7 @@ CREATE TABLE archived_clients (
 
 ---
 
-### 11. statement_portions (NEW)
+### 12. statement_portions (NEW)
 
 Tracks individual payment portions for statements.
 
