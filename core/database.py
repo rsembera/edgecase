@@ -1455,6 +1455,18 @@ class Database:
         except Exception:
             return False
 
+    def remove_from_payor_blacklist(self, name: str) -> bool:
+        """Remove a payor name from the blacklist (when used again)."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("DELETE FROM payor_blacklist WHERE name = ?", (name,))
+            conn.commit()
+            return True
+        except Exception:
+            return False
+
     def update_expense_category(self, category_id: int, name: str) -> bool:
         """Update an expense category's name."""
         conn = self.connect()

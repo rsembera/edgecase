@@ -153,13 +153,18 @@ def create_income():
     
     if request.method == 'POST':
         ledger_date_timestamp = parse_date_from_form(request.form)
+        source = request.form.get('source', '').strip()
+        
+        # If this payor was previously blacklisted, un-blacklist them
+        if source:
+            db.remove_from_payor_blacklist(source)
         
         income_data = {
             'client_id': None,
             'class': 'income',
             'ledger_type': 'income',
             'ledger_date': ledger_date_timestamp,
-            'source': request.form.get('source'),
+            'source': source,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
@@ -195,10 +200,15 @@ def edit_income(entry_id):
     
     if request.method == 'POST':
         ledger_date_timestamp = parse_date_from_form(request.form)
+        source = request.form.get('source', '').strip()
+        
+        # If this payor was previously blacklisted, un-blacklist them
+        if source:
+            db.remove_from_payor_blacklist(source)
         
         income_data = {
             'ledger_date': ledger_date_timestamp,
-            'source': request.form.get('source'),
+            'source': source,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
