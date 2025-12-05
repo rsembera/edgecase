@@ -585,38 +585,49 @@ def edit_session(client_id, entry_id):
         # Get the old session data for comparison
         old_session = session.copy()
         
+        # Check if entry is billed (has statement_id) - billing fields cannot be changed
+        is_billed = session.get('statement_id') is not None
+        
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
         is_pro_bono = 1 if request.form.get('is_pro_bono') else 0
         
+        # If billed, preserve original consultation/pro_bono status
+        if is_billed:
+            is_consultation = old_session.get('is_consultation', 0)
+            is_pro_bono = old_session.get('is_pro_bono', 0)
+        
         session_date_timestamp = parse_date_from_form(request.form)
         
-        # Update session data
+        # Update session data - preserve billing fields if entry is billed
         session_data = {
             'modality': request.form.get('modality'),
             'format': request.form.get('format'),
             'service': request.form.get('service') or None,
-            'session_date': session_date_timestamp,
+            'session_date': old_session.get('session_date') if is_billed else session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
-            'duration': int(request.form.get('duration')) if request.form.get('duration') else None,
-            'base_fee': float(request.form.get('base_fee')) if request.form.get('base_fee') else None,
-            'tax_rate': float(request.form.get('tax_rate')) if request.form.get('tax_rate') else None,
-            'fee': float(request.form.get('fee')) if request.form.get('fee') else None,
+            'duration': old_session.get('duration') if is_billed else (int(request.form.get('duration')) if request.form.get('duration') else None),
+            'base_fee': old_session.get('base_fee') if is_billed else (float(request.form.get('base_fee')) if request.form.get('base_fee') else None),
+            'tax_rate': old_session.get('tax_rate') if is_billed else (float(request.form.get('tax_rate')) if request.form.get('tax_rate') else None),
+            'fee': old_session.get('fee') if is_billed else (float(request.form.get('fee')) if request.form.get('fee') else None),
             'is_consultation': is_consultation,
             'is_pro_bono': is_pro_bono,
             'modified_at': int(time.time()),
             
-            # Clinical fields (optional)
+            # Clinical fields (always editable)
             'mood': request.form.get('mood') or None,
             'affect': request.form.get('affect') or None,
             'risk_assessment': request.form.get('risk_assessment') or None,
             
-            # Content
+            # Content (always editable)
             'content': request.form.get('content') or None,
         }
         
         # Update description based on consultation/pro bono status
-        if is_consultation:
+        # If billed, preserve original description
+        if is_billed:
+            session_data['description'] = old_session.get('description')
+        elif is_consultation:
             session_data['fee'] = 0
             session_data['base_fee'] = 0
             session_data['tax_rate'] = 0
@@ -851,6 +862,7 @@ def edit_session(client_id, entry_id):
                          session_day=session_day,
                          is_edit=True,
                          is_locked=is_locked,
+                         is_billed=session.get('statement_id') is not None,
                          edit_history=edit_history,
                          prev_session_id=prev_session_id,
                          next_session_id=next_session_id)
@@ -1128,6 +1140,9 @@ def edit_absence(client_id, entry_id):
         # Get the old absence data for comparison
         old_absence = absence.copy()
         
+        # Check if entry is billed (has statement_id) - billing fields cannot be changed
+        is_billed = absence.get('statement_id') is not None
+        
         # Convert date string to Unix timestamp
         absence_date_str = request.form.get('absence_date')
         absence_date_timestamp = None
@@ -1135,14 +1150,14 @@ def edit_absence(client_id, entry_id):
             date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
             absence_date_timestamp = int(date_obj.timestamp())
         
-        # Prepare updated absence data
+        # Prepare updated absence data - preserve billing fields if billed
         absence_data = {
             'description': request.form['description'],
-            'absence_date': absence_date_timestamp,
+            'absence_date': old_absence.get('absence_date') if is_billed else absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_price': float(request.form.get('base_price', 0)),
-            'tax_rate': float(request.form.get('tax_rate', 0)),
-            'fee': float(request.form.get('fee', 0)),
+            'base_price': old_absence.get('base_price') if is_billed else float(request.form.get('base_price', 0)),
+            'tax_rate': old_absence.get('tax_rate') if is_billed else float(request.form.get('tax_rate', 0)),
+            'fee': old_absence.get('fee') if is_billed else float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
         
@@ -1238,6 +1253,7 @@ def edit_absence(client_id, entry_id):
                         absence_date=absence_date,
                         is_edit=True,
                         is_locked=is_locked,
+                        is_billed=absence.get('statement_id') is not None,
                         edit_history=edit_history)
 
 
@@ -1307,6 +1323,9 @@ def edit_item(client_id, entry_id):
         # Get the old item data for comparison
         old_item = item.copy()
         
+        # Check if entry is billed (has statement_id) - billing fields cannot be changed
+        is_billed = item.get('statement_id') is not None
+        
         # Convert date string to Unix timestamp (optional for items)
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
@@ -1314,14 +1333,14 @@ def edit_item(client_id, entry_id):
             date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
             item_date_timestamp = int(date_obj.timestamp())
         
-        # Prepare updated item data
+        # Prepare updated item data - preserve billing fields if billed
         item_data = {
             'description': request.form['description'],
-            'item_date': item_date_timestamp,
+            'item_date': old_item.get('item_date') if is_billed else item_date_timestamp,
             'item_time': request.form.get('item_time', ''),
-            'base_price': float(request.form.get('base_price', 0)) if request.form.get('base_price') else None,
-            'tax_rate': float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0,
-            'fee': float(request.form.get('fee', 0)),
+            'base_price': old_item.get('base_price') if is_billed else (float(request.form.get('base_price', 0)) if request.form.get('base_price') else None),
+            'tax_rate': old_item.get('tax_rate') if is_billed else (float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0),
+            'fee': old_item.get('fee') if is_billed else float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
         
@@ -1417,6 +1436,7 @@ def edit_item(client_id, entry_id):
                          item_date=item_date,
                          is_edit=True,
                          is_locked=is_locked,
+                         is_billed=item.get('statement_id') is not None,
                          edit_history=edit_history)
 
 

@@ -2454,3 +2454,54 @@ tbody tr:hover {
 .checkbox-auto {
     width: auto;
 }
+
+
+
+/* ============================================
+   BILLED ENTRY PROTECTION
+   Styles for protecting billing fields on billed entries
+   ============================================ */
+
+/* Warning banner for billed entries */
+.billed-warning {
+    background: #FEF3C7;
+    border: 1px solid #FDE68A;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #92400E;
+}
+
+.billed-warning svg,
+.billed-warning i {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: #D97706;
+}
+
+/* Disabled field label styling */
+.field-disabled label {
+    color: #9CA3AF;
+}
+
+/* Disabled date/time picker styling */
+.picker-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Disabled fee field inputs */
+.fee-field input:disabled {
+    background-color: #F3F4F6;
+    color: #6B7280;
+    cursor: not-allowed;
+}
+
+/* Disabled checkbox label */
+.checkbox-label input:disabled + span {
+    color: #9CA3AF;
+}
