@@ -534,6 +534,7 @@ body.tutti-frutti .nav-btn.peach:hover {
     margin-bottom: 0;
     display: flex;
     align-items: center;
+    overflow: hidden;
 }
 
 .detailed-content .link-icon {
@@ -551,6 +552,9 @@ body.tutti-frutti .nav-btn.peach:hover {
     color: #111827;
     font-size: 0.9375rem;
     margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Payment status dots */
