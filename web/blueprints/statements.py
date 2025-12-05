@@ -280,7 +280,7 @@ def generate_statements():
             AND (
                 (class = 'session' AND session_date BETWEEN ? AND ? AND fee > 0)
                 OR (class = 'absence' AND absence_date BETWEEN ? AND ? AND (fee > 0 OR base_price > 0))
-                OR (class = 'item' AND item_date BETWEEN ? AND ? AND (fee > 0 OR base_price > 0))
+                OR (class = 'item' AND item_date BETWEEN ? AND ? AND (fee != 0 OR base_price != 0))
             )
         """, (client_id, start_ts, end_ts, start_ts, end_ts, start_ts, end_ts))
         
