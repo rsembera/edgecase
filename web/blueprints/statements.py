@@ -276,6 +276,7 @@ def generate_statements():
             WHERE client_id = ?
             AND class IN ('session', 'absence', 'item')
             AND statement_id IS NULL
+            AND locked = 1
             AND (
                 (class = 'session' AND session_date BETWEEN ? AND ? AND fee > 0)
                 OR (class = 'absence' AND absence_date BETWEEN ? AND ? AND (fee > 0 OR base_price > 0))
