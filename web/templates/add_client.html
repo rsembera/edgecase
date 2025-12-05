@@ -12,13 +12,20 @@
     <h2><i data-lucide="plus" class="page-icon"></i>Add New Client</h2>
     <p class="page-subtitle">Create a new client record</p>
     
+    {% if error %}
+    <div class="error-message">
+        <i data-lucide="alert-circle"></i>
+        {{ error }}
+    </div>
+    {% endif %}
+
     <form method="post" data-file-number-format="{{ file_number_format }}">
         <div class="form-group">
             <label for="type_id">Client Type</label>
             <select id="type_id" name="type_id" required>
                 {% for type in all_types %}
                 {% if type.name != 'Deleted' and type.name != 'Inactive' %}
-                <option value="{{ type.id }}">{{ type.name }}</option>
+                <option value="{{ type.id }}" {% if form_data and form_data.get('type_id') == type.id|string %}selected{% endif %}>{{ type.name }}</option>
                 {% endif %}
                 {% endfor %}
             </select>
@@ -27,23 +34,26 @@
         <div class="form-group">
             <label for="session_offset">Starting Session Number</label>
             <input type="number" id="session_offset" name="session_offset" 
-                value="0" min="0">
+                value="{{ form_data.get('session_offset', '0') if form_data else '0' }}" min="0">
             <small class="helper-text">For new clients, leave at 0.<br />For migrated clients: if they've had 15 sessions elsewhere, enter 15 (next session will be #16)</small>
         </div>
         
         <div class="form-group">
             <label for="first_name">First Name</label>
-            <input type="text" id="first_name" name="first_name" required>
+            <input type="text" id="first_name" name="first_name" 
+                value="{{ form_data.get('first_name', '') if form_data else '' }}" required>
         </div>
         
         <div class="form-group">
             <label for="middle_name">Middle Name (Optional)</label>
-            <input type="text" id="middle_name" name="middle_name">
+            <input type="text" id="middle_name" name="middle_name"
+                value="{{ form_data.get('middle_name', '') if form_data else '' }}">
         </div>
         
         <div class="form-group">
             <label for="last_name">Last Name</label>
-            <input type="text" id="last_name" name="last_name" required>
+            <input type="text" id="last_name" name="last_name" 
+                value="{{ form_data.get('last_name', '') if form_data else '' }}" required>
         </div>
         
         <div class="form-group">
@@ -55,6 +65,7 @@
                        value="{{ file_number_preview }}"
                        readonly
                    {% else %}
+                       value="{{ form_data.get('file_number', '') if form_data else '' }}"
                        placeholder="e.g., 20251108-RLS"
                    {% endif %}
                    required>

@@ -528,6 +528,13 @@ class Database:
         
         return client_id
     
+    def file_number_exists(self, file_number: str) -> bool:
+        """Check if a file number already exists."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM clients WHERE file_number = ?", (file_number,))
+        return cursor.fetchone() is not None
+
     def get_client(self, client_id: int) -> Optional[Dict[str, Any]]:
         """Get client by ID."""
         conn = self.connect()
