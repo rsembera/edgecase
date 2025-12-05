@@ -582,29 +582,81 @@ def mark_paid():
         WHERE id = ?
     """, (new_amount_paid, new_status, portion_id))
     
-    # Create Income entry
-    description = "Client Payment"
-    if portion['guardian_number']:
-        description += f" (Guardian {portion['guardian_number']})"
-    source = portion['file_number']
-    
-    cursor.execute("""
-        INSERT INTO entries (
-            client_id, class, ledger_type, created_at, modified_at,
-            description, content, ledger_date, source, total_amount,
-            tax_amount, statement_id
-        ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, 0, ?)
-    """, (
-        None,
-        now,
-        now,
-        description,
-        notes if notes else None,
-        now,
-        source,  # file number instead of name
-        payment_amount,
-        portion['statement_entry_id']
-    ))
+    # Create ledger entry - Income for positive, Expense for negative (refunds)
+    if payment_amount >= 0:
+        # Normal payment - create Income entry
+        description = "Client Payment"
+        if portion['guardian_number']:
+            description += f" (Guardian {portion['guardian_number']})"
+        source = portion['file_number']
+        
+        cursor.execute("""
+            INSERT INTO entries (
+                client_id, class, ledger_type, created_at, modified_at,
+                description, content, ledger_date, source, total_amount,
+                tax_amount, statement_id
+            ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        """, (
+            None,
+            now,
+            now,
+            description,
+            notes if notes else None,
+            now,
+            source,
+            payment_amount,
+            portion['statement_entry_id']
+        ))
+    else:
+        # Refund - create Expense entry with positive amount
+        refund_amount = abs(payment_amount)
+        
+        # Get or create "Client Refund" category
+        cursor.execute("SELECT id FROM expense_categories WHERE name = 'Client Refund'")
+        cat_row = cursor.fetchone()
+        if cat_row:
+            category_id = cat_row[0]
+        else:
+            cursor.execute("""
+                INSERT INTO expense_categories (name, created_at)
+                VALUES ('Client Refund', ?)
+            """, (now,))
+            category_id = cursor.lastrowid
+        
+        # Get or create payee with file number
+        cursor.execute("SELECT id FROM payees WHERE name = ?", (portion['file_number'],))
+        payee_row = cursor.fetchone()
+        if payee_row:
+            payee_id = payee_row[0]
+        else:
+            cursor.execute("""
+                INSERT INTO payees (name, created_at)
+                VALUES (?, ?)
+            """, (portion['file_number'], now))
+            payee_id = cursor.lastrowid
+        
+        description = "Client Refund"
+        if portion['guardian_number']:
+            description += f" (Guardian {portion['guardian_number']})"
+        
+        cursor.execute("""
+            INSERT INTO entries (
+                client_id, class, ledger_type, created_at, modified_at,
+                description, content, ledger_date, category_id, payee_id,
+                total_amount, tax_amount, statement_id
+            ) VALUES (?, 'expense', 'expense', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        """, (
+            None,
+            now,
+            now,
+            description,
+            notes if notes else None,
+            now,
+            category_id,
+            payee_id,
+            refund_amount,
+            portion['statement_entry_id']
+        ))
     
     conn.commit()
     
