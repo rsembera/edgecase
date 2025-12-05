@@ -168,7 +168,7 @@ def find_unbilled():
         AND (
             (e.class = 'session' AND e.session_date BETWEEN ? AND ? AND e.fee > 0)
             OR (e.class = 'absence' AND e.absence_date BETWEEN ? AND ? AND (e.fee > 0 OR e.base_price > 0))
-            OR (e.class = 'item' AND e.item_date BETWEEN ? AND ? AND (e.fee > 0 OR e.base_price > 0))
+            OR (e.class = 'item' AND e.item_date BETWEEN ? AND ? AND (e.fee != 0 OR e.base_price != 0))
         )
         ORDER BY c.last_name, c.first_name, e.client_id
     """, (start_ts, end_ts, start_ts, end_ts, start_ts, end_ts))
