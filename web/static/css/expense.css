@@ -1,17 +1,10 @@
 /* Expense Entry Form Styles */
-/* Shared patterns from shared.css: .form-group, .btn*, .card, .modal-* */
 
-/* ============================================
-   PAGE LAYOUT
-   ============================================ */
 .expense-card {
     max-width: 900px;
     margin: 0 auto;
 }
 
-/* ============================================
-   PAGE HEADER
-   ============================================ */
 .expense-header {
     display: flex;
     justify-content: space-between;
@@ -19,21 +12,10 @@
     margin-bottom: 2rem;
 }
 
-/* ============================================
-   FORM LAYOUTS
-   ============================================ */
-
-/* Date field container - constrained width */
 .date-field-narrow {
     max-width: 300px;
 }
 
-/* Expense Category dropdown - match Payee width */
-#category_id {
-    max-width: calc(50% - 0.75rem);
-}
-
-/* Currency input with prefix */
 .input-with-prefix {
     position: relative;
 }
@@ -43,8 +25,81 @@
 }
 
 /* ============================================
-   SECTION DIVIDERS (border-top style)
+   AUTOCOMPLETE COMPONENT
    ============================================ */
+
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: white;
+}
+
+.autocomplete-input:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    margin-top: 2px;
+}
+
+.autocomplete-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background: #F3F4F6;
+}
+
+.autocomplete-text {
+    flex: 1;
+}
+
+.autocomplete-remove {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.autocomplete-remove:hover {
+    color: #DC2626;
+    background: #FEE2E2;
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+
 .section-border-top {
     margin-top: 2rem;
     padding-top: 2rem;
@@ -60,6 +115,7 @@
 /* ============================================
    ATTACHMENTS
    ============================================ */
+
 .attachment-details {
     flex: 1;
 }
@@ -81,12 +137,10 @@
     gap: 0.5rem;
 }
 
-/* Upload toggle */
 .upload-toggle-wrapper {
     margin-bottom: 1rem;
 }
 
-/* File input row - flex layout */
 .file-row-grid {
     display: flex;
     gap: 1rem;
@@ -104,7 +158,8 @@
     color: #374151;
 }
 
-.file-row-grid .file-field input[type="file"] {
+.file-row-grid .file-field input[type="file"],
+.file-row-grid .file-field input[type="text"] {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #D1D5DB;
@@ -112,16 +167,13 @@
 }
 
 .file-row-grid .file-field input[type="text"] {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #D1D5DB;
-    border-radius: 0.375rem;
     height: 38px;
 }
 
 /* ============================================
    EDIT HISTORY
    ============================================ */
+
 .edit-history-container {
     background: #F9FAFB;
     border-radius: 0.5rem;
@@ -147,8 +199,9 @@
 }
 
 /* ============================================
-   FORM ACTIONS (bottom buttons)
+   FORM ACTIONS
    ============================================ */
+
 .expense-form-actions {
     display: flex;
     justify-content: space-between;

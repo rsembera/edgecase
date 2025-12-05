@@ -1118,8 +1118,9 @@ class Database:
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
             'guardian2_name', 'guardian2_email', 'guardian2_phone',
             'guardian2_address', 'guardian2_pays_percent',
-            # Ledger fields  ← ADD THIS SECTION
+            # Ledger fields
             'ledger_date', 'ledger_type', 'source', 'payee_id', 'category_id',
+            'payee_name', 'category_name',  # Text fields for ledger entries
             'base_amount', 'tax_amount', 'total_amount', 'statement_id'
         ]
         
@@ -1381,6 +1382,34 @@ class Database:
         categories = [dict(row) for row in cursor.fetchall()]
         
         return categories
+
+    def get_expense_category_by_name(self, name: str) -> dict:
+        """Get an expense category by name (case-insensitive)."""
+        import sqlcipher3 as sqlite3
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM expense_categories WHERE LOWER(name) = LOWER(?)", (name,))
+        category = cursor.fetchone()
+        
+        return dict(category) if category else None
+
+    def get_distinct_payee_names(self) -> list:
+        """Get distinct payee names from expense entries for autocomplete."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT DISTINCT payee_name 
+            FROM entries 
+            WHERE ledger_type = 'expense' 
+            AND payee_name IS NOT NULL 
+            AND payee_name != ''
+            ORDER BY payee_name ASC
+        """)
+        
+        return [row[0] for row in cursor.fetchall()]
 
     def update_expense_category(self, category_id: int, name: str) -> bool:
         """Update an expense category's name."""
