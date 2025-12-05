@@ -45,27 +45,25 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     """, (start_ts, end_ts))
     income_entries = cursor.fetchall()
     
-    # Get expense entries with category names and payee names
+    # Get expense entries with category names and payee names (now stored directly)
     cursor.execute("""
-        SELECT e.ledger_date, e.total_amount, e.description, ec.name as category, p.name as payee_name
-        FROM entries e
-        LEFT JOIN expense_categories ec ON e.category_id = ec.id
-        LEFT JOIN payees p ON e.payee_id = p.id
-        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
-        AND e.ledger_date >= ? AND e.ledger_date <= ?
-        ORDER BY e.ledger_date
+        SELECT ledger_date, total_amount, description, category_name, payee_name
+        FROM entries
+        WHERE class = 'expense' AND ledger_type = 'expense'
+        AND ledger_date >= ? AND ledger_date <= ?
+        ORDER BY ledger_date
     """, (start_ts, end_ts))
     expense_entries = cursor.fetchall()
     
-    # Get category totals
+    # Get category totals (now using category_name text field)
     cursor.execute("""
-        SELECT ec.name, COALESCE(SUM(e.total_amount), 0) as total
-        FROM entries e
-        LEFT JOIN expense_categories ec ON e.category_id = ec.id
-        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
-        AND e.ledger_date >= ? AND e.ledger_date <= ?
-        GROUP BY e.category_id
-        ORDER BY ec.name
+        SELECT COALESCE(category_name, 'Uncategorized') as cat_name, 
+               COALESCE(SUM(total_amount), 0) as total
+        FROM entries
+        WHERE class = 'expense' AND ledger_type = 'expense'
+        AND ledger_date >= ? AND ledger_date <= ?
+        GROUP BY category_name
+        ORDER BY cat_name
     """, (start_ts, end_ts))
     category_totals = cursor.fetchall()
     

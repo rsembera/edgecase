@@ -87,7 +87,7 @@ def ledger():
             entry_dt = datetime.fromtimestamp(entry['ledger_date'])
             year = entry_dt.year
             month = entry_dt.month
-            month_name = entry_dt.strftime('%B')  # "November"
+            month_name = entry_dt.strftime('%B')
             amount = entry.get('total_amount', 0) or 0
             
             # YTD calculations
@@ -96,12 +96,11 @@ def ledger():
                     ytd_income += amount
                 elif entry['ledger_type'] == 'expense':
                     ytd_expenses += amount
-                    # Track by category
-                    cat_id = entry.get('category_id')
-                    if cat_id:
-                        if cat_id not in ytd_expenses_by_category:
-                            ytd_expenses_by_category[cat_id] = 0
-                        ytd_expenses_by_category[cat_id] += amount
+                    # Track by category name (text field)
+                    cat_name = entry.get('category_name') or 'Uncategorized'
+                    if cat_name not in ytd_expenses_by_category:
+                        ytd_expenses_by_category[cat_name] = 0
+                    ytd_expenses_by_category[cat_name] += amount
             
             # MTD calculations
             if year == current_year and month == current_month:
@@ -120,39 +119,20 @@ def ledger():
                     'entries': []
                 }
             
-            # Get payee and category names for expenses
-            if entry['ledger_type'] == 'expense':
-                if entry.get('payee_id'):
-                    payee = db.get_payee(entry['payee_id'])
-                    entry['payee_name'] = payee['name'] if payee else 'Unknown'
-                
-                if entry.get('category_id'):
-                    category = db.get_expense_category(entry['category_id'])
-                    entry['category_name'] = category['name'] if category else 'Unknown'
-            
             entries_by_year_month[year][month]['entries'].append(entry)
     
     # Calculate net
     ytd_net = ytd_income - ytd_expenses
     mtd_net = mtd_income - mtd_expenses
     
-    # Get category names for YTD breakdown
+    # YTD category breakdown
     ytd_category_breakdown = []
-    for cat_id, amount in sorted(ytd_expenses_by_category.items(), key=lambda x: x[1], reverse=True):
-        category = db.get_expense_category(cat_id)
-        if category:
-            ytd_category_breakdown.append({
-                'name': category['name'],
-                'amount': amount
-            })
+    for cat_name, amount in sorted(ytd_expenses_by_category.items(), key=lambda x: x[1], reverse=True):
+        ytd_category_breakdown.append({
+            'name': cat_name,
+            'amount': amount
+        })
     
-    # Sort years (newest first) and months (newest first within year)
-    years = sorted(entries_by_year_month.keys(), reverse=True)
-    for year in years:
-        entries_by_year_month[year] = dict(
-            sorted(entries_by_year_month[year].items(), reverse=True)
-        )
-        
     # Sort years (newest first) and months (newest first within year)
     years = sorted(entries_by_year_month.keys(), reverse=True)
     for year in years:
@@ -191,12 +171,10 @@ def create_income():
     """Create new income entry."""
     
     if request.method == 'POST':
-        # Parse date from dropdowns
         ledger_date_timestamp = parse_date_from_form(request.form)
         
-        # Prepare income entry data
         income_data = {
-            'client_id': None,  # Ledger entries are not tied to clients
+            'client_id': None,
             'class': 'income',
             'ledger_type': 'income',
             'ledger_date': ledger_date_timestamp,
@@ -207,25 +185,22 @@ def create_income():
             'content': request.form.get('content', '')
         }
         
-        # Save income entry first to get entry_id
         entry_id = db.add_entry(income_data)
         
-        # Handle file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
         save_uploaded_files(files, descriptions, entry_id, db)
         
         return redirect(url_for('ledger.ledger'))
     
-    # GET - show form
     date_parts = get_today_date_parts()
-    
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/income.html',
                          **date_parts,
                          currency=currency,
                          is_edit=False)
+
 
 @ledger_bp.route('/ledger/income/<int:entry_id>', methods=['GET', 'POST'])
 def edit_income(entry_id):
@@ -236,10 +211,8 @@ def edit_income(entry_id):
         return "Income entry not found", 404
     
     if request.method == 'POST':
-        # Parse date from dropdowns
         ledger_date_timestamp = parse_date_from_form(request.form)
         
-        # Prepare updated income data
         income_data = {
             'ledger_date': ledger_date_timestamp,
             'source': request.form.get('source'),
@@ -249,31 +222,23 @@ def edit_income(entry_id):
             'content': request.form.get('content', '')
         }
         
-        # Handle new file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
-        
         save_uploaded_files(files, descriptions, entry_id, db)
         
-        # Update the income entry
         db.update_entry(entry_id, income_data)
         
         return redirect(url_for('ledger.ledger'))
     
-    # GET - show form with existing data
-    # Parse income date into year, month, day for dropdowns
-    income_year = None
-    income_month = None
-    income_day = None
+    # Parse income date for form
+    income_year = income_month = income_day = None
     if income.get('ledger_date'):
         income_dt = datetime.fromtimestamp(income['ledger_date'])
         income_year = income_dt.year
         income_month = income_dt.month
         income_day = income_dt.day
     
-    # Get attachments for this entry
     attachments = db.get_attachments(entry_id)
-    
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/income.html',
@@ -289,31 +254,23 @@ def edit_income(entry_id):
 @ledger_bp.route('/ledger/income/<int:entry_id>/delete', methods=['POST'])
 def delete_income_entry(entry_id):
     """Delete income entry and all its attachments."""
-    
-    # Get the entry
     entry = db.get_entry(entry_id)
     
     if not entry or entry['ledger_type'] != 'income':
         return "Income entry not found", 404
     
     try:
-        # Delete attachments from disk first
         upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)
         
-        # Delete attachment records from database
         conn = db.connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
-        
-        # Delete the entry itself
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
-        
         conn.commit()
         
         return "", 200
-    
     except Exception as e:
         print(f"Error deleting income entry: {e}")
         return f"Error: {str(e)}", 500
@@ -328,48 +285,35 @@ def create_expense():
     """Create new expense entry."""
     
     if request.method == 'POST':
-        # Handle new payee creation
-        payee_id = request.form.get('payee_id')
-        if payee_id == 'new':
-            new_payee_name = request.form.get('new_payee_name')
-            if new_payee_name:
-                payee_id = db.add_payee(new_payee_name)
-        else:
-            payee_id = int(payee_id)
+        # Get payee and category directly as text
+        payee_name = request.form.get('payee_name', '').strip()
+        category_name = request.form.get('category_name', '').strip()
         
-        # Handle new category creation
-        category_id = request.form.get('category_id')
-        if category_id == 'new':
-            new_category_name = request.form.get('new_category_name')
-            if new_category_name:
-                category_id = db.add_expense_category(new_category_name)
-        else:
-            category_id = int(category_id)
+        # Add category to suggestions if new
+        if category_name:
+            existing = db.get_expense_category_by_name(category_name)
+            if not existing:
+                db.add_expense_category(category_name)
         
-        # Parse date from dropdowns
         ledger_date_timestamp = parse_date_from_form(request.form)
         
-        # Prepare expense entry data
         expense_data = {
-            'client_id': None,  # Ledger entries are not tied to clients
+            'client_id': None,
             'class': 'expense',
             'ledger_type': 'expense',
             'ledger_date': ledger_date_timestamp,
-            'payee_id': payee_id,
-            'category_id': category_id,
+            'payee_name': payee_name,
+            'category_name': category_name,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }
         
-        # Save expense entry first to get entry_id
         entry_id = db.add_entry(expense_data)
         
-        # Handle file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
-        
         save_uploaded_files(files, descriptions, entry_id, db)
         
         return redirect(url_for('ledger.ledger'))
@@ -377,16 +321,17 @@ def create_expense():
     # GET - show form
     date_parts = get_today_date_parts()
     
-    # Get payees and categories for dropdowns
-    payees = db.get_all_payees()
+    # Get suggestions for autocomplete
     categories = db.get_all_expense_categories()
+    category_suggestions = [c['name'] for c in categories]
+    payee_suggestions = db.get_distinct_payee_names()
     
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/expense.html',
                          **date_parts,
-                         payees=payees,
-                         categories=categories,
+                         payee_suggestions=payee_suggestions,
+                         category_suggestions=category_suggestions,
                          currency=currency,
                          is_edit=False)
 
@@ -400,67 +345,49 @@ def edit_expense(entry_id):
         return "Expense entry not found", 404
     
     if request.method == 'POST':
-        # Handle new payee creation
-        payee_id = request.form.get('payee_id')
-        if payee_id == 'new':
-            new_payee_name = request.form.get('new_payee_name')
-            if new_payee_name:
-                payee_id = db.add_payee(new_payee_name)
-        else:
-            payee_id = int(payee_id)
+        payee_name = request.form.get('payee_name', '').strip()
+        category_name = request.form.get('category_name', '').strip()
         
-        # Handle new category creation
-        category_id = request.form.get('category_id')
-        if category_id == 'new':
-            new_category_name = request.form.get('new_category_name')
-            if new_category_name:
-                category_id = db.add_expense_category(new_category_name)
-        else:
-            category_id = int(category_id)
+        # Add category to suggestions if new
+        if category_name:
+            existing = db.get_expense_category_by_name(category_name)
+            if not existing:
+                db.add_expense_category(category_name)
         
-        # Parse date from dropdowns
         ledger_date_timestamp = parse_date_from_form(request.form)
         
-        # Prepare updated expense data
         expense_data = {
             'ledger_date': ledger_date_timestamp,
-            'payee_id': payee_id,
-            'category_id': category_id,
+            'payee_name': payee_name,
+            'category_name': category_name,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }
         
-        # Handle new file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')
-        
         save_uploaded_files(files, descriptions, entry_id, db)
         
-        # Update the expense entry
         db.update_entry(entry_id, expense_data)
         
         return redirect(url_for('ledger.ledger'))
     
-    # GET - show form with existing data
-    # Parse expense date into year, month, day for dropdowns
-    expense_year = None
-    expense_month = None
-    expense_day = None
+    # Parse expense date for form
+    expense_year = expense_month = expense_day = None
     if expense.get('ledger_date'):
         expense_dt = datetime.fromtimestamp(expense['ledger_date'])
         expense_year = expense_dt.year
         expense_month = expense_dt.month
         expense_day = expense_dt.day
     
-    # Get payees and categories for dropdowns
-    payees = db.get_all_payees()
+    # Get suggestions for autocomplete
     categories = db.get_all_expense_categories()
+    category_suggestions = [c['name'] for c in categories]
+    payee_suggestions = db.get_distinct_payee_names()
     
-    # Get attachments for this entry
     attachments = db.get_attachments(entry_id)
-    
     currency = db.get_setting('currency', '$')
     
     return render_template('entry_forms/expense.html',
@@ -468,8 +395,8 @@ def edit_expense(entry_id):
                          expense_year=expense_year,
                          expense_month=expense_month,
                          expense_day=expense_day,
-                         payees=payees,
-                         categories=categories,
+                         payee_suggestions=payee_suggestions,
+                         category_suggestions=category_suggestions,
                          attachments=attachments,
                          currency=currency,
                          is_edit=True)
@@ -478,45 +405,75 @@ def edit_expense(entry_id):
 @ledger_bp.route('/ledger/expense/<int:entry_id>/delete', methods=['POST'])
 def delete_expense_entry(entry_id):
     """Delete expense entry and all its attachments."""
-    
-    # Get the entry
     entry = db.get_entry(entry_id)
     
     if not entry or entry['ledger_type'] != 'expense':
         return "Expense entry not found", 404
     
     try:
-        # Delete attachments from disk first
         upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)
         
-        # Delete attachment records from database
         conn = db.connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
-        
-        # Delete the entry itself
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
-        
         conn.commit()
         
         return "", 200
-    
     except Exception as e:
         print(f"Error deleting expense entry: {e}")
         return f"Error: {str(e)}", 500
+
+
+# ============================================================================
+# SUGGESTION MANAGEMENT
+# ============================================================================
+
+@ledger_bp.route('/ledger/suggestion/payee/remove', methods=['POST'])
+def remove_payee_suggestion():
+    """Remove a payee from the suggestions list."""
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'No name provided'}), 400
     
-# ============================================
+    try:
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM payees WHERE name = ?", (name,))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@ledger_bp.route('/ledger/suggestion/category/remove', methods=['POST'])
+def remove_category_suggestion():
+    """Remove a category from the suggestions list."""
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'No name provided'}), 400
+    
+    try:
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM expense_categories WHERE name = ?", (name,))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # REPORTS
-# ============================================
+# ============================================================================
 
 @ledger_bp.route('/ledger/report')
 def ledger_report():
     """Display the financial report generator page."""
-    from datetime import datetime
-    
-    # Default to current year
     now = datetime.now()
     
     return render_template('ledger_report.html',
@@ -532,15 +489,12 @@ def ledger_report():
 @ledger_bp.route('/ledger/report/calculate')
 def calculate_report():
     """Calculate totals for preview without generating PDF."""
-    from datetime import datetime
-    
     start_date = request.args.get('start')
     end_date = request.args.get('end')
     
     if not start_date or not end_date:
         return jsonify({'success': False, 'error': 'Missing date range'}), 400
     
-    # Convert to timestamps
     start_ts = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
     end_ts = int(datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S').timestamp())
     
@@ -565,15 +519,15 @@ def calculate_report():
     """, (start_ts, end_ts))
     total_expenses = cursor.fetchone()[0] or 0
     
-    # Get expenses by category
+    # Get expenses by category (using category_name text field)
     cursor.execute("""
-        SELECT ec.name, COALESCE(SUM(e.total_amount), 0) as total
-        FROM entries e
-        LEFT JOIN expense_categories ec ON e.category_id = ec.id
-        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
-        AND e.ledger_date >= ? AND e.ledger_date <= ?
-        GROUP BY e.category_id
-        ORDER BY ec.name
+        SELECT COALESCE(category_name, 'Uncategorized') as cat_name, 
+               COALESCE(SUM(total_amount), 0) as total
+        FROM entries
+        WHERE class = 'expense' AND ledger_type = 'expense'
+        AND ledger_date >= ? AND ledger_date <= ?
+        GROUP BY category_name
+        ORDER BY cat_name
     """, (start_ts, end_ts))
     
     categories = []
@@ -582,7 +536,6 @@ def calculate_report():
             'name': row[0] or 'Uncategorized',
             'total': row[1]
         })
-    
     
     return jsonify({
         'success': True,
@@ -596,10 +549,7 @@ def calculate_report():
 @ledger_bp.route('/ledger/report/pdf')
 def generate_report_pdf():
     """Generate the PDF financial report."""
-    from datetime import datetime
     from pdf.ledger_report import generate_ledger_report_pdf
-    import tempfile
-    from pathlib import Path
     
     start_date = request.args.get('start')
     end_date = request.args.get('end')
@@ -608,14 +558,10 @@ def generate_report_pdf():
     if not start_date or not end_date:
         return jsonify({'success': False, 'error': 'Missing date range'}), 400
     
-    # Convert to timestamps
     start_ts = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
     end_ts = int(datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S').timestamp())
     
-    # Generate filename
     filename = f"Financial_Report_{start_date}_to_{end_date}.pdf"
-    
-    # Create PDF in temp directory
     temp_dir = tempfile.gettempdir()
     output_path = Path(temp_dir) / filename
     

@@ -773,15 +773,13 @@ class TestLedger:
     
     def test_add_expense_entry(self, db):
         """Should be able to add expense entry."""
-        # First create a category
-        category_id = db.add_expense_category('Office Supplies')
-        
         entry_id = db.add_entry({
             'client_id': None,
             'class': 'expense',
             'ledger_type': 'expense',
             'ledger_date': int(time.time()),
-            'category_id': category_id,
+            'category_name': 'Office Supplies',
+            'payee_name': 'Staples',
             'total_amount': 45.00,
             'tax_amount': 5.85,
             'description': 'Printer paper'
@@ -791,6 +789,8 @@ class TestLedger:
         
         assert entry['ledger_type'] == 'expense'
         assert entry['total_amount'] == 45.00
+        assert entry['category_name'] == 'Office Supplies'
+        assert entry['payee_name'] == 'Staples'
     
     def test_ledger_totals(self, db):
         """Should calculate correct ledger totals."""
