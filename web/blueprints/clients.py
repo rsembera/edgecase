@@ -326,7 +326,18 @@ def add_client():
         
         # Generate file number based on format
         if format_type == 'manual':
-            file_number = request.form['file_number']
+            file_number = request.form['file_number'].strip()
+            
+            # Check for collision on manual entry
+            if db.file_number_exists(file_number):
+                all_types = db.get_all_client_types()
+                return render_template('add_client.html',
+                                     all_types=all_types,
+                                     file_number_preview='',
+                                     file_number_readonly=False,
+                                     file_number_format=format_type,
+                                     error=f"File number '{file_number}' already exists. Please choose a different one.",
+                                     form_data=request.form)
         
         elif format_type == 'date-initials':
             date_str = datetime.now().strftime('%Y%m%d')
@@ -337,7 +348,24 @@ def add_client():
             last = request.form['last_name'][0].upper()
             
             initials = first + middle + last
-            file_number = f"{date_str}-{initials}"
+            base_file_number = f"{date_str}-{initials}"
+            
+            # Handle collisions by adding suffix
+            file_number = base_file_number
+            suffix = 2
+            while db.file_number_exists(file_number):
+                file_number = f"{base_file_number}-{suffix}"
+                suffix += 1
+                # Safety limit to prevent infinite loops
+                if suffix > 100:
+                    all_types = db.get_all_client_types()
+                    return render_template('add_client.html',
+                                         all_types=all_types,
+                                         file_number_preview=base_file_number,
+                                         file_number_readonly=True,
+                                         file_number_format=format_type,
+                                         error="Too many clients with similar initials today. Please use manual file number.",
+                                         form_data=request.form)
         
         elif format_type == 'prefix-counter':
             prefix = db.get_setting('file_number_prefix', '')
@@ -352,6 +380,18 @@ def add_client():
                 parts.append(suffix)
             
             file_number = '-'.join(parts)
+            
+            # Handle unlikely collision (if someone manually used a number)
+            while db.file_number_exists(file_number):
+                counter += 1
+                parts = []
+                if prefix:
+                    parts.append(prefix)
+                parts.append(str(counter).zfill(4))
+                if suffix:
+                    parts.append(suffix)
+                file_number = '-'.join(parts)
+            
             db.set_setting('file_number_counter', str(counter + 1))
         
         else:
@@ -368,7 +408,18 @@ def add_client():
         }
         
         # Add client to database
-        client_id = db.add_client(client_data)
+        try:
+            client_id = db.add_client(client_data)
+        except Exception as e:
+            # Catch any remaining database errors
+            all_types = db.get_all_client_types()
+            return render_template('add_client.html',
+                                 all_types=all_types,
+                                 file_number_preview='',
+                                 file_number_readonly=(format_type != 'manual'),
+                                 file_number_format=format_type,
+                                 error=f"Error creating client: {str(e)}",
+                                 form_data=request.form)
         
         # Redirect to client file to create profile entry
         return redirect(url_for('clients.client_file', client_id=client_id))
