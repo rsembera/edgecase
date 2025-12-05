@@ -284,9 +284,9 @@ class Database:
             )
         """)
         
-        # Payor Blacklist (for hiding payors from autocomplete)
+        # Income Payors table (for income entries)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS payor_blacklist (
+            CREATE TABLE IF NOT EXISTS income_payors (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 created_at INTEGER NOT NULL
@@ -1405,67 +1405,56 @@ class Database:
         return dict(category) if category else None
 
     def get_distinct_payee_names(self) -> list:
-        """Get distinct payee names from expense entries for autocomplete."""
+        """Get payee names from payees table for autocomplete."""
         conn = self.connect()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT DISTINCT payee_name 
-            FROM entries 
-            WHERE ledger_type = 'expense' 
-            AND payee_name IS NOT NULL 
-            AND payee_name != ''
-            ORDER BY payee_name ASC
+            SELECT name FROM payees
+            ORDER BY name ASC
         """)
         
         return [row[0] for row in cursor.fetchall()]
+
+    def add_payee_if_new(self, name: str) -> None:
+        """Add payee to table if it doesn't exist."""
+        if not name:
+            return
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO payees (name, created_at) VALUES (?, ?)",
+                       (name, int(time.time())))
+        conn.commit()
 
     def get_distinct_payor_sources(self) -> list:
-        """Get distinct payor/source names from income entries for autocomplete.
-        
-        Excludes any names in the payor_blacklist table.
-        """
+        """Get payor names from income_payors table for autocomplete."""
         conn = self.connect()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT DISTINCT source 
-            FROM entries 
-            WHERE ledger_type = 'income' 
-            AND source IS NOT NULL 
-            AND source != ''
-            AND source NOT IN (SELECT name FROM payor_blacklist)
-            ORDER BY source ASC
+            SELECT name FROM income_payors
+            ORDER BY name ASC
         """)
         
         return [row[0] for row in cursor.fetchall()]
 
-    def add_to_payor_blacklist(self, name: str) -> bool:
-        """Add a payor name to the blacklist."""
+    def add_income_payor_if_new(self, name: str) -> None:
+        """Add payor to income_payors table if it doesn't exist."""
+        if not name:
+            return
         conn = self.connect()
         cursor = conn.cursor()
-        
-        try:
-            cursor.execute("""
-                INSERT OR IGNORE INTO payor_blacklist (name, created_at)
-                VALUES (?, ?)
-            """, (name, int(time.time())))
-            conn.commit()
-            return True
-        except Exception:
-            return False
+        cursor.execute("INSERT OR IGNORE INTO income_payors (name, created_at) VALUES (?, ?)",
+                       (name, int(time.time())))
+        conn.commit()
 
-    def remove_from_payor_blacklist(self, name: str) -> bool:
-        """Remove a payor name from the blacklist (when used again)."""
+    def delete_income_payor(self, name: str) -> bool:
+        """Delete a payor from income_payors table."""
         conn = self.connect()
         cursor = conn.cursor()
-        
-        try:
-            cursor.execute("DELETE FROM payor_blacklist WHERE name = ?", (name,))
-            conn.commit()
-            return True
-        except Exception:
-            return False
+        cursor.execute("DELETE FROM income_payors WHERE name = ?", (name,))
+        conn.commit()
+        return cursor.rowcount > 0
 
     def update_expense_category(self, category_id: int, name: str) -> bool:
         """Update an expense category's name."""

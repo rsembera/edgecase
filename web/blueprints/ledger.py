@@ -155,9 +155,9 @@ def create_income():
         ledger_date_timestamp = parse_date_from_form(request.form)
         source = request.form.get('source', '').strip()
         
-        # If this payor was previously blacklisted, un-blacklist them
+        # Add payor to suggestions if new
         if source:
-            db.remove_from_payor_blacklist(source)
+            db.add_income_payor_if_new(source)
         
         income_data = {
             'client_id': None,
@@ -202,9 +202,9 @@ def edit_income(entry_id):
         ledger_date_timestamp = parse_date_from_form(request.form)
         source = request.form.get('source', '').strip()
         
-        # If this payor was previously blacklisted, un-blacklist them
+        # Add payor to suggestions if new
         if source:
-            db.remove_from_payor_blacklist(source)
+            db.add_income_payor_if_new(source)
         
         income_data = {
             'ledger_date': ledger_date_timestamp,
@@ -287,6 +287,9 @@ def create_expense():
             if not existing:
                 db.add_expense_category(category_name)
         
+        if payee_name:
+            db.add_payee_if_new(payee_name)
+        
         ledger_date_timestamp = parse_date_from_form(request.form)
         
         expense_data = {
@@ -340,6 +343,9 @@ def edit_expense(entry_id):
             existing = db.get_expense_category_by_name(category_name)
             if not existing:
                 db.add_expense_category(category_name)
+        
+        if payee_name:
+            db.add_payee_if_new(payee_name)
         
         ledger_date_timestamp = parse_date_from_form(request.form)
         
@@ -453,14 +459,14 @@ def remove_category_suggestion():
 
 @ledger_bp.route('/ledger/suggestion/payor/remove', methods=['POST'])
 def remove_payor_suggestion():
-    """Remove a payor from the suggestions list by adding to blacklist."""
+    """Remove a payor from the suggestions list."""
     data = request.get_json()
     name = data.get('name', '').strip()
     if not name:
         return jsonify({'error': 'No name provided'}), 400
     
     try:
-        db.add_to_payor_blacklist(name)
+        db.delete_income_payor(name)
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
