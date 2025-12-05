@@ -54,6 +54,9 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Set True if using HTTPS
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours max cookie lifetime
 
+# File upload limit (50MB)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+
 # Database will be set after login
 app.config['db'] = None
 
@@ -131,6 +134,17 @@ def close_tags(html_string):
         result += '</del>'
     
     return result
+
+@app.errorhandler(413)
+def file_too_large(e):
+    """Handle file upload exceeding MAX_CONTENT_LENGTH."""
+    # Check if this is an AJAX request
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': False, 'error': 'File too large. Maximum size is 50MB.'}), 413
+    # For regular form submissions, flash and redirect back
+    from flask import flash
+    flash('File too large. Maximum size is 50MB.', 'error')
+    return redirect(request.referrer or url_for('clients.index'))
 
 @app.before_request
 def require_login():
