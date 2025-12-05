@@ -143,10 +143,11 @@ def change_password():
             conn = db.connect()
             conn.execute("SELECT 1")  # Verify we can read with current password
             
-            # Step 2: Rekey the database
-            conn.execute(f"PRAGMA rekey = '{new_password}'")
+            # Step 2: Re-encrypt all attachments with new password
+            _reencrypt_all_files(db, current_password, new_password)
             
-            # Step 3: Close the old connection completely
+            # Step 3: Rekey the database
+            conn.execute(f"PRAGMA rekey = '{new_password}'")
             
             # Step 4: Update the Database object's password
             db.password = new_password
@@ -162,3 +163,62 @@ def change_password():
             return render_template('change_password.html', error=f"Error changing password: {str(e)}")
     
     return render_template('change_password.html')
+
+
+def _reencrypt_all_files(db, old_password: str, new_password: str):
+    """Re-encrypt all attachments and assets with new password."""
+    from core.encryption import decrypt_file_to_bytes, encrypt_file
+    from pathlib import Path
+    import os
+    
+    project_root = Path(__file__).parent.parent.parent
+    reencrypted_count = 0
+    
+    # Re-encrypt attachments from database
+    conn = db.connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, filepath FROM attachments")
+    
+    for row in cursor.fetchall():
+        filepath = row[1]
+        if filepath and os.path.exists(filepath):
+            try:
+                # Decrypt with old password
+                data = decrypt_file_to_bytes(filepath, old_password)
+                # Write decrypted, then encrypt with new password
+                with open(filepath, 'wb') as f:
+                    f.write(data)
+                encrypt_file(filepath, new_password)
+                reencrypted_count += 1
+            except Exception as e:
+                print(f"[Password Change] Failed to re-encrypt {filepath}: {e}")
+    
+    # Re-encrypt logo if exists
+    logo_filename = db.get_setting('logo_filename', '')
+    if logo_filename:
+        logo_path = project_root / 'assets' / logo_filename
+        if logo_path.exists():
+            try:
+                data = decrypt_file_to_bytes(str(logo_path), old_password)
+                with open(logo_path, 'wb') as f:
+                    f.write(data)
+                encrypt_file(str(logo_path), new_password)
+                reencrypted_count += 1
+            except Exception as e:
+                print(f"[Password Change] Failed to re-encrypt logo: {e}")
+    
+    # Re-encrypt signature if exists
+    sig_filename = db.get_setting('signature_filename', '')
+    if sig_filename:
+        sig_path = project_root / 'assets' / sig_filename
+        if sig_path.exists():
+            try:
+                data = decrypt_file_to_bytes(str(sig_path), old_password)
+                with open(sig_path, 'wb') as f:
+                    f.write(data)
+                encrypt_file(str(sig_path), new_password)
+                reencrypted_count += 1
+            except Exception as e:
+                print(f"[Password Change] Failed to re-encrypt signature: {e}")
+    
+    print(f"[Password Change] Re-encrypted {reencrypted_count} files")
