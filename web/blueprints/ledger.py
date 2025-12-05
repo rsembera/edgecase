@@ -443,11 +443,17 @@ def remove_category_suggestion():
 
 @ledger_bp.route('/ledger/suggestion/payor/remove', methods=['POST'])
 def remove_payor_suggestion():
-    """Remove a payor from the suggestions list (removes from source field history)."""
-    # Note: Payors are stored directly in the 'source' field of income entries,
-    # so we can't actually delete them without modifying existing entries.
-    # For now, this is a no-op but we keep the endpoint for future use.
-    return jsonify({'success': True})
+    """Remove a payor from the suggestions list by adding to blacklist."""
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'No name provided'}), 400
+    
+    try:
+        db.add_to_payor_blacklist(name)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ============================================================================

@@ -284,6 +284,15 @@ class Database:
             )
         """)
         
+        # Payor Blacklist (for hiding payors from autocomplete)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS payor_blacklist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+        """)
+        
         # Archived Clients (retention system audit trail)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS archived_clients (
@@ -1412,7 +1421,10 @@ class Database:
         return [row[0] for row in cursor.fetchall()]
 
     def get_distinct_payor_sources(self) -> list:
-        """Get distinct payor/source names from income entries for autocomplete."""
+        """Get distinct payor/source names from income entries for autocomplete.
+        
+        Excludes any names in the payor_blacklist table.
+        """
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -1422,10 +1434,26 @@ class Database:
             WHERE ledger_type = 'income' 
             AND source IS NOT NULL 
             AND source != ''
+            AND source NOT IN (SELECT name FROM payor_blacklist)
             ORDER BY source ASC
         """)
         
         return [row[0] for row in cursor.fetchall()]
+
+    def add_to_payor_blacklist(self, name: str) -> bool:
+        """Add a payor name to the blacklist."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                INSERT OR IGNORE INTO payor_blacklist (name, created_at)
+                VALUES (?, ?)
+            """, (name, int(time.time())))
+            conn.commit()
+            return True
+        except Exception:
+            return False
 
     def update_expense_category(self, category_id: int, name: str) -> bool:
         """Update an expense category's name."""
