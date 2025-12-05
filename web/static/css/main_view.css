@@ -399,6 +399,65 @@ body.tutti-frutti .nav-btn.peach:hover {
 }
 
 /* ============================================================
+   RESPONSIVE - Force compact mode on narrow screens
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Always show compact content on narrow screens */
+    .clients-container .compact-content {
+        display: block !important;
+    }
+    
+    /* Always hide detailed content on narrow screens */
+    .clients-container .detailed-content {
+        display: none !important;
+    }
+    
+    /* Hide column headers on narrow screens */
+    .column-headers {
+        display: none !important;
+    }
+    
+    /* Hide view toggle on narrow screens (would be confusing) */
+    .view-toggle {
+        display: none !important;
+    }
+    
+    /* Adjust stats grid for narrow screens */
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    /* Smaller stat cards on narrow screens */
+    .stat-card {
+        padding: 0.75rem 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+/* Very narrow screens (phone) */
+@media (max-width: 480px) {
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Stack legend items */
+    .legend-card {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .legend-section {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+}
+
+/* ============================================================
    DETAILED VIEW STYLES
    ============================================================ */
 
