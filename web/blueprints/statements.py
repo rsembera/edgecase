@@ -836,6 +836,14 @@ def write_off_statement():
         WHERE id = ?
     """, (reason, now, note if note else None, portion_id))
     
+    # If billing error, unlink entries so they can be edited and re-billed
+    if reason == 'billing_error':
+        cursor.execute("""
+            UPDATE entries 
+            SET statement_id = NULL 
+            WHERE statement_id = ?
+        """, (portion['statement_entry_id'],))
+    
     # Build description for Communication entry
     reason_labels = {
         'uncollectible': 'Uncollectible',
