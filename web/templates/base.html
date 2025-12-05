@@ -203,6 +203,37 @@
 <!-- Lucide Icons -->
     <script src="{{ url_for('static', filename='js/lucide.min.js') }}"></script>
     
+    <!-- Double-click protection for all forms -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submitBtns.forEach(function(btn) {
+                    // Skip if already disabled (validation failed, etc.)
+                    if (btn.disabled) return;
+                    // Store original text for restoration
+                    btn.dataset.originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = 'Please wait...';
+                });
+            });
+        });
+        
+        // Re-enable buttons if page loaded from back-forward cache
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                document.querySelectorAll('button[type="submit"][disabled], input[type="submit"][disabled]').forEach(function(btn) {
+                    btn.disabled = false;
+                    if (btn.dataset.originalText) {
+                        btn.textContent = btn.dataset.originalText;
+                    }
+                });
+            }
+        });
+    });
+    </script>
+    
     {% block extra_js %}{% endblock %}
     
     <script>lucide.createIcons();</script>
