@@ -1599,6 +1599,10 @@ class Database:
             client_id = client['id']
             retention_days = client['retention_days']
             
+            # 0 retention_days means "keep forever" - skip these
+            if retention_days == 0:
+                continue
+            
             # Get last contact date (most recent entry, or fall back to modified_at)
             cursor.execute("""
                 SELECT MAX(created_at) as last_contact
