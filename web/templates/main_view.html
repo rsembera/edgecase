@@ -221,9 +221,8 @@
                         {{ client.type.name }}
                     </span>
                     <span class="text-secondary-sm">{{ client.file_number }}</span>
-                    {% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" class="icon-sm"></i></span>{% endif %}
                 </div>
-                <div class="client-name">{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</div>
+                <div class="client-name">{% if client.is_linked %}<span class="link-icon" title="Linked to other clients"><i data-lucide="link" class="icon-sm"></i></span>{% endif %}{{ client.last_name }}, {{ client.first_name }}{% if client.middle_name %} {{ client.middle_name }}{% endif %}</div>
                 <div class="contact-row">
                     {% if client.email %}
                     <a href="mailto:{{ client.email }}" class="contact-link {{ 'preferred' if client.preferred_contact == 'email' else '' }}" onclick="event.stopPropagation()">
