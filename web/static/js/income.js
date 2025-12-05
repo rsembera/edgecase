@@ -1,287 +1,191 @@
 /**
- * Income Entry Form JavaScript - EdgeCase Equalizer
- * Handles income creation/editing with file uploads and deletion.
+ * Income Entry Form - EdgeCase Equalizer
+ * Autocomplete for payor, file uploads, deletion
  */
 
-// Auto-expanding textarea for content/notes field
-const textarea = document.getElementById('content');
-const maxHeight = 400;
+// ============================================================
+// AUTOCOMPLETE COMPONENT
+// ============================================================
 
-if (textarea) {
-    /**
-     * Auto-resize textarea to fit content up to maxHeight
-     */
-    function autoResize() {
-        textarea.style.height = 'auto';
-        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-        textarea.style.height = newHeight + 'px';
-        
-        if (textarea.scrollHeight > maxHeight) {
-            textarea.style.overflowY = 'scroll';
-        } else {
-            textarea.style.overflowY = 'hidden';
-        }
+/**
+ * Create an autocomplete field with removable suggestions
+ * @param {string} containerId - ID of wrapper div
+ * @param {string} hiddenInputId - ID of hidden input to store value
+ * @param {string[]} suggestions - Array of suggestion strings
+ * @param {string} initialValue - Initial value
+ * @param {string} placeholder - Placeholder text
+ * @param {string} removeEndpoint - API endpoint to remove suggestion (optional)
+ */
+function createAutocomplete(containerId, hiddenInputId, suggestions, initialValue, placeholder, removeEndpoint) {
+    const container = document.getElementById(containerId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    
+    // Track suggestions locally (can be modified by X buttons)
+    let localSuggestions = [...suggestions];
+    
+    // Create visible input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'autocomplete-input';
+    input.placeholder = placeholder;
+    input.value = initialValue || '';
+    input.autocomplete = 'off';
+    
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'autocomplete-dropdown';
+    dropdown.style.display = 'none';
+    
+    container.appendChild(input);
+    container.appendChild(dropdown);
+    
+    // Sync to hidden input
+    function syncValue() {
+        hiddenInput.value = input.value;
     }
     
-    autoResize();
-    textarea.addEventListener('input', autoResize);
-}
-
-// Format to 2 decimal places on blur for amount fields
-const totalAmountInput = document.getElementById('total_amount');
-const taxAmountInput = document.getElementById('tax_amount');
-
-if (totalAmountInput) {
-    totalAmountInput.addEventListener('blur', function() {
-        if (this.value) {
-            this.value = parseFloat(this.value).toFixed(2);
-        }
-    });
-}
-
-if (taxAmountInput) {
-    taxAmountInput.addEventListener('blur', function() {
-        if (this.value) {
-            this.value = parseFloat(this.value).toFixed(2);
-        }
-    });
-}
-
-/**
- * Toggle the file upload section visibility
- */
-function toggleUploadSection() {
-    const uploadSection = document.getElementById('upload-section');
-    const toggleIcon = document.getElementById('upload-toggle-icon');
-    
-    if (uploadSection.style.display === 'none') {
-        uploadSection.style.display = 'block';
-        toggleIcon.textContent = '▼';
-    } else {
-        uploadSection.style.display = 'none';
-        toggleIcon.textContent = '▶';
-    }
-}
-
-/**
- * Show "Add Another File" button after file is selected
- */
-function handleFileSelected() {
-    const addFileBtn = document.getElementById('add-file-btn');
-    addFileBtn.style.display = 'block';
-}
-
-/**
- * Show file validation modal
- */
-function showFileValidationModal() {
-    document.getElementById('file-validation-modal').style.display = 'flex';
-}
-
-/**
- * Close file validation modal
- */
-function closeFileValidationModal() {
-    document.getElementById('file-validation-modal').style.display = 'none';
-}
-
-// Multiple file upload management
-const fileInputsContainer = document.getElementById('file-inputs');
-const addFileBtn = document.getElementById('add-file-btn');
-let fileInputCount = 1;
-
-// Add another file input row (only if current row has a file selected)
-if (addFileBtn) {
-    addFileBtn.addEventListener('click', function() {
-        // Check if the last file input has a file selected
-        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-        const lastRow = allRows[allRows.length - 1];
-        const lastFileInput = lastRow.querySelector('.file-input');
+    // Render dropdown
+    function renderDropdown(filter = '') {
+        const filtered = localSuggestions.filter(s => 
+            s.toLowerCase().includes(filter.toLowerCase())
+        );
         
-        if (!lastFileInput.files || lastFileInput.files.length === 0) {
-            showFileValidationModal();
+        if (filtered.length === 0) {
+            dropdown.style.display = 'none';
             return;
         }
         
-        fileInputCount++;
-        
-        const newRow = document.createElement('div');
-        newRow.className = 'file-input-row';
-        newRow.style.marginBottom = '1rem';
-        newRow.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: end;">
-                <div style="flex: 2;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                        Choose file
-                    </label>
-                    <input type="file" 
-                           name="files[]" 
-                           class="file-input"
-                           onchange="handleFileSelected()"
-                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                </div>
-                <div style="flex: 2;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                        Description (optional)
-                    </label>
-                    <input type="text" 
-                           name="file_descriptions[]" 
-                           placeholder="Brief description"
-                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                </div>
-                <button type="button" 
-                        class="btn-small btn-danger remove-file-btn" 
-                        style="white-space: nowrap;">Remove</button>
-            </div>
-        `;
-        
-        fileInputsContainer.appendChild(newRow);
-        
-        // Add event listener to new remove button
-        const removeBtn = newRow.querySelector('.remove-file-btn');
-        removeBtn.addEventListener('click', function() {
-            newRow.remove();
-            fileInputCount--;
-        });
-    });
-}
-
-// Add remove functionality to initial row
-const initialRemoveBtn = document.querySelector('.remove-file-btn');
-if (initialRemoveBtn) {
-    initialRemoveBtn.addEventListener('click', function() {
-        const row = this.closest('.file-input-row');
-        const fileInput = row.querySelector('.file-input');
-        const descInput = row.querySelector('input[name="file_descriptions[]"]');
-        
-        // Clear the inputs instead of removing if it's the only row
-        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-        if (allRows.length === 1) {
-            fileInput.value = '';
-            descInput.value = '';
-            // Hide "Add Another File" button when cleared
-            document.getElementById('add-file-btn').style.display = 'none';
-        } else {
-            row.remove();
-            fileInputCount--;
-        }
-    });
-}
-
-// Delete attachment (for edit mode)
-let deleteAttachmentId = null;
-
-/**
- * Show delete attachment confirmation modal
- * @param {number} attachmentId - ID of attachment to delete
- */
-function deleteAttachment(attachmentId) {
-    deleteAttachmentId = attachmentId;
-    document.getElementById('delete-modal').style.display = 'flex';
-}
-
-/**
- * Close the delete attachment modal
- */
-function closeDeleteModal() {
-    document.getElementById('delete-modal').style.display = 'none';
-    deleteAttachmentId = null;
-}
-
-/**
- * Confirm and execute attachment deletion
- */
-function confirmDelete() {
-    if (!deleteAttachmentId) return;
-    
-    fetch(`/attachment/${deleteAttachmentId}/delete`, {
-        method: 'POST'
-    })
-    .then(response => {
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            alert('Error deleting attachment');
-            closeDeleteModal();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting attachment');
-        closeDeleteModal();
-    });
-}
-
-/**
- * Show delete entry confirmation modal (edit mode only)
- */
-function confirmDeleteEntry() {
-    document.getElementById('delete-entry-modal').style.display = 'flex';
-}
-
-/**
- * Close the delete entry modal
- */
-function closeDeleteEntryModal() {
-    document.getElementById('delete-entry-modal').style.display = 'none';
-}
-
-/**
- * Execute income entry deletion
- */
-function deleteEntry() {
-    // Get entry ID from URL (e.g., /ledger/income/123)
-    const pathParts = window.location.pathname.split('/');
-    const entryId = pathParts[3];
-    
-    fetch(`/ledger/income/${entryId}/delete`, {
-        method: 'POST'
-    })
-    .then(response => {
-        if (response.ok) {
-            window.location.href = '/ledger';
-        } else {
-            return response.text().then(text => {
-                console.error('Server response:', text);
-                alert('Error deleting income entry');
-                closeDeleteEntryModal();
+        dropdown.innerHTML = '';
+        filtered.forEach(suggestion => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            
+            const text = document.createElement('span');
+            text.className = 'autocomplete-text';
+            text.textContent = suggestion;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'autocomplete-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Remove from list';
+            
+            // Click suggestion text to select
+            text.addEventListener('click', () => {
+                input.value = suggestion;
+                syncValue();
+                dropdown.style.display = 'none';
             });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting income entry');
-        closeDeleteEntryModal();
+            
+            // Click X to remove from suggestions
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                localSuggestions = localSuggestions.filter(s => s !== suggestion);
+                
+                // Call API to persist removal
+                if (removeEndpoint) {
+                    fetch(removeEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: suggestion })
+                    });
+                }
+                
+                renderDropdown(input.value);
+            });
+            
+            item.appendChild(text);
+            item.appendChild(removeBtn);
+            dropdown.appendChild(item);
+        });
+        
+        dropdown.style.display = 'block';
+    }
+    
+    // Event listeners
+    input.addEventListener('input', () => {
+        syncValue();
+        renderDropdown(input.value);
     });
+    
+    input.addEventListener('focus', () => {
+        renderDropdown(input.value);
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        const active = dropdown.querySelector('.autocomplete-item.active');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!active && items.length > 0) {
+                items[0].classList.add('active');
+            } else if (active && active.nextElementSibling) {
+                active.classList.remove('active');
+                active.nextElementSibling.classList.add('active');
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (active && active.previousElementSibling) {
+                active.classList.remove('active');
+                active.previousElementSibling.classList.add('active');
+            }
+        } else if (e.key === 'Enter' && active) {
+            e.preventDefault();
+            const text = active.querySelector('.autocomplete-text').textContent;
+            input.value = text;
+            syncValue();
+            dropdown.style.display = 'none';
+        } else if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    // Initial sync
+    syncValue();
 }
 
 // ============================================================
-// DATE PICKER INITIALIZATION
+// INITIALIZE AUTOCOMPLETE
 // ============================================================
 
-/**
- * Initialize date picker for income form
- */
-async function initIncomePickers() {
-    // Get initial value from hidden input
+document.addEventListener('DOMContentLoaded', () => {
+    createAutocomplete(
+        'payor-autocomplete',
+        'source',
+        payorSuggestions,
+        initialPayor,
+        'e.g., Jane Smith (20240502-JS)',
+        '/ledger/suggestion/payor/remove'
+    );
+});
+
+// ============================================================
+// DATE PICKER
+// ============================================================
+
+function initIncomePickers() {
     const dateInput = document.getElementById('date');
     
-    // Determine initial date
     let initialDate;
     if (dateInput.value) {
-        // Edit mode: use existing date
         initialDate = parseDateString(dateInput.value);
     } else {
-        // New entry: use today
         initialDate = new Date();
-        // CRITICAL: Set hidden field to today's date immediately
         const year = initialDate.getFullYear();
         const month = String(initialDate.getMonth() + 1).padStart(2, '0');
         const day = String(initialDate.getDate()).padStart(2, '0');
         dateInput.value = `${year}-${month}-${day}`;
     }
     
-    // Initialize date picker
     initDatePicker('income-date-picker', {
         initialDate: initialDate,
         onSelect: (date) => {
@@ -293,9 +197,142 @@ async function initIncomePickers() {
     });
 }
 
-// Initialize picker when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initIncomePickers);
 } else {
     initIncomePickers();
+}
+
+// ============================================================
+// AMOUNT FORMATTING
+// ============================================================
+
+const totalAmountInput = document.getElementById('total_amount');
+const taxAmountInput = document.getElementById('tax_amount');
+
+if (totalAmountInput) {
+    totalAmountInput.addEventListener('blur', function() {
+        if (this.value) this.value = parseFloat(this.value).toFixed(2);
+    });
+}
+
+if (taxAmountInput) {
+    taxAmountInput.addEventListener('blur', function() {
+        if (this.value) this.value = parseFloat(this.value).toFixed(2);
+    });
+}
+
+// ============================================================
+// FILE UPLOADS
+// ============================================================
+
+function toggleUploadSection() {
+    const section = document.getElementById('upload-section');
+    const icon = document.getElementById('upload-toggle-icon');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        section.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+function handleFileSelected() {
+    document.getElementById('add-file-btn').style.display = 'block';
+}
+
+function showFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'flex';
+}
+
+function closeFileValidationModal() {
+    document.getElementById('file-validation-modal').style.display = 'none';
+}
+
+const fileInputsContainer = document.getElementById('file-inputs');
+const addFileBtn = document.getElementById('add-file-btn');
+
+if (addFileBtn) {
+    addFileBtn.addEventListener('click', function() {
+        const rows = fileInputsContainer.querySelectorAll('.file-input-row');
+        const lastInput = rows[rows.length - 1].querySelector('.file-input');
+        
+        if (!lastInput.files || lastInput.files.length === 0) {
+            showFileValidationModal();
+            return;
+        }
+        
+        const newRow = document.createElement('div');
+        newRow.className = 'file-input-row';
+        newRow.innerHTML = `
+            <div class="file-row-grid">
+                <div class="file-field">
+                    <label>Choose file</label>
+                    <input type="file" name="files[]" class="file-input">
+                </div>
+                <div class="file-field">
+                    <label>Description (optional)</label>
+                    <input type="text" name="file_descriptions[]" placeholder="Brief description">
+                </div>
+                <button type="button" class="btn-small btn-danger remove-file-btn">Remove</button>
+            </div>
+        `;
+        
+        fileInputsContainer.appendChild(newRow);
+        newRow.querySelector('.remove-file-btn').addEventListener('click', () => newRow.remove());
+    });
+}
+
+const initialRemoveBtn = document.querySelector('.remove-file-btn');
+if (initialRemoveBtn) {
+    initialRemoveBtn.addEventListener('click', function() {
+        const row = this.closest('.file-input-row');
+        const rows = fileInputsContainer.querySelectorAll('.file-input-row');
+        if (rows.length === 1) {
+            row.querySelector('.file-input').value = '';
+            row.querySelector('input[name="file_descriptions[]"]').value = '';
+            document.getElementById('add-file-btn').style.display = 'none';
+        } else {
+            row.remove();
+        }
+    });
+}
+
+// ============================================================
+// DELETION
+// ============================================================
+
+let deleteAttachmentId = null;
+
+function deleteAttachment(id) {
+    deleteAttachmentId = id;
+    document.getElementById('delete-modal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').style.display = 'none';
+    deleteAttachmentId = null;
+}
+
+function confirmDelete() {
+    if (!deleteAttachmentId) return;
+    fetch(`/attachment/${deleteAttachmentId}/delete`, { method: 'POST' })
+        .then(r => r.ok ? window.location.reload() : alert('Error deleting'))
+        .catch(() => alert('Error deleting'));
+}
+
+function confirmDeleteEntry() {
+    document.getElementById('delete-entry-modal').style.display = 'flex';
+}
+
+function closeDeleteEntryModal() {
+    document.getElementById('delete-entry-modal').style.display = 'none';
+}
+
+function deleteEntry() {
+    const entryId = window.location.pathname.split('/')[3];
+    fetch(`/ledger/income/${entryId}/delete`, { method: 'POST' })
+        .then(r => r.ok ? window.location.href = '/ledger' : alert('Error'))
+        .catch(() => alert('Error'));
 }
