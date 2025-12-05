@@ -46,18 +46,25 @@
         </div>
         {% endif %}
         
+        {% if is_billed %}
+        <div class="billed-warning">
+            <i data-lucide="alert-circle"></i>
+            <span>This session has been billed. Date, duration, and fee fields cannot be changed.</span>
+        </div>
+        {% endif %}
+        
       <!-- Consultation and Pro Bono checkboxes -->
         <div class="form-row">
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %}>
+                    <input type="checkbox" id="is_consultation" name="is_consultation" {% if is_edit and session.is_consultation %}checked{% endif %} {% if is_billed %}disabled{% endif %}>
                     <span>Initial consultation (not numbered)</span>
                 </label>
             </div>
             
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="is_pro_bono" name="is_pro_bono" {% if is_edit and session.is_pro_bono %}checked{% endif %}>
+                    <input type="checkbox" id="is_pro_bono" name="is_pro_bono" {% if is_edit and session.is_pro_bono %}checked{% endif %} {% if is_billed %}disabled{% endif %}>
                     <span>Pro bono (no charge, numbered)</span>
                 </label>
             </div>
@@ -65,9 +72,9 @@
 
         <!-- Date and Time - Custom pickers -->
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group {% if is_billed %}field-disabled{% endif %}">
                 <label>Date *</label>
-                <div id="session-date-picker"></div>
+                <div id="session-date-picker" {% if is_billed %}class="picker-disabled"{% endif %}></div>
                 <input type="hidden" id="date" name="date" required
                        value="{% if is_edit %}{{ '%04d-%02d-%02d'|format(session_year, session_month, session_day) }}{% else %}{{ today }}{% endif %}">
             </div>
@@ -130,7 +137,7 @@
                 <input type="number" id="base_fee" name="base_fee" 
                     step="0.01" min="0"
                     value="{% if is_edit %}{{ '%.2f'|format(session.base_fee if session.base_fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_base or 0) }}{% endif %}"
-                    placeholder="100.00">
+                    placeholder="100.00" {% if is_billed %}disabled{% endif %}>
                 <small>Before tax</small>
             </div>
             
@@ -139,7 +146,7 @@
                 <input type="number" id="tax_rate" name="tax_rate" 
                     step="0.01" min="0" max="100"
                     value="{% if is_edit %}{{ '%.2f'|format(session.tax_rate if session.tax_rate is not none else 0) }}{% else %}{{ '%.2f'|format(default_tax_rate or 0) }}{% endif %}"
-                    placeholder="13.00">
+                    placeholder="13.00" {% if is_billed %}disabled{% endif %}>
                 <small>Percentage (%)</small>
             </div>
             
@@ -148,7 +155,7 @@
                 <input type="number" id="fee" name="fee" 
                     step="0.01" min="0"
                     value="{% if is_edit %}{{ '%.2f'|format(session.fee if session.fee is not none else 0) }}{% else %}{{ '%.2f'|format(default_total or 0) }}{% endif %}" 
-                    placeholder="113.00">
+                    placeholder="113.00" {% if is_billed %}disabled{% endif %}>
                 <small>With tax</small>
             </div>
         </div>
@@ -156,12 +163,12 @@
 
         <!-- Duration -->
         <div class="form-row-half duration-section">
-            <div class="form-group">
+            <div class="form-group {% if is_billed %}field-disabled{% endif %}">
                 <label for="duration">Session Duration (minutes) *</label>
                 <input type="number" id="duration" name="duration" 
                     min="1" required
                     value="{% if is_edit %}{{ session.duration }}{% else %}50{% endif %}"
-                    placeholder="50">
+                    placeholder="50" {% if is_billed %}disabled{% endif %}>
             </div>
         </div>
         
@@ -286,7 +293,8 @@
 
 <div id="session-data" class="hidden-data"
      data-is-edit="{% if is_edit %}true{% else %}false{% endif %}"
-     data-next-session-number="{% if not is_edit %}{{ next_session_number }}{% endif %}">
+     data-next-session-number="{% if not is_edit %}{{ next_session_number }}{% endif %}"
+     data-is-billed="{% if is_billed %}true{% else %}false{% endif %}">
 </div>
 
 <script id="fee-sources-data" type="application/json">

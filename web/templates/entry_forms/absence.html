@@ -30,11 +30,18 @@
     </div>
     
     <form method="POST">
+        {% if is_billed %}
+        <div class="billed-warning">
+            <i data-lucide="alert-circle"></i>
+            <span>This absence has been billed. Date and fee fields cannot be changed.</span>
+        </div>
+        {% endif %}
+        
         <!-- Date and Time on same line -->
         <div class="two-column-grid">
-            <div class="form-group">
+            <div class="form-group {% if is_billed %}field-disabled{% endif %}">
                 <label>Date *</label>
-                <div id="absence-date-picker"></div>
+                <div id="absence-date-picker" {% if is_billed %}class="picker-disabled"{% endif %}></div>
                 <input type="hidden" id="date" name="date" value="{% if entry %}{{ absence_date }}{% else %}{{ today }}{% endif %}" required>
             </div>
             
@@ -68,7 +75,7 @@
                     value="{{ '%.2f'|format(entry.base_price) if entry and entry.base_price else '0.00' }}"
                     placeholder="0.00"
                     oninput="calculateAbsenceFee('base')"
-                    onblur="formatToTwoDecimals(this)">
+                    onblur="formatToTwoDecimals(this)" {% if is_billed %}disabled{% endif %}>
                 <small>Before tax</small>
             </div>
             
@@ -79,7 +86,7 @@
                     value="{{ '%.2f'|format(entry.tax_rate) if entry and entry.tax_rate else '0.00' }}"
                     placeholder="0.00"
                     oninput="calculateAbsenceFee('tax')"
-                    onblur="formatToTwoDecimals(this)">
+                    onblur="formatToTwoDecimals(this)" {% if is_billed %}disabled{% endif %}>
                 <small>Percentage (%)</small>
             </div>
             
@@ -90,7 +97,7 @@
                     value="{{ '%.2f'|format(entry.fee) if entry and entry.fee else '0.00' }}"
                     placeholder="0.00"
                     oninput="calculateAbsenceFee('total')"
-                    onblur="formatToTwoDecimals(this)">
+                    onblur="formatToTwoDecimals(this)" {% if is_billed %}disabled{% endif %}>
                 <small>With tax</small>
             </div>
         </div>
