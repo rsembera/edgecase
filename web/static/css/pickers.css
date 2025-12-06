@@ -196,14 +196,14 @@
 }
 
 .picker-cell.selected {
-    background: #1F8F74;
-    color: white;
-    font-weight: 500;
+    background: var(--color-primary-lighter, #BFDCDC);
+    color: var(--color-primary-dark, #115D4F);
+    font-weight: 600;
 }
 
 .picker-cell.selected:hover {
-    background: #187A62;
-    border-color: #187A62;
+    background: var(--color-primary-light, #9FCFC0);
+    border-color: var(--color-primary-light, #9FCFC0);
 }
 
 .picker-cell.today {
