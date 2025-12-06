@@ -576,6 +576,13 @@ body.tutti-frutti .nav-btn.peach:hover {
     transition: color 0.2s;
 }
 
+/* Phone with warning icon wrapper */
+.phone-with-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .contact-link:hover {
     color: #1F8F74;
 }
