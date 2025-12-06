@@ -291,7 +291,7 @@
     transition: all 0.2s;
     height: 50px;
     box-sizing: border-box;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .field-group select:focus,
@@ -387,7 +387,7 @@
     font-weight: 500;
     cursor: pointer;
     width: 100%;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .btn-error-ok:hover {
