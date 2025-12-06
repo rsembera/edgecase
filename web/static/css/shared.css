@@ -67,7 +67,7 @@ select, input, textarea, button {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    height: 46px !important;
+    height: 38px !important;
     line-height: 1 !important;
     box-sizing: border-box;
     vertical-align: middle;
@@ -121,7 +121,7 @@ select, input, textarea, button {
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    height: 38px !important;
+    height: 32px !important;
     line-height: 1 !important;
     box-sizing: border-box;
     display: inline-flex !important;
@@ -159,7 +159,7 @@ select, input, textarea, button {
     opacity: 0.6 !important;
     cursor: not-allowed !important;
     padding: 0.5rem 1.5rem !important;
-    height: 46px !important;
+    height: 38px !important;
     box-sizing: border-box !important;
 }
 
@@ -193,14 +193,19 @@ select, input, textarea, button {
 
 /* Disabled style button */
 .btn-disabled {
-    padding: 0.625rem 1.25rem;
+    padding: 0.5rem 1.25rem;
     background: #9CA3AF;
     color: white;
     border: none;
-    border-radius: 0.5rem;
-    font-size: 0.9375rem;
-    font-weight: 500;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: not-allowed;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 /* Button with inline icon */
@@ -1272,7 +1277,7 @@ h2 svg[data-lucide].page-icon {
 
 /* Filter select */
 .filter-select {
-    padding: 0.75rem 1.25rem;
+    padding: 0.5rem 1.25rem;
     background: #FBFCFD;
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
@@ -1281,7 +1286,7 @@ h2 svg[data-lucide].page-icon {
     color: #323B45;
     cursor: pointer;
     transition: all 0.2s;
-    height: 42px;
+    height: 38px;
     box-sizing: border-box;
 }
 
@@ -1320,7 +1325,7 @@ h2 svg[data-lucide].page-icon {
 }
 
 .dropdown-btn {
-    padding: 0.75rem 1.25rem;
+    padding: 0.5rem 1.25rem;
     background: #FBFCFD;
     border: 2px solid #DEE2E6;
     border-radius: 0.75rem;
@@ -1333,7 +1338,7 @@ h2 svg[data-lucide].page-icon {
     display: inline-flex;
     align-items: center;
     line-height: 1;
-    height: 42px;
+    height: 38px;
     box-sizing: border-box;
 }
 
@@ -1861,13 +1866,6 @@ tbody tr:hover {
     opacity: 0.6;
     pointer-events: none;
 }
-
-/* ============================================
-   LEGEND DOTS
-   ============================================ */
-.legend-dot.paid { background: #17976C; }
-.legend-dot.pending { background: #D68A09; }
-.legend-dot.overdue { background: #C93A3A; }
 
 /* ============================================
    PROGRESS BAR
