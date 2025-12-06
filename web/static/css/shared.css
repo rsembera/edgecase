@@ -2527,9 +2527,9 @@ tbody tr:hover {
 .choices__inner {
     background: white;
     border: 2px solid var(--color-border, #DEE2E6);
-    border-radius: 0.75rem;
+    border-radius: 0.75rem !important;
     padding: 0.5rem 0.75rem;
-    min-height: 46px;
+    min-height: 50px;
     font-size: 0.9375rem;
 }
 
@@ -2539,17 +2539,28 @@ tbody tr:hover {
     box-shadow: var(--shadow-focus, 0 0 0 3px rgba(31,143,116,0.06));
 }
 
-/* Dropdown list */
-.choices__list--dropdown {
+/* Dropdown list - fully rounded corners */
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
     border: 2px solid var(--color-border, #DEE2E6);
-    border-radius: 0.75rem;
+    border-radius: 0.75rem !important;
     margin-top: 4px;
+    overflow: hidden;
 }
 
 /* Dropdown items */
 .choices__list--dropdown .choices__item {
     padding: 0.625rem 0.75rem;
     font-size: 0.9375rem;
+}
+
+/* First and last items - ensure corners stay rounded */
+.choices__list--dropdown .choices__item:first-child {
+    border-radius: calc(0.75rem - 2px) calc(0.75rem - 2px) 0 0;
+}
+
+.choices__list--dropdown .choices__item:last-child {
+    border-radius: 0 0 calc(0.75rem - 2px) calc(0.75rem - 2px);
 }
 
 /* Highlighted item */
