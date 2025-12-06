@@ -13,6 +13,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('prepare-restore-btn');
         btn.disabled = !this.value;
     });
+    
+    // Save frequency setting on change
+    document.getElementById('backup-frequency').addEventListener('change', function() {
+        saveSettingWithConfirm('frequency');
+    });
+    
+    // Save location setting on change
+    document.getElementById('backup-location').addEventListener('change', function() {
+        saveSettingWithConfirm('location');
+    });
+    
+    // Restore button click handler
+    document.getElementById('prepare-restore-btn').addEventListener('click', function() {
+        if (!this.disabled) {
+            showRestoreModal();
+        }
+    });
 });
 
 /**
@@ -29,10 +46,9 @@ async function loadBackupStatus() {
         // Update backup count
         document.getElementById('backup-count').textContent = data.backup_count || 0;
         
-        // Set frequency dropdown
-        const freqSelect = document.getElementById('backup-frequency');
+        // Set frequency dropdown using Choices API
         if (data.frequency) {
-            freqSelect.value = data.frequency;
+            window.setChoicesValue('backup-frequency', data.frequency);
         }
         
         // Populate cloud folders and set saved location
@@ -56,25 +72,21 @@ async function loadBackupStatus() {
  * @param {string} savedLocation - Currently saved location path
  */
 function populateLocationDropdown(cloudFolders, savedLocation) {
-    const select = document.getElementById('backup-location');
+    // Build options array - default option plus cloud folders
+    const options = [
+        { value: 'default', label: 'Default (~/edgecase/backups)', selected: !savedLocation || savedLocation === 'default' }
+    ];
     
-    // Add cloud folder options
     cloudFolders.forEach(folder => {
-        const option = document.createElement('option');
-        option.value = folder.path;
-        option.textContent = folder.name;
-        select.appendChild(option);
+        options.push({
+            value: folder.path,
+            label: folder.name,
+            selected: savedLocation === folder.path
+        });
     });
     
-    // Set saved location if it matches an option
-    if (savedLocation) {
-        for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].value === savedLocation) {
-                select.selectedIndex = i;
-                break;
-            }
-        }
-    }
+    // Update using Choices API
+    window.updateChoicesOptions('backup-location', options, true);
     
     updateLocationPath();
 }
@@ -102,15 +114,15 @@ async function loadRestorePoints() {
         const data = await response.json();
         
         const listEl = document.getElementById('backup-list');
-        const selectEl = document.getElementById('restore-point-select');
         
-        // Clear existing options except the first one
-        while (selectEl.options.length > 1) {
-            selectEl.remove(1);
-        }
+        // Collect restore options for Choices dropdown
+        const restoreOptions = [
+            { value: '', label: 'Select a backup...' }
+        ];
         
         if (!data.restore_points || data.restore_points.length === 0) {
             listEl.innerHTML = '<div class="backup-list-empty">No backups yet. Click "Backup Now" to create your first backup.</div>';
+            window.updateChoicesOptions('restore-point-select', restoreOptions, true);
             return;
         }
         
@@ -142,7 +154,7 @@ async function loadRestorePoints() {
             // Safety backups (standalone)
             if (chain.safety) {
                 html += renderSafetyBackup(chain.safety);
-                addToRestoreDropdown(selectEl, chain.safety);
+                restoreOptions.push(buildRestoreOption(chain.safety));
                 continue;
             }
             
@@ -153,7 +165,7 @@ async function loadRestorePoints() {
                     fb => fb.created_at > chain.full.created_at
                 );
                 html += renderFullBackup(chain.full, newerFullExists);
-                addToRestoreDropdown(selectEl, chain.full);
+                restoreOptions.push(buildRestoreOption(chain.full));
                 
                 // Incremental backups (indented under full)
                 if (chain.incrementals && chain.incrementals.length > 0) {
@@ -165,7 +177,7 @@ async function loadRestorePoints() {
                         const isLast = (i === chain.incrementals.length - 1);
                         const laterCount = chain.incrementals.length - 1 - i;  // Number of later incrementals
                         html += renderIncrementalBackup(incr, isLast, laterCount);
-                        addToRestoreDropdown(selectEl, incr);
+                        restoreOptions.push(buildRestoreOption(incr));
                     }
                 }
                 
@@ -175,6 +187,9 @@ async function loadRestorePoints() {
         }
         
         listEl.innerHTML = html;
+        
+        // Update the restore dropdown with all options
+        window.updateChoicesOptions('restore-point-select', restoreOptions, true);
         
     } catch (error) {
         console.error('Error loading restore points:', error);
@@ -315,20 +330,19 @@ function renderSafetyBackup(point) {
 }
 
 /**
- * Add a restore point to the dropdown
+ * Build an option object for the restore dropdown (for Choices.js)
  */
-function addToRestoreDropdown(selectEl, point) {
-    const option = document.createElement('option');
-    option.value = point.id;
-    
+function buildRestoreOption(point) {
     // Add type indicator to dropdown text
     let typeLabel = '';
     if (point.type === 'full') typeLabel = '[Full] ';
     else if (point.type === 'incremental') typeLabel = '[Incr] ';
     else if (point.type === 'pre_restore') typeLabel = '[Safety] ';
     
-    option.textContent = typeLabel + point.display_name;
-    selectEl.appendChild(option);
+    return {
+        value: point.id,
+        label: typeLabel + point.display_name
+    };
 }
 
 /**
@@ -454,13 +468,16 @@ function confirmDeleteBackup(backupId, displayName, isSafety, dependentCount) {
     // Store backup ID for confirm action
     modal.dataset.backupId = backupId;
     modal.classList.remove('hidden');
+    modal.classList.add('visible');
 }
 
 /**
  * Hide the delete confirmation modal
  */
 function hideDeleteModal() {
-    document.getElementById('delete-modal').classList.add('hidden');
+    const modal = document.getElementById('delete-modal');
+    modal.classList.remove('visible');
+    modal.classList.add('hidden');
 }
 
 /**
@@ -503,17 +520,33 @@ async function confirmDelete() {
  */
 function showRestoreModal() {
     const select = document.getElementById('restore-point-select');
-    const selectedOption = select.options[select.selectedIndex];
     
-    document.getElementById('modal-restore-point').textContent = selectedOption.textContent;
-    document.getElementById('restore-modal').classList.remove('hidden');
+    // Get selected text - works with both native select and Choices.js
+    let selectedText = '';
+    if (select.selectedIndex >= 0 && select.options[select.selectedIndex]) {
+        selectedText = select.options[select.selectedIndex].textContent;
+    } else {
+        // Fallback: try to get from Choices instance
+        const instance = window.choicesInstances['restore-point-select'];
+        if (instance) {
+            const selected = instance.getValue();
+            selectedText = selected ? selected.label : 'Unknown backup';
+        }
+    }
+    
+    document.getElementById('modal-restore-point').textContent = selectedText;
+    const modal = document.getElementById('restore-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('visible');
 }
 
 /**
  * Hide the restore confirmation modal
  */
 function hideRestoreModal() {
-    document.getElementById('restore-modal').classList.add('hidden');
+    const modal = document.getElementById('restore-modal');
+    modal.classList.remove('visible');
+    modal.classList.add('hidden');
 }
 
 /**

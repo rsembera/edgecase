@@ -2505,3 +2505,60 @@ tbody tr:hover {
 .checkbox-label input:disabled + span {
     color: #9CA3AF;
 }
+
+/* ============================================
+   CHOICES.JS OVERRIDES
+   Custom styling for Choices.js dropdowns
+   ============================================ */
+
+/* Use app font */
+.choices {
+    font-family: 'Lexend', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Prevent word-wrap in the middle of words */
+.choices__item {
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: normal;
+}
+
+/* Match EdgeCase input styling */
+.choices__inner {
+    background: white;
+    border: 2px solid var(--color-border, #DEE2E6);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 46px;
+    font-size: 0.9375rem;
+}
+
+/* Focus state - teal border */
+.choices.is-focused .choices__inner {
+    border-color: var(--color-border-focus, #1F8F74);
+    box-shadow: var(--shadow-focus, 0 0 0 3px rgba(31,143,116,0.06));
+}
+
+/* Dropdown list */
+.choices__list--dropdown {
+    border: 2px solid var(--color-border, #DEE2E6);
+    border-radius: 0.75rem;
+    margin-top: 4px;
+}
+
+/* Dropdown items */
+.choices__list--dropdown .choices__item {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9375rem;
+}
+
+/* Highlighted item */
+.choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: var(--color-primary-lighter, #E6F5F1);
+    color: var(--color-text, #323B45);
+}
+
+/* Selected item in single-select */
+.choices__item--selectable {
+    padding-right: 1.5rem;
+}

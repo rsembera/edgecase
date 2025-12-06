@@ -52,7 +52,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="backup-frequency">Automatic Backups</label>
-                <select id="backup-frequency" onchange="saveSettingWithConfirm('frequency')">
+                <select id="backup-frequency">
                     <option value="startup">Every Startup</option>
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -61,7 +61,7 @@
             </div>
             <div class="form-group">
                 <label for="backup-location">Backup Location</label>
-                <select id="backup-location" onchange="saveSettingWithConfirm('location')">
+                <select id="backup-location">
                     <option value="default">Default (~/edgecase/backups)</option>
                 </select>
                 <div id="location-path" class="location-path"></div>
@@ -93,7 +93,7 @@
             <select id="restore-point-select">
                 <option value="">Select a backup...</option>
             </select>
-            <button id="prepare-restore-btn" class="btn btn-restore-action" disabled onclick="showRestoreModal()">Restore</button>
+            <button id="prepare-restore-btn" class="btn btn-restore-action" disabled>Restore</button>
         </div>
     </div>
     
