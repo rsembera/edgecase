@@ -7,6 +7,9 @@
     
     <!-- Shared styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+    
+    <!-- Choices.js for styled dropdowns -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/choices.min.css') }}">
 
     <!-- Favicons-->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
@@ -217,7 +220,10 @@
         applyTheme();
     </script>
     
-<!-- Lucide Icons -->
+<!-- Choices.js for styled dropdowns -->
+    <script src="{{ url_for('static', filename='js/choices.min.js') }}"></script>
+    
+    <!-- Lucide Icons -->
     <script src="{{ url_for('static', filename='js/lucide.min.js') }}"></script>
     
     <!-- Session timeout warning system -->
@@ -329,6 +335,20 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+    
+    <!-- Initialize Choices.js on all select elements -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Choices on all select elements except those with .no-choices class
+        document.querySelectorAll('select:not(.no-choices)').forEach(function(select) {
+            new Choices(select, {
+                searchEnabled: false,
+                itemSelectText: '',
+                shouldSort: false
+            });
+        });
+    });
+    </script>
     
     <script>lucide.createIcons();</script>
 </body>
