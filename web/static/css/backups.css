@@ -188,14 +188,6 @@
     flex: 1;
 }
 
-.form-group label {
-    display: block;
-    font-weight: 500;
-    color: var(--color-text, #323B45);
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-}
-
 .form-group select {
     width: 100%;
     padding: 0.625rem 0.75rem;
@@ -206,7 +198,7 @@
     background: white;
     color: var(--color-text, #323B45);
     cursor: pointer;
-    height: 46px;
+    height: 38px;
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -244,7 +236,7 @@
     background: white;
     color: var(--color-text, #323B45);
     cursor: pointer;
-    height: 46px;
+    height: 38px;
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -500,7 +492,7 @@
     cursor: pointer;
     transition: background-color 0.2s;
     font-family: var(--font-ui);
-    height: 46px;
+    height: 38px;
     box-sizing: border-box;
 }
 
@@ -514,11 +506,6 @@
     cursor: not-allowed;
 }
 
-/* Hidden utility */
-.hidden {
-    display: none !important;
-}
-
 /* ============================================
    CHOICES.JS OVERRIDES FOR BACKUPS PAGE
    ============================================ */
@@ -530,7 +517,7 @@
 }
 
 .restore-row .choices__inner {
-    min-height: 46px;
+    min-height: 38px;
     display: flex;
     align-items: center;
 }

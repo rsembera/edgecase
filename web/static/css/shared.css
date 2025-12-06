@@ -1095,6 +1095,11 @@ input[type="number"] {
 .flex-between-gap { display: flex; justify-content: space-between; gap: 0.75rem; }
 
 /* ============================================
+   UTILITY CLASSES - VISIBILITY
+   ============================================ */
+.hidden { display: none !important; }
+
+/* ============================================
    ICON UTILITIES
    ============================================ */
 /* Sizing - unified definitions */
