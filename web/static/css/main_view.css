@@ -165,12 +165,6 @@ body.garden-path .nav-btn.peach:hover {
     margin-bottom: 0.25rem;
 }
 
-.stat-label {
-    font-size: 1.125rem;
-    color: #5B6571;
-    font-weight: 600;
-}
-
 /* Navigation card (4th card) */
 .nav-card {
     display: flex;
@@ -557,11 +551,6 @@ body.tutti-frutti .nav-btn.peach:hover {
     white-space: nowrap;
 }
 
-/* Payment status dots */
-.payment-dot.paid { background: #17976C; }
-.payment-dot.pending { background: #D68A09; }
-.payment-dot.overdue { background: #C93A3A; }
-
 /* Type badges with muted colors */
 .type-badge.type-mint { background: #AFCFBF; color: #0E5346; }
 .type-badge.type-yellow { background: #F5DEB0; color: #5A4823; }
@@ -693,6 +682,11 @@ body.tutti-frutti .nav-btn.peach:hover {
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* Payment status colors */
+.legend-dot.paid, .payment-dot.paid { background: #17976C; }
+.legend-dot.pending, .payment-dot.pending { background: #D68A09; }
+.legend-dot.overdue, .payment-dot.overdue { background: #C93A3A; }
 
 /* Lucide icon sizing */
 svg[data-lucide] {
