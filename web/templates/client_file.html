@@ -236,29 +236,29 @@
                     <i data-lucide="plus" class="icon-sm icon-inline"></i> New ▾
                 </button>
                 <div id="add-entry-dropdown" class="dropdown-menu dropdown-menu-right" style="display: none;">
-                    <a href="{{ url_for('entries.create_session', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('entries.create_session', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="clipboard" class="icon-sm icon-inline"></i> Session
                     </a>
-                    <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('entries.create_communication', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="message-circle" class="icon-sm icon-inline"></i> Communication
                     </a>
-                    <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('entries.create_absence', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="x-circle" class="icon-sm icon-inline"></i> Absence
                     </a>
-                    <a href="{{ url_for('entries.create_item', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('entries.create_item', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="package" class="icon-sm icon-inline"></i> Item
                     </a>
-                    <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('entries.create_upload', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="paperclip" class="icon-sm icon-inline"></i> Upload
                     </a>
                     <div class="dropdown-separator"></div>
-                    <a href="{{ url_for('scheduler.schedule_for_client', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('scheduler.schedule_for_client', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="calendar-plus" class="icon-sm icon-inline"></i> Appointment
                     </a>
-                    <a href="{{ url_for('clients.session_report', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('clients.session_report', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="file-bar-chart" class="icon-sm icon-inline"></i> Report
                     </a>
-                    <a href="{{ url_for('clients.export_client', client_id=client.id) }}" class="dropdown-menu-item">
+                    <a href="{{ url_for('clients.export_client', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="file-text" class="icon-sm icon-inline"></i> Export
                     </a>
                 </div>

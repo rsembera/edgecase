@@ -574,6 +574,9 @@ input[type="number"] {
     width: 90%;
 }
 
+.modal-content.max-w-700 { max-width: 700px; }
+.modal-content.max-w-450 { max-width: 450px; }
+
 .modal-content h3 {
     margin-top: 0;
     margin-bottom: var(--space-lg);
@@ -593,18 +596,6 @@ input[type="number"] {
 .modal-content.danger-border {
     border-top: 4px solid #DC2626;
 }
-
-/* Modal box variants */
-.modal-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 0.75rem;
-    width: 90%;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.modal-box.max-w-700 { max-width: 700px; }
-.modal-box.max-w-450 { max-width: 450px; }
 
 .modal-title {
     color: #111827;
@@ -1371,11 +1362,8 @@ h2 svg[data-lucide].page-icon {
     margin-bottom: 0.5rem;
 }
 
-/* Dropdown items - unified styles */
-.dropdown-item,
-.dropdown-menu-item,
-.dropdown-link-item,
-.dropdown-link-item-lg {
+/* Dropdown items */
+.dropdown-item {
     display: block;
     padding: 0.75rem 1rem;
     text-decoration: none;
@@ -1385,19 +1373,17 @@ h2 svg[data-lucide].page-icon {
     transition: background 0.2s;
 }
 
-.dropdown-item:hover,
-.dropdown-menu-item:hover,
-.dropdown-link-item:hover,
-.dropdown-link-item-lg:hover {
+.dropdown-item:hover {
     background: #F3F4F6;
 }
 
-.dropdown-link-item {
+/* Dropdown item modifiers */
+.dropdown-item-sm {
     padding: 0.5rem;
     font-size: 0.875rem;
 }
 
-.dropdown-link-item-lg.danger {
+.dropdown-item-danger {
     color: #DC2626;
 }
 
@@ -1408,14 +1394,14 @@ h2 svg[data-lucide].page-icon {
 }
 
 /* Dropdown label (with checkbox) */
-.dropdown-label, .filter-type-label {
+.dropdown-label {
     display: block;
     padding: 0.5rem;
     cursor: pointer;
     border-radius: 0.5rem;
 }
 
-.dropdown-label:hover, .filter-type-label:hover {
+.dropdown-label:hover {
     background: #F3F4F6;
 }
 
@@ -1424,11 +1410,11 @@ h2 svg[data-lucide].page-icon {
     background: #F3F4F6;
 }
 
-.dropdown-label input, .filter-type-label input {
+.dropdown-label input {
     margin-right: 0.5rem;
 }
 
-.dropdown-label span, .filter-type-name {
+.dropdown-label span {
     font-size: 0.875rem;
     margin-left: 0.5rem;
 }
