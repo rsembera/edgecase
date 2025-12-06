@@ -7,23 +7,6 @@
     margin: 0 auto;
 }
 
-/* Inline button variant */
-.btn-secondary-inline {
-    padding: 0.75rem 1.5rem;
-    background: #E3E9EE;
-    color: #55607D;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-block;
-}
-
-.btn-secondary-inline:hover {
-    background: #D1D9E0;
-}
-
 /* Link Groups */
 .link-groups {
     display: flex;

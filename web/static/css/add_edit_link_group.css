@@ -7,23 +7,6 @@
     margin: 0 auto;
 }
 
-/* Inline button variant */
-.btn-secondary-inline {
-    padding: 0.75rem 1.5rem;
-    background: #E3E9EE;
-    color: #55607D;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-block;
-}
-
-.btn-secondary-inline:hover {
-    background: #D1D9E0;
-}
-
 /* Client Search */
 .search-container {
     position: relative;
@@ -289,7 +272,7 @@
     color: #374151;
     background: white;
     transition: all 0.2s;
-    height: 50px;
+    height: 38px;
     box-sizing: border-box;
     font-family: var(--font-ui);
 }
@@ -306,30 +289,6 @@
     margin-top: 0.5rem;
     color: #5B6571;
     font-size: 0.75rem;
-}
-
-/* Disabled primary button state */
-.btn:disabled {
-    background: #E3E9EE !important;
-    color: #9CA3AF !important;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ============================================
-   ICON UTILITIES
-   ============================================ */
-.icon-sm {
-    width: 14px;
-    height: 14px;
-}
-
-.icon-alert {
-    width: 18px;
-    height: 18px;
-    vertical-align: middle;
-    color: #D97706;
-    margin-right: 0.25rem;
 }
 
 /* ============================================
