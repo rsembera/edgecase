@@ -39,6 +39,7 @@ function toggleMonth(monthId) {
 
 /**
  * Toggle dropdown menu visibility, closing all others first
+ * Includes edge detection for dropdowns near bottom of viewport
  * @param {string} dropdownId - ID of dropdown element to toggle
  */
 function toggleDropdown(dropdownId) {
@@ -49,21 +50,43 @@ function toggleDropdown(dropdownId) {
     allDropdowns.forEach(d => {
         if (d.id !== dropdownId) {
             d.style.display = 'none';
+            d.classList.remove('dropdown-menu-up');
         }
     });
     
     // Toggle this dropdown (check for both 'none' and empty string)
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         dropdown.style.display = 'block';
+        
+        // Edge detection for add-entry-dropdown
+        if (dropdownId === 'add-entry-dropdown') {
+            // Reset position first
+            dropdown.classList.remove('dropdown-menu-up');
+            
+            // Check if dropdown extends beyond viewport
+            const rect = dropdown.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const spaceBelow = viewportHeight - rect.top;
+            const dropdownHeight = rect.height;
+            
+            // If not enough space below, flip upward
+            if (spaceBelow < dropdownHeight + 20) {
+                dropdown.classList.add('dropdown-menu-up');
+            }
+        }
     } else {
         dropdown.style.display = 'none';
+        dropdown.classList.remove('dropdown-menu-up');
     }
 }
 
 // Close dropdowns when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.type-badge') && !e.target.closest('.dropdown-btn') && !e.target.closest('[id$="-dropdown"]')) {
-        document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
+            d.style.display = 'none';
+            d.classList.remove('dropdown-menu-up');
+        });
     }
 });
 
