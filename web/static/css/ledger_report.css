@@ -39,10 +39,7 @@
     font-weight: 600;
 }
 
-/* Date select sizing */
-.year-select { width: 90px; }
-.month-select { width: 80px; }
-.day-select { width: 70px; }
+/* Date select sizing uses shared.css utilities: .year-select, .month-select, .day-select */
 
 .quick-ranges {
     display: flex;
@@ -50,15 +47,7 @@
     margin-bottom: 1.25rem;
 }
 
-.checkbox-group {
-    margin-top: 1rem;
-}
-
-.checkbox-hint {
-    margin: 0.5rem 0 0 1.625rem;
-    font-size: 0.8125rem;
-    color: #64748B;
-}
+/* Checkbox group and hint use shared.css */
 
 /* Preview Section */
 .report-preview {
@@ -75,11 +64,7 @@
     font-weight: 600;
 }
 
-.preview-hint {
-    margin: 0 0 1rem 0;
-    font-size: 0.875rem;
-    color: #64748B;
-}
+/* preview-hint uses shared.css */
 
 .preview-summary {
     display: grid;
