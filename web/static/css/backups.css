@@ -146,7 +146,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .btn-cancel:hover {
@@ -202,7 +202,7 @@
     border: 2px solid var(--color-border, #DEE2E6);
     border-radius: 0.75rem;
     font-size: 0.875rem;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
     background: white;
     color: var(--color-text, #323B45);
     cursor: pointer;
@@ -240,7 +240,7 @@
     border: 2px solid var(--color-border, #DEE2E6);
     border-radius: 0.75rem;
     font-size: 0.875rem;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
     background: white;
     color: var(--color-text, #323B45);
     cursor: pointer;
@@ -482,7 +482,7 @@
     font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .btn-confirm:hover {
@@ -499,7 +499,7 @@
     font-size: 0.875rem;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-family: 'Lexend', sans-serif;
+    font-family: var(--font-ui);
     height: 46px;
     box-sizing: border-box;
 }

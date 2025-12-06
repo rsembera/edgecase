@@ -74,6 +74,46 @@ function closeAboutModal() {
 }
 
 // ============================================================
+// FONT PREFERENCE (auto-save, no confirmation)
+// ============================================================
+
+/**
+ * Save and apply font preference immediately
+ */
+function saveAndApplyFont() {
+    const fontChoice = document.getElementById('ui-font').value;
+    localStorage.setItem('uiFont', fontChoice);
+    applyFont(); // Call the global function from base.html
+    updateFontPreview();
+}
+
+/**
+ * Load current font preference from localStorage
+ */
+function loadFontPreference() {
+    const fontChoice = localStorage.getItem('uiFont') || 'lexend';
+    const fontSelect = document.getElementById('ui-font');
+    if (fontSelect) {
+        fontSelect.value = fontChoice;
+        updateFontPreview();
+    }
+}
+
+/**
+ * Update the font preview text styling
+ */
+function updateFontPreview() {
+    const fontChoice = document.getElementById('ui-font').value;
+    const preview = document.getElementById('font-preview');
+    if (preview) {
+        // Remove all font preview classes
+        preview.classList.remove('font-preview-lexend', 'font-preview-inter', 'font-preview-lora');
+        // Add the selected font class
+        preview.classList.add('font-preview-' + fontChoice);
+    }
+}
+
+// ============================================================
 // CARD LAYOUT MANAGEMENT (auto-save, no confirmation)
 // ============================================================
 
@@ -1288,6 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStatementSettings();
     loadTimeFormat();
     loadAIStatus();
+    loadFontPreference();
     
     // Phone formatting
     const phoneInput = document.getElementById('practice-phone');
