@@ -532,9 +532,12 @@
     align-items: flex-start;
 }
 
-.restore-row .choices,
-.restore-row .btn-restore-action {
+.restore-row .choices {
     margin-top: 0;
+}
+
+.restore-row .btn-restore-action {
+    margin-top: 4px;
 }
 
 /* ============================================
