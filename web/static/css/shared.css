@@ -1490,6 +1490,14 @@ tbody tr:hover {
     background: #F3F4F6;
 }
 
+/* Dropdown positioned above trigger (for edge detection) */
+.dropdown-menu-up {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
 /* ============================================
    STATS CARDS
    Used in: main_view, ledger
