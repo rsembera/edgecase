@@ -106,11 +106,18 @@
 .select-all-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
     padding: 0.75rem 1rem;
     background: #E3E9EE;
+    border: 1px solid #E3E9EE;  /* Match client row border width */
     border-radius: 0.5rem;
     margin-bottom: 0.75rem;
+}
+
+.select-all-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 0.75rem;
+    cursor: pointer;
 }
 
 .select-all-row label {
@@ -123,8 +130,7 @@
 /* Client row in unbilled list */
 .unbilled-client {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    align-items: baseline;
     padding: 0.75rem 1rem;
     background: #FBFCFD;
     border: 1px solid #E5E7EB;
@@ -139,11 +145,14 @@
 .unbilled-client input[type="checkbox"] {
     width: 18px;
     height: 18px;
+    margin-right: 0.75rem;
     cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    top: 2px;  /* Nudge checkbox down to align with text baseline */
 }
 
 .unbilled-client .client-name {
-    flex: 1;
     font-weight: 600;
     color: #2D3748;
 }
@@ -152,11 +161,13 @@
     color: #718096;
     font-size: 0.875rem;
     font-family: monospace;
+    margin-left: 0.75rem;
 }
 
 .unbilled-client .unbilled-amount {
     font-weight: 600;
     color: #1F8F74;
+    margin-left: auto;
 }
 
 /* Generate button row */
