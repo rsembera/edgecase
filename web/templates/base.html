@@ -338,14 +338,68 @@
     
     <!-- Initialize Choices.js on all select elements -->
     <script>
+    // Global map to store Choices instances by element ID
+    window.choicesInstances = {};
+    
+    /**
+     * Update options for a Choices-enabled select element
+     * @param {string} selectId - The ID of the select element
+     * @param {Array} options - Array of {value, label, selected} objects
+     * @param {boolean} clearFirst - Whether to clear existing options first (default: true)
+     */
+    window.updateChoicesOptions = function(selectId, options, clearFirst = true) {
+        const instance = window.choicesInstances[selectId];
+        if (instance) {
+            if (clearFirst) {
+                instance.clearChoices();
+            }
+            instance.setChoices(options, 'value', 'label', false);
+        } else {
+            // Fallback for non-Choices selects
+            const select = document.getElementById(selectId);
+            if (select) {
+                if (clearFirst) {
+                    select.innerHTML = '';
+                }
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    if (opt.selected) option.selected = true;
+                    select.appendChild(option);
+                });
+            }
+        }
+    };
+    
+    /**
+     * Set selected value for a Choices-enabled select
+     * @param {string} selectId - The ID of the select element
+     * @param {string} value - The value to select
+     */
+    window.setChoicesValue = function(selectId, value) {
+        const instance = window.choicesInstances[selectId];
+        if (instance) {
+            instance.setChoiceByValue(value);
+        } else {
+            const select = document.getElementById(selectId);
+            if (select) select.value = value;
+        }
+    };
+    
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Choices on all select elements except those with .no-choices class
         document.querySelectorAll('select:not(.no-choices)').forEach(function(select) {
-            new Choices(select, {
+            const instance = new Choices(select, {
                 searchEnabled: false,
                 itemSelectText: '',
-                shouldSort: false
+                shouldSort: false,
+                allowHTML: false
             });
+            // Store instance if element has an ID
+            if (select.id) {
+                window.choicesInstances[select.id] = instance;
+            }
         });
     });
     </script>

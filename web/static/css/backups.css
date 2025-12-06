@@ -520,6 +520,37 @@
 }
 
 /* ============================================
+   CHOICES.JS OVERRIDES FOR BACKUPS PAGE
+   ============================================ */
+
+/* Restore dropdown - prevent text wrapping, set width */
+.restore-row .choices {
+    flex: 1;
+    max-width: 350px;
+}
+
+.restore-row .choices__inner {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+}
+
+/* Prevent text wrapping in dropdown items */
+.restore-row .choices__list--dropdown .choices__item {
+    white-space: nowrap;
+}
+
+/* Align the Choices wrapper with button */
+.restore-row {
+    align-items: flex-start;
+}
+
+.restore-row .choices,
+.restore-row .btn-restore-action {
+    margin-top: 0;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
