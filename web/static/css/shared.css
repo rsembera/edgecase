@@ -400,6 +400,11 @@ input[type="number"] {
     box-shadow: var(--shadow-focus);
 }
 
+/* Date select width utilities */
+.year-select { width: 90px; }
+.month-select { width: 80px; }
+.day-select { width: 70px; }
+
 /* ============================================
    FORM LAYOUTS
    ============================================ */
@@ -536,6 +541,22 @@ input[type="number"] {
 
 .checkbox-auto {
     width: auto;
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+}
+
+.checkbox-hint {
+    margin: 0.5rem 0 0 1.625rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #64748B);
+}
+
+.preview-hint {
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #718096);
+    margin-bottom: 1rem;
 }
 
 /* ============================================
