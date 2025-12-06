@@ -67,10 +67,10 @@
                     <input type="hidden" name="search" value="{{ search }}">
                     <input type="hidden" name="view" value="{{ view_mode }}">
                     {% for client_type in all_types %}
-                    <label class="filter-type-label">
+                    <label class="dropdown-label">
                         <input type="checkbox" name="type" value="{{ client_type.id }}" 
                                {% if client_type.id|string in type_filter %}checked{% endif %}>
-                        <span class="filter-type-name">{{ client_type.name }}</span>
+                        <span>{{ client_type.name }}</span>
                     </label>
                     {% endfor %}
                 </div>
@@ -84,23 +84,23 @@
             </button>
             <div id="sort-dropdown" class="dropdown-menu-positioned min-width-200" style="display: none;">
                 <a href="?sort=last_name&order={{ 'desc' if sort_by == 'last_name' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   class="dropdown-link-item">
+                   class="dropdown-item dropdown-item-sm">
                     Last Name {{ '↓' if sort_by == 'last_name' and sort_order == 'desc' else '↑' if sort_by == 'last_name' else '' }}
                 </a>
                 <a href="?sort=first_name&order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   class="dropdown-link-item">
+                   class="dropdown-item dropdown-item-sm">
                     First Name {{ '↓' if sort_by == 'first_name' and sort_order == 'desc' else '↑' if sort_by == 'first_name' else '' }}
                 </a>
                 <a href="?sort=file_number&order={{ 'desc' if sort_by == 'file_number' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   class="dropdown-link-item">
+                   class="dropdown-item dropdown-item-sm">
                     File Number {{ '↓' if sort_by == 'file_number' and sort_order == 'desc' else '↑' if sort_by == 'file_number' else '' }}
                 </a>
                 <a href="?sort=last_session&order={{ 'desc' if sort_by == 'last_session' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   class="dropdown-link-item">
+                   class="dropdown-item dropdown-item-sm">
                     Last Session {{ '↓' if sort_by == 'last_session' and sort_order == 'desc' else '↑' if sort_by == 'last_session' else '' }}
                 </a>
                 <a href="?sort=created&order={{ 'desc' if sort_by == 'created' and sort_order == 'asc' else 'asc' }}{% for t in type_filter %}&type={{ t }}{% endfor %}&search={{ search }}&view={{ view_mode }}" 
-                   class="dropdown-link-item">
+                   class="dropdown-item dropdown-item-sm">
                     Created {{ '↓' if sort_by == 'created' and sort_order == 'desc' else '↑' if sort_by == 'created' else '' }}
                 </a>
             </div>
@@ -136,25 +136,25 @@
                 <i data-lucide="settings"></i> Manage ▾
             </button>
             <div id="manage-dropdown" class="dropdown-menu-positioned align-right padding-sm min-width-160" style="display: none;">
-                <a href="{{ url_for('clients.add_client') }}" class="dropdown-link-item-lg">
+                <a href="{{ url_for('clients.add_client') }}" class="dropdown-item">
                     <i data-lucide="plus" class="icon-sm icon-inline"></i>Add Client
                 </a>
-                <a href="{{ url_for('types.manage_types') }}" class="dropdown-link-item-lg">
+                <a href="{{ url_for('types.manage_types') }}" class="dropdown-item">
                     <i data-lucide="tag" class="icon-sm icon-inline"></i>Edit Types
                 </a>
-                <a href="{{ url_for('links.manage_links') }}" class="dropdown-link-item-lg">
+                <a href="{{ url_for('links.manage_links') }}" class="dropdown-item">
                     <i data-lucide="link" class="icon-sm icon-inline"></i>Edit Links
                 </a>
 
                 <div class="dropdown-separator"></div>
 
-                <a href="{{ url_for('clients.deleted_clients') }}" class="dropdown-link-item-lg">
+                <a href="{{ url_for('clients.deleted_clients') }}" class="dropdown-item">
                     <i data-lucide="archive" class="icon-sm icon-inline"></i>Deleted
                 </a>
 
                 <div class="dropdown-separator"></div>
                 
-                <a href="{{ url_for('auth.logout') }}" class="dropdown-link-item-lg danger">
+                <a href="{{ url_for('auth.logout') }}" class="dropdown-item dropdown-item-danger">
                     <i data-lucide="log-out" class="icon-sm icon-inline"></i>Logout
                 </a>
             </div>
@@ -319,7 +319,7 @@
 
 <!-- Retention Review Modal -->
 <div id="retention-modal" class="modal-overlay">
-    <div class="modal-box max-w-700 warning-border">
+    <div class="modal-content max-w-700 warning-border">
         <h3 class="modal-title">
             <i data-lucide="alert-triangle" class="icon-inline-alert"></i>
             File Retention Review Required
@@ -346,7 +346,7 @@
 
 <!-- Delete Confirmation Modal -->
 <div id="delete-confirm-modal" class="modal-overlay darker">
-    <div class="modal-box max-w-450 danger-border">
+    <div class="modal-content max-w-450 danger-border">
         <h3 class="modal-title">Confirm Permanent Deletion</h3>
         <p class="modal-body-text mb-lg">
             Are you sure you want to permanently delete <strong id="delete-count"></strong> client file(s)? This cannot be undone.
