@@ -799,9 +799,11 @@ def cleanup_old_backups(retention, custom_location=None):
     
     # Group backups by chain
     chains = {}
+    safety_backups = []  # Track safety backups separately
     for backup in manifest['backups']:
         if backup['type'] == 'pre_restore':
-            continue  # Never auto-delete safety backups
+            safety_backups.append(backup)  # Collect for separate cleanup
+            continue
         chain_id = backup.get('chain_id')
         if chain_id:
             if chain_id not in chains:
@@ -858,6 +860,21 @@ def cleanup_old_backups(retention, custom_location=None):
     if chains_to_delete:
         save_manifest(manifest)
         print(f"Retention cleanup: Deleted {len(chains_to_delete)} old backup chain(s)")
+    
+    # Clean up old safety backups
+    safety_deleted = 0
+    for backup in safety_backups:
+        if backup['created_at'] < cutoff_date:
+            backup_path = Path(backup.get('backup_dir', backup_dir)) / backup['filename']
+            if backup_path.exists():
+                backup_path.unlink()
+            if backup in manifest['backups']:
+                manifest['backups'].remove(backup)
+            safety_deleted += 1
+    
+    if safety_deleted:
+        save_manifest(manifest)
+        print(f"Retention cleanup: Deleted {safety_deleted} old safety backup(s)")
 
 
 def check_backup_needed(frequency='daily'):
