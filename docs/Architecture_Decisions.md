@@ -532,43 +532,55 @@ Organize entries by year and month with expand/collapse functionality.
 
 ### The Decision
 
-Use ALTER TABLE migrations, never destructive operations.
+v1.0 ships with a complete, clean schema. No migrations needed for initial release.
 
-### Why?
+### Development vs. Production
 
-**Philosophy:** Always additive, never break existing data
+**During development:** We used ALTER TABLE migrations to add columns incrementally as features evolved. This let us iterate without recreating test data.
 
-**How migrations work:**
-1. Check if column exists
-2. If not, ALTER TABLE ADD COLUMN
+**For v1.0 release:** 
+- New users get fresh database with complete schema from `_initialize_schema()`
+- No existing users to migrate from
+- All development migrations folded into the clean schema
+- `_run_migrations()` method exists but is a pass-through stub
+
+### Future Versions (v1.1+)
+
+When we release updates that change the schema, migrations will be needed:
+
+**Philosophy:** Always additive, never destructive
+
+**How migrations will work:**
+1. Check if column/table exists
+2. If not, ALTER TABLE ADD COLUMN (or CREATE TABLE)
 3. Log migration to console
-4. Existing data unchanged, new column is NULL
-5. Future entries populate new column
+4. Existing data unchanged, new columns are NULL
+5. Future entries populate new fields
 
-**Example:**
+**Example pattern for future use:**
 ```python
-# Week 3: Add session fee breakdown
-cursor.execute("PRAGMA table_info(entries)")
-columns = [col[1] for col in cursor.fetchall()]
-
-if 'base_fee' not in columns:
-    cursor.execute("ALTER TABLE entries ADD COLUMN base_fee REAL")
-    print("✓ Migration: Added base_fee to entries")
+def _run_migrations(self):
+    """Run database migrations to update schema."""
+    conn = self.connect()
+    cursor = conn.cursor()
+    
+    # v1.1: Add new_field to entries
+    cursor.execute("PRAGMA table_info(entries)")
+    columns = [col[1] for col in cursor.fetchall()]
+    
+    if 'new_field' not in columns:
+        cursor.execute("ALTER TABLE entries ADD COLUMN new_field TEXT")
+        print("✓ Migration: Added new_field to entries")
+    
+    conn.commit()
 ```
 
-**Benefits:**
-- ✅ **Safe** - Never lose data
-- ✅ **Incremental** - Add features without breaking existing setup
-- ✅ **Transparent** - User sees migration messages in console
-- ✅ **Reversible** - Can restore old database version if needed
+### Why This Approach?
 
-**Alternative considered:** Full schema recreation
-- Drop all tables, recreate with new schema
-- Requires data export/import
-- Risk of data loss
-- Decision: Too dangerous for production system
-
-**Result:** 15+ migrations executed safely over 4 weeks of development. Zero data loss.
+- ✅ **Clean slate for v1.0** - No legacy cruft
+- ✅ **Ready for future** - Infrastructure in place when needed
+- ✅ **Safe upgrades** - Additive changes preserve existing data
+- ✅ **Simple testing** - Delete test database, restart, get clean schema
 
 ---
 
