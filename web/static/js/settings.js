@@ -92,11 +92,8 @@ function saveAndApplyFont() {
  */
 function loadFontPreference() {
     const fontChoice = localStorage.getItem('uiFont') || 'lexend';
-    const fontSelect = document.getElementById('ui-font');
-    if (fontSelect) {
-        fontSelect.value = fontChoice;
-        updateFontPreview();
-    }
+    window.setChoicesValue('ui-font', fontChoice);
+    updateFontPreview();
 }
 
 /**
@@ -140,8 +137,7 @@ function loadCardPositions() {
     const currentOrder = savedOrder ? JSON.parse(savedOrder) : [...DEFAULT_CARD_ORDER];
     
     for (let i = 0; i < 6; i++) {
-        const select = document.getElementById(`position-${i + 1}`);
-        if (select) select.value = currentOrder[i];
+        window.setChoicesValue(`position-${i + 1}`, currentOrder[i]);
     }
     
     return currentOrder;
@@ -166,9 +162,9 @@ function handleCardSwap(position) {
         currentOrder[position] = newCardId;
         currentOrder[existingPosition] = oldCardId;
         
-        // Update all dropdowns
+        // Update all dropdowns using setChoicesValue
         for (let i = 0; i < 6; i++) {
-            document.getElementById(`position-${i + 1}`).value = currentOrder[i];
+            window.setChoicesValue(`position-${i + 1}`, currentOrder[i]);
         }
         
         localStorage.setItem('cardOrder', JSON.stringify(currentOrder));
@@ -199,48 +195,56 @@ async function loadBackgroundOptions() {
         const systemBackgrounds = data.system || [];
         userBackgrounds = data.user || [];
         
-        const select = document.getElementById('background-style');
-        select.innerHTML = '';
+        // Build choices array with groups for Choices.js
+        const choices = [];
         
-        // Add solid colors
-        const solidGroup = document.createElement('optgroup');
-        solidGroup.label = 'Solid Colors';
-        SOLID_COLORS.forEach(color => {
-            const option = document.createElement('option');
-            option.value = color.value;
-            option.textContent = color.name;
-            solidGroup.appendChild(option);
+        // Add solid colors group
+        choices.push({
+            label: 'Solid Colors',
+            id: 'solid-colors',
+            choices: SOLID_COLORS.map(color => ({
+                value: color.value,
+                label: color.name
+            }))
         });
-        select.appendChild(solidGroup);
         
-        // Add system backgrounds
+        // Add system backgrounds group
         if (systemBackgrounds.length > 0) {
-            const systemGroup = document.createElement('optgroup');
-            systemGroup.label = 'System Backgrounds';
-            systemBackgrounds.forEach(bg => {
-                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
-                    .replace(/\b\w/g, l => l.toUpperCase());
-                const option = document.createElement('option');
-                option.value = 'system:' + bg;
-                option.textContent = displayName;
-                systemGroup.appendChild(option);
+            choices.push({
+                label: 'System Backgrounds',
+                id: 'system-backgrounds',
+                choices: systemBackgrounds.map(bg => {
+                    const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+                        .replace(/\b\w/g, l => l.toUpperCase());
+                    return {
+                        value: 'system:' + bg,
+                        label: displayName
+                    };
+                })
             });
-            select.appendChild(systemGroup);
         }
         
-        // Add user backgrounds
+        // Add user backgrounds group
         if (userBackgrounds.length > 0) {
-            const userGroup = document.createElement('optgroup');
-            userGroup.label = 'My Backgrounds';
-            userBackgrounds.forEach(bg => {
-                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
-                    .replace(/\b\w/g, l => l.toUpperCase());
-                const option = document.createElement('option');
-                option.value = 'user:' + bg;
-                option.textContent = displayName;
-                userGroup.appendChild(option);
+            choices.push({
+                label: 'My Backgrounds',
+                id: 'user-backgrounds',
+                choices: userBackgrounds.map(bg => {
+                    const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+                        .replace(/\b\w/g, l => l.toUpperCase());
+                    return {
+                        value: 'user:' + bg,
+                        label: displayName
+                    };
+                })
             });
-            select.appendChild(userGroup);
+        }
+        
+        // Update the Choices.js instance
+        const instance = window.choicesInstances['background-style'];
+        if (instance) {
+            instance.clearChoices();
+            instance.setChoices(choices, 'value', 'label', false);
         }
         
         loadCurrentSettings();
@@ -251,16 +255,22 @@ async function loadBackgroundOptions() {
 }
 
 /**
+ * Load card style setting from localStorage (called on DOMContentLoaded)
+ */
+function loadCardStyleSetting() {
+    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
+    window.setChoicesValue('card-style', cardStyle);
+}
+
+/**
  * Load current theme settings from localStorage
+ * Note: Card positions and card style are loaded separately on DOMContentLoaded
  */
 function loadCurrentSettings() {
-    const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
+    // Background style needs to be set after the dropdown is populated
     const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+    window.setChoicesValue('background-style', backgroundStyle);
     
-    document.getElementById('card-style').value = cardStyle;
-    document.getElementById('background-style').value = backgroundStyle;
-    
-    loadCardPositions();
     updateDeleteButton();
 }
 
@@ -283,8 +293,15 @@ function updateDeleteButton() {
  */
 function saveAndApplyCardStyle() {
     const cardStyle = document.getElementById('card-style').value;
+    console.log('saveAndApplyCardStyle called, value:', cardStyle);
     localStorage.setItem('cardStyle', cardStyle);
-    applyTheme();
+    console.log('Stored in localStorage, now calling applyTheme');
+    if (typeof applyTheme === 'function') {
+        applyTheme();
+        console.log('applyTheme called, body classes:', document.body.className);
+    } else {
+        console.error('applyTheme is not defined!');
+    }
 }
 
 /**
@@ -334,9 +351,16 @@ async function uploadBackground() {
             document.getElementById('upload-filename').textContent = '';
             document.getElementById('upload-button').classList.add('hidden');
             
+            // Save to localStorage FIRST, before reloading options
+            const newBgValue = 'user:' + result.filename;
+            localStorage.setItem('backgroundStyle', newBgValue);
+            
+            // Now reload options (loadCurrentSettings will read from localStorage)
             await loadBackgroundOptions();
-            document.getElementById('background-style').value = 'user:' + result.filename;
-            saveAndApplyBackground();
+            
+            // Apply the theme
+            applyTheme();
+            updateDeleteButton();
             
             setTimeout(() => statusDiv.style.display = 'none', 3000);
         } else {
@@ -403,12 +427,19 @@ async function deleteBackground() {
  */
 function loadTimeFormat() {
     fetch('/api/time_format')
-        .then(response => response.json())
-        .then(data => {
-            const timeFormat = document.getElementById('time-format');
-            if (timeFormat) {
-                timeFormat.value = data.time_format || '12h';
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch time format');
             }
+            return response.json();
+        })
+        .then(data => {
+            if (data.time_format) {
+                window.setChoicesValue('time-format', data.time_format);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading time format:', error);
         });
 }
 
@@ -903,7 +934,7 @@ function loadFileNumberSettings() {
         .then(response => response.json())
         .then(data => {
             if (data.format) {
-                document.getElementById('file-number-format').value = data.format;
+                window.setChoicesValue('file-number-format', data.format);
                 toggleFileNumberFields();
                 
                 if (data.format === 'prefix-counter') {
@@ -961,20 +992,19 @@ function toggleCalendarNameField() {
  * Load calendar settings from server
  */
 function loadCalendarSettings() {
-    const calendarMethod = document.getElementById('calendar_method');
     const calendarNameGroup = document.getElementById('calendar-name-group');
     const calendarName = document.getElementById('calendar_name');
-    
-    if (!calendarMethod) return;
     
     fetch('/api/calendar_settings')
         .then(response => response.json())
         .then(data => {
             if (data.calendar_method) {
-                calendarMethod.value = data.calendar_method;
-                calendarNameGroup.style.display = data.calendar_method === 'applescript' ? 'block' : 'none';
+                window.setChoicesValue('calendar_method', data.calendar_method);
+                if (calendarNameGroup) {
+                    calendarNameGroup.style.display = data.calendar_method === 'applescript' ? 'block' : 'none';
+                }
             }
-            if (data.calendar_name) {
+            if (data.calendar_name && calendarName) {
                 calendarName.value = data.calendar_name;
             }
         });
@@ -1017,10 +1047,7 @@ function loadSecuritySettings() {
     fetch('/api/security_settings')
         .then(response => response.json())
         .then(data => {
-            const timeout = document.getElementById('session_timeout');
-            if (timeout) {
-                timeout.value = data.session_timeout || '30';
-            }
+            window.setChoicesValue('session_timeout', data.session_timeout || '30');
         });
 }
 
@@ -1081,12 +1108,12 @@ function loadStatementSettings() {
     fetch('/api/statement_settings')
         .then(response => response.json())
         .then(data => {
-            if (data.currency) document.getElementById('currency').value = data.currency;
+            if (data.currency) window.setChoicesValue('currency', data.currency);
             if (data.registration_info) document.getElementById('registration_info').value = data.registration_info;
             if (data.payment_instructions) document.getElementById('payment_instructions').value = data.payment_instructions;
             if (data.email_from_address) document.getElementById('email_from').value = data.email_from_address;
             if (data.statement_email_body) document.getElementById('statement_email_body').value = data.statement_email_body;
-            if (data.email_method) document.getElementById('email_method').value = data.email_method;
+            if (data.email_method) window.setChoicesValue('email_method', data.email_method);
             toggleEmailFromField();
             
             const attestationCheckbox = document.getElementById('include_attestation');
@@ -1319,17 +1346,26 @@ async function deleteAIModel() {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Load all settings
-    loadBackgroundOptions();
-    loadPracticeInfo();
-    loadFileNumberSettings();
-    loadSecuritySettings();
-    loadCalendarSettings();
-    loadStatementSettings();
-    loadTimeFormat();
-    loadAIStatus();
-    loadFontPreference();
+    // Defer dropdown loading until after Choices.js initializes
+    // (Choices.js init runs in a later DOMContentLoaded handler in base.html)
+    setTimeout(function() {
+        // Load localStorage settings
+        loadFontPreference();
+        loadCardPositions();  // Card layout dropdowns
+        loadCardStyleSetting();  // Info card style dropdown
+        
+        // Load async settings from server
+        loadBackgroundOptions();
+        loadPracticeInfo();
+        loadFileNumberSettings();
+        loadSecuritySettings();
+        loadCalendarSettings();
+        loadStatementSettings();
+        loadTimeFormat();
+        loadAIStatus();
+    }, 0);
     
+    // Event listeners can be set up immediately
     // Phone formatting
     const phoneInput = document.getElementById('practice-phone');
     if (phoneInput) {

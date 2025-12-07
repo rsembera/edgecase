@@ -12,7 +12,14 @@
     border-radius: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure open sections have higher z-index so dropdowns appear above closed sections */
+details[open].settings-section-collapsible {
+    z-index: 10;
 }
 
 .settings-section-header {
@@ -404,9 +411,9 @@ details[open] .settings-section-header .arrow {
             </div>
         </div>
         
-        <div class="form-group">
+        <div class="form-group" style="max-width: 280px;">
             <label for="consultation-duration">Consultation Duration</label>
-            <select id="consultation-duration" class="max-w-200">
+            <select id="consultation-duration">
                 <option value="15">15 minutes</option>
                 <option value="20">20 minutes</option>
                 <option value="25">25 minutes</option>

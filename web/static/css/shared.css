@@ -2122,3 +2122,14 @@ tbody tr:hover {
 .choices__item--selectable {
     padding-right: 1.5rem;
 }
+
+/* Optgroup headings (Solid Colors, System Backgrounds, etc.) */
+.choices__group .choices__heading {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted, #6B7280);
+    padding: 0.75rem 0.75rem 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: none;
+}
