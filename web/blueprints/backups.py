@@ -48,6 +48,8 @@ def backup_status():
     
     # Get settings from database
     status['frequency'] = db.get_setting('backup_frequency', 'daily')
+    status['retention'] = db.get_setting('backup_retention', 'forever')
+    status['post_backup_command'] = db.get_setting('post_backup_command', '')
     
     # Return saved location, or empty string if using default
     location = db.get_setting('backup_location', '')
@@ -71,6 +73,12 @@ def save_backup_settings():
     
     if 'frequency' in data:
         db.set_setting('backup_frequency', data['frequency'])
+    
+    if 'retention' in data:
+        db.set_setting('backup_retention', data['retention'])
+    
+    if 'post_backup_command' in data:
+        db.set_setting('post_backup_command', data['post_backup_command'])
     
     # Handle location
     if 'location' in data:
@@ -97,6 +105,7 @@ def save_backup_settings():
 def backup_now():
     """Trigger immediate backup. System auto-decides full vs incremental."""
     from utils import backup
+    import subprocess
     
     location = db.get_setting('backup_location', '')
     if not location:
@@ -112,6 +121,20 @@ def backup_now():
                 'message': 'No changes since last backup',
                 'backup': None
             })
+        
+        # Run retention cleanup
+        retention = db.get_setting('backup_retention', 'forever')
+        if retention != 'forever':
+            backup.cleanup_old_backups(retention, location)
+        
+        # Run post-backup command if configured
+        post_cmd = db.get_setting('post_backup_command', '')
+        if post_cmd:
+            try:
+                subprocess.run(post_cmd, shell=True, timeout=300)
+            except Exception as cmd_error:
+                # Log but don't fail the backup
+                print(f"Post-backup command error: {cmd_error}")
         
         return jsonify({
             'success': True,
@@ -129,38 +152,6 @@ def list_backups():
     
     backups_list = backup.list_backups()
     return jsonify({'backups': backups_list})
-
-
-@backups_bp.route('/api/backup/delete', methods=['POST'])
-def delete_backup():
-    """Delete a specific backup."""
-    from utils import backup
-    
-    data = request.get_json()
-    backup_id = data.get('backup_id')
-    
-    if not backup_id:
-        return jsonify({'success': False, 'error': 'No backup specified'}), 400
-    
-    try:
-        # Get restore points to find the backup
-        points = backup.get_restore_points()
-        point = next((p for p in points if p['id'] == backup_id), None)
-        
-        if not point:
-            return jsonify({'success': False, 'error': 'Backup not found'}), 404
-        
-        # Get the filename from the last file in files_needed
-        # For full backups, this is the only file
-        # For incrementals, we delete just the incremental
-        backup_path = Path(point['files_needed'][-1])
-        filename = backup_path.name
-        
-        result = backup.delete_backup(filename)
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================

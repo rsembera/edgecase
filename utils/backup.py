@@ -766,42 +766,104 @@ def delete_backup(backup_filename):
     }
 
 
-def apply_retention_policy(manifest, backup_dir):
+def cleanup_old_backups(retention, custom_location=None):
     """
-    Apply backup retention policy:
-    - Keep last 4 full backups
-    - Keep last 7 incremental backups
-    - Keep all pre_restore backups (safety nets)
+    Delete backups older than the retention period.
+    
+    Retention periods:
+    - '1_month': 30 days
+    - '6_months': 180 days  
+    - '1_year': 365 days
+    - 'forever': no deletion
+    
+    Rules:
+    - Always keep at least one valid restore point
+    - Delete entire chains when their newest incremental exceeds retention
+    - Only delete if a newer chain exists
+    
+    Args:
+        retention: The retention period setting
+        custom_location: Optional custom backup directory
     """
-    backup_dir = Path(backup_dir)
+    if retention == 'forever':
+        return
     
-    # Separate by type
-    full_backups = [b for b in manifest['backups'] if b['type'] == 'full']
-    incr_backups = [b for b in manifest['backups'] if b['type'] == 'incremental']
+    # Convert retention to days
+    retention_days = {
+        '1_month': 30,
+        '6_months': 180,
+        '1_year': 365
+    }.get(retention)
     
-    # Sort by date (oldest first for deletion)
-    full_backups.sort(key=lambda x: x['created_at'])
-    incr_backups.sort(key=lambda x: x['created_at'])
+    if not retention_days:
+        return
     
-    to_delete = []
+    manifest = load_manifest()
+    backup_dir = Path(custom_location) if custom_location else BACKUPS_DIR
     
-    # Keep last 4 full backups
-    if len(full_backups) > 4:
-        to_delete.extend(full_backups[:-4])
+    cutoff_date = (datetime.now() - timedelta(days=retention_days)).isoformat()
     
-    # Keep last 7 incremental backups
-    if len(incr_backups) > 7:
-        to_delete.extend(incr_backups[:-7])
+    # Group backups by chain
+    chains = {}
+    for backup in manifest['backups']:
+        if backup['type'] == 'pre_restore':
+            continue  # Never auto-delete safety backups
+        chain_id = backup.get('chain_id')
+        if chain_id:
+            if chain_id not in chains:
+                chains[chain_id] = {'full': None, 'incrementals': []}
+            if backup['type'] == 'full':
+                chains[chain_id]['full'] = backup
+            else:
+                chains[chain_id]['incrementals'].append(backup)
     
-    # Delete old backups
-    for backup in to_delete:
-        backup_path = Path(backup.get('backup_dir', backup_dir)) / backup['filename']
-        if backup_path.exists():
-            backup_path.unlink()
-        manifest['backups'].remove(backup)
+    # Sort chains by the full backup date (oldest first)
+    sorted_chain_ids = sorted(chains.keys(), 
+                              key=lambda cid: chains[cid]['full']['created_at'] if chains[cid]['full'] else '')
     
-    if to_delete:
+    # Always keep the newest chain
+    if len(sorted_chain_ids) <= 1:
+        return  # Only one chain, keep it
+    
+    chains_to_delete = []
+    
+    # Check each chain except the newest
+    for chain_id in sorted_chain_ids[:-1]:
+        chain = chains[chain_id]
+        if not chain['full']:
+            continue
+        
+        # Find the newest backup in this chain
+        all_in_chain = [chain['full']] + chain['incrementals']
+        newest_date = max(b['created_at'] for b in all_in_chain)
+        
+        # If the newest backup in the chain is older than retention, mark for deletion
+        if newest_date < cutoff_date:
+            chains_to_delete.append(chain_id)
+    
+    # Delete marked chains
+    for chain_id in chains_to_delete:
+        chain = chains[chain_id]
+        
+        # Delete all incrementals first
+        for incr in chain['incrementals']:
+            incr_path = Path(incr.get('backup_dir', backup_dir)) / incr['filename']
+            if incr_path.exists():
+                incr_path.unlink()
+            if incr in manifest['backups']:
+                manifest['backups'].remove(incr)
+        
+        # Delete the full backup
+        if chain['full']:
+            full_path = Path(chain['full'].get('backup_dir', backup_dir)) / chain['full']['filename']
+            if full_path.exists():
+                full_path.unlink()
+            if chain['full'] in manifest['backups']:
+                manifest['backups'].remove(chain['full'])
+    
+    if chains_to_delete:
         save_manifest(manifest)
+        print(f"Retention cleanup: Deleted {len(chains_to_delete)} old backup chain(s)")
 
 
 def check_backup_needed(frequency='daily'):
