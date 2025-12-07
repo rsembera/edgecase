@@ -61,6 +61,19 @@ h2 {
     margin-top: 2rem;
 }
 
+/* Fix dropdown cutoff in collapsible sections */
+.settings-section-content {
+    overflow: visible;
+}
+
+.settings-section-content .form-group {
+    overflow: visible;
+}
+
+.settings-section-content select {
+    position: relative;
+}
+
 /* Delete/Choose button visibility toggles */
 #delete-bg-button { display: none !important; }
 #delete-bg-button.visible { display: inline-flex !important; }
