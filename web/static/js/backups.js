@@ -19,9 +19,19 @@ document.addEventListener('DOMContentLoaded', function() {
         saveSettingWithConfirm('frequency');
     });
     
+    // Save retention setting on change
+    document.getElementById('backup-retention').addEventListener('change', function() {
+        saveSettingWithConfirm('retention');
+    });
+    
     // Save location setting on change
     document.getElementById('backup-location').addEventListener('change', function() {
         saveSettingWithConfirm('location');
+    });
+    
+    // Save post-backup command on blur (when user finishes typing)
+    document.getElementById('post-backup-command').addEventListener('blur', function() {
+        saveSettingWithConfirm('post_backup_command');
     });
     
     // Restore button click handler
@@ -49,6 +59,16 @@ async function loadBackupStatus() {
         // Set frequency dropdown using Choices API
         if (data.frequency) {
             window.setChoicesValue('backup-frequency', data.frequency);
+        }
+        
+        // Set retention dropdown using Choices API
+        if (data.retention) {
+            window.setChoicesValue('backup-retention', data.retention);
+        }
+        
+        // Set post-backup command
+        if (data.post_backup_command !== undefined) {
+            document.getElementById('post-backup-command').value = data.post_backup_command;
         }
         
         // Populate cloud folders and set saved location
@@ -228,48 +248,21 @@ function groupByChain(points) {
 /**
  * Render a full backup item (chain header)
  * @param {Object} point - The full backup point
- * @param {boolean} newerFullExists - Whether a newer full backup exists
+ * @param {boolean} newerFullExists - Whether a newer full backup exists (unused, kept for compatibility)
  */
 function renderFullBackup(point, newerFullExists) {
     const dependentText = point.dependent_count > 0 
         ? `<span class="dependent-count">${point.dependent_count} dependent</span>` 
         : '';
     
-    const hasDependents = point.dependent_count > 0;
-    
-    let deleteButton;
-    if (!hasDependents) {
-        // No dependents - can delete freely
-        deleteButton = `<button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', false, 0)" title="Delete this backup">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>`;
-    } else if (newerFullExists) {
-        // Has dependents but newer full exists - can delete (will cascade)
-        deleteButton = `<button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', false, ${point.dependent_count})" title="Delete this backup and ${point.dependent_count} dependent(s)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>`;
-    } else {
-        // Has dependents and is newest full - protected
-        deleteButton = `<button class="btn-delete-backup btn-delete-disabled" disabled title="Cannot delete: ${point.dependent_count} backup(s) depend on this and no newer full backup exists">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>`;
-    }
-    
     return `
         <div class="backup-chain">
-            <div class="backup-item backup-full" data-id="${point.id}" data-type="full" data-dependents="${point.dependent_count}">
+            <div class="backup-item backup-full" data-id="${point.id}" data-type="full">
                 <div class="backup-item-info">
                     <span class="backup-type-badge badge-full">Full</span>
                     <span class="backup-item-name">${point.display_name}</span>
                     ${dependentText}
                 </div>
-                ${deleteButton}
             </div>
     `;
 }
@@ -278,23 +271,10 @@ function renderFullBackup(point, newerFullExists) {
  * Render an incremental backup item (indented under full)
  * @param {Object} point - The incremental backup point
  * @param {boolean} isLast - Whether this is the last incremental in the chain
- * @param {number} laterCount - Number of later incrementals that depend on this one
+ * @param {number} laterCount - Number of later incrementals (unused, kept for compatibility)
  */
 function renderIncrementalBackup(point, isLast, laterCount) {
     const connectorClass = isLast ? 'connector-last' : 'connector-mid';
-    
-    const hasDependents = laterCount > 0;
-    const deleteButton = hasDependents
-        ? `<button class="btn-delete-backup btn-delete-disabled" disabled title="Cannot delete: ${laterCount} later backup(s) depend on this">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>`
-        : `<button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', false, 0)" title="Delete this backup">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>`;
     
     return `
             <div class="backup-item backup-incremental" data-id="${point.id}" data-type="incremental">
@@ -303,7 +283,6 @@ function renderIncrementalBackup(point, isLast, laterCount) {
                     <span class="backup-type-badge badge-incr">Incr</span>
                     <span class="backup-item-name">${point.display_name}</span>
                 </div>
-                ${deleteButton}
             </div>
     `;
 }
@@ -319,11 +298,6 @@ function renderSafetyBackup(point) {
                     <span class="backup-type-badge badge-safety">Safety</span>
                     <span class="backup-item-name">${point.display_name}</span>
                 </div>
-                <button class="btn-delete-backup" onclick="confirmDeleteBackup('${point.id}', '${point.display_name}', true, 0)" title="Delete this backup">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>
             </div>
         </div>
     `;
@@ -390,11 +364,13 @@ async function performBackup() {
 
 /**
  * Save a single setting with confirmation message (auto-save on dropdown change)
- * @param {string} settingType - 'frequency' or 'location'
+ * @param {string} settingType - 'frequency', 'retention', 'location', or 'post_backup_command'
  */
 async function saveSettingWithConfirm(settingType) {
     const frequency = document.getElementById('backup-frequency').value;
+    const retention = document.getElementById('backup-retention').value;
     const location = document.getElementById('backup-location').value;
+    const postBackupCommand = document.getElementById('post-backup-command').value;
     
     // Update location path display if location changed
     if (settingType === 'location') {
@@ -407,7 +383,9 @@ async function saveSettingWithConfirm(settingType) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 frequency: frequency,
-                location: location === 'default' ? '' : location
+                retention: retention,
+                location: location === 'default' ? '' : location,
+                post_backup_command: postBackupCommand
             })
         });
         
@@ -415,7 +393,13 @@ async function saveSettingWithConfirm(settingType) {
         
         if (data.success) {
             // Show brief confirmation message
-            const settingName = settingType === 'frequency' ? 'Automatic backup setting' : 'Backup location';
+            const settingNames = {
+                'frequency': 'Automatic backup setting',
+                'retention': 'Retention period',
+                'location': 'Backup location',
+                'post_backup_command': 'Post-backup command'
+            };
+            const settingName = settingNames[settingType] || 'Setting';
             showMessage(`${settingName} saved`, 'success');
             
             // Auto-hide the message after 2 seconds
@@ -431,87 +415,6 @@ async function saveSettingWithConfirm(settingType) {
     } catch (error) {
         console.error('Save setting error:', error);
         showMessage('Failed to save: ' + error.message, 'error');
-    }
-}
-
-/**
- * Show delete confirmation modal
- * @param {string} backupId - ID of backup to delete
- * @param {string} displayName - Display name for confirmation
- * @param {boolean} isSafety - Whether this is a safety backup
- * @param {number} dependentCount - Number of dependent backups that will be cascade deleted
- */
-function confirmDeleteBackup(backupId, displayName, isSafety, dependentCount) {
-    const modal = document.getElementById('delete-modal');
-    const nameEl = document.getElementById('modal-delete-backup-name');
-    const safetyWarningEl = document.getElementById('delete-safety-warning');
-    const cascadeWarningEl = document.getElementById('delete-cascade-warning');
-    const cascadeCountEl = document.getElementById('cascade-count-display');
-    
-    nameEl.textContent = displayName;
-    
-    // Show/hide safety warning
-    if (isSafety) {
-        safetyWarningEl.classList.remove('hidden');
-    } else {
-        safetyWarningEl.classList.add('hidden');
-    }
-    
-    // Show/hide cascade warning
-    if (dependentCount > 0) {
-        cascadeCountEl.textContent = dependentCount;
-        cascadeWarningEl.classList.remove('hidden');
-    } else {
-        cascadeWarningEl.classList.add('hidden');
-    }
-    
-    // Store backup ID for confirm action
-    modal.dataset.backupId = backupId;
-    modal.classList.remove('hidden');
-    modal.classList.add('visible');
-}
-
-/**
- * Hide the delete confirmation modal
- */
-function hideDeleteModal() {
-    const modal = document.getElementById('delete-modal');
-    modal.classList.remove('visible');
-    modal.classList.add('hidden');
-}
-
-/**
- * Confirm and execute backup deletion
- */
-async function confirmDelete() {
-    const modal = document.getElementById('delete-modal');
-    const backupId = modal.dataset.backupId;
-    
-    hideDeleteModal();
-    
-    try {
-        const response = await fetch('/api/backup/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ backup_id: backupId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            let message = 'Backup deleted.';
-            if (data.warnings && data.warnings.length > 0) {
-                message += ' ' + data.warnings.join(' ');
-            }
-            showMessage(message, 'success');
-            loadBackupStatus();
-            loadRestorePoints();
-        } else {
-            showMessage('Failed to delete: ' + (data.error || 'Unknown error'), 'error');
-        }
-    } catch (error) {
-        console.error('Delete error:', error);
-        showMessage('Failed to delete: ' + error.message, 'error');
     }
 }
 
