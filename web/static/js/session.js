@@ -89,8 +89,8 @@ function updateFeesForFormat(format) {
             document.getElementById('missing-link-message').textContent = message;
             document.getElementById('missing-link-modal').style.display = 'flex';
             
-            // Reset to individual
-            formatDropdown.value = 'individual';
+            // Reset to individual (use Choices.js API)
+            window.setChoicesValue('format', 'individual');
             updateFeesForFormat('individual');
             return;
         }
