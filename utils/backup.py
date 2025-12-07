@@ -265,9 +265,6 @@ def create_full_backup(backup_dir=None):
     manifest['current_chain_id'] = chain_id
     save_manifest(manifest)
     
-    # Apply retention policy
-    apply_retention_policy(manifest, backup_dir)
-    
     return backup_info
 
 
@@ -358,9 +355,6 @@ def create_incremental_backup(backup_dir=None):
     # Update hashes to current state
     manifest['last_full_hashes'] = current_hashes
     save_manifest(manifest)
-    
-    # Apply retention policy
-    apply_retention_policy(manifest, backup_dir)
     
     return backup_info
 
