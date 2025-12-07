@@ -534,9 +534,9 @@
     align-items: center;
 }
 
-/* Prevent text wrapping in dropdown items */
+/* Allow text wrapping in dropdown items */
 .restore-row .choices__list--dropdown .choices__item {
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* Align the Choices wrapper with button */
