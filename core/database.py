@@ -358,8 +358,8 @@ class Database:
         default_types = [
             {
                 'name': 'Active',
-                'color': '#9FCFC0',  # Soft Teal
-                'color_name': 'Soft Teal',
+                'color': '#9FCFC0',  # Seafoam
+                'color_name': 'Seafoam',
                 'bubble_color': '#E6F5F1',
                 'retention_period': 2555,  # 7 years
                 'is_system': 0,

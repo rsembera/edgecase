@@ -27,17 +27,17 @@ def init_blueprint(database):
 # Color palette for client types
 COLOR_PALETTE = [
     # Original 3 (from Active, Assess, Low Fee)
-    {'hex': '#9FCFC0', 'name': 'Soft Teal', 'bubble': '#E0F2EE'},
-    {'hex': '#B8D4E8', 'name': 'Soft Blue', 'bubble': '#EBF3FA'},
-    {'hex': '#D4C5E0', 'name': 'Soft Lavender', 'bubble': '#F3EDF7'},
+    {'hex': '#9FCFC0', 'name': 'Seafoam', 'bubble': '#E0F2EE'},
+    {'hex': '#B8D4E8', 'name': 'Sky', 'bubble': '#EBF3FA'},
+    {'hex': '#D4C5E0', 'name': 'Wisteria', 'bubble': '#F3EDF7'},
     
     # Additional muted options
-    {'hex': '#C8E6C9', 'name': 'Mint Green', 'bubble': '#EDF7ED'},
-    {'hex': '#FFE0B2', 'name': 'Soft Peach', 'bubble': '#FFF5E6'},
-    {'hex': '#F8BBD0', 'name': 'Soft Pink', 'bubble': '#FEEEF3'},
-    {'hex': '#D7CCC8', 'name': 'Soft Taupe', 'bubble': '#F2EFEE'},
-    {'hex': '#CFD8DC', 'name': 'Soft Slate', 'bubble': '#EEF1F3'},
-    {'hex': '#E1BEE7', 'name': 'Soft Mauve', 'bubble': '#F7EFF9'},
+    {'hex': '#C8E6C9', 'name': 'Mint', 'bubble': '#EDF7ED'},
+    {'hex': '#FFE0B2', 'name': 'Peach', 'bubble': '#FFF5E6'},
+    {'hex': '#F8BBD0', 'name': 'Blush', 'bubble': '#FEEEF3'},
+    {'hex': '#D7CCC8', 'name': 'Stone', 'bubble': '#F2EFEE'},
+    {'hex': '#CFD8DC', 'name': 'Slate', 'bubble': '#EEF1F3'},
+    {'hex': '#E1BEE7', 'name': 'Orchid', 'bubble': '#F7EFF9'},
 ]
 
 
