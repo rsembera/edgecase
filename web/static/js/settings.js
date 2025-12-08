@@ -976,23 +976,53 @@ function saveFileNumberSettings() {
 }
 
 // ============================================================
-// CALENDAR SETTINGS (auto-save with confirmation)
+// CALENDAR SETTINGS
 // ============================================================
 
 /**
- * Toggle calendar name field visibility based on method
+ * Handle calendar method dropdown change
+ * - .ics file: Save immediately, show status
+ * - applescript: Show options panel, wait for Save button
  */
-function toggleCalendarNameField() {
+function handleCalendarMethodChange() {
     const method = document.getElementById('calendar_method').value;
-    const nameGroup = document.getElementById('calendar-name-group');
-    nameGroup.style.display = method === 'applescript' ? 'block' : 'none';
+    const appleOptions = document.getElementById('calendar-applescript-options');
+    const icsStatus = document.getElementById('calendar-status-ics');
+    
+    if (method === 'applescript') {
+        // Show the calendar name field and Save button, don't save yet
+        appleOptions.style.display = 'block';
+        icsStatus.style.display = 'none';
+    } else {
+        // .ics selected - hide options and save immediately
+        appleOptions.style.display = 'none';
+        icsStatus.style.display = '';
+        
+        // Save immediately for .ics (simple case)
+        fetch('/api/calendar_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                calendar_method: 'ics',
+                calendar_name: ''  // Clear calendar name when switching to .ics
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showSectionStatus('calendar-status-ics');
+            }
+        })
+        .catch(error => console.error('Failed to save calendar settings:', error));
+    }
 }
 
 /**
  * Load calendar settings from server
  */
 function loadCalendarSettings() {
-    const calendarNameGroup = document.getElementById('calendar-name-group');
+    const appleOptions = document.getElementById('calendar-applescript-options');
+    const icsStatus = document.getElementById('calendar-status-ics');
     const calendarName = document.getElementById('calendar_name');
     
     fetch('/api/calendar_settings')
@@ -1000,8 +1030,13 @@ function loadCalendarSettings() {
         .then(data => {
             if (data.calendar_method) {
                 window.setChoicesValue('calendar_method', data.calendar_method);
-                if (calendarNameGroup) {
-                    calendarNameGroup.style.display = data.calendar_method === 'applescript' ? 'block' : 'none';
+                
+                if (data.calendar_method === 'applescript') {
+                    appleOptions.style.display = 'block';
+                    icsStatus.style.display = 'none';
+                } else {
+                    appleOptions.style.display = 'none';
+                    icsStatus.style.display = '';
                 }
             }
             if (data.calendar_name && calendarName) {
@@ -1011,11 +1046,9 @@ function loadCalendarSettings() {
 }
 
 /**
- * Save calendar settings to server (auto-save with confirmation)
+ * Save calendar settings (called by Save button in applescript options)
  */
 async function saveCalendarSettings() {
-    toggleCalendarNameField();
-    
     try {
         const response = await fetch('/api/calendar_settings', {
             method: 'POST',

@@ -509,20 +509,27 @@ details[open] .settings-section-header .arrow {
         <div class="form-row-half">
         <div class="form-group">
             <label for="calendar_method">Add appointments via</label>
-            <select id="calendar_method" onchange="saveCalendarSettings()">
+            <select id="calendar_method" onchange="handleCalendarMethodChange()">
                 <option value="ics">Download .ics file (works everywhere)</option>
                 <option value="applescript">Add directly to Calendar (Mac only)</option>
             </select>
         </div>
         </div>
         
-        <div class="form-group" id="calendar-name-group" style="display: none;">
-            <label for="calendar_name">Calendar name</label>
-            <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" class="mb-half" onchange="saveCalendarSettings()">
-            <small class="helper-text">Exact name of the calendar in Apple Calendar app</small>
+        <div id="calendar-applescript-options" style="display: none;">
+            <div class="form-group">
+                <label for="calendar_name">Calendar name</label>
+                <input type="text" id="calendar_name" placeholder="e.g., Work, Clients, Calendar" class="mb-half">
+                <small class="helper-text">Exact name of the calendar in Apple Calendar app</small>
+            </div>
+            
+            <div class="section-save-row">
+                <button onclick="saveCalendarSettings()" class="btn">Save</button>
+                <span id="calendar-status" class="section-status">✓ Saved!</span>
+            </div>
         </div>
         
-        <span id="calendar-status" class="section-status">✓ Saved!</span>
+        <span id="calendar-status-ics" class="section-status">✓ Saved!</span>
         </div>
     </details>
     
