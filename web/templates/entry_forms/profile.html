@@ -314,18 +314,27 @@
                 Guardian/Billing Information
             </h3>
             
-            <!-- Total Session Fee Display for Reference -->
+            <div class="guardian-info-box" style="margin-bottom: 1rem;">
+                <div class="info-note">
+                    <strong>Tip:</strong> Enter primary contact info (email, phone, preferred method) in the Contact section above. 
+                    This section is for billing splits only.
+                </div>
+            </div>
+            
+            <!-- Calculated Guardian Amounts -->
             <div class="guardian-info-box">
                 <div class="info-label">
-                    <strong>Session Fee:</strong> 
+                    <strong>Individual Session Fee:</strong> 
+                    <span id="guardian-fee-display">
                     {% if profile and profile.session_total %}
                         ${{ '%.2f' | format(profile.session_total) }}
                     {% else %}
                         (Not set - configure above)
                     {% endif %}
+                    </span>
                 </div>
-                <div class="info-note">
-                    Guardian percentages will apply to all billable entries (sessions, items, absences)
+                <div id="guardian-amounts-display" class="info-note" style="margin-top: 0.5rem;">
+                    <!-- Populated by JavaScript -->
                 </div>
             </div>
             
@@ -359,9 +368,9 @@
                 <div class="form-group">
                     <label for="guardian1_amount">Pays (%)</label>
                     <input type="number" id="guardian1_amount" name="guardian1_amount"
-                           step="0.1" min="0" max="100"
-                           value="{{ '%.1f' | format(profile.guardian1_pays_percent) if profile and profile.guardian1_pays_percent else '' }}"
-                           placeholder="60.0"
+                           step="1" min="0" max="100"
+                           value="{{ profile.guardian1_pays_percent | int if profile and profile.guardian1_pays_percent else '' }}"
+                           placeholder="60"
                            class="guardian-amount">
                 </div>
             </div>
@@ -416,9 +425,9 @@
                     <div class="form-group">
                         <label for="guardian2_amount">Pays (%)</label>
                         <input type="number" id="guardian2_amount" name="guardian2_amount"
-                               step="0.1" min="0" max="100"
-                               value="{{ '%.1f' | format(profile.guardian2_pays_percent) if profile and profile.guardian2_pays_percent else '' }}"
-                               placeholder="40.0"
+                               step="1" min="0" max="100"
+                               value="{{ profile.guardian2_pays_percent | int if profile and profile.guardian2_pays_percent else '' }}"
+                               placeholder="40"
                                class="guardian-amount">
                     </div>
                 </div>
@@ -430,12 +439,6 @@
                                   placeholder="For invoices and statements">{{ profile.guardian2_address if profile else '' }}</textarea>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Validation Warning -->
-            <div id="guardian-validation" class="guardian-validation-box" style="display: none;">
-                <div class="guardian-validation-header"><i data-lucide="alert-triangle" class="btn-icon-sm icon-warning"></i>Validation Error</div>
-                <div id="guardian-validation-message" class="guardian-validation-message"></div>
             </div>
         </div>
 
