@@ -75,18 +75,18 @@ document.querySelectorAll('.phone-input').forEach(input => {
 });
 
 // Fee Override toggle
-const feeOverrideEnabled = document.getElementById('fee_override_enabled');
+const sessionFeeEnabled = document.getElementById('session_fee_enabled');
 const feeOverrideFields = document.getElementById('fee-override-fields');
 
-if (feeOverrideEnabled) {
-    feeOverrideEnabled.addEventListener('change', function() {
+if (sessionFeeEnabled) {
+    sessionFeeEnabled.addEventListener('change', function() {
         if (this.checked) {
             feeOverrideFields.style.display = 'block';
             // Auto-populate with type defaults if fields are empty
             const form = document.getElementById('profile-form');
-            const baseInput = document.getElementById('fee_override_base');
-            const taxInput = document.getElementById('fee_override_tax_rate');
-            const totalInput = document.getElementById('fee_override_total');
+            const baseInput = document.getElementById('session_base');
+            const taxInput = document.getElementById('session_tax_rate');
+            const totalInput = document.getElementById('session_total');
             
             if (!baseInput.value) {
                 baseInput.value = form.dataset.typeBase;
@@ -101,17 +101,17 @@ if (feeOverrideEnabled) {
         } else {
             feeOverrideFields.style.display = 'none';
             // Clear override fields when disabled
-            document.getElementById('fee_override_base').value = '';
-            document.getElementById('fee_override_tax_rate').value = '';
-            document.getElementById('fee_override_total').value = '';
+            document.getElementById('session_base').value = '';
+            document.getElementById('session_tax_rate').value = '';
+            document.getElementById('session_total').value = '';
         }
     });
 }
 
 // Three-way fee calculation (same logic as Client Type and Item)
-const feeOverrideBase = document.getElementById('fee_override_base');
-const feeOverrideTax = document.getElementById('fee_override_tax_rate');
-const feeOverrideTotal = document.getElementById('fee_override_total');
+const sessionBase = document.getElementById('session_base');
+const sessionTax = document.getElementById('session_tax_rate');
+const sessionTotal = document.getElementById('session_total');
 
 let lastEditedFee = null;
 
@@ -120,52 +120,52 @@ let lastEditedFee = null;
  * Updates total from base+tax, or base from total-tax
  */
 function calculateOverrideFee() {
-    const base = parseFloat(feeOverrideBase.value) || 0;
-    const rate = parseFloat(feeOverrideTax.value) || 0;
-    const total = parseFloat(feeOverrideTotal.value) || 0;
+    const base = parseFloat(sessionBase.value) || 0;
+    const rate = parseFloat(sessionTax.value) || 0;
+    const total = parseFloat(sessionTotal.value) || 0;
     
     if (lastEditedFee === 'base' || lastEditedFee === 'tax') {
         const calculatedTotal = base * (1 + rate / 100);
-        feeOverrideTotal.value = calculatedTotal.toFixed(2);
+        sessionTotal.value = calculatedTotal.toFixed(2);
     } else if (lastEditedFee === 'total') {
         const calculatedBase = total / (1 + rate / 100);
-        feeOverrideBase.value = calculatedBase.toFixed(2);
+        sessionBase.value = calculatedBase.toFixed(2);
     }
 }
 
-if (feeOverrideBase) {
-    feeOverrideBase.addEventListener('input', function() {
+if (sessionBase) {
+    sessionBase.addEventListener('input', function() {
         lastEditedFee = 'base';
         calculateOverrideFee();
     });
     
-    feeOverrideBase.addEventListener('blur', function() {
+    sessionBase.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(2);
         }
     });
 }
 
-if (feeOverrideTax) {
-    feeOverrideTax.addEventListener('input', function() {
+if (sessionTax) {
+    sessionTax.addEventListener('input', function() {
         lastEditedFee = 'tax';
         calculateOverrideFee();
     });
     
-    feeOverrideTax.addEventListener('blur', function() {
+    sessionTax.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(2);
         }
     });
 }
 
-if (feeOverrideTotal) {
-    feeOverrideTotal.addEventListener('input', function() {
+if (sessionTotal) {
+    sessionTotal.addEventListener('input', function() {
         lastEditedFee = 'total';
         calculateOverrideFee();
     });
     
-    feeOverrideTotal.addEventListener('blur', function() {
+    sessionTotal.addEventListener('blur', function() {
         if (this.value) {
             this.value = parseFloat(this.value).toFixed(2);
         }
