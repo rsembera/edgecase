@@ -325,19 +325,20 @@ def generate_statements():
         # Check if minor with guardian billing
         if profile and profile.get('is_minor') and profile.get('guardian1_name'):
             g1_percent = profile.get('guardian1_pays_percent', 100) or 100
-            g1_amount = total * (g1_percent / 100)
+            g1_amount = round(total * g1_percent / 100, 2)
             
-            cursor.execute("""
-                INSERT INTO statement_portions (
-                    statement_entry_id, client_id, guardian_number,
-                    amount_due, amount_paid, status, created_at
-                ) VALUES (?, ?, 1, ?, 0, 'ready', ?)
-            """, (statement_id, client_id, g1_amount, now))
-            
-            # Check for guardian 2
+            # Check for guardian 2 first to determine if we need remainder logic
             if profile.get('has_guardian2') and profile.get('guardian2_name'):
                 g2_percent = profile.get('guardian2_pays_percent', 0) or 0
-                g2_amount = total * (g2_percent / 100)
+                # G2 gets remainder to ensure exact total (avoids rounding discrepancies)
+                g2_amount = round(total - g1_amount, 2)
+                
+                cursor.execute("""
+                    INSERT INTO statement_portions (
+                        statement_entry_id, client_id, guardian_number,
+                        amount_due, amount_paid, status, created_at
+                    ) VALUES (?, ?, 1, ?, 0, 'ready', ?)
+                """, (statement_id, client_id, g1_amount, now))
                 
                 if g2_amount > 0:
                     cursor.execute("""
@@ -346,6 +347,14 @@ def generate_statements():
                             amount_due, amount_paid, status, created_at
                         ) VALUES (?, ?, 2, ?, 0, 'ready', ?)
                     """, (statement_id, client_id, g2_amount, now))
+            else:
+                # Single guardian pays full amount
+                cursor.execute("""
+                    INSERT INTO statement_portions (
+                        statement_entry_id, client_id, guardian_number,
+                        amount_due, amount_paid, status, created_at
+                    ) VALUES (?, ?, 1, ?, 0, 'ready', ?)
+                """, (statement_id, client_id, total, now))
         else:
             # Single portion for client
             cursor.execute("""

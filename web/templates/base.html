@@ -370,14 +370,19 @@
         document.querySelectorAll('form').forEach(function(form) {
             form.addEventListener('submit', function(e) {
                 const submitBtns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-                submitBtns.forEach(function(btn) {
-                    // Skip if already disabled (validation failed, etc.)
-                    if (btn.disabled) return;
-                    // Store original text for restoration
-                    btn.dataset.originalText = btn.textContent;
-                    btn.disabled = true;
-                    btn.textContent = 'Please wait...';
-                });
+                
+                // Defer to allow other handlers to call preventDefault() first
+                setTimeout(function() {
+                    // Skip if submission was prevented (validation failed)
+                    if (e.defaultPrevented) return;
+                    
+                    submitBtns.forEach(function(btn) {
+                        if (btn.disabled) return;
+                        btn.dataset.originalText = btn.textContent;
+                        btn.disabled = true;
+                        btn.textContent = 'Please wait...';
+                    });
+                }, 0);
             });
         });
         

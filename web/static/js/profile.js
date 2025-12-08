@@ -127,10 +127,61 @@ function calculateOverrideFee() {
     if (lastEditedFee === 'base' || lastEditedFee === 'tax') {
         const calculatedTotal = base * (1 + rate / 100);
         sessionTotal.value = calculatedTotal.toFixed(2);
+        updateGuardianFeeDisplay(calculatedTotal);
     } else if (lastEditedFee === 'total') {
         const calculatedBase = total / (1 + rate / 100);
         sessionBase.value = calculatedBase.toFixed(2);
+        updateGuardianFeeDisplay(total);
     }
+}
+
+/**
+ * Update the guardian section's fee display and calculated amounts
+ */
+function updateGuardianFeeDisplay(total) {
+    const feeDisplay = document.getElementById('guardian-fee-display');
+    const amountsDisplay = document.getElementById('guardian-amounts-display');
+    
+    if (feeDisplay) {
+        if (total && total > 0) {
+            feeDisplay.textContent = '$' + total.toFixed(2);
+        } else {
+            feeDisplay.textContent = '(Not set - configure above)';
+        }
+    }
+    
+    updateGuardianAmountsDisplay();
+}
+
+/**
+ * Calculate and display guardian payment amounts based on percentages
+ * G1 gets exact percentage rounded to cents, G2 gets remainder (guarantees exact total)
+ */
+function updateGuardianAmountsDisplay() {
+    const amountsDisplay = document.getElementById('guardian-amounts-display');
+    if (!amountsDisplay) return;
+    
+    const sessionFee = parseFloat(document.getElementById('session_total').value) || 0;
+    const guardian1Percent = parseInt(document.getElementById('guardian1_amount').value) || 0;
+    const hasSecondGuardian = document.getElementById('has_guardian2') && document.getElementById('has_guardian2').checked;
+    
+    if (sessionFee <= 0) {
+        amountsDisplay.innerHTML = '';
+        return;
+    }
+    
+    // G1 gets exact percentage, G2 gets remainder to ensure exact total
+    const guardian1Amount = Math.round(sessionFee * guardian1Percent) / 100;
+    
+    let html = `<strong>Primary Guardian (${guardian1Percent}%):</strong> $${guardian1Amount.toFixed(2)}`;
+    
+    if (hasSecondGuardian) {
+        const guardian2Percent = parseInt(document.getElementById('guardian2_amount').value) || 0;
+        const guardian2Amount = Math.round((sessionFee - guardian1Amount) * 100) / 100;
+        html += `<br><strong>Second Guardian (${guardian2Percent}%):</strong> $${guardian2Amount.toFixed(2)}`;
+    }
+    
+    amountsDisplay.innerHTML = html;
 }
 
 if (sessionBase) {
@@ -209,6 +260,20 @@ if (hasGuardian2) {
                 input.setAttribute('disabled', 'disabled');
             }
         });
+        
+        if (!this.checked) {
+            // Auto-set primary guardian to 100% when removing second guardian
+            document.getElementById('guardian1_amount').value = '100';
+        } else {
+            // Adjust primary guardian when re-adding second guardian
+            const g2Percent = parseInt(document.getElementById('guardian2_amount').value) || 0;
+            if (g2Percent > 0) {
+                document.getElementById('guardian1_amount').value = 100 - g2Percent;
+            }
+        }
+        
+        // Update the calculated amounts display
+        updateGuardianAmountsDisplay();
     });
 }
 
@@ -225,6 +290,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const guardian2Inputs = guardian2Fields.querySelectorAll('input, textarea');
         guardian2Inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
     }
+    
+    // Initialize guardian amounts display for existing profiles
+    updateGuardianAmountsDisplay();
 });
 
 /**
@@ -232,52 +300,41 @@ document.addEventListener('DOMContentLoaded', function() {
  * @returns {boolean} True if valid or not applicable
  */
 function validateGuardianAmounts() {
-    const validation = document.getElementById('guardian-validation');
-    const validationMessage = document.getElementById('guardian-validation-message');
-    
     if (!isMinor || !isMinor.checked) {
-        if (validation) validation.style.display = 'none';
         return true;
     }
     
-    const guardian1Percent = parseFloat(document.getElementById('guardian1_amount').value) || 0;
+    const guardian1Percent = parseInt(document.getElementById('guardian1_amount').value) || 0;
     const guardian2Percent = hasGuardian2 && hasGuardian2.checked ? 
-                            (parseFloat(document.getElementById('guardian2_amount').value) || 0) : 0;
+                            (parseInt(document.getElementById('guardian2_amount').value) || 0) : 0;
     
     const total = guardian1Percent + guardian2Percent;
     
-    // Must add up to 100% (allow small rounding difference)
-    const difference = Math.abs(total - 100);
-    
-    if (difference > 0.1) { // Allow 0.1% rounding difference
-        validation.style.display = 'block';
-        validationMessage.innerHTML = `<br>Guardian percentages (${total.toFixed(1)}%) must equal 100%`;
-        return false;
-    } else {
-        validation.style.display = 'none';
-        return true;
-    }
+    // Must add up to exactly 100%
+    return total === 100;
 }
 
-// Add validation to guardian percentage inputs
+// Add formatting and amount display updates to guardian percentage inputs
 const guardian1Amount = document.getElementById('guardian1_amount');
 const guardian2Amount = document.getElementById('guardian2_amount');
 
 if (guardian1Amount) {
-    guardian1Amount.addEventListener('input', validateGuardianAmounts);
+    guardian1Amount.addEventListener('input', updateGuardianAmountsDisplay);
     guardian1Amount.addEventListener('blur', function() {
         if (this.value) {
-            this.value = parseFloat(this.value).toFixed(1);
+            this.value = Math.round(parseFloat(this.value));
         }
+        updateGuardianAmountsDisplay();
     });
 }
 
 if (guardian2Amount) {
-    guardian2Amount.addEventListener('input', validateGuardianAmounts);
+    guardian2Amount.addEventListener('input', updateGuardianAmountsDisplay);
     guardian2Amount.addEventListener('blur', function() {
         if (this.value) {
-            this.value = parseFloat(this.value).toFixed(1);
+            this.value = Math.round(parseFloat(this.value));
         }
+        updateGuardianAmountsDisplay();
     });
 }
 
