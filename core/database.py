@@ -119,10 +119,10 @@ class Database:
                 referral_source TEXT,
                 additional_info TEXT,
                 
-                -- Profile fee fields (primary individual session fees)
-                fee_override_base REAL,
-                fee_override_tax_rate REAL,
-                fee_override_total REAL,
+                -- Profile session fee fields (primary individual session fees)
+                session_base REAL,
+                session_tax_rate REAL,
+                session_total REAL,
                 default_session_duration INTEGER,
                 
                 -- Profile guardian/billing fields
@@ -1120,8 +1120,8 @@ class Database:
             'statement_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at',
-            # Fee Override fields
-            'fee_override_base', 'fee_override_tax_rate', 'fee_override_total',
+            # Session fee fields
+            'session_base', 'session_tax_rate', 'session_total',
             # Guardian fields
             'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone',
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',

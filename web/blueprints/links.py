@@ -109,9 +109,9 @@ def add_link_group():
             # Get Profile entry for fee defaults
             profile = db.get_profile_entry(client['id'])
             if profile:
-                client['profile_base_fee'] = profile.get('fee_override_base', 0)
-                client['profile_tax_rate'] = profile.get('fee_override_tax_rate', 0)
-                client['profile_total_fee'] = profile.get('fee_override_total', 0)
+                client['profile_base_fee'] = profile.get('session_base', 0)
+                client['profile_tax_rate'] = profile.get('session_tax_rate', 0)
+                client['profile_total_fee'] = profile.get('session_total', 0)
                 client['profile_duration'] = profile.get('default_session_duration', 50)
             else:
                 # Defaults if no profile

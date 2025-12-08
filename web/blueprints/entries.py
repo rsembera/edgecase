@@ -97,10 +97,10 @@ def edit_profile(client_id):
             'referral_source': request.form.get('referral_source', ''),
             'additional_info': request.form.get('additional_info', ''),
             
-            # Fee Override fields
-            'fee_override_base': float(request.form.get('fee_override_base')) if request.form.get('fee_override_base') else None,
-            'fee_override_tax_rate': float(request.form.get('fee_override_tax_rate')) if request.form.get('fee_override_tax_rate') else None,
-            'fee_override_total': float(request.form.get('fee_override_total')) if request.form.get('fee_override_total') else None,
+            # Session fee fields
+            'session_base': float(request.form.get('session_base')) if request.form.get('session_base') else None,
+            'session_tax_rate': float(request.form.get('session_tax_rate')) if request.form.get('session_tax_rate') else None,
+            'session_total': float(request.form.get('session_total')) if request.form.get('session_total') else None,
             'default_session_duration': int(request.form.get('default_session_duration')) if request.form.get('default_session_duration') else None,
             
             # Guardian/Billing fields
@@ -236,9 +236,9 @@ def edit_profile(client_id):
                         changes.append("Additional Info: Added")
                 
                 # Fee changes - track all three fields
-                if old_profile.get('fee_override_base') != profile_data.get('fee_override_base'):
-                    old_base = old_profile.get('fee_override_base')
-                    new_base = profile_data.get('fee_override_base')
+                if old_profile.get('session_base') != profile_data.get('session_base'):
+                    old_base = old_profile.get('session_base')
+                    new_base = profile_data.get('session_base')
                     # Convert to float if string (database might return string)
                     if old_base is not None and isinstance(old_base, str):
                         old_base = float(old_base) if old_base else None
@@ -248,9 +248,9 @@ def edit_profile(client_id):
                     new_str = f"${new_base:.2f}" if new_base is not None else "None"
                     changes.append(f"Session Fee Base: {old_str} → {new_str}")
                 
-                if old_profile.get('fee_override_tax_rate') != profile_data.get('fee_override_tax_rate'):
-                    old_tax = old_profile.get('fee_override_tax_rate')
-                    new_tax = profile_data.get('fee_override_tax_rate')
+                if old_profile.get('session_tax_rate') != profile_data.get('session_tax_rate'):
+                    old_tax = old_profile.get('session_tax_rate')
+                    new_tax = profile_data.get('session_tax_rate')
                     # Convert to float if string (database might return string)
                     if old_tax is not None and isinstance(old_tax, str):
                         old_tax = float(old_tax) if old_tax else None
@@ -260,9 +260,9 @@ def edit_profile(client_id):
                     new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
                     changes.append(f"Session Fee Tax: {old_str} → {new_str}")
                 
-                if old_profile.get('fee_override_total') != profile_data.get('fee_override_total'):
-                    old_fee = old_profile.get('fee_override_total')
-                    new_fee = profile_data.get('fee_override_total')
+                if old_profile.get('session_total') != profile_data.get('session_total'):
+                    old_fee = old_profile.get('session_total')
+                    new_fee = profile_data.get('session_total')
                     # Convert to float if string
                     if old_fee is not None and isinstance(old_fee, str):
                         old_fee = float(old_fee) if old_fee else None
@@ -493,18 +493,18 @@ def create_session(client_id):
     # Prepare fee sources
     profile = db.get_profile_entry(client_id)
     profile_override = None
-    if profile and profile.get('fee_override_total'):
+    if profile and profile.get('session_total'):
         profile_override = {
-            'base': profile['fee_override_base'],
-            'tax': profile['fee_override_tax_rate'],
-            'total': profile['fee_override_total']
+            'base': profile['session_base'],
+            'tax': profile['session_tax_rate'],
+            'total': profile['session_total']
         }
 
     if profile:
         profile_fees = {
-            'base': profile.get('fee_override_base') or 0,
-            'tax': profile.get('fee_override_tax_rate') or 0,
-            'total': profile.get('fee_override_total') or 0,
+            'base': profile.get('session_base') or 0,
+            'tax': profile.get('session_tax_rate') or 0,
+            'total': profile.get('session_total') or 0,
             'duration': profile.get('default_session_duration') or 50
         }
     else:
@@ -795,19 +795,19 @@ def edit_session(client_id, entry_id):
     # 1. Profile Override (if exists)
     profile = db.get_profile_entry(client_id)
     profile_override = None
-    if profile and profile.get('fee_override_total'):
+    if profile and profile.get('session_total'):
         profile_override = {
-            'base': profile['fee_override_base'],
-            'tax': profile['fee_override_tax_rate'],
-            'total': profile['fee_override_total']
+            'base': profile['session_base'],
+            'tax': profile['session_tax_rate'],
+            'total': profile['session_total']
         }
 
     # 2. Get individual session fees from Profile
     if profile:
         profile_fees = {
-            'base': profile.get('fee_override_base') or 0,
-            'tax': profile.get('fee_override_tax_rate') or 0,
-            'total': profile.get('fee_override_total') or 0,
+            'base': profile.get('session_base') or 0,
+            'tax': profile.get('session_tax_rate') or 0,
+            'total': profile.get('session_total') or 0,
             'duration': profile.get('default_session_duration') or 50
         }
     else:

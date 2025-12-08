@@ -126,33 +126,33 @@ class TestFeeCalculations:
 class TestProfileFeeOverride:
     """Test profile-level fee override behavior."""
     
-    def test_profile_fee_override_stored(self, db, client_with_profile):
+    def test_profile_session_fee_stored(self, db, client_with_profile):
         """Profile should store custom fee override values."""
         client_id = client_with_profile['client_id']
         profile_id = client_with_profile['profile_id']
         
         # Update profile with fee override
         db.update_entry(profile_id, {
-            'fee_override_base': 120.00,
-            'fee_override_tax_rate': 13.0,
-            'fee_override_total': 135.60
+            'session_base': 120.00,
+            'session_tax_rate': 13.0,
+            'session_total': 135.60
         })
         
         # Retrieve and verify
         profile = db.get_entry(profile_id)
         
-        assert profile['fee_override_base'] == 120.00
-        assert profile['fee_override_tax_rate'] == 13.0
-        assert profile['fee_override_total'] == 135.60
+        assert profile['session_base'] == 120.00
+        assert profile['session_tax_rate'] == 13.0
+        assert profile['session_total'] == 135.60
     
-    def test_profile_fee_override_null_when_not_set(self, db, client_with_profile):
+    def test_profile_session_fee_null_when_not_set(self, db, client_with_profile):
         """Profile without override should have NULL fee fields."""
         profile_id = client_with_profile['profile_id']
         
         profile = db.get_entry(profile_id)
         
         # Not set = empty string (our NULL representation)
-        assert profile['fee_override_base'] in (None, '', 0)
+        assert profile['session_base'] in (None, '', 0)
 
 
 # ============================================================================
@@ -773,13 +773,17 @@ class TestLedger:
     
     def test_add_expense_entry(self, db):
         """Should be able to add expense entry."""
+        # Create category and payee first
+        category_id = db.add_expense_category('Office Supplies')
+        payee_id = db.add_payee('Staples')
+        
         entry_id = db.add_entry({
             'client_id': None,
             'class': 'expense',
             'ledger_type': 'expense',
             'ledger_date': int(time.time()),
-            'category_name': 'Office Supplies',
-            'payee_name': 'Staples',
+            'category_id': category_id,
+            'payee_id': payee_id,
             'total_amount': 45.00,
             'tax_amount': 5.85,
             'description': 'Printer paper'
@@ -789,8 +793,8 @@ class TestLedger:
         
         assert entry['ledger_type'] == 'expense'
         assert entry['total_amount'] == 45.00
-        assert entry['category_name'] == 'Office Supplies'
-        assert entry['payee_name'] == 'Staples'
+        assert entry['category_id'] == category_id
+        assert entry['payee_id'] == payee_id
     
     def test_ledger_totals(self, db):
         """Should calculate correct ledger totals."""
