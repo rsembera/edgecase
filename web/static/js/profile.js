@@ -350,10 +350,49 @@ const dobDay = document.getElementById('dob_day');
 const dobHidden = document.getElementById('date_of_birth');
 
 /**
+ * Get the number of days in a given month/year
+ * @param {number} year - Four digit year
+ * @param {number} month - Month (1-12)
+ * @returns {number} Number of days in that month
+ */
+function getDaysInMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+}
+
+/**
+ * Get month name for user-friendly messages
+ * @param {number} month - Month (1-12)
+ * @returns {string} Month name
+ */
+function getMonthName(month) {
+    const months = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[month] || '';
+}
+
+/**
  * Update hidden date_of_birth field from dropdown selections
+ * Also validates day against month/year
  */
 function updateDOB() {
-    if (dobYear.value && dobMonth.value && dobDay.value) {
+    const year = parseInt(dobYear.value);
+    const month = parseInt(dobMonth.value);
+    const day = parseInt(dobDay.value);
+    
+    // If all three are selected, validate
+    if (year && month && day) {
+        const maxDays = getDaysInMonth(year, month);
+        if (day > maxDays) {
+            // Invalid day for this month/year - reset day
+            window.setChoicesValue('dob_day', '');
+            dobHidden.value = '';
+            
+            // Show validation modal
+            const errorsDiv = document.getElementById('validation-errors');
+            errorsDiv.innerHTML = `<p>${getMonthName(month)} ${year} only has ${maxDays} days. Please select a valid day.</p>`;
+            document.getElementById('validation-modal').style.display = 'flex';
+            return;
+        }
         dobHidden.value = `${dobYear.value}-${dobMonth.value}-${dobDay.value}`;
     } else {
         dobHidden.value = '';
