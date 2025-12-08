@@ -136,10 +136,10 @@ CREATE TABLE entries (
     referral_source TEXT,
     additional_info TEXT,
     
-    -- Profile Fee Override
-    fee_override_base REAL,
-    fee_override_tax_rate REAL,
-    fee_override_total REAL,
+    -- Profile Session Fee (individual session pricing)
+    session_base REAL,
+    session_tax_rate REAL,
+    session_total REAL,
     default_session_duration INTEGER,
     
     -- Profile Guardian/Billing
