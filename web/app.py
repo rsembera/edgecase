@@ -150,8 +150,8 @@ def file_too_large(e):
 @app.before_request
 def require_login():
     """Redirect to login if not authenticated or session expired."""
-    # Allow access to login page and static files without auth
-    allowed_endpoints = ['auth.login', 'auth.logout', 'static']
+    # Allow access to login page, static files, and session status endpoints without auth
+    allowed_endpoints = ['auth.login', 'auth.logout', 'static', 'session_status', 'keepalive']
     if request.endpoint in allowed_endpoints:
         return
     
