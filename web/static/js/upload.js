@@ -212,6 +212,16 @@ async function initUploadPickers() {
         }
     });
     
+    // CRITICAL: Set initial date value if not already set (new entries)
+    // Without this, if user doesn't click a date, the hidden input stays empty
+    if (!dateInput.value && datePicker) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
+    
     // Initialize time picker
     const timePicker = initTimePicker('upload-time-picker', {
         format: timeFormat,
