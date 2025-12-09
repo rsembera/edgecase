@@ -57,3 +57,31 @@
     align-items: center;
     margin-top: 2rem;
 }
+
+
+/* ============================================
+   VALIDATION MODAL
+   ============================================ */
+.validation-modal-content {
+    max-width: 400px;
+}
+
+.validation-modal-content h3 {
+    margin-top: 0;
+    color: #DC2626;
+}
+
+.validation-modal-content p {
+    color: #374151;
+    line-height: 1.6;
+}
+
+.validation-modal-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.validation-modal-actions .btn {
+    min-width: 120px;
+}

@@ -116,3 +116,85 @@ if (document.readyState === 'loading') {
 } else {
     initAbsencePickers();
 }
+
+
+// ============================================================
+// FORMAT DROPDOWN - AUTO-LOAD FEES
+// ============================================================
+
+// Parse fee sources from JSON script tag
+const feeSourcesScript = document.getElementById('fee-sources-data');
+const feeSources = feeSourcesScript ? JSON.parse(feeSourcesScript.textContent) : {};
+
+// Get data attributes
+const absenceData = document.getElementById('absence-data');
+const isEdit = absenceData ? absenceData.dataset.isEdit === 'true' : false;
+const isBilled = absenceData ? absenceData.dataset.isBilled === 'true' : false;
+
+// Format dropdown fee logic
+const formatDropdown = document.getElementById('format');
+const basePriceInput = document.getElementById('base_price');
+const taxRateInput = document.getElementById('tax_rate');
+const feeInput = document.getElementById('fee');
+const feeSourceSpan = document.getElementById('fee-source');
+
+/**
+ * Update fee fields based on selected session format
+ * @param {string} format - Session format: 'individual', 'couples', 'family', or 'group'
+ */
+function updateFeesForFormat(format) {
+    // Don't auto-update fees when editing existing absences or if billed
+    if (isEdit || isBilled) {
+        return;
+    }
+    
+    let fees = null;
+    let source = '';
+    
+    if (format === 'individual') {
+        fees = feeSources.profileFees;
+        source = 'Profile';
+    } else if (format === 'couples' || format === 'family' || format === 'group') {
+        // Couples/Family/Group: Check Link Group
+        if (feeSources.linkGroups && feeSources.linkGroups[format]) {
+            fees = feeSources.linkGroups[format];
+            source = `Link Group (${format.charAt(0).toUpperCase() + format.slice(1)})`;
+        } else {
+            // No link group for this format - show modal
+            const formatName = format.charAt(0).toUpperCase() + format.slice(1);
+            const message = `This client is not in a ${formatName} link group. To bill ${format} absences, you need to create a link group with the "${formatName}" format first.`;
+            
+            document.getElementById('missing-link-message').textContent = message;
+            document.getElementById('missing-link-modal').style.display = 'flex';
+            
+            if (feeSourceSpan) {
+                feeSourceSpan.textContent = '';
+            }
+            return;
+        }
+    }
+    
+    if (fees && basePriceInput && taxRateInput && feeInput) {
+        basePriceInput.value = fees.base.toFixed(2);
+        taxRateInput.value = fees.tax.toFixed(2);
+        feeInput.value = fees.total.toFixed(2);
+        
+        if (feeSourceSpan) {
+            feeSourceSpan.textContent = source ? `Fee loaded from ${source}. ` : '';
+        }
+    }
+}
+
+/**
+ * Close the missing link group modal
+ */
+function closeMissingLinkModal() {
+    document.getElementById('missing-link-modal').style.display = 'none';
+}
+
+// Add event listener for format dropdown
+if (formatDropdown && !isEdit && !isBilled) {
+    formatDropdown.addEventListener('change', function() {
+        updateFeesForFormat(this.value);
+    });
+}

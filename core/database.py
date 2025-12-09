@@ -170,6 +170,8 @@ class Database:
                 item_date INTEGER,
                 item_time TEXT,
                 base_price REAL,
+                guardian1_amount REAL,
+                guardian2_amount REAL,
                 
                 -- Upload-specific fields
                 upload_date INTEGER,

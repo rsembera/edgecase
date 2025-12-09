@@ -81,7 +81,7 @@ async function initItemPickers() {
     const timeFormat = await getTimeFormatSetting();
     
     // Get initial values from hidden inputs
-    const dateInput = document.getElementById('date');
+    const dateInput = document.getElementById('item_date');
     const timeInput = document.getElementById('item_time');
     
     // Initialize date picker
@@ -115,4 +115,116 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initItemPickers);
 } else {
     initItemPickers();
+}
+
+
+// ============================================================
+// GUARDIAN SPLIT HANDLING
+// ============================================================
+
+// Get data attributes
+const itemData = document.getElementById('item-data');
+const hasTwoGuardians = itemData ? itemData.dataset.hasTwoGuardians === 'true' : false;
+const isBilled = itemData ? itemData.dataset.isBilled === 'true' : false;
+const isEditMode = itemData ? itemData.dataset.isEdit === 'true' : false;
+
+/**
+ * Sync guardian amounts - when one changes, adjust the other to match total
+ * @param {string} source - Which field was edited: 'g1' or 'g2'
+ */
+function syncGuardianAmounts(source) {
+    if (!hasTwoGuardians || isBilled) return;
+    
+    const g1Input = document.getElementById('guardian1_amount');
+    const g2Input = document.getElementById('guardian2_amount');
+    const totalInput = document.getElementById('fee');
+    
+    if (!g1Input || !g2Input || !totalInput) return;
+    
+    const total = parseFloat(totalInput.value) || 0;
+    const g1 = parseFloat(g1Input.value) || 0;
+    const g2 = parseFloat(g2Input.value) || 0;
+    
+    if (source === 'g1') {
+        // G1 was edited, adjust G2 to make up remainder
+        const newG2 = total - g1;
+        g2Input.value = newG2.toFixed(2);
+    } else if (source === 'g2') {
+        // G2 was edited, adjust G1 to make up remainder
+        const newG1 = total - g2;
+        g1Input.value = newG1.toFixed(2);
+    }
+}
+
+/**
+ * Auto-populate guardian split with 50/50 when fee changes
+ */
+function autoPopulateGuardianSplit() {
+    if (!hasTwoGuardians || isBilled) return;
+    
+    const g1Input = document.getElementById('guardian1_amount');
+    const g2Input = document.getElementById('guardian2_amount');
+    const totalInput = document.getElementById('fee');
+    
+    if (!g1Input || !g2Input || !totalInput) return;
+    
+    const total = parseFloat(totalInput.value) || 0;
+    
+    // 50/50 split with rounding - g1 gets the extra cent if odd
+    const g1 = Math.ceil(total * 100 / 2) / 100;
+    const g2 = total - g1;
+    
+    g1Input.value = g1.toFixed(2);
+    g2Input.value = g2.toFixed(2);
+}
+
+// Hook into fee calculation to auto-populate guardian split
+const originalCalculateItemFee = calculateItemFee;
+calculateItemFee = function(changedField) {
+    originalCalculateItemFee(changedField);
+    // Only auto-populate on new items, not edits
+    if (!isEditMode) {
+        autoPopulateGuardianSplit();
+    }
+};
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-populate 50/50 split on new items with two guardians
+    if (hasTwoGuardians && !isEditMode && !isBilled) {
+        autoPopulateGuardianSplit();
+    }
+    
+    // Add form submission validation - fee must be non-zero (all items)
+    if (!isEditMode && !isBilled) {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const totalInput = document.getElementById('fee');
+                const total = parseFloat(totalInput.value) || 0;
+                
+                if (total === 0) {
+                    e.preventDefault();
+                    showValidationModal('Please enter a non-zero price.');
+                    return;
+                }
+            });
+        }
+    }
+});
+
+/**
+ * Show validation error modal
+ * @param {string} message - Error message to display
+ */
+function showValidationModal(message) {
+    document.getElementById('validation-message').textContent = message;
+    document.getElementById('validation-modal').style.display = 'flex';
+}
+
+/**
+ * Close validation modal
+ */
+function closeValidationModal() {
+    document.getElementById('validation-modal').style.display = 'none';
 }

@@ -52,6 +52,21 @@
             </div>
         </div>
         
+        <!-- Format dropdown for fee auto-load -->
+        <div class="form-row-half">
+            <div class="form-group {% if is_billed %}field-disabled{% endif %}">
+                <label for="format">Missed Session Type</label>
+                <select id="format" name="format" {% if is_billed %}disabled{% endif %}>
+                    <option value="">Select to auto-load fee</option>
+                    <option value="individual">Individual</option>
+                    <option value="couples">Couples</option>
+                    <option value="family">Family</option>
+                    <option value="group">Group</option>
+                </select>
+                <p class="help-text">Select the type of missed session to auto-populate the cancellation fee</p>
+            </div>
+        </div>
+        
         <!-- Description -->
         <div class="form-group">
             <label for="description">Description *</label>
@@ -101,7 +116,10 @@
                 <small>With tax</small>
             </div>
         </div>
-        <p class="helper-text fee-helper-text">Cancellation fee (if applicable). Edit any two fields and the third will auto-calculate.</p>
+        <p class="helper-text fee-helper-text">
+            <span id="fee-source"></span>
+            Edit any two fields and the third will auto-calculate.
+        </p>
         
         <!-- Content -->
         <div class="form-group">
@@ -125,7 +143,32 @@
             <button type="submit" class="btn">Save Absence</button>
         </div>
     </form>
+    
+    <!-- Missing Link Group Modal -->
+    <div id="missing-link-modal" class="modal">
+        <div class="modal-content missing-link-modal-content">
+            <h3>Link Group Required</h3>
+            <p id="missing-link-message"></p>
+            <div class="missing-link-modal-actions">
+                <a href="{{ url_for('links.manage_links') }}" class="btn btn-secondary">Go to Link Groups</a>
+                <button onclick="closeMissingLinkModal()" class="btn">Stay Here</button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Data for JavaScript -->
+<div id="absence-data" 
+     data-is-edit="{% if is_edit %}true{% else %}false{% endif %}"
+     data-is-billed="{% if is_billed %}true{% else %}false{% endif %}">
+</div>
+
+<script id="fee-sources-data" type="application/json">
+{
+    "profileFees": {{ profile_fees | tojson }},
+    "linkGroups": {{ link_group_fees | tojson }}
+}
+</script>
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>

@@ -271,7 +271,8 @@ def generate_statements():
         
         # Get unbilled entries for this client in date range
         cursor.execute("""
-            SELECT id, class, description, fee, base_price, session_date, absence_date, item_date
+            SELECT id, class, description, fee, base_price, session_date, absence_date, item_date,
+                   guardian1_amount, guardian2_amount
             FROM entries
             WHERE client_id = ?
             AND class IN ('session', 'absence', 'item')
@@ -324,16 +325,37 @@ def generate_statements():
         # Create statement portions
         # Check if minor with guardian billing
         if profile and profile.get('is_minor') and profile.get('guardian1_name'):
+            # For items with explicit guardian amounts, use those
+            # For other entries, calculate using profile percentages
+            g1_explicit = 0
+            g2_explicit = 0
+            percentage_total = 0
+            
+            for e in entries:
+                fee = e['fee'] or e['base_price'] or 0
+                if e['class'] == 'item' and e.get('guardian1_amount') is not None:
+                    # Item with explicit guardian amounts
+                    g1_explicit += e['guardian1_amount'] or 0
+                    g2_explicit += e['guardian2_amount'] or 0
+                else:
+                    # Session, absence, or item without explicit amounts - use percentage
+                    percentage_total += fee
+            
+            # Calculate percentage-based amounts
             g1_percent = profile.get('guardian1_pays_percent', 100) or 100
-            g1_amount = round(total * g1_percent / 100, 2)
+            g1_from_percent = round(percentage_total * g1_percent / 100, 2)
             
-            # Sanity check: g1 can't exceed total (handles bad percentage data)
-            g1_amount = min(g1_amount, total)
+            # Sanity check: g1 can't exceed percentage_total
+            g1_from_percent = min(g1_from_percent, percentage_total)
             
-            # Check for guardian 2 first to determine if we need remainder logic
+            # Total guardian amounts
+            g1_amount = round(g1_explicit + g1_from_percent, 2)
+            
+            # Check for guardian 2
             if profile.get('has_guardian2') and profile.get('guardian2_name'):
-                # G2 gets remainder to ensure exact total (avoids rounding discrepancies)
-                g2_amount = round(total - g1_amount, 2)
+                # G2 gets remainder of percentage_total plus explicit g2
+                g2_from_percent = round(percentage_total - g1_from_percent, 2)
+                g2_amount = round(g2_explicit + g2_from_percent, 2)
                 
                 # Sanity check: g2 can't go negative
                 g2_amount = max(0, g2_amount)
