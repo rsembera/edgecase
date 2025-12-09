@@ -280,24 +280,39 @@
 
 **Verify:** All three show in timeline with correct icons
 
-### 3.3 Absence Entries (5 min)
+### 3.3 Absence Entries (8 min)
 
-**Alice - Cancelled with fee:**
+**Alice - Cancelled with fee (Individual):**
 - [ ] Add → Absence
+- [ ] Format: Individual (should auto-load profile fees)
+- [ ] Verify: Fee fields auto-populate from profile ($150 base, 13% tax, $169.50 total)
 - [ ] Date/Time: Pick a date
-- [ ] Fee: Use profile fee ($169.50)
 - [ ] Description: "Late cancellation"
 - [ ] Content: "Client cancelled less than 24 hours before session."
 - [ ] Save
 
+**Carol - Couples Absence:**
+- [ ] Add → Absence for Carol
+- [ ] Format: Couples
+- [ ] Verify: Fee fields auto-load from link group
+- [ ] Verify: Entry appears in BOTH Carol and David's files (if linked)
+- [ ] Save
+
+**Test Missing Link Group Warning:**
+- [ ] Add → Absence for Alice
+- [ ] Select Format: "Group"
+- [ ] Verify: Warning modal appears (no group link for Alice)
+- [ ] Click "Stay Here" to dismiss
+
 **Emma - Cancelled without fee:**
 - [ ] Add → Absence for Emma
-- [ ] Fee: $0.00
+- [ ] Format: Individual
+- [ ] Clear fee fields to $0.00
 - [ ] Description: "Excused absence"
 - [ ] Content: "Family emergency, waived cancellation fee."
 - [ ] Save
 
-### 3.4 Item Entries (5 min)
+### 3.4 Item Entries (10 min)
 
 **Alice - Book purchase:**
 - [ ] Add → Item
@@ -305,6 +320,7 @@
 - [ ] Base Price: $25.00
 - [ ] Tax Rate: 13%
 - [ ] Verify Total calculates: $28.25
+- [ ] Verify: No guardian split section appears (Alice is not a minor)
 - [ ] Save
 
 **Alice - Letter/Report:**
@@ -313,6 +329,22 @@
 - [ ] Base Price: $50.00
 - [ ] Tax Rate: 0%
 - [ ] Save
+
+**Bob - Item with Guardian Split:**
+- [ ] Add → Item for Bob (minor with two guardians)
+- [ ] Description: "Assessment materials"
+- [ ] Base Price: $40.00, Tax: 13%, Total: $45.20
+- [ ] Verify: Guardian split section appears with Patricia Baker and Michael Baker
+- [ ] Verify: Amounts auto-populate 50/50 ($22.60 each)
+- [ ] Change Patricia's amount to $27.12 (60%)
+- [ ] Verify: Michael's amount auto-adjusts to $18.08 (40%)
+- [ ] Save
+
+**Test Zero Fee Validation:**
+- [ ] Add → Item for Alice
+- [ ] Leave Base Price at $0.00
+- [ ] Try to Save
+- [ ] Verify: Validation modal appears "Please enter a non-zero price"
 
 ### 3.5 Upload Entries (5 min)
 
@@ -394,8 +426,25 @@
 
 **Write-off:**
 - [ ] On Bob's Guardian 2 portion (if unpaid), click "Write Off"
+- [ ] Select reason: "Uncollectible" or "Waived"
 - [ ] Confirm
 - [ ] Verify: Status changes to "Written Off"
+
+### 4.4 Billing Error Recovery (5 min)
+
+**Test the recovery workflow for incorrect fees:**
+- [ ] Create a new session for Emma with WRONG fee (e.g., $150 instead of $80)
+- [ ] Generate statement for Emma
+- [ ] Go to Outstanding Statements
+- [ ] Click "Write Off" on Emma's statement
+- [ ] Select reason: **"Billing Error"**
+- [ ] Confirm write-off
+- [ ] Go to Emma's file, edit the session
+- [ ] Verify: Fee fields are now editable (no longer locked)
+- [ ] Fix fee to correct amount ($80)
+- [ ] Save
+- [ ] Generate new statement for Emma
+- [ ] Verify: New statement shows correct amount
 
 ---
 
@@ -649,8 +698,8 @@
 ### Entries
 - [ ] Session (all variations)
 - [ ] Communication (all recipient types)
-- [ ] Absence (with/without fee)
-- [ ] Item (with tax calculation)
+- [ ] Absence (with format dropdown, fee auto-load)
+- [ ] Item (with tax calculation, guardian splits for minors)
 - [ ] Upload (attachments)
 - [ ] Edit history works on locked entries
 
@@ -669,6 +718,7 @@
 - [ ] Record Payment (creates Income)
 - [ ] Partial payment
 - [ ] Write-off
+- [ ] Billing error recovery (unlocks entries for re-billing)
 
 ### Ledger
 - [ ] Auto income from payments
