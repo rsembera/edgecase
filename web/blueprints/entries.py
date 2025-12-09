@@ -1117,10 +1117,51 @@ def create_absence(client_id):
     from datetime import date
     today = date.today().strftime('%Y-%m-%d')
     
+    # Get profile for fee information
+    profile = db.get_profile_entry(client_id)
+    
+    # Build profile fees dict
+    if profile:
+        profile_fees = {
+            'base': profile.get('session_base') or 0,
+            'tax': profile.get('session_tax_rate') or 0,
+            'total': profile.get('session_total') or 0
+        }
+    else:
+        profile_fees = {
+            'base': 0,
+            'tax': 0,
+            'total': 0
+        }
+    
+    # Get link group fees
+    link_group_fees = {}
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+
+    for row in cursor.fetchall():
+        format_type = row['format']
+        if format_type:
+            link_group_fees[format_type] = {
+                'base': row['member_base_fee'] or 0,
+                'tax': row['member_tax_rate'] or 0,
+                'total': row['member_total_fee'] or 0
+            }
+    
     return render_template('entry_forms/absence.html',
                          client=client,
                          client_type=client_type,
-                         today=today)
+                         today=today,
+                         profile_fees=profile_fees,
+                         link_group_fees=link_group_fees)
 
 
 @entries_bp.route('/client/<int:client_id>/absence/<int:entry_id>', methods=['GET', 'POST'])
@@ -1246,6 +1287,45 @@ def edit_absence(client_id, entry_id):
     is_locked = db.is_entry_locked(entry_id)
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
+    # Get profile for fee information
+    profile = db.get_profile_entry(client_id)
+    
+    # Build profile fees dict
+    if profile:
+        profile_fees = {
+            'base': profile.get('session_base') or 0,
+            'tax': profile.get('session_tax_rate') or 0,
+            'total': profile.get('session_total') or 0
+        }
+    else:
+        profile_fees = {
+            'base': 0,
+            'tax': 0,
+            'total': 0
+        }
+    
+    # Get link group fees
+    link_group_fees = {}
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+
+    for row in cursor.fetchall():
+        format_type = row['format']
+        if format_type:
+            link_group_fees[format_type] = {
+                'base': row['member_base_fee'] or 0,
+                'tax': row['member_tax_rate'] or 0,
+                'total': row['member_total_fee'] or 0
+            }
+    
     return render_template('entry_forms/absence.html',
                         client=client,
                         client_type=client_type,
@@ -1254,7 +1334,9 @@ def edit_absence(client_id, entry_id):
                         is_edit=True,
                         is_locked=is_locked,
                         is_billed=absence.get('statement_id') is not None,
-                        edit_history=edit_history)
+                        edit_history=edit_history,
+                        profile_fees=profile_fees,
+                        link_group_fees=link_group_fees)
 
 
 # ============================================================================
@@ -1269,12 +1351,17 @@ def create_item(client_id):
         return "Client not found", 404
     
     client_type = db.get_client_type(client['type_id'])
+    profile = db.get_profile_entry(client_id)
     
     if request.method == 'POST':
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
         if item_date_str:
             item_date_timestamp = int(datetime.strptime(item_date_str, '%Y-%m-%d').timestamp())
+        
+        # Parse guardian amounts if provided
+        g1_amount = request.form.get('guardian1_amount')
+        g2_amount = request.form.get('guardian2_amount')
         
         item_data = {
             'client_id': client_id,
@@ -1288,6 +1375,9 @@ def create_item(client_id):
             'base_price': float(request.form.get('base_price', 0)),
             'tax_rate': float(request.form.get('tax_rate', 0)),
             'fee': float(request.form.get('fee', 0)),
+            
+            'guardian1_amount': float(g1_amount) if g1_amount else None,
+            'guardian2_amount': float(g2_amount) if g2_amount else None,
             
             'content': request.form.get('content') or None,
         }
@@ -1303,6 +1393,7 @@ def create_item(client_id):
     return render_template('entry_forms/item.html',
                         client=client,
                         client_type=client_type,
+                        profile=profile,
                         **date_parts,
                         is_edit=False)
 
@@ -1314,6 +1405,7 @@ def edit_item(client_id, entry_id):
         return "Client not found", 404
     
     client_type = db.get_client_type(client['type_id'])
+    profile = db.get_profile_entry(client_id)
     item = db.get_entry(entry_id)
     
     if not item or item['class'] != 'item':
@@ -1333,6 +1425,10 @@ def edit_item(client_id, entry_id):
             date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
             item_date_timestamp = int(date_obj.timestamp())
         
+        # Parse guardian amounts if provided
+        g1_amount = request.form.get('guardian1_amount')
+        g2_amount = request.form.get('guardian2_amount')
+        
         # Prepare updated item data - preserve billing fields if billed
         item_data = {
             'description': request.form['description'],
@@ -1341,6 +1437,8 @@ def edit_item(client_id, entry_id):
             'base_price': old_item.get('base_price') if is_billed else (float(request.form.get('base_price', 0)) if request.form.get('base_price') else None),
             'tax_rate': old_item.get('tax_rate') if is_billed else (float(request.form.get('tax_rate', 0)) if request.form.get('tax_rate') else 0),
             'fee': old_item.get('fee') if is_billed else float(request.form.get('fee', 0)),
+            'guardian1_amount': old_item.get('guardian1_amount') if is_billed else (float(g1_amount) if g1_amount else None),
+            'guardian2_amount': old_item.get('guardian2_amount') if is_billed else (float(g2_amount) if g2_amount else None),
             'content': request.form.get('content', '')
         }
         
@@ -1432,6 +1530,7 @@ def edit_item(client_id, entry_id):
     return render_template('entry_forms/item.html',
                          client=client,
                          client_type=client_type,
+                         profile=profile,
                          entry=item,
                          item_date=item_date,
                          is_edit=True,

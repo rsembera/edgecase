@@ -2133,3 +2133,65 @@ tbody tr:hover {
     letter-spacing: 0.03em;
     border-bottom: none;
 }
+
+
+/* ============================================================
+   GUARDIAN SPLIT SECTION
+   ============================================================ */
+
+.guardian-split-section {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+}
+
+.guardian-split-section > .helper-text {
+    margin-bottom: var(--space-md);
+}
+
+.guardian-split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    max-width: 500px;
+    margin-bottom: var(--space-sm);
+}
+
+.guardian-split-field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--color-text-heading);
+    margin-bottom: var(--space-xs);
+}
+
+.guardian-split-field input {
+    width: 100%;
+    padding: var(--space-md);
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    height: 50px;
+    box-sizing: border-box;
+}
+
+.guardian-split-field input:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+.guardian-split-status {
+    font-size: 0.875rem;
+    margin-top: var(--space-xs);
+    margin-bottom: var(--space-lg);
+}
+
+.guardian-split-status.valid {
+    color: var(--color-success, #10B981);
+}
+
+.guardian-split-status.invalid {
+    color: var(--color-danger, #EF4444);
+}
