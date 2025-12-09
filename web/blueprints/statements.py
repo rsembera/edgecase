@@ -327,11 +327,16 @@ def generate_statements():
             g1_percent = profile.get('guardian1_pays_percent', 100) or 100
             g1_amount = round(total * g1_percent / 100, 2)
             
+            # Sanity check: g1 can't exceed total (handles bad percentage data)
+            g1_amount = min(g1_amount, total)
+            
             # Check for guardian 2 first to determine if we need remainder logic
             if profile.get('has_guardian2') and profile.get('guardian2_name'):
-                g2_percent = profile.get('guardian2_pays_percent', 0) or 0
                 # G2 gets remainder to ensure exact total (avoids rounding discrepancies)
                 g2_amount = round(total - g1_amount, 2)
+                
+                # Sanity check: g2 can't go negative
+                g2_amount = max(0, g2_amount)
                 
                 cursor.execute("""
                     INSERT INTO statement_portions (
