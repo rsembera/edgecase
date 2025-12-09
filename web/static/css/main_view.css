@@ -551,12 +551,6 @@ body.tutti-frutti .nav-btn.peach:hover {
     white-space: nowrap;
 }
 
-/* Type badges with muted colors */
-.type-badge.type-mint { background: #AFCFBF; color: #0E5346; }
-.type-badge.type-yellow { background: #F5DEB0; color: #5A4823; }
-.type-badge.type-pink { background: #E8C7D6; color: #642639; }
-.type-badge.type-purple { background: #C9BFE8; color: #3F3358; }
-
 /* Contact links */
 .contact-link {
     color: #5B6571;
