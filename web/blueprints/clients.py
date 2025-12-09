@@ -271,6 +271,10 @@ def index():
             client['contact_type'] = 'call'
             client['contact_icon'] = '<i data-lucide="phone"></i>'
         
+        # Final fallback if display_phone is still empty but phones exist
+        if not client['display_phone']:
+            client['display_phone'] = client['phone'] or client['home_phone'] or client['work_phone']
+        
         # Get last session date
         last_session = db.get_last_session_date(client['id'])
         client['last_session'] = last_session
