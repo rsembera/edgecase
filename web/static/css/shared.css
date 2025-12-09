@@ -1134,6 +1134,7 @@ input[type="number"] {
     font-size: 0.75rem;
     font-weight: 600;
     display: inline-block;
+    color: #374151;
 }
 
 .type-badge-small {
