@@ -45,9 +45,10 @@
                     <span class="member-badge" style="background-color: {{ member.type.color }}">
                         {{ member.type.name }}
                     </span>
-                    <span class="member-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
-                    <br>
-                    <span class="member-file">{{ member.file_number }}</span>
+                    <div class="member-info">
+                        <span class="member-name">{{ member.first_name }} {% if member.middle_name %}{{ member.middle_name }} {% endif %}{{ member.last_name }}</span>
+                        <span class="member-file">{{ member.file_number }}</span>
+                    </div>
                 </a>
                 {% endfor %}
             </div>

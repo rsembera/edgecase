@@ -99,7 +99,6 @@
     text-decoration: none;
     color: inherit;
     transition: all 0.2s;
-    flex-wrap: wrap;
 }
 
 .member-card:hover {
@@ -122,8 +121,12 @@
     white-space: nowrap;
 }
 
+.member-info {
+    display: flex;
+    flex-direction: column;
+}
+
 .member-name {
-    flex: 1;
     font-weight: 500;
     color: #111827;
 }
