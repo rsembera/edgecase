@@ -196,6 +196,7 @@ consultationCheckbox.addEventListener('change', function() {
     // Get values from data attributes
     const isEdit = document.body.dataset.isEdit === 'true';
     const nextSessionNumber = document.body.dataset.nextSessionNumber || '';
+    const serviceInput = document.getElementById('service');
     
     if (this.checked) {
         // Consultation: use settings from database (all three fee fields)
@@ -203,6 +204,11 @@ consultationCheckbox.addEventListener('change', function() {
         taxRateInput.value = consultationTax;
         totalFeeInput.value = consultationTotal;
         durationInput.value = consultationDuration;
+        
+        // Auto-populate service field with "Consultation"
+        if (serviceInput) {
+            serviceInput.value = 'Consultation';
+        }
         
         if (!isEdit) {
             sessionNumberDisplay.textContent = 'Consultation';
@@ -223,6 +229,11 @@ consultationCheckbox.addEventListener('change', function() {
         
         // Restore original duration regardless
         durationInput.value = originalDuration;
+        
+        // Only clear service field if it still says "Consultation"
+        if (serviceInput && serviceInput.value === 'Consultation') {
+            serviceInput.value = '';
+        }
         
         if (!isEdit) {
             sessionNumberDisplay.textContent = 'Session ' + nextSessionNumber;
