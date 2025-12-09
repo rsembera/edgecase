@@ -489,7 +489,7 @@ async function loadPracticeInfo() {
             document.getElementById('consultation-base').value = parseFloat(data.info.consultation_base_price || 0).toFixed(2);
             document.getElementById('consultation-tax').value = parseFloat(data.info.consultation_tax_rate || 0).toFixed(2);
             document.getElementById('consultation-total').value = parseFloat(data.info.consultation_fee || 0).toFixed(2);
-            document.getElementById('consultation-duration').value = data.info.consultation_duration || '20';
+            window.setChoicesValue('consultation-duration', data.info.consultation_duration || '20');
             
             updateLogoSignatureUI(data.info);
         }
