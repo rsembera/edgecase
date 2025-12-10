@@ -122,13 +122,26 @@ if (document.readyState === 'loading') {
 // GUARDIAN SPLIT HANDLING
 // ============================================================
 
-// Get data attributes
-const itemData = document.getElementById('item-data');
-const hasTwoGuardians = itemData ? itemData.dataset.hasTwoGuardians === 'true' : false;
-const isBilled = itemData ? itemData.dataset.isBilled === 'true' : false;
-const isEditMode = itemData ? itemData.dataset.isEdit === 'true' : false;
-const guardian1Percent = itemData ? parseFloat(itemData.dataset.guardian1Percent) || 50 : 50;
-const guardian2Percent = itemData ? parseFloat(itemData.dataset.guardian2Percent) || 50 : 50;
+// These will be set once DOM is ready
+let hasTwoGuardians = false;
+let isBilled = false;
+let isEditMode = false;
+let guardian1Percent = 50;
+let guardian2Percent = 50;
+
+/**
+ * Initialize guardian data from DOM attributes
+ */
+function initGuardianData() {
+    const itemData = document.getElementById('item-data');
+    if (itemData) {
+        hasTwoGuardians = itemData.dataset.hasTwoGuardians === 'true';
+        isBilled = itemData.dataset.isBilled === 'true';
+        isEditMode = itemData.dataset.isEdit === 'true';
+        guardian1Percent = parseFloat(itemData.dataset.guardian1Percent) || 50;
+        guardian2Percent = parseFloat(itemData.dataset.guardian2Percent) || 50;
+    }
+}
 
 /**
  * Sync guardian amounts - when one changes, adjust the other to match total
@@ -193,6 +206,9 @@ calculateItemFee = function(changedField) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize guardian data from DOM first
+    initGuardianData();
+    
     // Auto-populate guardian split based on profile percentages for new items
     if (hasTwoGuardians && !isEditMode && !isBilled) {
         autoPopulateGuardianSplit();
