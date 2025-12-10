@@ -58,10 +58,10 @@
                 <label for="format">Missed Session Type</label>
                 <select id="format" name="format" {% if is_billed %}disabled{% endif %}>
                     <option value="">Select to auto-load fee</option>
-                    <option value="individual">Individual</option>
-                    <option value="couples">Couples</option>
-                    <option value="family">Family</option>
-                    <option value="group">Group</option>
+                    <option value="individual" {% if entry and entry.format == 'individual' %}selected{% endif %}>Individual</option>
+                    <option value="couples" {% if entry and entry.format == 'couples' %}selected{% endif %}>Couples</option>
+                    <option value="family" {% if entry and entry.format == 'family' %}selected{% endif %}>Family</option>
+                    <option value="group" {% if entry and entry.format == 'group' %}selected{% endif %}>Group</option>
                 </select>
                 <p class="help-text">Select the type of missed session to auto-populate the cancellation fee</p>
             </div>
