@@ -172,7 +172,9 @@
 <div id="item-data" 
      data-is-edit="{% if is_edit %}true{% else %}false{% endif %}"
      data-is-billed="{% if is_billed %}true{% else %}false{% endif %}"
-     data-has-two-guardians="{% if profile and profile.is_minor and profile.guardian1_name and profile.has_guardian2 and profile.guardian2_name %}true{% else %}false{% endif %}">
+     data-has-two-guardians="{% if profile and profile.is_minor and profile.guardian1_name and profile.has_guardian2 and profile.guardian2_name %}true{% else %}false{% endif %}"
+     data-guardian1-percent="{{ profile.guardian1_pays_percent if profile and profile.guardian1_pays_percent else 50 }}"
+     data-guardian2-percent="{{ profile.guardian2_pays_percent if profile and profile.guardian2_pays_percent else 50 }}">
 </div>
 
 {% block extra_js %}

@@ -127,6 +127,8 @@ const itemData = document.getElementById('item-data');
 const hasTwoGuardians = itemData ? itemData.dataset.hasTwoGuardians === 'true' : false;
 const isBilled = itemData ? itemData.dataset.isBilled === 'true' : false;
 const isEditMode = itemData ? itemData.dataset.isEdit === 'true' : false;
+const guardian1Percent = itemData ? parseFloat(itemData.dataset.guardian1Percent) || 50 : 50;
+const guardian2Percent = itemData ? parseFloat(itemData.dataset.guardian2Percent) || 50 : 50;
 
 /**
  * Sync guardian amounts - when one changes, adjust the other to match total
@@ -157,7 +159,7 @@ function syncGuardianAmounts(source) {
 }
 
 /**
- * Auto-populate guardian split with 50/50 when fee changes
+ * Auto-populate guardian split based on profile percentages when fee changes
  */
 function autoPopulateGuardianSplit() {
     if (!hasTwoGuardians || isBilled) return;
@@ -170,9 +172,10 @@ function autoPopulateGuardianSplit() {
     
     const total = parseFloat(totalInput.value) || 0;
     
-    // 50/50 split with rounding - g1 gets the extra cent if odd
-    const g1 = Math.ceil(total * 100 / 2) / 100;
-    const g2 = total - g1;
+    // Use profile percentages for split
+    // Round g1 to 2 decimals, g2 gets remainder to ensure exact total
+    const g1 = Math.round(total * guardian1Percent) / 100;
+    const g2 = Math.round((total - g1) * 100) / 100;
     
     g1Input.value = g1.toFixed(2);
     g2Input.value = g2.toFixed(2);
@@ -190,7 +193,7 @@ calculateItemFee = function(changedField) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-populate 50/50 split on new items with two guardians
+    // Auto-populate guardian split based on profile percentages for new items
     if (hasTwoGuardians && !isEditMode && !isBilled) {
         autoPopulateGuardianSplit();
     }
