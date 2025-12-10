@@ -1090,7 +1090,7 @@ def create_absence(client_id):
     client_type = db.get_client_type(client['type_id'])
     
     if request.method == 'POST':
-        absence_date_str = request.form.get('absence_date')
+        absence_date_str = request.form.get('date')
         absence_date_timestamp = None
         if absence_date_str:
             date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
@@ -1185,7 +1185,7 @@ def edit_absence(client_id, entry_id):
         is_billed = absence.get('statement_id') is not None
         
         # Convert date string to Unix timestamp
-        absence_date_str = request.form.get('absence_date')
+        absence_date_str = request.form.get('date')
         absence_date_timestamp = None
         if absence_date_str:
             date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
