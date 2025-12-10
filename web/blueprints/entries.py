@@ -1100,6 +1100,7 @@ def create_absence(client_id):
             'client_id': client_id,
             'class': 'absence',
             'description': request.form['description'],
+            'format': request.form.get('format', ''),
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
             'base_price': float(request.form.get('base_price', 0)),
@@ -1194,6 +1195,7 @@ def edit_absence(client_id, entry_id):
         # Prepare updated absence data - preserve billing fields if billed
         absence_data = {
             'description': request.form['description'],
+            'format': old_absence.get('format') if is_billed else request.form.get('format', ''),
             'absence_date': old_absence.get('absence_date') if is_billed else absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
             'base_price': old_absence.get('base_price') if is_billed else float(request.form.get('base_price', 0)),
