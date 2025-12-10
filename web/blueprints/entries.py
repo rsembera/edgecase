@@ -1365,6 +1365,10 @@ def create_item(client_id):
         g1_amount = request.form.get('guardian1_amount')
         g2_amount = request.form.get('guardian2_amount')
         
+        # Parse guardian amounts - check for empty strings
+        g1_parsed = float(g1_amount) if g1_amount and g1_amount.strip() else None
+        g2_parsed = float(g2_amount) if g2_amount and g2_amount.strip() else None
+        
         item_data = {
             'client_id': client_id,
             'class': 'item',
@@ -1378,8 +1382,8 @@ def create_item(client_id):
             'tax_rate': float(request.form.get('tax_rate', 0)),
             'fee': float(request.form.get('fee', 0)),
             
-            'guardian1_amount': float(g1_amount) if g1_amount else None,
-            'guardian2_amount': float(g2_amount) if g2_amount else None,
+            'guardian1_amount': g1_parsed,
+            'guardian2_amount': g2_parsed,
             
             'content': request.form.get('content') or None,
         }

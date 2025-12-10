@@ -1129,6 +1129,8 @@ class Database:
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
             'guardian2_name', 'guardian2_email', 'guardian2_phone',
             'guardian2_address', 'guardian2_pays_percent',
+            # Item guardian split fields
+            'guardian1_amount', 'guardian2_amount',
             # Ledger fields
             'ledger_date', 'ledger_type', 'source', 'payee_id', 'category_id',
             'payee_name', 'category_name',  # Text fields for ledger entries
