@@ -383,7 +383,7 @@
                                         {% elif entry.class == 'communication' %}
                                             {{ entry.comm_recipient|replace('_', ' ')|title if entry.comm_recipient else '-' }}
                                         {% elif entry.class == 'absence' %}
-                                            -
+                                            {{ entry.format|capitalize if entry.format else '-' }}
                                         {% elif entry.class == 'item' %}
                                             {% if entry.base_price and entry.tax_rate %}
                                                 ${{ "%.2f"|format(entry.base_price) }} + {{ "%.1f"|format(entry.tax_rate) }}% tax

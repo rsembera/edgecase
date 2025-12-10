@@ -55,7 +55,7 @@
         <!-- Format dropdown for fee auto-load -->
         <div class="form-row-half">
             <div class="form-group {% if is_billed %}field-disabled{% endif %}">
-                <label for="format">Missed Session Type</label>
+                <label for="format">Missed Session Format</label>
                 <select id="format" name="format" {% if is_billed %}disabled{% endif %}>
                     <option value="">Select to auto-load fee</option>
                     <option value="individual" {% if entry and entry.format == 'individual' %}selected{% endif %}>Individual</option>
@@ -63,7 +63,7 @@
                     <option value="family" {% if entry and entry.format == 'family' %}selected{% endif %}>Family</option>
                     <option value="group" {% if entry and entry.format == 'group' %}selected{% endif %}>Group</option>
                 </select>
-                <p class="help-text">Select the type of missed session to auto-populate the cancellation fee</p>
+                <p class="help-text">Select the format of missed session to auto-populate the cancellation fee</p>
             </div>
         </div>
         
