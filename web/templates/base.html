@@ -361,6 +361,54 @@
         setInterval(checkSession, 30000);
         // Initial check after 5 seconds (let page load)
         setTimeout(checkSession, 5000);
+        
+        // Check immediately when tab becomes visible (catches backgrounded tabs)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                checkSession();
+            }
+        });
+    })();
+    </script>
+    
+    <!-- Session expired overlay -->
+    <div id="session-expired-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10001; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 1rem; max-width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <h2 style="color: #1F2937; margin-bottom: 0.75rem; font-size: 1.375rem; font-weight: 700;">Session Expired</h2>
+            <p style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.9375rem;">Please log in again to continue.</p>
+            <button onclick="window.location.href='/login'" style="padding: 0.75rem 1.5rem; background: #BFDCDC; color: #115D4F; border: none; border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; width: 100%; font-family: var(--font-ui);">
+                Log In
+            </button>
+        </div>
+    </div>
+    
+    <!-- Global session expiry handler for API calls -->
+    <script>
+    (function() {
+        let sessionExpiredShown = false;
+        
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            return originalFetch.apply(this, arguments).then(function(response) {
+                // Clone response so we can read it and still return original
+                const cloned = response.clone();
+                
+                // Only check JSON responses
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    cloned.json().then(function(data) {
+                        if (data.error === 'session_expired' && !sessionExpiredShown) {
+                            sessionExpiredShown = true;
+                            // Freeze UI and show modal
+                            document.body.classList.add('frozen');
+                            document.getElementById('session-expired-overlay').style.display = 'flex';
+                        }
+                    }).catch(function() {});
+                }
+                
+                return response;
+            });
+        };
     })();
     </script>
     

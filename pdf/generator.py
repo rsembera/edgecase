@@ -324,10 +324,24 @@ class StatementPDFGenerator:
         elements.append(Spacer(1, 0.3*inch))
         return elements
     
-    def _build_line_items_table(self, entries, currency_code):
-        """Build the table of billable line items."""
+    def _build_line_items_table(self, entries, currency_code, guardian_number=None, profile=None):
+        """Build the table of billable line items.
+        
+        Args:
+            entries: List of entry dicts
+            currency_code: Currency code for formatting
+            guardian_number: 1 or 2 if billing a guardian, None for client
+            profile: Profile entry (needed for guardian percentage)
+        """
         # Table header
         data = [['Date', 'Service', 'Duration', 'Fee']]
+        
+        # Get guardian percentage if applicable
+        guardian_percent = None
+        if guardian_number == 1 and profile:
+            guardian_percent = profile.get('guardian1_pays_percent', 100) or 100
+        elif guardian_number == 2 and profile:
+            guardian_percent = profile.get('guardian2_pays_percent', 0) or 0
         
         total = 0
         for entry in entries:
@@ -351,6 +365,19 @@ class StatementPDFGenerator:
                 fee = entry.get('fee', 0) or 0
             else:
                 continue
+            
+            # Apply guardian split if applicable
+            if guardian_number and guardian_percent is not None:
+                # Check if item has explicit guardian amounts
+                if entry_class == 'item' and entry.get('guardian1_amount') is not None:
+                    # Use explicit amount for this guardian
+                    if guardian_number == 1:
+                        fee = entry.get('guardian1_amount', 0) or 0
+                    else:
+                        fee = entry.get('guardian2_amount', 0) or 0
+                else:
+                    # Apply percentage split
+                    fee = round(fee * guardian_percent / 100, 2)
             
             # Format date as YYYY-MM-DD
             if date_ts:
@@ -586,7 +613,7 @@ class StatementPDFGenerator:
         story.extend(self._build_bill_to(bill_to))
         
         # Line items table
-        table, total = self._build_line_items_table(entries, settings['currency'])
+        table, total = self._build_line_items_table(entries, settings['currency'], guardian_number, profile)
         story.append(table)
         
         # Signature section
