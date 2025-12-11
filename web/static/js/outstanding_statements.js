@@ -338,8 +338,21 @@ function generateStatements() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const word = data.count === 1 ? 'statement' : 'statements';
-            showSuccessModal(`Generated ${data.count} ${word}`, 'Success');
+            // Build smart message based on statements vs portions
+            let message;
+            const stmtCount = data.count;
+            const portionCount = data.portion_count || stmtCount;
+            
+            if (portionCount > stmtCount) {
+                // Guardian billing created extra portions
+                const stmtWord = stmtCount === 1 ? 'statement' : 'statements';
+                const portionWord = portionCount === 1 ? 'portion' : 'portions';
+                message = `Generated ${stmtCount} ${stmtWord} (${portionCount} ${portionWord})`;
+            } else {
+                const word = stmtCount === 1 ? 'statement' : 'statements';
+                message = `Generated ${stmtCount} ${word}`;
+            }
+            showSuccessModal(message, 'Success');
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
@@ -544,6 +557,7 @@ function showWriteOffModal(portionId, amountOwing) {
     document.getElementById('writeoff-note').value = '';
     document.getElementById('writeoff-note-group').style.display = 'none';
     document.getElementById('writeoff-hint').textContent = '';
+    document.getElementById('writeoff-error').style.display = 'none';
     document.getElementById('writeoff-amount-text').textContent = '$' + amountOwing.toFixed(2);
     
     document.getElementById('writeoff-modal').classList.add('visible');
@@ -593,14 +607,20 @@ function toggleWriteOffNote() {
 function confirmWriteOff() {
     const reason = document.getElementById('writeoff-reason').value;
     const note = document.getElementById('writeoff-note').value.trim();
+    const errorBox = document.getElementById('writeoff-error');
+    
+    // Clear previous error
+    errorBox.style.display = 'none';
     
     if (!reason) {
-        showSuccessModal('Please select a reason', 'Missing Reason');
+        errorBox.textContent = 'Please select a reason';
+        errorBox.style.display = 'block';
         return;
     }
     
     if (reason === 'other' && !note) {
-        showSuccessModal('Please provide an explanation', 'Missing Explanation');
+        errorBox.textContent = 'Please provide an explanation';
+        errorBox.style.display = 'block';
         return;
     }
     

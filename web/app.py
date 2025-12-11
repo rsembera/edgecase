@@ -155,9 +155,24 @@ def require_login():
     if request.endpoint in allowed_endpoints:
         return
     
+    # Helper to check if this is an API/AJAX request expecting JSON
+    def is_api_request():
+        # Check if request accepts JSON
+        if request.accept_mimetypes.best == 'application/json':
+            return True
+        # Check if request has JSON content-type
+        if request.content_type and 'application/json' in request.content_type:
+            return True
+        # Check if it's an API route
+        if request.path.startswith('/api/'):
+            return True
+        return False
+    
     # Check if database is connected (user is logged in)
     db = app.config.get('db')
     if not db:
+        if is_api_request():
+            return jsonify({'success': False, 'error': 'session_expired', 'message': 'Please log in again'}), 401
         return redirect(url_for('auth.login'))
     
     # Get session timeout from database (default 30 minutes)
@@ -177,9 +192,11 @@ def require_login():
     if last_activity:
         elapsed = now - last_activity
         if elapsed > session_timeout:
-            # Session expired - clear everything and redirect to login
+            # Session expired - clear everything
             session.clear()
             app.config['db'] = None
+            if is_api_request():
+                return jsonify({'success': False, 'error': 'session_expired', 'message': 'Session timed out. Please log in again'}), 401
             return redirect(url_for('auth.login', timeout=1))
     
     # Update last activity timestamp

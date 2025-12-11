@@ -399,10 +399,18 @@ def generate_statements():
     
     conn.commit()
     
+    # Count total portions created
+    cursor.execute("""
+        SELECT COUNT(*) FROM statement_portions 
+        WHERE statement_entry_id IN ({})
+    """.format(','.join('?' * len(generated))), [g['statement_id'] for g in generated])
+    portion_count = cursor.fetchone()[0] if generated else 0
+    
     return jsonify({
         'success': True,
         'generated': generated,
-        'count': len(generated)
+        'count': len(generated),
+        'portion_count': portion_count
     })
 
 
