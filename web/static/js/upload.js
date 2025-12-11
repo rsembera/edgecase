@@ -44,11 +44,87 @@ function toggleUploadSection() {
 }
 
 /**
- * Show "Add Another File" button after file is selected
+ * Auto-add new file row when a file is selected
  */
-function handleFileSelected() {
-    const addFileBtn = document.getElementById('add-file-btn');
-    addFileBtn.style.display = 'block';
+function handleFileSelected(inputElement) {
+    if (!inputElement.files || inputElement.files.length === 0) return;
+    
+    const container = document.getElementById('file-inputs');
+    const allRows = container.querySelectorAll('.file-input-row');
+    const lastRow = allRows[allRows.length - 1];
+    const lastInput = lastRow.querySelector('.file-input');
+    
+    // Only add new row if this is the last row and it now has a file
+    if (inputElement === lastInput) {
+        addNewFileRow();
+    }
+    
+    updateRemoveButtons();
+}
+
+/**
+ * Add a new empty file input row
+ */
+function addNewFileRow() {
+    const container = document.getElementById('file-inputs');
+    
+    const newRow = document.createElement('div');
+    newRow.className = 'file-input-row';
+    newRow.innerHTML = `
+        <div class="file-row-grid">
+            <div class="file-col">
+                <label>Choose file</label>
+                <input type="file" name="files[]" class="file-input" onchange="handleFileSelected(this)">
+            </div>
+            <div class="file-col">
+                <label>Description (optional)</label>
+                <input type="text" name="file_descriptions[]" placeholder="Brief description">
+            </div>
+            <button type="button" class="btn-small btn-danger remove-file-btn" onclick="removeFileRow(this)">Remove</button>
+        </div>
+    `;
+    
+    container.appendChild(newRow);
+    updateRemoveButtons();
+}
+
+/**
+ * Remove a file row
+ */
+function removeFileRow(button) {
+    const row = button.closest('.file-input-row');
+    const container = document.getElementById('file-inputs');
+    const allRows = container.querySelectorAll('.file-input-row');
+    
+    if (allRows.length === 1) {
+        // Clear the only row instead of removing
+        const fileInput = row.querySelector('.file-input');
+        const descInput = row.querySelector('input[name="file_descriptions[]"]');
+        fileInput.value = '';
+        if (descInput) descInput.value = '';
+    } else {
+        row.remove();
+    }
+    
+    updateRemoveButtons();
+}
+
+/**
+ * Update remove button visibility - hide when only one empty row
+ */
+function updateRemoveButtons() {
+    const container = document.getElementById('file-inputs');
+    if (!container) return;
+    
+    const rows = container.querySelectorAll('.file-input-row');
+    
+    rows.forEach((row, index) => {
+        const removeBtn = row.querySelector('.remove-file-btn');
+        if (removeBtn) {
+            // Show remove button if more than one row
+            removeBtn.style.display = rows.length > 1 ? '' : 'none';
+        }
+    });
 }
 
 /**
@@ -63,83 +139,6 @@ function showFileValidationModal() {
  */
 function closeFileValidationModal() {
     document.getElementById('file-validation-modal').style.display = 'none';
-}
-
-// Multiple file upload management
-const fileInputsContainer = document.getElementById('file-inputs');
-const addFileBtn = document.getElementById('add-file-btn');
-let fileInputCount = 1;
-
-if (addFileBtn) {
-    addFileBtn.addEventListener('click', function() {
-        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-        const lastRow = allRows[allRows.length - 1];
-        const lastFileInput = lastRow.querySelector('.file-input');
-        
-        if (!lastFileInput.files || lastFileInput.files.length === 0) {
-            showFileValidationModal();
-            return;
-        }
-        
-        fileInputCount++;
-        
-        const newRow = document.createElement('div');
-        newRow.className = 'file-input-row';
-        newRow.style.marginBottom = '1rem';
-        newRow.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: end;">
-                <div style="flex: 2;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                        Choose file
-                    </label>
-                    <input type="file" 
-                           name="files[]" 
-                           class="file-input"
-                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                </div>
-                <div style="flex: 2;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">
-                        Description (optional)
-                    </label>
-                    <input type="text" 
-                           name="file_descriptions[]" 
-                           placeholder="Brief description"
-                           style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                </div>
-                <button type="button" 
-                        class="btn-small btn-danger remove-file-btn" 
-                        style="white-space: nowrap;">Remove</button>
-            </div>
-        `;
-        
-        fileInputsContainer.appendChild(newRow);
-        
-        const removeBtn = newRow.querySelector('.remove-file-btn');
-        removeBtn.addEventListener('click', function() {
-            newRow.remove();
-            fileInputCount--;
-        });
-    });
-}
-
-// Add remove functionality to initial row
-const initialRemoveBtn = document.querySelector('.remove-file-btn');
-if (initialRemoveBtn) {
-    initialRemoveBtn.addEventListener('click', function() {
-        const row = this.closest('.file-input-row');
-        const fileInput = row.querySelector('.file-input');
-        const descInput = row.querySelector('input[name="file_descriptions[]"]');
-        
-        const allRows = fileInputsContainer.querySelectorAll('.file-input-row');
-        if (allRows.length === 1) {
-            fileInput.value = '';
-            descInput.value = '';
-            document.getElementById('add-file-btn').style.display = 'none';
-        } else {
-            row.remove();
-            fileInputCount--;
-        }
-    });
 }
 
 // Delete attachment (for edit mode)

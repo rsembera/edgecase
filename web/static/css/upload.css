@@ -153,39 +153,6 @@
     margin-bottom: 1rem;
 }
 
-.file-row-grid {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-}
-
-.file-row-grid .file-col {
-    flex: 2;
-}
-
-.file-row-grid .file-col label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.875rem;
-    color: #374151;
-}
-
-.file-row-grid .file-col input[type="file"],
-.file-row-grid .file-col input[type="text"] {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #D1D5DB;
-    border-radius: 0.375rem;
-}
-
-.file-row-grid .remove-file-btn {
-    white-space: nowrap;
-}
-
-#add-file-btn {
-    margin-top: 0.5rem;
-}
-
 /* ============================================
    FORM ACTIONS
    ============================================ */

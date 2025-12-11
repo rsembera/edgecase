@@ -1389,6 +1389,12 @@ def create_item(client_id):
         }
         
         entry_id = db.add_entry(item_data)
+        
+        # Handle file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        save_uploaded_files(files, descriptions, entry_id, db, client_id)
+        
         db.lock_entry(entry_id)
         
         return redirect(url_for('clients.client_file', client_id=client_id))
@@ -1523,6 +1529,16 @@ def edit_item(client_id, entry_id):
         # Save updated item
         db.update_entry(entry_id, item_data)
         
+        # Handle file uploads
+        files = request.files.getlist('files[]')
+        descriptions = request.form.getlist('file_descriptions[]')
+        added_files = save_uploaded_files(files, descriptions, entry_id, db, client_id)
+        
+        # Track file additions in edit history
+        if added_files and db.is_entry_locked(entry_id):
+            file_list = ', '.join(added_files)
+            db.add_to_edit_history(entry_id, f"Added files: {file_list}")
+        
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form with existing data
@@ -1533,6 +1549,9 @@ def edit_item(client_id, entry_id):
     is_locked = db.is_entry_locked(entry_id)
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
+    # Get attachments
+    attachments = db.get_attachments(entry_id)
+    
     return render_template('entry_forms/item.html',
                          client=client,
                          client_type=client_type,
@@ -1542,7 +1561,8 @@ def edit_item(client_id, entry_id):
                          is_edit=True,
                          is_locked=is_locked,
                          is_billed=item.get('statement_id') is not None,
-                         edit_history=edit_history)
+                         edit_history=edit_history,
+                         attachments=attachments)
 
 
 # ============================================================================
@@ -1755,8 +1775,8 @@ def delete_attachment(attachment_id):
     cursor.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
     conn.commit()
     
-    # Add to edit history
-    if entry and entry['class'] == 'upload':
+    # Add to edit history for any entry type that supports attachments
+    if entry and entry['class'] in ('upload', 'communication', 'item'):
         change_desc = f"Deleted file: {attachment['filename']}"
         db.add_to_edit_history(attachment['entry_id'], change_desc)
     
