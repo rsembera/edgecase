@@ -333,9 +333,6 @@ class StatementPDFGenerator:
             guardian_number: 1 or 2 if billing a guardian, None for client
             profile: Profile entry (needed for guardian percentage)
         """
-        # Table header
-        data = [['Date', 'Service', 'Duration', 'Fee']]
-        
         # Get guardian percentage if applicable
         guardian_percent = None
         if guardian_number == 1 and profile:
@@ -343,91 +340,161 @@ class StatementPDFGenerator:
         elif guardian_number == 2 and profile:
             guardian_percent = profile.get('guardian2_pays_percent', 0) or 0
         
-        total = 0
+        # First pass: check if any entries have tax and build line items
+        has_tax = False
+        line_items = []
+        
         for entry in entries:
-            # Get date based on entry type
             entry_class = entry.get('class', '')
+            
             if entry_class == 'session':
                 date_ts = entry.get('session_date', 0)
                 service = entry.get('service', 'Session')
                 duration = entry.get('duration', 0)
                 duration_str = f"{duration} mins." if duration else ''
+                base = entry.get('base_fee', 0) or 0
                 fee = entry.get('fee', 0) or 0
+                tax_rate = entry.get('tax_rate', 0) or 0
             elif entry_class == 'absence':
                 date_ts = entry.get('absence_date', 0)
                 service = entry.get('description', 'Absence')
                 duration_str = '—'
+                base = entry.get('base_fee', 0) or entry.get('base_price', 0) or 0
                 fee = entry.get('fee', 0) or 0
+                tax_rate = entry.get('tax_rate', 0) or 0
             elif entry_class == 'item':
                 date_ts = entry.get('item_date', 0)
                 service = entry.get('description', 'Item')
                 duration_str = '—'
+                base = entry.get('base_price', 0) or 0
                 fee = entry.get('fee', 0) or 0
+                tax_rate = entry.get('tax_rate', 0) or 0
             else:
                 continue
             
             # Apply guardian split if applicable
             if guardian_number and guardian_percent is not None:
-                # Check if item has explicit guardian amounts
                 if entry_class == 'item' and entry.get('guardian1_amount') is not None:
                     # Use explicit amount for this guardian
                     if guardian_number == 1:
                         fee = entry.get('guardian1_amount', 0) or 0
                     else:
                         fee = entry.get('guardian2_amount', 0) or 0
+                    # Recalculate base from fee using tax_rate
+                    if tax_rate > 0:
+                        base = round(fee / (1 + tax_rate / 100), 2)
+                    else:
+                        base = fee
                 else:
-                    # Apply percentage split
+                    # Apply percentage split to both base and fee
+                    base = round(base * guardian_percent / 100, 2)
                     fee = round(fee * guardian_percent / 100, 2)
             
-            # Format date as YYYY-MM-DD
-            if date_ts:
-                date_str = datetime.fromtimestamp(date_ts).strftime('%Y-%m-%d')
-            else:
-                date_str = ''
+            # Calculate tax amount
+            tax_amount = round(fee - base, 2)
+            if tax_amount < 0:
+                tax_amount = 0
             
-            # Format fee
-            fee_str = self._format_currency(fee, currency_code)
-            total += fee
+            if tax_rate > 0 or tax_amount > 0:
+                has_tax = True
             
-            data.append([date_str, service, duration_str, fee_str])
+            # Format date
+            date_str = datetime.fromtimestamp(date_ts).strftime('%Y-%m-%d') if date_ts else ''
+            
+            line_items.append({
+                'date': date_str,
+                'service': service,
+                'duration': duration_str,
+                'base': base,
+                'tax': tax_amount,
+                'fee': fee
+            })
         
-        # Add total row
-        data.append(['', '', 'TOTAL', self._format_currency(total, currency_code)])
-        
-        # Create table - full page width (7 inches with margins)
-        # Columns: Date(1.2) + Service(2.8) + Duration(1.5) + Fee(1.5) = 7.0
-        table = Table(data, colWidths=[1.2*inch, 2.8*inch, 1.5*inch, 1.5*inch])
+        # Build table based on whether tax is present
+        if has_tax:
+            # 5-column table: Date, Service, Duration, Amount, Tax
+            data = [['Date', 'Service', 'Duration', 'Amount', 'Tax']]
+            subtotal = 0
+            total_tax = 0
+            
+            for item in line_items:
+                subtotal += item['base']
+                total_tax += item['tax']
+                data.append([
+                    item['date'],
+                    item['service'],
+                    item['duration'],
+                    self._format_currency(item['base'], currency_code),
+                    self._format_currency(item['tax'], currency_code) if item['tax'] > 0 else '—'
+                ])
+            
+            grand_total = subtotal + total_tax
+            
+            # Add summary rows
+            data.append(['', '', '', 'Subtotal', self._format_currency(subtotal, currency_code)])
+            data.append(['', '', '', 'Tax', self._format_currency(total_tax, currency_code)])
+            data.append(['', '', '', 'TOTAL', self._format_currency(grand_total, currency_code)])
+            
+            # Column widths: Date(1.0) + Service(2.4) + Duration(1.0) + Amount(1.3) + Tax(1.3) = 7.0
+            table = Table(data, colWidths=[1.0*inch, 2.4*inch, 1.0*inch, 1.3*inch, 1.3*inch])
+            
+            num_summary_rows = 3
+            total = grand_total
+        else:
+            # 4-column table (original): Date, Service, Duration, Fee
+            data = [['Date', 'Service', 'Duration', 'Fee']]
+            total = 0
+            
+            for item in line_items:
+                total += item['fee']
+                data.append([
+                    item['date'],
+                    item['service'],
+                    item['duration'],
+                    self._format_currency(item['fee'], currency_code)
+                ])
+            
+            data.append(['', '', 'TOTAL', self._format_currency(total, currency_code)])
+            
+            # Column widths: Date(1.2) + Service(2.8) + Duration(1.5) + Fee(1.5) = 7.0
+            table = Table(data, colWidths=[1.2*inch, 2.8*inch, 1.5*inch, 1.5*inch])
+            
+            num_summary_rows = 1
         
         # Style the table
-        # Row spacing tightened to fit up to 16 line items on one page
-        style = TableStyle([
+        style_commands = [
             # Header row
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
             ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
             
-            # Data rows - tighter padding (3pt top/bottom vs 6pt)
-            ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -2), 10),
+            # Data rows
+            ('FONTNAME', (0, 1), (-1, -1 - num_summary_rows), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1 - num_summary_rows), 10),
             ('TOPPADDING', (0, 1), (-1, -1), 3),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
             
-            # Total row
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, -1), (-1, -1), 10),
-            ('LINEABOVE', (2, -1), (-1, -1), 1, colors.black),
+            # Summary/Total rows
+            ('FONTNAME', (0, -num_summary_rows), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -num_summary_rows), (-1, -1), 10),
             
-            # Alignment
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),    # Date left
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Service left
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),    # Duration left
-            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),   # Fee right
+            # Alignment - first 3 columns left, rest right
+            ('ALIGN', (0, 0), (2, -1), 'LEFT'),
+            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
             
             # Vertical alignment
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ])
-        table.setStyle(style)
+        ]
+        
+        if has_tax:
+            # Line above Subtotal
+            style_commands.append(('LINEABOVE', (3, -3), (-1, -3), 1, colors.black))
+        else:
+            # Line above TOTAL
+            style_commands.append(('LINEABOVE', (2, -1), (-1, -1), 1, colors.black))
+        
+        table.setStyle(TableStyle(style_commands))
         
         return table, total
     

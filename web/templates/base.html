@@ -299,7 +299,12 @@
             fetch('/api/session-status')
                 .then(r => r.json())
                 .then(data => {
-                    if (!data.logged_in) return;
+                    if (!data.logged_in) {
+                        // Session expired - show modal
+                        document.body.classList.add('frozen');
+                        document.getElementById('session-expired-overlay').style.display = 'flex';
+                        return;
+                    }
                     if (data.timeout_minutes === 0) return; // "Never" timeout
                     
                     secondsRemaining = data.seconds_remaining;
