@@ -54,58 +54,8 @@
 
 /* ============================================
    EXISTING ATTACHMENTS
+   (attachment-item styles now in shared.css)
    ============================================ */
-.attachment-list {
-    margin-bottom: 1.5rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.attachment-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    background: #F9FAFB;
-    border-radius: 0.375rem;
-    margin-bottom: 0.5rem;
-    transition: background-color 0.2s;
-}
-
-.attachment-item:hover {
-    background-color: #F3F4F6;
-}
-
-.attachment-item-content {
-    flex: 1;
-}
-
-.attachment-icon {
-    width: 16px;
-    height: 16px;
-    vertical-align: 0;
-    color: #6B7280;
-    margin-right: 0.25rem;
-}
-
-.attachment-description {
-    color: #6B7280;
-    font-size: 0.875rem;
-    margin-left: 0.5rem;
-}
-
-.attachment-size {
-    color: #9CA3AF;
-    font-size: 0.875rem;
-    margin-left: 0.5rem;
-}
-
-.attachment-actions .btn-small {
-    margin-right: 0.5rem;
-}
-
-.attachment-actions .btn-small:last-child {
-    margin-right: 0;
-}
 
 /* ============================================
    UPLOAD TOGGLE & SECTION
