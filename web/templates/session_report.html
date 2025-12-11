@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Session Report - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
+{% block title %}Report - {{ client.first_name }} {{ client.last_name }} - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/export.css') }}">
@@ -16,7 +16,7 @@
     <!-- Header -->
     <div class="export-header">
         <div>
-            <h2><i data-lucide="file-bar-chart" class="page-icon"></i>Session Report</h2>
+            <h2><i data-lucide="file-bar-chart" class="page-icon"></i>Report</h2>
             <div class="text-muted">
                 <div class="mb-1">
                     <span class="type-badge" style="background-color: {{ client_type.color }}">{{ client_type.name }}</span>
@@ -51,6 +51,28 @@
                 <input type="hidden" id="end_date" value="{{ today_year }}-{{ '%02d'|format(today_month) }}-{{ '%02d'|format(today_day) }}">
             </div>
         </div>
+    </div>
+    
+    <!-- Entry Types -->
+    <div class="export-options">
+        <h3>Include</h3>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="include_sessions" checked>
+                <span>Sessions</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="include_items">
+                <span>Items</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="include_absences">
+                <span>Absences</span>
+            </label>
+        </div>
+        
+        <p class="checkbox-hint">Select which entry types to include in the report.</p>
     </div>
     
     <!-- Options -->
@@ -131,6 +153,16 @@ function initReportPickers() {
 
 // Generate report button handler
 document.getElementById('generate-btn').addEventListener('click', function() {
+    // Check at least one entry type is selected
+    const includeSessions = document.getElementById('include_sessions').checked;
+    const includeItems = document.getElementById('include_items').checked;
+    const includeAbsences = document.getElementById('include_absences').checked;
+    
+    if (!includeSessions && !includeItems && !includeAbsences) {
+        alert('Please select at least one entry type to include.');
+        return;
+    }
+    
     // Open window immediately on user action (Safari popup blocker workaround)
     const pdfWindow = window.open('about:blank', '_blank');
     
@@ -150,6 +182,15 @@ document.getElementById('generate-btn').addEventListener('click', function() {
     params.append('end_month', parseInt(endMonth));
     params.append('end_day', parseInt(endDay));
     
+    if (includeSessions) {
+        params.append('include_sessions', 'on');
+    }
+    if (includeItems) {
+        params.append('include_items', 'on');
+    }
+    if (includeAbsences) {
+        params.append('include_absences', 'on');
+    }
     if (document.getElementById('include_fees').checked) {
         params.append('include_fees', 'on');
     }
