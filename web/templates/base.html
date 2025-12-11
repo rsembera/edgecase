@@ -144,7 +144,7 @@
     </div>
     
     <style>
-        body.frozen > *:not(#disconnect-overlay) {
+        body.frozen > *:not(#disconnect-overlay):not(#session-expired-overlay):not(#timeout-warning-overlay) {
             pointer-events: none;
             opacity: 0.6;
             user-select: none;

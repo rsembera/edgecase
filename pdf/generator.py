@@ -710,16 +710,21 @@ def generate_statement_pdf(db, statement_portion_id, output_path, assets_path):
     generator = StatementPDFGenerator(db)
     return generator.generate_statement_pdf(statement_portion_id, output_path, assets_path)
 
-def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, include_fees=True):
+def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
+                               include_sessions=True, include_items=False, 
+                               include_absences=False, include_fees=True):
     """
-    Generate a session summary report PDF for a client.
+    Generate a client report PDF with sessions, items, and/or absences.
     
     Args:
         db: Database instance
         client_id: Client ID
         start_date: Start date filter (Unix timestamp) or None
         end_date: End date filter (Unix timestamp) or None
-        include_fees: Whether to include fee column
+        include_sessions: Whether to include session entries
+        include_items: Whether to include item entries
+        include_absences: Whether to include absence entries
+        include_fees: Whether to include fee column(s)
     
     Returns:
         BytesIO buffer containing the PDF
@@ -734,24 +739,55 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
     # Get profile for address
     profile = db.get_profile_entry(client_id)
     
-    # Get all sessions for this client
+    # Get all entries and filter by type
     all_entries = db.get_client_entries(client_id)
-    sessions = [e for e in all_entries if e['class'] == 'session' and not e.get('is_consultation')]
+    entries = []
+    
+    for e in all_entries:
+        entry_class = e['class']
+        
+        # Filter by entry type
+        if entry_class == 'session' and include_sessions and not e.get('is_consultation'):
+            entries.append(e)
+        elif entry_class == 'item' and include_items:
+            entries.append(e)
+        elif entry_class == 'absence' and include_absences:
+            entries.append(e)
     
     # Filter by date range
     if start_date or end_date:
         filtered = []
-        for s in sessions:
-            session_date = s.get('session_date', 0)
-            if start_date and session_date < start_date:
+        for e in entries:
+            # Get the date field based on entry type
+            entry_class = e['class']
+            if entry_class == 'session':
+                entry_date = e.get('session_date', 0)
+            elif entry_class == 'item':
+                entry_date = e.get('item_date', 0)
+            elif entry_class == 'absence':
+                entry_date = e.get('absence_date', 0)
+            else:
+                entry_date = 0
+            
+            if start_date and entry_date < start_date:
                 continue
-            if end_date and session_date > end_date:
+            if end_date and entry_date > end_date:
                 continue
-            filtered.append(s)
-        sessions = filtered
+            filtered.append(e)
+        entries = filtered
     
     # Sort by date
-    sessions.sort(key=lambda s: s.get('session_date', 0))
+    def get_entry_date(e):
+        entry_class = e['class']
+        if entry_class == 'session':
+            return e.get('session_date', 0)
+        elif entry_class == 'item':
+            return e.get('item_date', 0)
+        elif entry_class == 'absence':
+            return e.get('absence_date', 0)
+        return 0
+    
+    entries.sort(key=get_entry_date)
     
     # Get settings
     settings = {
@@ -800,7 +836,7 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
     story.append(Spacer(1, 0.2*inch))
     
     # Report title and date range
-    story.append(Paragraph("<b>Session Summary Report</b>", generator.styles['Normal']))
+    story.append(Paragraph("<b>Report</b>", generator.styles['Normal']))
     
     if start_date and end_date:
         start_str = datetime.fromtimestamp(start_date).strftime('%B %d, %Y')
@@ -809,38 +845,93 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
     
     story.append(Spacer(1, 0.3*inch))
     
-    # Build session table
+    # Determine if we have any entries with tax
+    has_tax = False
     if include_fees:
-        header_data = ['Date', 'Service', 'Duration', 'Fee']
-        col_widths = [1.2*inch, 3.0*inch, 1.3*inch, 1.0*inch]
+        for e in entries:
+            tax_rate = e.get('tax_rate', 0) or 0
+            base_fee = e.get('base_fee') or e.get('base_price') or 0
+            fee = e.get('fee', 0) or 0
+            if tax_rate > 0 or (fee > base_fee and base_fee > 0):
+                has_tax = True
+                break
+    
+    # Build table data
+    if include_fees:
+        if has_tax:
+            # 5-column format with tax
+            header_data = ['Date', 'Description', 'Duration', 'Amount', 'Tax']
+            col_widths = [1.0*inch, 2.4*inch, 1.0*inch, 1.3*inch, 1.3*inch]
+        else:
+            # 4-column format without tax
+            header_data = ['Date', 'Description', 'Duration', 'Fee']
+            col_widths = [1.2*inch, 2.8*inch, 1.3*inch, 1.2*inch]
     else:
-        header_data = ['Date', 'Service', 'Duration']
+        header_data = ['Date', 'Description', 'Duration']
         col_widths = [1.5*inch, 3.5*inch, 1.5*inch]
     
     table_data = [header_data]
+    total_base = 0
+    total_tax = 0
     total_fees = 0
     
-    for session in sessions:
-        session_date = session.get('session_date', 0)
-        date_str = datetime.fromtimestamp(session_date).strftime('%Y-%m-%d') if session_date else ''
-        service = session.get('service', 'Psychotherapy')
-        duration = session.get('duration', 0)
+    for entry in entries:
+        entry_class = entry['class']
+        
+        # Get date based on entry type
+        if entry_class == 'session':
+            entry_date = entry.get('session_date', 0)
+            description = entry.get('service', 'Psychotherapy')
+            duration = entry.get('duration', 0)
+            base_fee = entry.get('base_fee', 0) or 0
+            fee = entry.get('fee', 0) or 0
+        elif entry_class == 'item':
+            entry_date = entry.get('item_date', 0)
+            description = entry.get('description', 'Item')
+            duration = None
+            base_fee = entry.get('base_price', 0) or 0
+            fee = entry.get('fee', 0) or 0
+        elif entry_class == 'absence':
+            entry_date = entry.get('absence_date', 0)
+            description = f"Absence - {entry.get('description', 'Cancelled')}"
+            duration = None
+            base_fee = entry.get('base_fee', 0) or 0
+            fee = entry.get('fee', 0) or 0
+        else:
+            continue
+        
+        date_str = datetime.fromtimestamp(entry_date).strftime('%Y-%m-%d') if entry_date else ''
         duration_str = f"{duration} mins." if duration else ''
-        fee = session.get('fee', 0) or 0
+        
+        # Calculate tax
+        tax_amount = fee - base_fee if fee > base_fee else 0
+        
+        total_base += base_fee
+        total_tax += tax_amount
         total_fees += fee
         
         if include_fees:
-            table_data.append([date_str, service, duration_str, f"${fee:.2f}"])
+            if has_tax:
+                table_data.append([date_str, description, duration_str, f"${base_fee:.2f}", f"${tax_amount:.2f}"])
+            else:
+                table_data.append([date_str, description, duration_str, f"${fee:.2f}"])
         else:
-            table_data.append([date_str, service, duration_str])
+            table_data.append([date_str, description, duration_str])
     
-    # Add total row if fees included
+    # Add totals row if fees included
     if include_fees:
-        table_data.append(['', '', 'TOTAL', f"${total_fees:.2f}"])
+        if has_tax:
+            # Add subtotal and tax rows, then total (matching statement format)
+            table_data.append(['', '', '', 'Subtotal', f"${total_base:.2f}"])
+            table_data.append(['', '', '', 'Tax', f"${total_tax:.2f}"])
+            table_data.append(['', '', '', 'TOTAL', f"${total_fees:.2f}"])
+        else:
+            table_data.append(['', '', 'TOTAL', f"${total_fees:.2f}"])
     
     # Create table
     table = Table(table_data, colWidths=col_widths)
     
+    # Base table style
     table_style = [
         # Header styling
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F7FAFC')),
@@ -849,7 +940,7 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
         
         # Alignment
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Date
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'),  # Service
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),  # Description
         ('ALIGN', (2, 0), (2, -1), 'LEFT'),  # Duration
         
         # Grid
@@ -857,22 +948,33 @@ def generate_session_report_pdf(db, client_id, start_date=None, end_date=None, i
         ('LINEBELOW', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E0')),
         
         # Padding
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]
     
     if include_fees:
-        table_style.extend([
-            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Fee
-            ('FONTNAME', (2, -1), (3, -1), 'Helvetica-Bold'),  # Total row
-        ])
+        if has_tax:
+            # 5-column format
+            table_style.extend([
+                ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Amount
+                ('ALIGN', (4, 0), (4, -1), 'RIGHT'),  # Tax
+                ('FONTNAME', (3, -3), (-1, -1), 'Helvetica-Bold'),  # Summary rows
+                ('LINEABOVE', (3, -3), (-1, -3), 1, colors.black),  # Line above Subtotal
+            ])
+        else:
+            # 4-column format
+            table_style.extend([
+                ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Fee
+                ('FONTNAME', (2, -1), (3, -1), 'Helvetica-Bold'),  # Total row
+                ('LINEABOVE', (2, -1), (-1, -1), 1, colors.black),  # Line above TOTAL
+            ])
     
     table.setStyle(TableStyle(table_style))
     story.append(table)
     
     story.append(Spacer(1, 0.4*inch))
     
-   # Attestation
+    # Attestation
     if settings['include_attestation'] and settings['attestation_text']:
         story.append(Paragraph(settings['attestation_text'], generator.styles['Attestation']))
     

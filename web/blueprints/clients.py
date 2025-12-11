@@ -818,7 +818,7 @@ def export_client(client_id):
 
 @clients_bp.route('/client/<int:client_id>/session-report', methods=['GET'])
 def session_report(client_id):
-    """Generate a session summary report for a client."""
+    """Generate a client report (sessions, items, absences)."""
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -826,7 +826,7 @@ def session_report(client_id):
     # Check if this is a generate request (has date params) or form display
     if request.args.get('start_year'):
         # Generate the PDF
-        from pdf.generator import generate_session_report_pdf
+        from pdf.generator import generate_client_report_pdf
         
         # Parse date range
         start_year = request.args.get('start_year')
@@ -836,6 +836,10 @@ def session_report(client_id):
         end_month = request.args.get('end_month')
         end_day = request.args.get('end_day')
         
+        # Entry type options
+        include_sessions = request.args.get('include_sessions') == 'on'
+        include_items = request.args.get('include_items') == 'on'
+        include_absences = request.args.get('include_absences') == 'on'
         include_fees = request.args.get('include_fees') == 'on'
         
         # Convert to timestamps
@@ -852,16 +856,19 @@ def session_report(client_id):
             end_date = int(datetime.strptime(end_str, '%Y-%m-%d').timestamp()) + 86399
         
         try:
-            pdf_buffer = generate_session_report_pdf(
+            pdf_buffer = generate_client_report_pdf(
                 db=db,
                 client_id=client_id,
                 start_date=start_date,
                 end_date=end_date,
+                include_sessions=include_sessions,
+                include_items=include_items,
+                include_absences=include_absences,
                 include_fees=include_fees
             )
             
             # Generate filename
-            filename = f"SessionReport_{client['file_number']}"
+            filename = f"Report_{client['file_number']}"
             if start_date and end_date:
                 start_dt = datetime.fromtimestamp(start_date)
                 end_dt = datetime.fromtimestamp(end_date)
@@ -875,7 +882,7 @@ def session_report(client_id):
                 download_name=filename
             )
         except Exception as e:
-            print(f"Error generating session report: {e}")
+            print(f"Error generating report: {e}")
             import traceback
             traceback.print_exc()
             return f"Error generating report: {str(e)}", 500
