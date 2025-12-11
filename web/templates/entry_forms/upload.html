@@ -125,7 +125,7 @@
                                     <input type="file" 
                                            name="files[]" 
                                            class="file-input"
-                                           onchange="handleFileSelected()"
+                                           onchange="handleFileSelected(this)"
                                            {% if not is_edit %}required{% endif %}>
                                 </div>
                                 <div class="file-col">
@@ -135,18 +135,15 @@
                                            placeholder="Brief description">
                                 </div>
                                 <button type="button" 
-                                        class="btn-small btn-danger remove-file-btn">Remove</button>
+                                        class="btn-small btn-danger remove-file-btn"
+                                        onclick="removeFileRow(this)"
+                                        style="display: none;">Remove</button>
                             </div>
                         </div>
                     </div>
                     
-                    <button type="button" 
-                            id="add-file-btn" 
-                            class="btn"
-                            style="display: none;">Add Another File</button>
-                    
                     <div class="helper-text mt-1">
-                        Maximum file size: 50MB per file. All file types accepted.
+                        Maximum file size: 50MB per file
                     </div>
                 </div>
             </div>

@@ -29,7 +29,7 @@
         </div>
     </div>
     
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <input type="hidden" id="has-entry" value="{% if entry %}true{% else %}false{% endif %}">
         
         {% if is_billed %}
@@ -144,6 +144,82 @@
             </div>
         </div>
         
+        <!-- File Upload Section -->
+        <div class="form-group attachments-section">
+            <label>Attachments</label>
+            
+            {% if is_edit and attachments %}
+            <!-- Existing attachments -->
+            <div class="attachment-list mb-2">
+                {% for attachment in attachments %}
+                <div class="attachment-item">
+                    <span class="attachment-item-content">
+                        <i data-lucide="file-text" class="attachment-icon"></i><strong>{{ attachment.filename }}</strong>
+                        {% if attachment.description and attachment.description != attachment.filename %}
+                        <span class="attachment-description">{{ attachment.description }}</span>
+                        {% endif %}
+                        <span class="attachment-size">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
+                    </span>
+                    <span class="attachment-actions">
+                        <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
+                            target="_blank" 
+                            class="btn-small">View</a>
+                        <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
+                           class="btn-small">Download</a>
+                        <button type="button" 
+                                class="btn-small btn-danger" 
+                                onclick="deleteAttachment({{ attachment.id }})">Delete</button>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Collapsible Upload Section -->
+            <div class="upload-toggle-wrapper">
+                <button type="button" 
+                        class="upload-toggle-btn" 
+                        onclick="toggleUploadSection()">
+                    <span id="upload-toggle-icon">▶</span>
+                    <span>Upload Files</span>
+                </button>
+            </div>
+            
+            <div id="upload-section" style="display: none;">
+                <div class="helper-text mb-1">Attach receipts or related documents</div>
+                
+                <div class="upload-section">
+                    <div id="file-inputs">
+                        <div class="file-input-row">
+                            <div class="file-row-grid">
+                                <div class="file-col">
+                                    <label>Choose file</label>
+                                    <input type="file" 
+                                           name="files[]" 
+                                           class="file-input"
+                                           onchange="handleFileSelected(this)">
+                                </div>
+                                <div class="file-col">
+                                    <label>Description (optional)</label>
+                                    <input type="text" 
+                                           name="file_descriptions[]" 
+                                           placeholder="Brief description">
+                                </div>
+                                <button type="button" 
+                                        class="btn-small btn-danger remove-file-btn"
+                                        onclick="removeFileRow(this)"
+                                        style="display: none;">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="helper-text mt-1">
+                        Maximum file size: 50MB per file
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Edit History (only in edit mode) -->
         {% if is_edit %}
             {% include 'components/edit_history.html' %}
@@ -163,6 +239,18 @@
             <p id="validation-message"></p>
             <div class="validation-modal-actions">
                 <button onclick="closeValidationModal()" class="btn">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Attachment Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3>Delete Attachment?</h3>
+            <p>Are you sure you want to delete this attachment? This cannot be undone.</p>
+            <div class="modal-actions">
+                <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmDelete()" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>

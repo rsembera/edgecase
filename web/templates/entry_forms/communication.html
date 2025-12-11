@@ -145,14 +145,14 @@
                 
                 <div class="upload-section">
                     <div id="file-inputs">
-                        <div class="file-input-row mb-1">
+                        <div class="file-input-row">
                             <div class="file-row-grid">
                                 <div class="file-col">
                                     <label>Choose file</label>
                                     <input type="file" 
                                            name="files[]" 
                                            class="file-input"
-                                           onchange="handleFileSelected()">
+                                           onchange="handleFileSelected(this)">
                                 </div>
                                 <div class="file-col">
                                     <label>Description (optional)</label>
@@ -161,18 +161,15 @@
                                            placeholder="Brief description">
                                 </div>
                                 <button type="button" 
-                                        class="btn-small btn-danger remove-file-btn">Remove</button>
+                                        class="btn-small btn-danger remove-file-btn"
+                                        onclick="removeFileRow(this)"
+                                        style="display: none;">Remove</button>
                             </div>
                         </div>
                     </div>
                     
-                    <button type="button" 
-                            id="add-file-btn" 
-                            class="btn"
-                            style="display: none;">Add Another File</button>
-                    
-                    <div class="helper-text mt-2">
-                        Maximum file size: 50MB per file. All file types accepted.
+                    <div class="helper-text mt-1">
+                        Maximum file size: 50MB per file
                     </div>
                 </div>
             </div>
