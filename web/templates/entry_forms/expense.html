@@ -72,7 +72,7 @@
                 <label for="payee_name">Payee *</label>
                 <div class="autocomplete-wrapper" id="payee-autocomplete"></div>
                 <input type="hidden" id="payee_name" name="payee_name" 
-                       value="{{ entry.payee_name if entry else '' }}" required>
+                       value="{{ payee_name }}" required>
                 <div class="helper-text">Who you paid</div>
             </div>
             
@@ -80,7 +80,7 @@
                 <label for="category_name">Category *</label>
                 <div class="autocomplete-wrapper" id="category-autocomplete"></div>
                 <input type="hidden" id="category_name" name="category_name" 
-                       value="{{ entry.category_name if entry else '' }}" required>
+                       value="{{ category_name }}" required>
                 <div class="helper-text">For tax reporting</div>
             </div>
         </div>
@@ -233,8 +233,8 @@
 <script>
     const payeeSuggestions = {{ payee_suggestions | tojson }};
     const categorySuggestions = {{ category_suggestions | tojson }};
-    const initialPayee = {{ (entry.payee_name if entry else '') | tojson }};
-    const initialCategory = {{ (entry.category_name if entry else '') | tojson }};
+    const initialPayee = {{ (payee_name if payee_name else '') | tojson }};
+    const initialCategory = {{ (category_name if category_name else '') | tojson }};
 </script>
 
 {% endblock %}

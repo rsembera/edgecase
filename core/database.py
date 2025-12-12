@@ -1420,15 +1420,22 @@ class Database:
         
         return [row[0] for row in cursor.fetchall()]
 
-    def add_payee_if_new(self, name: str) -> None:
-        """Add payee to table if it doesn't exist."""
+    def add_payee_if_new(self, name: str) -> int:
+        """Add payee to table if it doesn't exist. Returns payee ID."""
         if not name:
-            return
+            return None
         conn = self.connect()
         cursor = conn.cursor()
-        cursor.execute("INSERT OR IGNORE INTO payees (name, created_at) VALUES (?, ?)",
+        # Check if exists first
+        cursor.execute("SELECT id FROM payees WHERE name = ?", (name,))
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+        # Insert new
+        cursor.execute("INSERT INTO payees (name, created_at) VALUES (?, ?)",
                        (name, int(time.time())))
         conn.commit()
+        return cursor.lastrowid
 
     def get_distinct_payor_sources(self) -> list:
         """Get payor names from income_payors table for autocomplete."""
@@ -1502,6 +1509,7 @@ class Database:
         Get all ledger entries (income and/or expense).
         
         Includes attachment_count via JOIN for performance.
+        Joins payee and category names for display.
         
         Args:
             ledger_type: Optional filter - 'income' or 'expense' or None for both
@@ -1516,18 +1524,28 @@ class Database:
         
         if ledger_type:
             cursor.execute("""
-                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                SELECT entries.*, 
+                       COUNT(attachments.id) as attachment_count,
+                       payees.name as payee_name,
+                       expense_categories.name as category_name
                 FROM entries
                 LEFT JOIN attachments ON attachments.entry_id = entries.id
+                LEFT JOIN payees ON payees.id = entries.payee_id
+                LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type = ?
                 GROUP BY entries.id
                 ORDER BY entries.ledger_date DESC, entries.created_at DESC
             """, (ledger_type,))
         else:
             cursor.execute("""
-                SELECT entries.*, COUNT(attachments.id) as attachment_count
+                SELECT entries.*, 
+                       COUNT(attachments.id) as attachment_count,
+                       payees.name as payee_name,
+                       expense_categories.name as category_name
                 FROM entries
                 LEFT JOIN attachments ON attachments.entry_id = entries.id
+                LEFT JOIN payees ON payees.id = entries.payee_id
+                LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type IN ('income', 'expense')
                 GROUP BY entries.id
                 ORDER BY entries.ledger_date DESC, entries.created_at DESC
@@ -1561,17 +1579,27 @@ class Database:
         
         if ledger_type:
             cursor.execute("""
-                SELECT * FROM entries 
-                WHERE ledger_type = ?
-                AND ledger_date BETWEEN ? AND ?
-                ORDER BY ledger_date ASC, created_at ASC
+                SELECT entries.*,
+                       payees.name as payee_name,
+                       expense_categories.name as category_name
+                FROM entries
+                LEFT JOIN payees ON payees.id = entries.payee_id
+                LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
+                WHERE entries.ledger_type = ?
+                AND entries.ledger_date BETWEEN ? AND ?
+                ORDER BY entries.ledger_date ASC, entries.created_at ASC
             """, (ledger_type, start_date, end_date))
         else:
             cursor.execute("""
-                SELECT * FROM entries 
-                WHERE ledger_type IN ('income', 'expense')
-                AND ledger_date BETWEEN ? AND ?
-                ORDER BY ledger_date ASC, created_at ASC
+                SELECT entries.*,
+                       payees.name as payee_name,
+                       expense_categories.name as category_name
+                FROM entries
+                LEFT JOIN payees ON payees.id = entries.payee_id
+                LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
+                WHERE entries.ledger_type IN ('income', 'expense')
+                AND entries.ledger_date BETWEEN ? AND ?
+                ORDER BY entries.ledger_date ASC, entries.created_at ASC
             """, (start_date, end_date))
         
         entries = [dict(row) for row in cursor.fetchall()]
