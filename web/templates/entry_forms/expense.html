@@ -9,6 +9,7 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/file-upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/expense.js') }}"></script>
 {% endblock %}
 
@@ -147,22 +148,26 @@
                     <div id="file-inputs">
                         <div class="file-input-row">
                             <div class="file-row-grid">
-                                <div class="file-field">
+                                <div class="file-col">
                                     <label>Choose file</label>
                                     <input type="file" name="files[]" class="file-input"
-                                           onchange="handleFileSelected()">
+                                           onchange="handleFileSelected(this)">
                                 </div>
-                                <div class="file-field">
+                                <div class="file-col">
                                     <label>Description (optional)</label>
                                     <input type="text" name="file_descriptions[]" placeholder="Brief description">
                                 </div>
-                                <button type="button" class="btn-small btn-danger remove-file-btn">Remove</button>
+                                <button type="button" 
+                                        class="btn-small btn-danger remove-file-btn"
+                                        onclick="removeFileRow(this)"
+                                        style="display: none;">Remove</button>
                             </div>
                         </div>
                     </div>
-                    <button type="button" id="add-file-btn" class="btn mt-1" style="display: none;">
-                        Add Another File
-                    </button>
+                    
+                    <div class="helper-text mt-1">
+                        Maximum file size: 50MB per file
+                    </div>
                 </div>
             </div>
         </div>
