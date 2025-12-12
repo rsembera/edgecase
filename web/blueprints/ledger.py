@@ -568,20 +568,26 @@ def calculate_report():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT COALESCE(SUM(total_amount), 0) as total
+        SELECT COALESCE(SUM(total_amount), 0) as total,
+               COALESCE(SUM(tax_amount), 0) as tax
         FROM entries
         WHERE class = 'income' AND ledger_type = 'income'
         AND ledger_date >= ? AND ledger_date <= ?
     """, (start_ts, end_ts))
-    total_income = cursor.fetchone()[0] or 0
+    row = cursor.fetchone()
+    total_income = row[0] or 0
+    tax_collected = row[1] or 0
     
     cursor.execute("""
-        SELECT COALESCE(SUM(total_amount), 0) as total
+        SELECT COALESCE(SUM(total_amount), 0) as total,
+               COALESCE(SUM(tax_amount), 0) as tax
         FROM entries
         WHERE class = 'expense' AND ledger_type = 'expense'
         AND ledger_date >= ? AND ledger_date <= ?
     """, (start_ts, end_ts))
-    total_expenses = cursor.fetchone()[0] or 0
+    row = cursor.fetchone()
+    total_expenses = row[0] or 0
+    tax_paid = row[1] or 0
     
     cursor.execute("""
         SELECT COALESCE(ec.name, 'Uncategorized') as cat_name, 
@@ -606,6 +612,8 @@ def calculate_report():
         'total_income': total_income,
         'total_expenses': total_expenses,
         'net_income': total_income - total_expenses,
+        'tax_collected': tax_collected,
+        'tax_paid': tax_paid,
         'categories': categories
     })
 
@@ -618,6 +626,7 @@ def generate_report_pdf():
     start_date = request.args.get('start')
     end_date = request.args.get('end')
     include_details = request.args.get('details') == '1'
+    include_taxes = request.args.get('taxes') == '1'
     
     if not start_date or not end_date:
         return jsonify({'success': False, 'error': 'Missing date range'}), 400
@@ -636,6 +645,7 @@ def generate_report_pdf():
             end_ts=end_ts,
             output_path=str(output_path),
             include_details=include_details,
+            include_taxes=include_taxes,
             start_date_str=start_date,
             end_date_str=end_date
         )
