@@ -1,6 +1,7 @@
 /**
  * Income Entry Form - EdgeCase Equalizer
- * Autocomplete for payor, file uploads, deletion
+ * Autocomplete for payor, date picker, amount formatting, entry deletion
+ * File uploads handled by shared file-upload.js
  */
 
 // ============================================================
@@ -223,104 +224,8 @@ if (taxAmountInput) {
 }
 
 // ============================================================
-// FILE UPLOADS
+// ENTRY DELETION (specific to income entry)
 // ============================================================
-
-function toggleUploadSection() {
-    const section = document.getElementById('upload-section');
-    const icon = document.getElementById('upload-toggle-icon');
-    if (section.style.display === 'none') {
-        section.style.display = 'block';
-        icon.textContent = '▼';
-    } else {
-        section.style.display = 'none';
-        icon.textContent = '▶';
-    }
-}
-
-function handleFileSelected() {
-    document.getElementById('add-file-btn').style.display = 'block';
-}
-
-function showFileValidationModal() {
-    document.getElementById('file-validation-modal').style.display = 'flex';
-}
-
-function closeFileValidationModal() {
-    document.getElementById('file-validation-modal').style.display = 'none';
-}
-
-const fileInputsContainer = document.getElementById('file-inputs');
-const addFileBtn = document.getElementById('add-file-btn');
-
-if (addFileBtn) {
-    addFileBtn.addEventListener('click', function() {
-        const rows = fileInputsContainer.querySelectorAll('.file-input-row');
-        const lastInput = rows[rows.length - 1].querySelector('.file-input');
-        
-        if (!lastInput.files || lastInput.files.length === 0) {
-            showFileValidationModal();
-            return;
-        }
-        
-        const newRow = document.createElement('div');
-        newRow.className = 'file-input-row';
-        newRow.innerHTML = `
-            <div class="file-row-grid">
-                <div class="file-field">
-                    <label>Choose file</label>
-                    <input type="file" name="files[]" class="file-input">
-                </div>
-                <div class="file-field">
-                    <label>Description (optional)</label>
-                    <input type="text" name="file_descriptions[]" placeholder="Brief description">
-                </div>
-                <button type="button" class="btn-small btn-danger remove-file-btn">Remove</button>
-            </div>
-        `;
-        
-        fileInputsContainer.appendChild(newRow);
-        newRow.querySelector('.remove-file-btn').addEventListener('click', () => newRow.remove());
-    });
-}
-
-const initialRemoveBtn = document.querySelector('.remove-file-btn');
-if (initialRemoveBtn) {
-    initialRemoveBtn.addEventListener('click', function() {
-        const row = this.closest('.file-input-row');
-        const rows = fileInputsContainer.querySelectorAll('.file-input-row');
-        if (rows.length === 1) {
-            row.querySelector('.file-input').value = '';
-            row.querySelector('input[name="file_descriptions[]"]').value = '';
-            document.getElementById('add-file-btn').style.display = 'none';
-        } else {
-            row.remove();
-        }
-    });
-}
-
-// ============================================================
-// DELETION
-// ============================================================
-
-let deleteAttachmentId = null;
-
-function deleteAttachment(id) {
-    deleteAttachmentId = id;
-    document.getElementById('delete-modal').style.display = 'flex';
-}
-
-function closeDeleteModal() {
-    document.getElementById('delete-modal').style.display = 'none';
-    deleteAttachmentId = null;
-}
-
-function confirmDelete() {
-    if (!deleteAttachmentId) return;
-    fetch(`/attachment/${deleteAttachmentId}/delete`, { method: 'POST' })
-        .then(r => r.ok ? window.location.reload() : alert('Error deleting'))
-        .catch(() => alert('Error deleting'));
-}
 
 function confirmDeleteEntry() {
     document.getElementById('delete-entry-modal').style.display = 'flex';
