@@ -221,6 +221,7 @@ def check_auto_backup():
     Called by frontend after successful authentication.
     """
     from utils import backup
+    import subprocess
     
     db = app.config.get('db')
     if not db:
@@ -237,6 +238,19 @@ def check_auto_backup():
         try:
             # Use create_backup() which auto-decides full vs incremental
             result = backup.create_backup(location)
+            
+            # Run retention cleanup
+            retention = db.get_setting('backup_retention', 'forever')
+            if retention != 'forever':
+                backup.cleanup_old_backups(retention, location)
+            
+            # Run post-backup command if configured
+            post_cmd = db.get_setting('post_backup_command', '')
+            if post_cmd:
+                try:
+                    subprocess.run(post_cmd, shell=True, timeout=300)
+                except Exception as cmd_error:
+                    print(f"Auto-backup post-command error: {cmd_error}")
             
             return jsonify({
                 'backup_performed': True,
