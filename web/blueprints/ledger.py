@@ -153,6 +153,10 @@ def create_income():
     
     if request.method == 'POST':
         ledger_date_timestamp = parse_date_from_form(request.form)
+        # If date is today, use current time so new entries appear at top
+        today_midnight = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+        if ledger_date_timestamp == today_midnight:
+            ledger_date_timestamp = int(time.time())
         source = request.form.get('source', '').strip()
         
         # Add payor to suggestions if new
@@ -199,12 +203,23 @@ def edit_income(entry_id):
         return "Income entry not found", 404
     
     if request.method == 'POST':
-        ledger_date_timestamp = parse_date_from_form(request.form)
         source = request.form.get('source', '').strip()
         
         # Add payor to suggestions if new
         if source:
             db.add_income_payor_if_new(source)
+        
+        # Preserve original timestamp if date hasn't changed
+        new_date_midnight = parse_date_from_form(request.form)
+        original_midnight = int(datetime.fromtimestamp(income['ledger_date']).replace(
+            hour=0, minute=0, second=0, microsecond=0).timestamp()) if income.get('ledger_date') else 0
+        
+        if new_date_midnight == original_midnight:
+            # Same day - keep original timestamp for sort order
+            ledger_date_timestamp = income['ledger_date']
+        else:
+            # Different day - use midnight of new date
+            ledger_date_timestamp = new_date_midnight
         
         income_data = {
             'ledger_date': ledger_date_timestamp,
@@ -282,23 +297,33 @@ def create_expense():
         payee_name = request.form.get('payee_name', '').strip()
         category_name = request.form.get('category_name', '').strip()
         
+        # Get or create category and get ID
+        category_id = None
         if category_name:
             existing = db.get_expense_category_by_name(category_name)
-            if not existing:
-                db.add_expense_category(category_name)
+            if existing:
+                category_id = existing['id']
+            else:
+                category_id = db.add_expense_category(category_name)
         
+        # Get or create payee and get ID
+        payee_id = None
         if payee_name:
-            db.add_payee_if_new(payee_name)
+            payee_id = db.add_payee_if_new(payee_name)
         
         ledger_date_timestamp = parse_date_from_form(request.form)
+        # If date is today, use current time so new entries appear at top
+        today_midnight = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+        if ledger_date_timestamp == today_midnight:
+            ledger_date_timestamp = int(time.time())
         
         expense_data = {
             'client_id': None,
             'class': 'expense',
             'ledger_type': 'expense',
             'ledger_date': ledger_date_timestamp,
-            'payee_name': payee_name,
-            'category_name': category_name,
+            'payee_id': payee_id,
+            'category_id': category_id,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
@@ -321,6 +346,8 @@ def create_expense():
     
     return render_template('entry_forms/expense.html',
                          **date_parts,
+                         payee_name='',
+                         category_name='',
                          payee_suggestions=payee_suggestions,
                          category_suggestions=category_suggestions,
                          currency=currency,
@@ -339,20 +366,36 @@ def edit_expense(entry_id):
         payee_name = request.form.get('payee_name', '').strip()
         category_name = request.form.get('category_name', '').strip()
         
+        # Get or create category and get ID
+        category_id = None
         if category_name:
             existing = db.get_expense_category_by_name(category_name)
-            if not existing:
-                db.add_expense_category(category_name)
+            if existing:
+                category_id = existing['id']
+            else:
+                category_id = db.add_expense_category(category_name)
         
+        # Get or create payee and get ID
+        payee_id = None
         if payee_name:
-            db.add_payee_if_new(payee_name)
+            payee_id = db.add_payee_if_new(payee_name)
         
-        ledger_date_timestamp = parse_date_from_form(request.form)
+        # Preserve original timestamp if date hasn't changed
+        new_date_midnight = parse_date_from_form(request.form)
+        original_midnight = int(datetime.fromtimestamp(expense['ledger_date']).replace(
+            hour=0, minute=0, second=0, microsecond=0).timestamp()) if expense.get('ledger_date') else 0
+        
+        if new_date_midnight == original_midnight:
+            # Same day - keep original timestamp for sort order
+            ledger_date_timestamp = expense['ledger_date']
+        else:
+            # Different day - use midnight of new date
+            ledger_date_timestamp = new_date_midnight
         
         expense_data = {
             'ledger_date': ledger_date_timestamp,
-            'payee_name': payee_name,
-            'category_name': category_name,
+            'payee_id': payee_id,
+            'category_id': category_id,
             'total_amount': float(request.form.get('total_amount', 0)),
             'tax_amount': float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
@@ -374,6 +417,22 @@ def edit_expense(entry_id):
         expense_month = expense_dt.month
         expense_day = expense_dt.day
     
+    # Look up payee and category names from IDs
+    payee_name = ''
+    if expense.get('payee_id'):
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM payees WHERE id = ?", (expense['payee_id'],))
+        row = cursor.fetchone()
+        if row:
+            payee_name = row[0]
+    
+    category_name = ''
+    if expense.get('category_id'):
+        category = db.get_expense_category(expense['category_id'])
+        if category:
+            category_name = category['name']
+    
     categories = db.get_all_expense_categories()
     category_suggestions = [c['name'] for c in categories]
     payee_suggestions = db.get_distinct_payee_names()
@@ -382,6 +441,8 @@ def edit_expense(entry_id):
     
     return render_template('entry_forms/expense.html',
                          entry=expense,
+                         payee_name=payee_name,
+                         category_name=category_name,
                          expense_year=expense_year,
                          expense_month=expense_month,
                          expense_day=expense_day,
