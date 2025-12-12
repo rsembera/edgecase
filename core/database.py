@@ -331,25 +331,13 @@ class Database:
         
         conn.commit()
         
-        # Run migrations for existing databases
-        self._run_migrations()
-        
         # Create default client types if they don't exist
         self._create_default_types()
     
     def _run_migrations(self):
         """Run database migrations to update schema."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # Check for statement_tax_total column
-        cursor.execute("PRAGMA table_info(entries)")
-        columns = [col[1] for col in cursor.fetchall()]
-        
-        if 'statement_tax_total' not in columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN statement_tax_total REAL")
-            print("✓ Migration: Added statement_tax_total to entries")
-            conn.commit()
+        # No migrations needed - clean schema in _initialize_schema()
+        pass
 
     def _create_default_types(self):
         """Create default client types on first run.
