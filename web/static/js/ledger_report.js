@@ -15,6 +15,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize date pickers
     initReportPickers();
+    
+    // Toggle tax summary visibility based on checkbox
+    const includeTaxesCheckbox = document.getElementById('include-taxes');
+    if (includeTaxesCheckbox) {
+        includeTaxesCheckbox.addEventListener('change', function() {
+            const taxSummary = document.querySelector('.tax-summary');
+            if (taxSummary) {
+                taxSummary.style.display = this.checked ? 'grid' : 'none';
+            }
+        });
+    }
 });
 
 /**
@@ -135,6 +146,10 @@ function displayPreview(data) {
     document.getElementById('preview-expenses').textContent = formatCurrency(data.total_expenses);
     document.getElementById('preview-net').textContent = formatCurrency(data.net_income);
     
+    // Tax summary
+    document.getElementById('preview-tax-collected').textContent = formatCurrency(data.tax_collected || 0);
+    document.getElementById('preview-tax-paid').textContent = formatCurrency(data.tax_paid || 0);
+    
     const netItem = document.querySelector('.summary-item.net');
     if (data.net_income < 0) {
         netItem.classList.add('negative');
@@ -185,8 +200,9 @@ function generateReport() {
     const startDate = getDateFromInput('start_date');
     const endDate = getDateFromInput('end_date');
     const includeDetails = document.getElementById('include-details').checked;
+    const includeTaxes = document.getElementById('include-taxes').checked;
     
-    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}`;
+    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}`;
     
     window.open(url, '_blank');
 }

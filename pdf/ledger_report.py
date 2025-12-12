@@ -13,8 +13,8 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 
 
-def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True, 
-                                start_date_str='', end_date_str=''):
+def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True,
+                                include_taxes=True, start_date_str='', end_date_str=''):
     """
     Generate a PDF financial report.
     
@@ -37,7 +37,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     
     # Get income entries
     cursor.execute("""
-        SELECT ledger_date, total_amount, source, description
+        SELECT ledger_date, total_amount, source, description, tax_amount
         FROM entries
         WHERE class = 'income' AND ledger_type = 'income'
         AND ledger_date >= ? AND ledger_date <= ?
@@ -49,7 +49,8 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     cursor.execute("""
         SELECT e.ledger_date, e.total_amount, e.description, 
                COALESCE(ec.name, 'Uncategorized') as category_name,
-               COALESCE(p.name, '') as payee_name
+               COALESCE(p.name, '') as payee_name,
+               e.tax_amount
         FROM entries e
         LEFT JOIN expense_categories ec ON e.category_id = ec.id
         LEFT JOIN payees p ON e.payee_id = p.id
@@ -76,6 +77,8 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Calculate totals
     total_income = sum(e[1] for e in income_entries) if income_entries else 0
     total_expenses = sum(e[1] for e in expense_entries) if expense_entries else 0
+    tax_collected = sum((e[4] or 0) for e in income_entries) if income_entries else 0
+    tax_paid = sum((e[5] or 0) for e in expense_entries) if expense_entries else 0
     
     # Create document
     doc = SimpleDocTemplate(
@@ -142,7 +145,8 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
                 'expense': None,
                 'description': entry[3] or '',  # description field
                 'payor_payee': entry[2] or '',  # source field (who paid)
-                'category': ''
+                'category': '',
+                'tax': entry[4] or 0  # tax_amount
             })
         
         for entry in expense_entries:
@@ -152,49 +156,50 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
                 'expense': entry[1],
                 'description': entry[2] or '',  # description field
                 'payor_payee': entry[4] or '',  # payee_name (who was paid)
-                'category': entry[3] or 'Uncategorized'
+                'category': entry[3] or 'Uncategorized',
+                'tax': entry[5] or 0  # tax_amount
             })
         
         # Sort by date
         all_transactions.sort(key=lambda x: x['date'])
         
-        # Build table - 6 columns
-        table_data = [['Date', 'Income', 'Expense', 'Description', 'Payor/Payee', 'Category']]
+        # Build table - 6 or 7 columns depending on include_taxes
+        if include_taxes:
+            table_data = [['Date', 'Income', 'Expense', 'Tax', 'Description', 'Payor/Payee', 'Category']]
+        else:
+            table_data = [['Date', 'Income', 'Expense', 'Description', 'Payor/Payee', 'Category']]
         
         for t in all_transactions:
             date_str = datetime.fromtimestamp(t['date']).strftime('%d-%b')
             income_str = f"$ {t['income']:,.2f}" if t['income'] else ''
             expense_str = f"$ {t['expense']:,.2f}" if t['expense'] else ''
+            tax_str = f"$ {t['tax']:,.2f}" if t['tax'] else ''
             desc = t['description'][:30] + ('...' if len(t['description']) > 30 else '')
             payor_payee = t['payor_payee'][:25] + ('...' if len(t['payor_payee']) > 25 else '')
             category = t['category'][:20] + ('...' if len(t['category']) > 20 else '')
             
-            table_data.append([
-                date_str,
-                income_str,
-                expense_str,
-                desc,
-                payor_payee,
-                category
-            ])
+            if include_taxes:
+                table_data.append([date_str, income_str, expense_str, tax_str, desc, payor_payee, category])
+            else:
+                table_data.append([date_str, income_str, expense_str, desc, payor_payee, category])
         
         # Add totals row
-        table_data.append([
-            'TOTALS',
-            f"$ {total_income:,.2f}",
-            f"$ {total_expenses:,.2f}",
-            '',
-            '',
-            ''
-        ])
+        if include_taxes:
+            table_data.append(['TOTALS', f"$ {total_income:,.2f}", f"$ {total_expenses:,.2f}", '', '', '', ''])
+        else:
+            table_data.append(['TOTALS', f"$ {total_income:,.2f}", f"$ {total_expenses:,.2f}", '', '', ''])
         
-        # Create table - 6 columns
-        # Date | Income | Expense | Description | Payor/Payee | Category
-        col_widths = [0.6*inch, 0.85*inch, 0.85*inch, 1.8*inch, 1.5*inch, 1.4*inch]
+        # Create table with appropriate column widths
+        if include_taxes:
+            # 7 columns: Date | Income | Expense | Tax | Description | Payor/Payee | Category
+            col_widths = [0.55*inch, 0.75*inch, 0.75*inch, 0.65*inch, 1.5*inch, 1.4*inch, 1.4*inch]
+        else:
+            # 6 columns: Date | Income | Expense | Description | Payor/Payee | Category
+            col_widths = [0.6*inch, 0.85*inch, 0.85*inch, 1.8*inch, 1.5*inch, 1.4*inch]
         
         table = Table(table_data, colWidths=col_widths, repeatRows=1)
         
-        # First setStyle: Everything EXCEPT left padding
+        # Table styling
         table.setStyle(TableStyle([
             # Header
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
@@ -215,13 +220,6 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E1')),
             
-            # Alignment
-            ('ALIGN', (1, 0), (2, -1), 'RIGHT'),  # Income, Expense right-aligned
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),   # Date left-aligned
-            ('ALIGN', (3, 1), (3, -1), 'LEFT'),   # Description left-aligned
-            ('ALIGN', (4, 1), (4, -1), 'LEFT'),   # Payor/Payee left-aligned
-            ('ALIGN', (5, 1), (5, -1), 'LEFT'),   # Category left-aligned
-            
             # Grid
             ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#CBD5E1')),
             ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor('#E2E8F0')),
@@ -229,21 +227,28 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             # Borders
             ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
             
-            # Right padding for all
+            # Padding
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        
-        # Second setStyle: Default left padding
-        table.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
         ]))
         
-        # Third setStyle: Override Description, Payor/Payee, and Category columns with larger padding
-        table.setStyle(TableStyle([
-            ('LEFTPADDING', (3, 0), (3, -1), 30),  # Description column
-            ('LEFTPADDING', (4, 0), (4, -1), 30),  # Payor/Payee column
-            ('LEFTPADDING', (5, 0), (5, -1), 30),  # Category column
-        ]))
+        # Alignment - differs based on include_taxes
+        if include_taxes:
+            table.setStyle(TableStyle([
+                ('ALIGN', (1, 0), (3, -1), 'RIGHT'),  # Income, Expense, Tax right-aligned
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),   # Date left-aligned
+                ('LEFTPADDING', (4, 0), (4, -1), 20),  # Description column
+                ('LEFTPADDING', (5, 0), (5, -1), 20),  # Payor/Payee column
+                ('LEFTPADDING', (6, 0), (6, -1), 20),  # Category column
+            ]))
+        else:
+            table.setStyle(TableStyle([
+                ('ALIGN', (1, 0), (2, -1), 'RIGHT'),  # Income, Expense right-aligned
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),   # Date left-aligned
+                ('LEFTPADDING', (3, 0), (3, -1), 30),  # Description column
+                ('LEFTPADDING', (4, 0), (4, -1), 30),  # Payor/Payee column
+                ('LEFTPADDING', (5, 0), (5, -1), 30),  # Category column
+            ]))
         
         story.append(table)
         story.append(Spacer(1, 30))
@@ -302,24 +307,37 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     
     net_income = total_income - total_expenses
     
-    net_data = [
-        ['Total Income', f"$ {total_income:,.2f}"],
-        ['Total Expenses', f"$ {total_expenses:,.2f}"],
-        ['Net Income', f"$ {net_income:,.2f}"]
-    ]
+    # Build net data - conditionally include tax rows
+    if include_taxes:
+        net_data = [
+            ['Total Income', f"$ {total_income:,.2f}"],
+            ['Total Expenses', f"$ {total_expenses:,.2f}"],
+            ['Net Income', f"$ {net_income:,.2f}"],
+            ['', ''],  # Spacer row
+            ['Tax Collected', f"$ {tax_collected:,.2f}"],
+            ['Tax Paid', f"$ {tax_paid:,.2f}"],
+        ]
+    else:
+        net_data = [
+            ['Total Income', f"$ {total_income:,.2f}"],
+            ['Total Expenses', f"$ {total_expenses:,.2f}"],
+            ['Net Income', f"$ {net_income:,.2f}"],
+        ]
     
     net_table = Table(net_data, colWidths=[4*inch, 2*inch])
+    
+    # Base styling
     net_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         
-        # Net income row
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, -1), (-1, -1), 11),
-        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E1')),
-        ('TOPPADDING', (0, -1), (-1, -1), 10),
+        # Net income row (row 2)
+        ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 2), (-1, 2), 11),
+        ('LINEABOVE', (0, 2), (-1, 2), 1, colors.HexColor('#CBD5E1')),
+        ('TOPPADDING', (0, 2), (-1, 2), 10),
         
         # Colors for income/expense
         ('TEXTCOLOR', (1, 0), (1, 0), colors.HexColor('#059669')),  # Income green
@@ -329,6 +347,22 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         # Alignment
         ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
     ]))
+    
+    # Additional styling for tax rows when included
+    if include_taxes:
+        net_table.setStyle(TableStyle([
+            # Spacer row (row 3) - minimal height
+            ('TOPPADDING', (0, 3), (-1, 3), 2),
+            ('BOTTOMPADDING', (0, 3), (-1, 3), 2),
+            
+            # Tax section header line
+            ('LINEABOVE', (0, 4), (-1, 4), 0.5, colors.HexColor('#E2E8F0')),
+            ('TOPPADDING', (0, 4), (-1, 4), 10),
+            
+            # Tax colors
+            ('TEXTCOLOR', (1, 4), (1, 4), colors.HexColor('#059669')),  # Tax collected green
+            ('TEXTCOLOR', (1, 5), (1, 5), colors.HexColor('#DC2626')),  # Tax paid red
+        ]))
     
     summary_elements.append(net_table)
     

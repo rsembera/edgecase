@@ -271,7 +271,8 @@ def generate_statements():
         
         # Get unbilled entries for this client in date range
         cursor.execute("""
-            SELECT id, class, description, fee, base_price, session_date, absence_date, item_date,
+            SELECT id, class, description, fee, base_price, base_fee, tax_rate,
+                   session_date, absence_date, item_date,
                    guardian1_amount, guardian2_amount
             FROM entries
             WHERE client_id = ?
@@ -292,8 +293,23 @@ def generate_statements():
         entry_cols = [col[0] for col in cursor.description]
         entries = [dict(zip(entry_cols, row)) for row in entry_rows]
         
-        # Calculate total
-        total = sum(e['fee'] or e['base_price'] or 0 for e in entries)
+        # Calculate total and total tax
+        total = 0
+        total_tax = 0
+        for e in entries:
+            fee = e['fee'] or e['base_price'] or 0
+            total += fee
+            
+            # Calculate tax for this entry
+            if e['class'] == 'session' and e.get('base_fee'):
+                # Session: tax = fee - base_fee
+                entry_tax = fee - (e['base_fee'] or 0)
+            elif e.get('base_price') and fee:
+                # Item/Absence: tax = fee - base_price
+                entry_tax = fee - (e['base_price'] or 0)
+            else:
+                entry_tax = 0
+            total_tax += max(0, entry_tax)  # Don't allow negative tax
         
         # Generate statement number: YYYYMMDD-FileNumber
         statement_number = f"{datetime.now().strftime('%Y%m%d')}-{client['file_number']}"
@@ -309,9 +325,9 @@ def generate_statements():
         cursor.execute("""
             INSERT INTO entries (
                 client_id, class, created_at, modified_at,
-                description, statement_total
-            ) VALUES (?, 'statement', ?, ?, ?, ?)
-        """, (client_id, now, now, description, total))
+                description, statement_total, statement_tax_total
+            ) VALUES (?, 'statement', ?, ?, ?, ?, ?)
+        """, (client_id, now, now, description, total, total_tax))
         
         statement_id = cursor.lastrowid
         
@@ -593,11 +609,13 @@ def mark_paid():
     conn = db.connect()
     cursor = conn.cursor()
     
-    # Get current portion data
+    # Get current portion data with statement info for tax calculation
     cursor.execute("""
-        SELECT sp.*, c.file_number, c.first_name, c.last_name
+        SELECT sp.*, c.file_number, c.first_name, c.last_name,
+               e.statement_total, e.statement_tax_total
         FROM statement_portions sp
         JOIN clients c ON sp.client_id = c.id
+        JOIN entries e ON sp.statement_entry_id = e.id
         WHERE sp.id = ?
     """, (portion_id,))
     
@@ -629,6 +647,16 @@ def mark_paid():
     # Create ledger entry - Income for positive, Expense for negative (refunds)
     if payment_amount >= 0:
         # Normal payment - create Income entry
+        # Calculate proportional tax for this payment
+        statement_total = portion.get('statement_total') or 0
+        statement_tax = portion.get('statement_tax_total') or 0
+        
+        if statement_total > 0 and statement_tax > 0:
+            # Pro-rata tax: payment × (total_tax / total_amount)
+            tax_collected = round(payment_amount * (statement_tax / statement_total), 2)
+        else:
+            tax_collected = 0
+        
         description = "Client Payment"
         if portion['guardian_number']:
             description += f" (Guardian {portion['guardian_number']})"
@@ -639,7 +667,7 @@ def mark_paid():
                 client_id, class, ledger_type, created_at, modified_at,
                 description, content, ledger_date, source, total_amount,
                 tax_amount, statement_id
-            ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, 0, ?)
+            ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             None,
             now,
@@ -649,6 +677,7 @@ def mark_paid():
             now,
             source,
             payment_amount,
+            tax_collected,
             portion['statement_entry_id']
         ))
     else:

@@ -54,7 +54,15 @@
                 <input type="checkbox" id="include-details" checked>
                 <span>Include transaction details</span>
             </label>
-            <p class="checkbox-hint">When checked, report includes a page listing all individual transactions. When unchecked, only the category summary is generated.</p>
+            <p class="checkbox-hint">When checked, report includes a page listing all individual transactions.</p>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="include-taxes" checked>
+                <span>Include tax information</span>
+            </label>
+            <p class="checkbox-hint">When checked, shows tax collected/paid per transaction (if details enabled) and tax summary totals.</p>
         </div>
     </div>
     
@@ -80,6 +88,17 @@
                 <div class="summary-item net">
                     <span class="summary-label">Net Income</span>
                     <span class="summary-value" id="preview-net">$0.00</span>
+                </div>
+            </div>
+            
+            <div class="preview-summary tax-summary">
+                <div class="summary-item tax-collected">
+                    <span class="summary-label">Tax Collected</span>
+                    <span class="summary-value" id="preview-tax-collected">$0.00</span>
+                </div>
+                <div class="summary-item tax-paid">
+                    <span class="summary-label">Tax Paid</span>
+                    <span class="summary-value" id="preview-tax-paid">$0.00</span>
                 </div>
             </div>
             

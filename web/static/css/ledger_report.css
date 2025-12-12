@@ -102,8 +102,21 @@
 
 .summary-item.income .summary-value { color: #059669; }
 .summary-item.expenses .summary-value { color: #DC2626; }
-.summary-item.net .summary-value { color: #2563EB; }
+.summary-item.net .summary-value { color: #059669; }
 .summary-item.net.negative .summary-value { color: #DC2626; }
+
+/* Tax Summary Section */
+.tax-summary {
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 0;
+    padding-top: 1rem;
+    border-top: 1px dashed #CBD5E1;
+}
+
+.summary-item.tax-collected { border-left: 4px solid #10B981; }
+.summary-item.tax-paid { border-left: 4px solid #EF4444; }
+.summary-item.tax-collected .summary-value { color: #059669; }
+.summary-item.tax-paid .summary-value { color: #DC2626; }
 
 /* Category Breakdown */
 .category-breakdown {
@@ -152,5 +165,6 @@
 /* Responsive */
 @media (max-width: 768px) {
     .preview-summary { grid-template-columns: 1fr; }
+    .tax-summary { grid-template-columns: 1fr; }
     .quick-ranges { flex-wrap: wrap; }
 }

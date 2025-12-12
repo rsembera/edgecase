@@ -202,6 +202,7 @@ CREATE TABLE entries (
     
     -- Statement-specific fields
     statement_total REAL,
+    statement_tax_total REAL,        -- Total tax from billable entries (for pro-rata calculation)
     statement_id INTEGER,           -- Links billable entries to their statement
     payment_status TEXT,
     payment_notes TEXT,
