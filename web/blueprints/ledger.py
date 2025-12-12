@@ -584,12 +584,13 @@ def calculate_report():
     total_expenses = cursor.fetchone()[0] or 0
     
     cursor.execute("""
-        SELECT COALESCE(category_name, 'Uncategorized') as cat_name, 
-               COALESCE(SUM(total_amount), 0) as total
-        FROM entries
-        WHERE class = 'expense' AND ledger_type = 'expense'
-        AND ledger_date >= ? AND ledger_date <= ?
-        GROUP BY category_name
+        SELECT COALESCE(ec.name, 'Uncategorized') as cat_name, 
+               COALESCE(SUM(e.total_amount), 0) as total
+        FROM entries e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
+        AND e.ledger_date >= ? AND e.ledger_date <= ?
+        GROUP BY ec.name
         ORDER BY cat_name
     """, (start_ts, end_ts))
     
