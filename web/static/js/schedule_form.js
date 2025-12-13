@@ -283,27 +283,33 @@ function initSchedulePickers() {
     }
     
     // Initialize duration logic for format/consultation
-    initDurationLogic(data.durations);
+    initDurationLogic(data.durations, data.linkGroupMembers);
 }
 
 /**
  * Initialize duration auto-update logic based on format and consultation
  * @param {Object} durations - Duration configuration from backend
+ * @param {Object} linkGroupMembers - File numbers of other members by format
  */
-function initDurationLogic(durations) {
+function initDurationLogic(durations, linkGroupMembers) {
     if (!durations) return;
     
     const formatSelect = document.getElementById('format');
     const consultationCheckbox = document.getElementById('is_consultation');
     const durationInput = document.getElementById('duration');
+    const notesTextarea = document.getElementById('notes');
     
     if (!formatSelect || !durationInput) return;
     
+    // Track what we've added to notes so we can remove/update it
+    let currentMembersNote = '';
+    
     /**
-     * Update duration based on current format and consultation state
+     * Update duration and notes based on current format and consultation state
      */
     function updateDuration() {
         let newDuration;
+        let newMembersNote = '';
         
         // Consultation overrides everything
         if (consultationCheckbox && consultationCheckbox.checked) {
@@ -316,6 +322,12 @@ function initDurationLogic(durations) {
             } else if (durations.linkGroups && durations.linkGroups[format]) {
                 // Use link group duration for couples/family/group
                 newDuration = durations.linkGroups[format];
+                
+                // Add linked members' file numbers to notes
+                if (linkGroupMembers && linkGroupMembers[format] && linkGroupMembers[format].length > 0) {
+                    const formatName = format.charAt(0).toUpperCase() + format.slice(1);
+                    newMembersNote = `${formatName} session with: ${linkGroupMembers[format].join(', ')}`;
+                }
             } else {
                 // No link group for this format - show modal and reset to individual
                 const formatName = format.charAt(0).toUpperCase() + format.slice(1);
@@ -331,6 +343,24 @@ function initDurationLogic(durations) {
         }
         
         durationInput.value = newDuration;
+        
+        // Update notes: remove old members note, add new one if applicable
+        if (notesTextarea) {
+            let notes = notesTextarea.value;
+            
+            // Remove previous members note if present
+            if (currentMembersNote) {
+                notes = notes.replace(currentMembersNote, '').trim();
+            }
+            
+            // Add new members note at the beginning if we have one
+            if (newMembersNote) {
+                notes = notes ? `${newMembersNote}\n\n${notes}` : newMembersNote;
+            }
+            
+            notesTextarea.value = notes;
+            currentMembersNote = newMembersNote;
+        }
     }
     
     // Attach event listeners
