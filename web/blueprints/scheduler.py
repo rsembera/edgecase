@@ -221,7 +221,7 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
             set newEvent to make new event with properties {{summary:"{file_number}", start date:date "{start_str}", end date:date "{end_str}", description:"{description}"'''
     
     if meet_link:
-        script += f', url:"{meet_link}"'
+        script += f', url:"{meet_link}", location:"{meet_link}"'
     
     if recurrence_rule:
         script += f', recurrence:"{recurrence_rule}"'
