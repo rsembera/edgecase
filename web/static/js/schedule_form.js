@@ -322,7 +322,7 @@ function initDurationLogic(durations) {
                 const message = `This client is not in a ${formatName} link group. To schedule ${format} appointments, create a link group with the "${formatName}" format first.`;
                 
                 document.getElementById('missing-link-message').textContent = message;
-                document.getElementById('missing-link-modal').style.display = 'flex';
+                document.getElementById('missing-link-modal').classList.add('active');
                 
                 // Reset to individual
                 formatSelect.value = 'individual';

@@ -172,12 +172,13 @@
 </div>
 
 <!-- Missing Link Group Modal -->
-<div id="missing-link-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-box">
+<div id="missing-link-modal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
         <h3>Link Group Required</h3>
         <p id="missing-link-message"></p>
         <div class="modal-actions">
-            <button type="button" class="btn" onclick="document.getElementById('missing-link-modal').style.display='none'">OK</button>
+            <a href="{{ url_for('links.manage_links') }}" class="btn btn-secondary">Go to Link Groups</a>
+            <button type="button" class="btn" onclick="document.getElementById('missing-link-modal').classList.remove('active')">Stay Here</button>
         </div>
     </div>
 </div>
