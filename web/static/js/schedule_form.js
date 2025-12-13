@@ -329,16 +329,17 @@ function initDurationLogic(durations, linkGroupMembers) {
                     newMembersNote = `${formatName} session with: ${linkGroupMembers[format].join(', ')}`;
                 }
             } else {
-                // No link group for this format - show modal and reset to individual
+                // No link group for this format - reset to individual first, then show modal
                 const formatName = format.charAt(0).toUpperCase() + format.slice(1);
-                const message = `This client is not in a ${formatName} link group. To schedule ${format} appointments, create a link group with the "${formatName}" format first.`;
                 
-                document.getElementById('missing-link-message').textContent = message;
-                document.getElementById('missing-link-modal').classList.add('active');
-                
-                // Reset to individual
+                // Reset dropdown immediately
                 formatSelect.value = 'individual';
                 newDuration = durations.individual;
+                
+                // Then show the modal
+                const message = `This client is not in a ${formatName} link group. To schedule ${format} appointments, create a link group with the "${formatName}" format first.`;
+                document.getElementById('missing-link-message').textContent = message;
+                document.getElementById('missing-link-modal').classList.add('active');
             }
         }
         
