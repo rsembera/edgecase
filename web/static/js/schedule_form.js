@@ -237,6 +237,33 @@ document.addEventListener('DOMContentLoaded', function() {
         result.setDate(result.getDate() + daysToAdd);
         return result;
     }
+    
+    // Custom form validation (needed because Choices.js hides native selects)
+    const scheduleForm = document.getElementById('schedule-form');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', function(e) {
+            const modality = document.getElementById('modality');
+            const duration = document.getElementById('duration');
+            
+            // Check modality
+            if (!modality.value) {
+                e.preventDefault();
+                alert('Please select a modality.');
+                // Focus the Choices.js wrapper
+                const choicesWrapper = modality.closest('.choices');
+                if (choicesWrapper) choicesWrapper.querySelector('.choices__inner').click();
+                return false;
+            }
+            
+            // Check duration
+            if (!duration.value || parseInt(duration.value) <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid duration.');
+                duration.focus();
+                return false;
+            }
+        });
+    }
 });
 
 /**
