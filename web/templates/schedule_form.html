@@ -43,6 +43,37 @@
         
         <hr class="schedule-divider">
         
+        <!-- Modality and Format -->
+        <div class="two-column-grid">
+            <div class="form-group">
+                <label for="modality">Modality</label>
+                <select id="modality" name="modality">
+                    <option value="">Not specified</option>
+                    <option value="in-person">In-Person</option>
+                    <option value="videoconference">Videoconference</option>
+                    <option value="telephone">Telephone</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="format">Format</label>
+                <select id="format" name="format">
+                    <option value="individual">Individual</option>
+                    <option value="couples">Couples</option>
+                    <option value="family">Family</option>
+                    <option value="group">Group</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Consultation checkbox -->
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="is_consultation" name="is_consultation">
+                <span>Initial consultation</span>
+            </label>
+        </div>
+        
         <!-- Date and Time -->
         <div class="two-column-grid">
             <div class="form-group">
@@ -64,7 +95,7 @@
                 <input type="number" 
                        id="duration" 
                        name="duration" 
-                       value="{{ default_duration }}" 
+                       value="{{ individual_duration }}" 
                        min="15" 
                        max="180" 
                        step="5">
@@ -146,7 +177,12 @@
     "todayYear": {{ today_year }},
     "todayMonth": {{ today_month }},
     "todayDay": {{ today_day }},
-    "timeFormat": "{{ time_format }}"
+    "timeFormat": "{{ time_format }}",
+    "durations": {
+        "individual": {{ individual_duration }},
+        "consultation": {{ consultation_duration }},
+        "linkGroups": {{ link_group_durations | tojson }}
+    }
 }
 </script>
 

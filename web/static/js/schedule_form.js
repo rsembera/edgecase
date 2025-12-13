@@ -281,4 +281,55 @@ function initSchedulePickers() {
             }
         });
     }
+    
+    // Initialize duration logic for format/consultation
+    initDurationLogic(data.durations);
+}
+
+/**
+ * Initialize duration auto-update logic based on format and consultation
+ * @param {Object} durations - Duration configuration from backend
+ */
+function initDurationLogic(durations) {
+    if (!durations) return;
+    
+    const formatSelect = document.getElementById('format');
+    const consultationCheckbox = document.getElementById('is_consultation');
+    const durationInput = document.getElementById('duration');
+    
+    if (!formatSelect || !durationInput) return;
+    
+    /**
+     * Update duration based on current format and consultation state
+     */
+    function updateDuration() {
+        let newDuration;
+        
+        // Consultation overrides everything
+        if (consultationCheckbox && consultationCheckbox.checked) {
+            newDuration = durations.consultation;
+        } else {
+            const format = formatSelect.value;
+            
+            if (format === 'individual') {
+                newDuration = durations.individual;
+            } else if (durations.linkGroups && durations.linkGroups[format]) {
+                // Use link group duration for couples/family/group
+                newDuration = durations.linkGroups[format];
+            } else {
+                // No link group for this format - keep current duration
+                // (user will see the format but duration won't change)
+                return;
+            }
+        }
+        
+        durationInput.value = newDuration;
+    }
+    
+    // Attach event listeners
+    formatSelect.addEventListener('change', updateDuration);
+    
+    if (consultationCheckbox) {
+        consultationCheckbox.addEventListener('change', updateDuration);
+    }
 }
