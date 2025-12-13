@@ -739,16 +739,6 @@ def settings_page()
 
 **File:** `~/edgecase/web/app.py`
 
-### Auto-Backup Check
-
-```python
-@app.route('/api/check-auto-backup', methods=['POST'])
-def check_auto_backup()
-```
-**Purpose:** Check if auto-backup should run after login
-
----
-
 ### Restore Message
 
 ```python
@@ -756,19 +746,6 @@ def check_auto_backup()
 def get_restore_message()
 ```
 **Purpose:** Get pending restore completion message
-
----
-
-### Placeholders
-
-```python
-@app.route('/scheduler')
-def scheduler()
-
-@app.route('/billing')
-def billing()
-```
-**Purpose:** Future feature placeholders
 
 ---
 
