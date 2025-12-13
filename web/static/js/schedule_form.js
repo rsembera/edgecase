@@ -3,10 +3,13 @@
  * Handles natural language date/time parsing for appointment scheduling.
  */
 
+console.log('schedule_form.js loaded');
+
 let scheduleDatePicker = null;
 let scheduleTimePicker = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded fired');
     lucide.createIcons();
     
     // Initialize pickers
@@ -243,10 +246,13 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize the date and time pickers for scheduling
  */
 function initSchedulePickers() {
+    console.log('initSchedulePickers called');
     const dataEl = document.getElementById('schedule-data');
+    console.log('dataEl:', dataEl);
     if (!dataEl) return;
     
     const data = JSON.parse(dataEl.textContent);
+    console.log('data:', data);
     const dateInput = document.getElementById('schedule_date');
     const timeInput = document.getElementById('appointment_time');
     
@@ -292,6 +298,7 @@ function initSchedulePickers() {
  * @param {Object} linkGroupMembers - File numbers of other members by format
  */
 function initDurationLogic(durations, linkGroupMembers) {
+    console.log('initDurationLogic called', durations, linkGroupMembers);
     if (!durations) return;
     
     const formatSelect = document.getElementById('format');
@@ -299,6 +306,7 @@ function initDurationLogic(durations, linkGroupMembers) {
     const durationInput = document.getElementById('duration');
     const notesTextarea = document.getElementById('notes');
     
+    console.log('formatSelect:', formatSelect);
     if (!formatSelect || !durationInput) return;
     
     // Track what we've added to notes so we can remove/update it
@@ -308,6 +316,7 @@ function initDurationLogic(durations, linkGroupMembers) {
      * Update duration and notes based on current format and consultation state
      */
     function updateDuration() {
+        console.log('updateDuration called, format:', formatSelect.value);
         let newDuration;
         let newMembersNote = '';
         
