@@ -252,6 +252,7 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
 @scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
 def schedule_for_client(client_id):
     """Create a calendar appointment for a specific client."""
+    import sqlite3
     
     client = db.get_client(client_id)
     if not client:
@@ -263,11 +264,32 @@ def schedule_for_client(client_id):
     
     # Get client type for default duration and badge
     client_type = db.get_client_type(client['type_id'])
-    default_duration = 50  # fallback
+    
+    # Build duration sources (same logic as session.html)
+    # Individual duration: profile → client type → 50
+    individual_duration = 50
     if profile and profile.get('default_session_duration'):
-        default_duration = profile['default_session_duration']
+        individual_duration = profile['default_session_duration']
     elif client_type and client_type.get('session_duration'):
-        default_duration = client_type['session_duration']
+        individual_duration = client_type['session_duration']
+    
+    # Consultation duration from settings
+    consultation_duration = int(db.get_setting('consultation_duration', '50'))
+    
+    # Link group durations by format
+    link_group_durations = {}
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT lg.format, lg.session_duration
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+    for row in cursor.fetchall():
+        if row['format']:
+            link_group_durations[row['format']] = row['session_duration'] or 50
     
     if request.method == 'POST':
         # Parse date from form - supports both new format (date) and legacy (year/month/day)
@@ -291,12 +313,26 @@ def schedule_for_client(client_id):
         start_dt = datetime.strptime(date_str, '%Y-%m-%d')
         start_dt = start_dt.replace(hour=hours, minute=minutes)
         
-        duration = int(request.form.get('duration', default_duration) or default_duration)
+        duration = int(request.form.get('duration', individual_duration) or individual_duration)
         meet_link = request.form.get('meet_link', '').strip() or None
         notes = request.form.get('notes', '').strip() or ''
         repeat = request.form.get('repeat', 'none')
         alert1 = request.form.get('alert1', 'none')
         alert2 = request.form.get('alert2', 'none')
+        
+        # Get modality for event title
+        modality = request.form.get('modality', '')
+        modality_labels = {
+            'in-person': 'In-Person',
+            'videoconference': 'Videoconference',
+            'telephone': 'Telephone'
+        }
+        modality_label = modality_labels.get(modality, '')
+        
+        # Build event title: "file_number: modality" or just "file_number"
+        event_title = client['file_number']
+        if modality_label:
+            event_title = f"{client['file_number']}: {modality_label}"
         
         # Get contact info
         contact_info = get_contact_info_text(profile)
@@ -308,7 +344,7 @@ def schedule_for_client(client_id):
         if calendar_method == 'applescript' and calendar_name:
             # Use AppleScript
             success, error = add_to_calendar_applescript(
-                calendar_name, client['file_number'], start_dt, duration,
+                calendar_name, event_title, start_dt, duration,
                 meet_link, notes, contact_info, repeat, alert1, alert2
             )
             
@@ -317,7 +353,7 @@ def schedule_for_client(client_id):
             else:
                 # Fall back to .ics with message
                 ics_content = generate_ics(
-                    client['file_number'], start_dt, duration,
+                    event_title, start_dt, duration,
                     meet_link, notes, contact_info, repeat, alert1, alert2
                 )
                 
@@ -357,7 +393,7 @@ def schedule_for_client(client_id):
         
         # Generate and download .ics file
         ics_content = generate_ics(
-            client['file_number'], start_dt, duration,
+            event_title, start_dt, duration,
             meet_link, notes, contact_info, repeat, alert1, alert2
         )
         
@@ -374,6 +410,8 @@ def schedule_for_client(client_id):
     return render_template('schedule_form.html',
                          client=client,
                          client_type=client_type,
-                         default_duration=default_duration,
+                         individual_duration=individual_duration,
+                         consultation_duration=consultation_duration,
+                         link_group_durations=link_group_durations,
                          time_format=time_format,
                          **date_parts)
