@@ -317,9 +317,16 @@ function initDurationLogic(durations) {
                 // Use link group duration for couples/family/group
                 newDuration = durations.linkGroups[format];
             } else {
-                // No link group for this format - keep current duration
-                // (user will see the format but duration won't change)
-                return;
+                // No link group for this format - show modal and reset to individual
+                const formatName = format.charAt(0).toUpperCase() + format.slice(1);
+                const message = `This client is not in a ${formatName} link group. To schedule ${format} appointments, create a link group with the "${formatName}" format first.`;
+                
+                document.getElementById('missing-link-message').textContent = message;
+                document.getElementById('missing-link-modal').style.display = 'flex';
+                
+                // Reset to individual
+                formatSelect.value = 'individual';
+                newDuration = durations.individual;
             }
         }
         
