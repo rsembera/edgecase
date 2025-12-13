@@ -237,6 +237,16 @@ document.addEventListener('DOMContentLoaded', function() {
         result.setDate(result.getDate() + daysToAdd);
         return result;
     }
+    
+    // Debug: Log duration value on submit
+    const scheduleForm = document.getElementById('schedule-form');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', function(e) {
+            const duration = document.getElementById('duration');
+            console.log('Submit - duration value:', duration.value);
+            console.log('Submit - duration type:', typeof duration.value);
+        });
+    }
 });
 
 /**
@@ -346,6 +356,7 @@ function initDurationLogic(durations, linkGroupMembers) {
         }
         
         durationInput.value = newDuration;
+        console.log('Setting duration to:', newDuration, 'type:', typeof newDuration);
         
         // Update notes: remove old members note, add new one if applicable
         if (notesTextarea) {
