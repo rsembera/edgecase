@@ -252,7 +252,6 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
 @scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
 def schedule_for_client(client_id):
     """Create a calendar appointment for a specific client."""
-    import sqlite3
     
     client = db.get_client(client_id)
     if not client:
@@ -280,7 +279,6 @@ def schedule_for_client(client_id):
     link_group_durations = {}
     link_group_members = {}
     conn = db.connect()
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
     # Get link groups this client belongs to
@@ -292,8 +290,9 @@ def schedule_for_client(client_id):
     """, (client_id,))
     
     for row in cursor.fetchall():
-        if row['format']:
-            link_group_durations[row['format']] = row['session_duration'] or 50
+        group_id, format_type, session_duration = row
+        if format_type:
+            link_group_durations[format_type] = session_duration or 50
             
             # Get all members of this group (excluding current client)
             cursor.execute("""
@@ -302,10 +301,10 @@ def schedule_for_client(client_id):
                 JOIN clients c ON cl.client_id_1 = c.id
                 WHERE cl.group_id = ? AND cl.client_id_1 != ?
                 ORDER BY c.file_number
-            """, (row['id'], client_id))
+            """, (group_id, client_id))
             
-            member_file_numbers = [m['file_number'] for m in cursor.fetchall()]
-            link_group_members[row['format']] = member_file_numbers
+            member_file_numbers = [m[0] for m in cursor.fetchall()]
+            link_group_members[format_type] = member_file_numbers
     
     if request.method == 'POST':
         # Parse date from form - supports both new format (date) and legacy (year/month/day)
