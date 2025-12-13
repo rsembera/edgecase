@@ -98,6 +98,7 @@ def _run_auto_backup_check(db):
     """
     try:
         from utils import backup
+        import subprocess
         
         frequency = db.get_setting('backup_frequency', 'daily')
         
@@ -108,6 +109,15 @@ def _run_auto_backup_check(db):
             result = backup.create_backup(location)
             if result:
                 print(f"[Backup] Automatic {frequency} backup completed: {result['filename']}")
+                
+                # Run post-backup command if configured
+                post_cmd = db.get_setting('post_backup_command', '')
+                if post_cmd:
+                    try:
+                        subprocess.run(post_cmd, shell=True, timeout=300)
+                        print(f"[Backup] Post-backup command completed")
+                    except Exception as cmd_error:
+                        print(f"[Backup] Post-backup command error: {cmd_error}")
             else:
                 print(f"[Backup] No changes since last backup")
     except Exception as e:
