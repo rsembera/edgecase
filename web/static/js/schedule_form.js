@@ -243,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (scheduleForm) {
         scheduleForm.addEventListener('submit', function(e) {
             const modality = document.getElementById('modality');
+            const format = document.getElementById('format');
             const duration = document.getElementById('duration');
             
             // Check modality
@@ -251,6 +252,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please select a modality.');
                 // Focus the Choices.js wrapper
                 const choicesWrapper = modality.closest('.choices');
+                if (choicesWrapper) choicesWrapper.querySelector('.choices__inner').click();
+                return false;
+            }
+            
+            // Check format
+            if (!format.value) {
+                e.preventDefault();
+                alert('Please select a format.');
+                const choicesWrapper = format.closest('.choices');
                 if (choicesWrapper) choicesWrapper.querySelector('.choices__inner').click();
                 return false;
             }
@@ -344,6 +354,11 @@ function initDurationLogic(durations, linkGroupMembers) {
         } else {
             const format = formatSelect.value;
             
+            // Don't update if no format selected yet
+            if (!format) {
+                return;
+            }
+            
             if (format === 'individual') {
                 newDuration = durations.individual;
             } else if (durations.linkGroups && durations.linkGroups[format]) {
@@ -366,7 +381,7 @@ function initDurationLogic(durations, linkGroupMembers) {
                 document.getElementById('missing-link-modal').classList.add('active');
                 
                 // Reset dropdown using Choices.js API (native select is wrapped)
-                window.setChoicesValue('format', 'individual');
+                window.setChoicesValue('format', '');
                 
                 return; // Exit early, don't update notes
             }
