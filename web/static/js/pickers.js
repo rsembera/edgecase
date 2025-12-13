@@ -406,17 +406,6 @@ class DatePicker {
     getDate() {
         return this.selectedDate;
     }
-    
-    /**
-     * Set the date programmatically
-     * @param {Date} date
-     */
-    setDate(date) {
-        this.selectedDate = date;
-        this.viewYear = date.getFullYear();
-        this.viewMonth = date.getMonth();
-        this.updateDisplay();
-    }
 }
 
 
