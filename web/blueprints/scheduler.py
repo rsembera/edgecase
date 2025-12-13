@@ -276,20 +276,36 @@ def schedule_for_client(client_id):
     # Consultation duration from settings
     consultation_duration = int(db.get_setting('consultation_duration', '50'))
     
-    # Link group durations by format
+    # Link group info by format (duration + member file numbers)
     link_group_durations = {}
+    link_group_members = {}
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+    
+    # Get link groups this client belongs to
     cursor.execute("""
-        SELECT lg.format, lg.session_duration
+        SELECT lg.id, lg.format, lg.session_duration
         FROM client_links cl
         JOIN link_groups lg ON cl.group_id = lg.id
         WHERE cl.client_id_1 = ?
     """, (client_id,))
+    
     for row in cursor.fetchall():
         if row['format']:
             link_group_durations[row['format']] = row['session_duration'] or 50
+            
+            # Get all members of this group (excluding current client)
+            cursor.execute("""
+                SELECT c.file_number
+                FROM client_links cl
+                JOIN clients c ON cl.client_id_1 = c.id
+                WHERE cl.group_id = ? AND cl.client_id_1 != ?
+                ORDER BY c.file_number
+            """, (row['id'], client_id))
+            
+            member_file_numbers = [m['file_number'] for m in cursor.fetchall()]
+            link_group_members[row['format']] = member_file_numbers
     
     if request.method == 'POST':
         # Parse date from form - supports both new format (date) and legacy (year/month/day)
@@ -413,5 +429,6 @@ def schedule_for_client(client_id):
                          individual_duration=individual_duration,
                          consultation_duration=consultation_duration,
                          link_group_durations=link_group_durations,
+                         link_group_members=link_group_members,
                          time_format=time_format,
                          **date_parts)
