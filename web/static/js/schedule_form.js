@@ -333,15 +333,16 @@ function initDurationLogic(durations, linkGroupMembers) {
                 const formatName = format.charAt(0).toUpperCase() + format.slice(1);
                 newDuration = durations.individual;
                 
-                // Reset dropdown (use setTimeout to ensure it sticks after event completes)
-                setTimeout(() => {
-                    formatSelect.value = 'individual';
-                }, 0);
-                
                 // Show the modal
                 const message = `This client is not in a ${formatName} link group. To schedule ${format} appointments, create a link group with the "${formatName}" format first.`;
                 document.getElementById('missing-link-message').textContent = message;
                 document.getElementById('missing-link-modal').classList.add('active');
+                
+                // Reset dropdown - set both value and selectedIndex to be sure
+                formatSelect.value = 'individual';
+                formatSelect.selectedIndex = 0;
+                
+                return; // Exit early, don't update notes
             }
         }
         
