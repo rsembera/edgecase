@@ -93,12 +93,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (/\bnoon\b/.test(text)) return '12:00 PM';
         if (/\bmidnight\b/.test(text)) return '12:00 AM';
         
-        // 12-hour time: 2pm, 2:30pm, 2:30 pm
-        const time12 = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+        // 12-hour time: 2pm, 2:30pm, 2:30 pm, 2 p.m., 2:30 P.M.
+        const time12 = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)\b/i);
         if (time12) {
             let hours = parseInt(time12[1]);
             const minutes = time12[2] || '00';
-            const ampm = time12[3].toUpperCase();
+            // Normalize: "p.m." -> "PM"
+            const ampm = time12[3].replace(/\./g, '').toUpperCase();
             
             if (hours > 12) return null;
             
