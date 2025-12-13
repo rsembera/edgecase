@@ -246,30 +246,41 @@ document.addEventListener('DOMContentLoaded', function() {
             const format = document.getElementById('format');
             const duration = document.getElementById('duration');
             
-            // Check modality
+            const missingFields = [];
+            
             if (!modality.value) {
-                e.preventDefault();
-                alert('Please select a modality.');
-                // Focus the Choices.js wrapper
-                const choicesWrapper = modality.closest('.choices');
-                if (choicesWrapper) choicesWrapper.querySelector('.choices__inner').click();
-                return false;
+                missingFields.push('modality');
             }
             
-            // Check format
             if (!format.value) {
-                e.preventDefault();
-                alert('Please select a format.');
-                const choicesWrapper = format.closest('.choices');
-                if (choicesWrapper) choicesWrapper.querySelector('.choices__inner').click();
-                return false;
+                missingFields.push('format');
             }
             
-            // Check duration
             if (!duration.value || parseInt(duration.value) <= 0) {
+                missingFields.push('duration');
+            }
+            
+            if (missingFields.length > 0) {
                 e.preventDefault();
-                alert('Please enter a valid duration.');
-                duration.focus();
+                
+                // Build smart message
+                let message;
+                if (missingFields.length === 1) {
+                    if (missingFields[0] === 'duration') {
+                        message = 'Please enter a valid duration.';
+                    } else {
+                        message = `Please select a ${missingFields[0]}.`;
+                    }
+                } else if (missingFields.includes('modality') && missingFields.includes('format') && !missingFields.includes('duration')) {
+                    message = 'Please select a modality and format.';
+                } else {
+                    // Multiple fields including duration or all three
+                    const fieldNames = missingFields.map(f => f === 'duration' ? 'a valid duration' : `a ${f}`);
+                    message = 'Please select ' + fieldNames.join(' and ') + '.';
+                }
+                
+                document.getElementById('validation-message').textContent = message;
+                document.getElementById('validation-modal').classList.add('active');
                 return false;
             }
         });

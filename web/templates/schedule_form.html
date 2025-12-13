@@ -183,6 +183,17 @@
     </div>
 </div>
 
+<!-- Validation Modal -->
+<div id="validation-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3>Required Fields</h3>
+        <p id="validation-message"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn" onclick="document.getElementById('validation-modal').classList.remove('active')">OK</button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden data for JavaScript -->
 <script id="schedule-data" type="application/json">
 {
