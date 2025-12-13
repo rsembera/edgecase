@@ -337,6 +337,7 @@ def schedule_for_client(client_id):
         
         # Get modality for event title
         modality = request.form.get('modality', '')
+        is_consultation = request.form.get('is_consultation') == 'on'
         modality_labels = {
             'in-person': 'In-Person',
             'videoconference': 'Videoconference',
@@ -344,10 +345,15 @@ def schedule_for_client(client_id):
         }
         modality_label = modality_labels.get(modality, '')
         
-        # Build event title: "file_number: modality" or just "file_number"
+        # Build event title: "file_number: modality [Consultation]"
         event_title = client['file_number']
+        title_parts = []
         if modality_label:
-            event_title = f"{client['file_number']}: {modality_label}"
+            title_parts.append(modality_label)
+        if is_consultation:
+            title_parts.append('Consultation')
+        if title_parts:
+            event_title = f"{client['file_number']}: {' '.join(title_parts)}"
         
         # Get contact info
         contact_info = get_contact_info_text(profile)
