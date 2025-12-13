@@ -515,29 +515,62 @@
 
 ## PHASE 6: CALENDAR & SCHEDULING
 
-### 6.1 Schedule Appointment (5 min)
+### 6.1 Schedule Appointment (10 min)
 
-**Test .ics download:**
+**Test basic scheduling with .ics download:**
 - [ ] Go to Alice's file
 - [ ] Click Schedule button
-- [ ] Fill in: Date, Time, Duration
+- [ ] Verify: Modality and Format default to "Select..."
+- [ ] Try to submit without selecting modality/format
+- [ ] Verify: Validation modal appears with smart message
+- [ ] Select Modality: In-Person
+- [ ] Select Format: Individual
+- [ ] Verify: Duration auto-populates from profile
+- [ ] Fill in: Date, Time
 - [ ] Add a video link (optional)
 - [ ] Select repeat pattern (optional)
-- [ ] Click Create Event
+- [ ] Click Add to Calendar
 - [ ] Verify: .ics file downloads
-- [ ] Open .ics file, verify it has correct details
+- [ ] Open .ics file, verify title is "file_number: In-Person"
+
+**Test consultation checkbox:**
+- [ ] Schedule another appointment for Alice
+- [ ] Select Modality: Videoconference
+- [ ] Select Format: Individual
+- [ ] Check "Initial consultation"
+- [ ] Verify: Duration changes to consultation duration from Settings
+- [ ] Submit
+- [ ] Verify: Event title is "file_number: Videoconference Consultation"
+
+**Test couples/family format with link group:**
+- [ ] Go to Carol's file (has couples link group)
+- [ ] Click Schedule
+- [ ] Select Format: Couples
+- [ ] Verify: Duration auto-updates to link group duration (75 min)
+- [ ] Verify: Notes auto-populate with "Couples session with: [David's file number]"
+- [ ] Submit and verify .ics file
+
+**Test missing link group validation:**
+- [ ] Go to Alice's file (no link groups)
+- [ ] Click Schedule
+- [ ] Select Format: Couples
+- [ ] Verify: Modal appears "This client is not in a Couples link group..."
+- [ ] Click "Stay Here"
+- [ ] Verify: Format resets to "Select format..."
 
 **Test AppleScript (if configured):**
-- [ ] Schedule another appointment
+- [ ] Ensure Calendar settings use AppleScript method
+- [ ] Schedule an appointment
 - [ ] Verify: Event added directly to Calendar app
-- [ ] Check Calendar app to confirm
+- [ ] Check Calendar app to confirm event details
 
 ### 6.2 Natural Language Parsing (2 min)
 
-- [ ] In the Schedule form, try typing in the date field:
-  - "Friday 2pm" → should parse
+- [ ] In the Schedule form Quick Entry field, try:
+  - "Friday 2pm" → should parse and auto-fill date/time
   - "next Monday" → should parse
-  - "tomorrow" → should parse
+  - "tomorrow 3:30pm" → should parse
+  - "Nov 28 6:15pm" → should parse
 
 ---
 
