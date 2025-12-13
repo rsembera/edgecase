@@ -43,6 +43,20 @@
         
         <hr class="schedule-divider">
         
+        <!-- Date and Time -->
+        <div class="two-column-grid">
+            <div class="form-group">
+                <label>Date *</label>
+                <div id="schedule-date-picker"></div>
+                <input type="hidden" id="schedule_date" name="date" value="{{ today_year }}-{{ '%02d'|format(today_month) }}-{{ '%02d'|format(today_day) }}" required>
+            </div>
+            <div class="form-group">
+                <label>Time *</label>
+                <div id="schedule-time-picker"></div>
+                <input type="hidden" id="appointment_time" name="appointment_time" value="10:00 AM" required>
+            </div>
+        </div>
+        
         <!-- Modality and Format -->
         <div class="two-column-grid">
             <div class="form-group">
@@ -74,21 +88,7 @@
             </label>
         </div>
         
-        <!-- Date and Time -->
-        <div class="two-column-grid">
-            <div class="form-group">
-                <label>Date *</label>
-                <div id="schedule-date-picker"></div>
-                <input type="hidden" id="schedule_date" name="date" value="{{ today_year }}-{{ '%02d'|format(today_month) }}-{{ '%02d'|format(today_day) }}" required>
-            </div>
-            <div class="form-group">
-                <label>Time *</label>
-                <div id="schedule-time-picker"></div>
-                <input type="hidden" id="appointment_time" name="appointment_time" value="10:00 AM" required>
-            </div>
-        </div>
-        
-        <!-- Duration and Meet Link side by side -->
+        <!-- Duration and Repeat side by side -->
         <div class="two-column-grid">
             <div class="form-group">
                 <label for="duration">Duration (minutes)</label>
@@ -101,24 +101,24 @@
                        step="5">
             </div>
             <div class="form-group">
-                <label for="meet_link">Meeting Link</label>
-                <input type="url" 
-                       id="meet_link" 
-                       name="meet_link" 
-                       placeholder="https://meet.google.com/...">
-                <p class="helper-text">Optional - for video sessions</p>
+                <label for="repeat">Repeat</label>
+                <select id="repeat" name="repeat">
+                    <option value="none">Does not repeat</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly</option>
+                </select>
             </div>
         </div>
         
-        <!-- Repeat -->
-        <div class="form-group mb-2">
-            <label for="repeat">Repeat</label>
-            <select id="repeat" name="repeat">
-                <option value="none">Does not repeat</option>
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Every 2 weeks</option>
-                <option value="monthly">Monthly</option>
-            </select>
+        <!-- Meeting Link (full width) -->
+        <div class="form-group">
+            <label for="meet_link">Meeting Link</label>
+            <input type="url" 
+                   id="meet_link" 
+                   name="meet_link" 
+                   placeholder="https://meet.google.com/...">
+            <p class="helper-text">Optional - for video sessions</p>
         </div>
         
         <!-- Alerts side by side -->
@@ -168,6 +168,17 @@
             <i data-lucide="calendar-plus"></i>
             Add to Calendar
         </button>
+    </div>
+</div>
+
+<!-- Missing Link Group Modal -->
+<div id="missing-link-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+        <h3>Link Group Required</h3>
+        <p id="missing-link-message"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn" onclick="document.getElementById('missing-link-modal').style.display='none'">OK</button>
+        </div>
     </div>
 </div>
 
