@@ -205,15 +205,14 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
         desc_parts.append(f'\n---\n{notes}')
     description = escape_applescript_text(''.join(desc_parts))
     
-    # Build recurrence part
-    recurrence = ''
+    # Build recurrence rule (iCal RRULE format)
+    recurrence_rule = ''
     if repeat == 'weekly':
-        recurrence = 'recurrence:weekly'
+        recurrence_rule = 'FREQ=WEEKLY'
     elif repeat == 'biweekly':
-        # AppleScript doesn't directly support biweekly, we'll skip for now
-        pass
+        recurrence_rule = 'FREQ=WEEKLY;INTERVAL=2'
     elif repeat == 'monthly':
-        recurrence = 'recurrence:monthly'
+        recurrence_rule = 'FREQ=MONTHLY'
     
     # Build the AppleScript
     script = f'''
@@ -223,6 +222,9 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     
     if meet_link:
         script += f', url:"{meet_link}"'
+    
+    if recurrence_rule:
+        script += f', recurrence:"{recurrence_rule}"'
     
     script += '}'
     
