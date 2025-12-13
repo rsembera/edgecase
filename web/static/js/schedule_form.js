@@ -237,20 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
         result.setDate(result.getDate() + daysToAdd);
         return result;
     }
-    
-    // Form validation
-    const scheduleForm = document.getElementById('schedule-form');
-    if (scheduleForm) {
-        scheduleForm.addEventListener('submit', function(e) {
-            const duration = document.getElementById('duration');
-            if (duration && (parseInt(duration.value) || 0) <= 0) {
-                e.preventDefault();
-                alert('Please enter a valid duration greater than 0 minutes.');
-                duration.focus();
-                return false;
-            }
-        });
-    }
 });
 
 /**
