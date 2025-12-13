@@ -211,61 +211,6 @@ def require_login():
 
 
 # ============================================================================
-# AUTO-BACKUP CHECK (called after login)
-# ============================================================================
-
-@app.route('/api/check-auto-backup', methods=['POST'])
-def check_auto_backup():
-    """
-    Check if auto-backup should run after login.
-    Called by frontend after successful authentication.
-    """
-    from utils import backup
-    import subprocess
-    
-    db = app.config.get('db')
-    if not db:
-        return jsonify({'backup_performed': False, 'error': 'Not logged in'})
-    
-    frequency = db.get_setting('backup_frequency', 'daily')
-    
-    needed = backup.check_backup_needed(frequency)
-    
-    if needed:
-        location = db.get_setting('backup_location', '')
-        if not location:
-            location = None  # Use default BACKUPS_DIR
-        try:
-            # Use create_backup() which auto-decides full vs incremental
-            result = backup.create_backup(location)
-            
-            # Run retention cleanup
-            retention = db.get_setting('backup_retention', 'forever')
-            if retention != 'forever':
-                backup.cleanup_old_backups(retention, location)
-            
-            # Run post-backup command if configured
-            post_cmd = db.get_setting('post_backup_command', '')
-            if post_cmd:
-                try:
-                    subprocess.run(post_cmd, shell=True, timeout=300)
-                except Exception as cmd_error:
-                    print(f"Auto-backup post-command error: {cmd_error}")
-            
-            return jsonify({
-                'backup_performed': True,
-                'result': result
-            })
-        except Exception as e:
-            return jsonify({
-                'backup_performed': False,
-                'error': str(e)
-            })
-    
-    return jsonify({'backup_performed': False, 'reason': 'not_needed'})
-
-
-# ============================================================================
 # SESSION TIMEOUT WARNING API
 # ============================================================================
 
@@ -336,21 +281,6 @@ def get_restore_message():
     """Get and clear any pending restore completion message."""
     message = session.pop('restore_message', None)
     return jsonify({'message': message})
-
-
-# ============================================================================
-# PLACEHOLDER ROUTES
-# ============================================================================
-
-@app.route('/scheduler')
-def scheduler():
-    """Scheduler page - placeholder for future calendar/appointment features"""
-    return render_template('scheduler.html')
-
-@app.route('/billing')
-def billing():
-    """Billing page - placeholder for future invoicing/statement features"""
-    return render_template('billing.html')
 
 
 if __name__ == '__main__':
