@@ -29,7 +29,7 @@
         </div>
     </div>
     
-    <form method="POST" id="schedule-form">
+    <form method="POST" id="schedule-form" novalidate>
         <!-- Quick Entry -->
         <div class="form-group quick-entry-group">
             <label for="quick_entry">Quick Entry</label>
@@ -61,7 +61,7 @@
         <div class="two-column-grid">
             <div class="form-group">
                 <label for="modality">Modality *</label>
-                <select id="modality" name="modality" required>
+                <select id="modality" name="modality">
                     <option value="">Select modality...</option>
                     <option value="in-person">In-Person</option>
                     <option value="videoconference">Videoconference</option>
@@ -71,7 +71,7 @@
             
             <div class="form-group">
                 <label for="format">Format *</label>
-                <select id="format" name="format" required>
+                <select id="format" name="format">
                     <option value="individual">Individual</option>
                     <option value="couples">Couples</option>
                     <option value="family">Family</option>
@@ -97,8 +97,7 @@
                        name="duration" 
                        value="{{ individual_duration }}" 
                        min="1" 
-                       max="180"
-                       required>
+                       max="180">
             </div>
             <div class="form-group">
                 <label for="repeat">Repeat</label>
