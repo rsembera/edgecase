@@ -626,17 +626,21 @@
 - [ ] Select the full backup
 - [ ] Click Restore
 - [ ] Confirm the warning
-- [ ] App will restart
+- [ ] Message appears: "Restore prepared. Close EdgeCase and reopen to complete."
+- [ ] **Close the app completely** (stop server if in dev, quit app if packaged)
+- [ ] **Reopen EdgeCase**
 - [ ] Login again
 - [ ] Verify: Data restored to that point
+- [ ] Check backups list: Safety backup should appear (type: pre_restore)
 
-### 8.4 Delete Old Backups (2 min)
+### 8.4 Verify Retention Cleanup (2 min)
 
-- [ ] Create a new full backup (so you have two chains)
-- [ ] Try to delete the older full backup
-- [ ] Verify: Cascade warning appears (will delete its incrementals)
-- [ ] Confirm deletion
-- [ ] Verify: Old chain removed
+**Note:** EdgeCase uses automatic retention-based cleanup instead of manual deletion.
+
+- [ ] Go to Settings → Backups → Retention Period
+- [ ] Verify retention is set (default: 1 year)
+- [ ] Note: Old backup chains are automatically cleaned up when they exceed the retention period
+- [ ] Newest backup chain is always preserved regardless of retention setting
 
 ---
 
