@@ -158,9 +158,9 @@ def index():
     for client_type in all_types:
         all_clients.extend(db.get_all_clients(client_type['id']))
     
-    # Count active clients
-    active_type = next((t for t in all_types if t['name'] == 'Active'), None)
-    active_count = len([c for c in all_clients if c['type_id'] == active_type['id']]) if active_type else 0
+    # Count active clients (all non-inactive clients)
+    inactive_type = next((t for t in all_types if t['name'] == 'Inactive'), None)
+    active_count = len([c for c in all_clients if c['type_id'] != inactive_type['id']]) if inactive_type else len(all_clients)
     
     # Count sessions this week
     week_ago = int((datetime.now() - timedelta(days=7)).timestamp())
