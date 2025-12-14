@@ -176,15 +176,16 @@ def change_password():
 @login_required
 def change_password_progress():
     """SSE endpoint for password change progress."""
+    # Get passwords from session BEFORE entering generator (request context issue)
+    current_password = session.get('password_change_current')
+    new_password = session.get('password_change_new')
+    db = current_app.config.get('db')
+    
     def generate():
-        current_password = session.get('password_change_current')
-        new_password = session.get('password_change_new')
-        
         if not current_password or not new_password:
             yield f"data: {json.dumps({'error': 'Missing password data'})}\n\n"
             return
         
-        db = current_app.config.get('db')
         if not db:
             yield f"data: {json.dumps({'error': 'Database not available'})}\n\n"
             return
@@ -214,20 +215,10 @@ def change_password_progress():
             test_conn = db.connect()
             test_conn.execute("SELECT 1")
             
-            # Clear session passwords
-            session.pop('password_change_current', None)
-            session.pop('password_change_new', None)
-            session.modified = True
-            
             # Success!
             yield f"data: {json.dumps({'status': 'complete', 'message': 'Password changed successfully!'})}\n\n"
             
         except Exception as e:
-            # Clear session passwords on error
-            session.pop('password_change_current', None)
-            session.pop('password_change_new', None)
-            session.modified = True
-            
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
     return Response(generate(), mimetype='text/event-stream')
