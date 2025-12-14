@@ -46,7 +46,7 @@
             <div class="format-duration-row">
                 <div class="field-group">
                     <label for="format">Session Format *</label>
-                    <select id="format" name="format" required>
+                    <select id="format" name="format">
                         <option value="">Select format</option>
                         <option value="couples" {% if group and group.format == 'couples' %}selected{% endif %}>Couples</option>
                         <option value="family" {% if group and group.format == 'family' %}selected{% endif %}>Family</option>
@@ -57,7 +57,7 @@
                 <div class="field-group">
                     <label for="session_duration">Session Duration (minutes) *</label>
                     <input type="number" id="session_duration" name="session_duration" 
-                        min="5" step="5" required
+                        min="5" step="5"
                         value="{{ group.session_duration if group and group.session_duration else '50' }}"
                         placeholder="50">
                     <small class="helper-text">Default duration for all members in this group</small>
