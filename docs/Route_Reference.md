@@ -165,20 +165,7 @@ def list_backups()
 
 **Returns:** JSON with `backups` array
 
----
-
-### Delete Backup
-
-```python
-@backups_bp.route('/api/backup/delete', methods=['POST'])
-def delete_backup()
-```
-**Purpose:** Delete a specific backup
-
-**POST JSON Data:**
-- `backup_id` (str): Backup identifier
-
-**Returns:** JSON with success status
+**Note:** Backup deletion is handled automatically via retention settings. Old backup chains are cleaned up based on the configured retention period (1 month, 6 months, 1 year, or forever).
 
 ---
 
