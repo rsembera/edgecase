@@ -359,7 +359,7 @@ class StatementPDFGenerator:
                 date_ts = entry.get('absence_date', 0)
                 service = entry.get('description', 'Absence')
                 duration_str = '—'
-                base = entry.get('base_fee', 0) or entry.get('base_price', 0) or 0
+                base = entry.get('base_fee', 0) or 0
                 fee = entry.get('fee', 0) or 0
                 tax_rate = entry.get('tax_rate', 0) or 0
             elif entry_class == 'item':
