@@ -366,6 +366,12 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
         return;
     }
     
+    const sessionDuration = parseInt(document.getElementById('session_duration').value);
+    if (!sessionDuration || sessionDuration < 5) {
+        showErrorModal('Please enter a valid session duration (minimum 5 minutes).');
+        return;
+    }
+    
     // Collect member fees
     const memberFees = {};
     selectedClients.forEach(clientId => {
@@ -379,8 +385,6 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
             total_fee: parseFloat(totalInput.value) || 0
         };
     });
-    
-    const sessionDuration = parseInt(document.getElementById('session_duration').value) || 50;
 
     const formData = {
         client_ids: selectedClients,
