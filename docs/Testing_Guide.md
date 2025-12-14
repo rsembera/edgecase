@@ -588,18 +588,15 @@
 - [ ] Generate again WITHOUT fees checked
 - [ ] Verify: PDF shows sessions but no fee column
 
-### 7.2 Export Entries (5 min)
+### 7.2 Export Entries (3 min)
 
 **Export to PDF:**
 - [ ] Go to Alice's file → Export
-- [ ] Select several entries
-- [ ] Export as PDF
-- [ ] Verify: PDF contains selected entries
-
-**Export to Markdown:**
-- [ ] Export same entries as Markdown
-- [ ] Verify: .md file downloads
-- [ ] Open and verify content
+- [ ] Select several entries (mix of sessions, communications, absences, items)
+- [ ] Click "Generate PDF"
+- [ ] Verify: PDF downloads with all selected entries
+- [ ] Verify: Absences show correct fee breakdown (Base Fee, not Base Price)
+- [ ] Verify: All entry types display correctly
 
 ---
 
