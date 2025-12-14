@@ -356,13 +356,13 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
     
     // Validation
     if (selectedClients.length < 2) {
-        alert('Please select at least 2 clients for the link group');
+        showErrorModal('Please select at least 2 clients for the link group.');
         return;
     }
     
     const format = document.getElementById('format').value;
     if (!format) {
-        alert('Please select a session format');
+        showErrorModal('Please select a session format.');
         return;
     }
     
