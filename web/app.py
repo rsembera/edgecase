@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from pathlib import Path
 import sys
 import time
+import os
 from werkzeug.utils import secure_filename
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -46,7 +47,7 @@ from web.blueprints.backups import backups_bp
 from web.blueprints.ai import ai_bp
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'edgecase-dev-key-change-in-production'
+app.config['SECRET_KEY'] = os.environ.get('EDGECASE_SECRET_KEY', os.urandom(24))
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
 app.config['SESSION_COOKIE_NAME'] = 'edgecase_session'  # Unique name to avoid conflicts
