@@ -197,7 +197,7 @@
         <div class="col-file">File #</div>
         <div class="col-name">Name</div>
         <div class="col-contact">Contact</div>
-        <div class="col-dates">Last Session / Created</div>
+        <div class="col-dates">Created / Last Session</div>
     </div>
     
     <div class="clients-container" id="clients-container">
@@ -234,9 +234,9 @@
                     {% endif %}
                 </div>
                 <div class="dates">
-                    <span class="text-secondary-sm">{{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
-                    <span class="text-divider">/</span>
                     <span class="text-secondary-sm">{{ client.created_at|timestamp_to_date }}</span>
+                    <span class="text-divider">/</span>
+                    <span class="text-secondary-sm">{{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
                 </div>
             </div>
             
@@ -266,9 +266,9 @@
                     {% endif %}
                 </div>
                 <div class="dates-row">
-                    <span>Last Session: {{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
-                    <span>•</span>
                     <span>Created: {{ client.created_at|timestamp_to_date }}</span>
+                    <span>•</span>
+                    <span>Last Session: {{ client.last_session|timestamp_to_date if client.last_session else 'Never' }}</span>
                 </div>
             </div>
         </div>
