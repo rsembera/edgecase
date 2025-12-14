@@ -84,10 +84,10 @@
         
         <div class="fee-grid">
             <div class="fee-field">
-                <label for="base_price">Base Price</label>
-                <input type="number" id="base_price" name="base_price" 
+                <label for="base_fee">Base Price</label>
+                <input type="number" id="base_fee" name="base_fee" 
                     step="0.01" min="0"
-                    value="{{ '%.2f'|format(entry.base_price) if entry and entry.base_price else '0.00' }}"
+                    value="{{ '%.2f'|format(entry.base_fee if entry.base_fee else entry.base_price) if entry and (entry.base_fee or entry.base_price) else '0.00' }}"
                     placeholder="0.00"
                     oninput="calculateAbsenceFee('base')"
                     onblur="formatToTwoDecimals(this)" {% if is_billed %}disabled{% endif %}>

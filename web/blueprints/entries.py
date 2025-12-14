@@ -1103,7 +1103,7 @@ def create_absence(client_id):
             'format': request.form.get('format', ''),
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_price': float(request.form.get('base_price', 0)),
+            'base_fee': float(request.form.get('base_fee', 0)),
             'tax_rate': float(request.form.get('tax_rate', 0)),
             'fee': float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
@@ -1198,11 +1198,15 @@ def edit_absence(client_id, entry_id):
             'format': old_absence.get('format') if is_billed else request.form.get('format', ''),
             'absence_date': old_absence.get('absence_date') if is_billed else absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_price': old_absence.get('base_price') if is_billed else float(request.form.get('base_price', 0)),
+            'base_fee': old_absence.get('base_fee') if is_billed else float(request.form.get('base_fee', 0)),
             'tax_rate': old_absence.get('tax_rate') if is_billed else float(request.form.get('tax_rate', 0)),
             'fee': old_absence.get('fee') if is_billed else float(request.form.get('fee', 0)),
             'content': request.form.get('content', '')
         }
+        
+        # Migration: If old absence has base_price but not base_fee, migrate it
+        if old_absence.get('base_price') is not None and old_absence.get('base_fee') is None:
+            absence_data['base_fee'] = old_absence.get('base_price')
         
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
@@ -1236,9 +1240,9 @@ def edit_absence(client_id, entry_id):
                 changes.append(f"Time: {old_time} → {new_time}")
             
             # Fee breakdown
-            if old_absence.get('base_price') != absence_data.get('base_price'):
-                old_base = old_absence.get('base_price')
-                new_base = absence_data.get('base_price')
+            if old_absence.get('base_fee') != absence_data.get('base_fee'):
+                old_base = old_absence.get('base_fee')
+                new_base = absence_data.get('base_fee')
                 old_str = f"${old_base:.2f}" if old_base is not None else "None"
                 new_str = f"${new_base:.2f}" if new_base is not None else "None"
                 changes.append(f"Base Price: {old_str} → {new_str}")
