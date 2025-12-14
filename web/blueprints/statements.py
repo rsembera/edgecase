@@ -151,6 +151,7 @@ def find_unbilled():
             e.description,
             e.fee,
             e.base_price,
+            e.base_fee,
             e.session_date,
             e.absence_date,
             e.item_date,
@@ -167,7 +168,7 @@ def find_unbilled():
         AND ct.name != 'Inactive'
         AND (
             (e.class = 'session' AND e.session_date BETWEEN ? AND ? AND e.fee > 0)
-            OR (e.class = 'absence' AND e.absence_date BETWEEN ? AND ? AND (e.fee > 0 OR e.base_price > 0))
+            OR (e.class = 'absence' AND e.absence_date BETWEEN ? AND ? AND (e.fee > 0 OR e.base_fee > 0))
             OR (e.class = 'item' AND e.item_date BETWEEN ? AND ? AND (e.fee != 0 OR e.base_price != 0))
         )
         ORDER BY c.last_name, c.first_name, e.client_id
@@ -196,8 +197,16 @@ def find_unbilled():
                 'unbilled_total': 0
             }
         
-        # Get the fee (session uses fee, absence/item may use base_price or fee)
-        fee = entry['fee'] or entry['base_price'] or 0
+        # Get the fee (entries should have fee set, but handle old data)
+        # Items use base_price, absences use base_fee, sessions use base_fee
+        fee = entry['fee']
+        if not fee:
+            if entry['class'] == 'item':
+                fee = entry.get('base_price') or 0
+            elif entry['class'] == 'absence':
+                fee = entry.get('base_fee') or 0
+            else:
+                fee = 0
         
         clients[client_id]['entries'].append({
             'id': entry['id'],
@@ -297,7 +306,15 @@ def generate_statements():
         total = 0
         total_tax = 0
         for e in entries:
-            fee = e['fee'] or e['base_price'] or 0
+            # Get fee (entries should have fee set, but handle old data)
+            fee = e['fee']
+            if not fee:
+                if e['class'] == 'item':
+                    fee = e.get('base_price') or 0
+                elif e['class'] == 'absence':
+                    fee = e.get('base_fee') or 0
+                else:
+                    fee = 0
             total += fee
             
             # Calculate tax for this entry
