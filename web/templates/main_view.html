@@ -52,6 +52,32 @@
 </div>
 </div>
 
+<!-- Payment Status Legend -->
+<div class="legend-card">
+    <div class="legend-section">
+        <div class="legend-item">
+            <div class="legend-dot paid"></div>
+            <span>Paid / Up to date</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot pending"></div>
+            <span>Payment pending</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot overdue"></div>
+            <span>Overdue (30+ days)</span>
+        </div>
+    </div>
+    <div class="legend-section">
+        <div class="legend-item">
+            <span><u>Underlined</u> = Preferred contact</span>
+        </div>
+        <div class="legend-item">
+            <i data-lucide="alert-triangle" class="icon-warning"></i> <span>= Do not leave message</span>
+        </div>
+    </div>
+</div>
+
 <!-- Controls Bar -->
 <div class="controls-bar">
     <div class="controls-left">
@@ -247,32 +273,6 @@
             </div>
         </div>
         {% endfor %}
-    </div>
-    
-    <!-- Legend Card -->
-    <div class="legend-card">
-        <div class="legend-section">
-            <div class="legend-item">
-                <div class="legend-dot paid"></div>
-                <span>Paid / Up to date</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-dot pending"></div>
-                <span>Payment pending</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-dot overdue"></div>
-                <span>Overdue (30+ days)</span>
-            </div>
-        </div>
-        <div class="legend-section">
-            <div class="legend-item">
-                <span><u>Underlined</u> = Preferred contact</span>
-            </div>
-            <div class="legend-item">
-                <i data-lucide="alert-triangle" class="icon-warning"></i> <span>= Do not leave message</span>
-            </div>
-        </div>
     </div>
 {% else %}
 <div class="empty-state-card">

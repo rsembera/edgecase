@@ -641,16 +641,13 @@ body.tutti-frutti .nav-btn.peach:hover {
     background: #DEE2EA;
     border-radius: 1rem;
     padding: 1rem 1.5rem;
-    margin-top: 2rem;
+    margin-bottom: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 2rem;
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
 }
 
 .legend-section {
