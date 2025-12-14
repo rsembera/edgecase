@@ -1,33 +1,40 @@
+# macOS
 .DS_Store
 **/.DS_Store
 
-# Python
+# Python bytecode
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.pyc
 
 # Virtual environment
 venv/
 env/
-
-# Database (local development)
-~/edgecase_data/
+.venv/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Pytest
+.pytest_cache/
+**/.pytest_cache/
+
+# Local data (not for distribution)
+data/
 attachments/
-data/edgecase.db
-__pycache__/
-*.pyc
-data/*.db-shm
-data/*.db-wal
 backups/
-# Models (large AI model files)
+assets/
+
+# AI models (large files)
 models/
 *.gguf
 
+# Logs
+*.log
