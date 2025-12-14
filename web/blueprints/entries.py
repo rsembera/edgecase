@@ -1204,10 +1204,6 @@ def edit_absence(client_id, entry_id):
             'content': request.form.get('content', '')
         }
         
-        # Migration: If old absence has base_price but not base_fee, migrate it
-        if old_absence.get('base_price') is not None and old_absence.get('base_fee') is None:
-            absence_data['base_fee'] = old_absence.get('base_price')
-        
         # Check if entry is locked - if so, log changes to edit history
         if db.is_entry_locked(entry_id):
             changes = []
