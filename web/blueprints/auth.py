@@ -3,10 +3,11 @@ EdgeCase Authentication Blueprint
 Handles login/logout and database encryption
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash, make_response, Response
 from pathlib import Path
 from functools import wraps
 import time
+import json
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -153,41 +154,126 @@ def change_password():
         if not db:
             return redirect(url_for('auth.login'))
         
+        # Verify current password first
         try:
-            # Step 1: Open connection and verify current password
             conn = db.connect()
             conn.execute("SELECT 1")  # Verify we can read with current password
+        except Exception as e:
+            return render_template('change_password.html', error="Current password is incorrect")
+        
+        # Store passwords in session for SSE route to use
+        session['password_change_current'] = current_password
+        session['password_change_new'] = new_password
+        session.modified = True
+        
+        # Render template with trigger to start SSE
+        return render_template('change_password.html', start_change=True)
+    
+    return render_template('change_password.html')
+
+
+@auth_bp.route('/change-password-progress')
+@login_required
+def change_password_progress():
+    """SSE endpoint for password change progress."""
+    def generate():
+        current_password = session.get('password_change_current')
+        new_password = session.get('password_change_new')
+        
+        if not current_password or not new_password:
+            yield f"data: {json.dumps({'error': 'Missing password data'})}\n\n"
+            return
+        
+        db = current_app.config.get('db')
+        if not db:
+            yield f"data: {json.dumps({'error': 'Database not available'})}\n\n"
+            return
+        
+        try:
+            # Step 1: Count total files
+            yield f"data: {json.dumps({'status': 'counting', 'message': 'Counting files...'})}\n\n"
             
-            # Step 2: Re-encrypt all attachments with new password
-            _reencrypt_all_files(db, current_password, new_password)
+            total_files = _count_encrypted_files(db)
+            
+            # Step 2: Re-encrypt all files with progress
+            yield f"data: {json.dumps({'status': 'encrypting', 'total': total_files, 'current': 0, 'message': 'Re-encrypting files...'})}\n\n"
+            
+            for progress in _reencrypt_all_files_with_progress(db, current_password, new_password, total_files):
+                yield f"data: {json.dumps(progress)}\n\n"
             
             # Step 3: Rekey the database
+            yield f"data: {json.dumps({'status': 'database', 'message': 'Updating database encryption...'})}\n\n"
+            
+            conn = db.connect()
             conn.execute(f"PRAGMA rekey = '{new_password}'")
             
             # Step 4: Update the Database object's password
             db.password = new_password
             
-            # Step 5: Verify new password works by opening fresh connection
+            # Step 5: Verify new password works
             test_conn = db.connect()
-            test_conn.execute("SELECT 1")  # This confirms rekey worked
+            test_conn.execute("SELECT 1")
             
-            flash("Password changed successfully", "success")
-            return redirect(url_for('settings.settings_page'))
+            # Clear session passwords
+            session.pop('password_change_current', None)
+            session.pop('password_change_new', None)
+            session.modified = True
+            
+            # Success!
+            yield f"data: {json.dumps({'status': 'complete', 'message': 'Password changed successfully!'})}\n\n"
             
         except Exception as e:
-            return render_template('change_password.html', error=f"Error changing password: {str(e)}")
+            # Clear session passwords on error
+            session.pop('password_change_current', None)
+            session.pop('password_change_new', None)
+            session.modified = True
+            
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
-    return render_template('change_password.html')
+    return Response(generate(), mimetype='text/event-stream')
 
 
-def _reencrypt_all_files(db, old_password: str, new_password: str):
-    """Re-encrypt all attachments and assets with new password."""
+def _count_encrypted_files(db) -> int:
+    """Count total encrypted files to process."""
+    from pathlib import Path
+    import os
+    
+    project_root = Path(__file__).parent.parent.parent
+    count = 0
+    
+    # Count attachments
+    conn = db.connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT filepath FROM attachments")
+    for row in cursor.fetchall():
+        if row[0] and os.path.exists(row[0]):
+            count += 1
+    
+    # Count logo
+    logo_filename = db.get_setting('logo_filename', '')
+    if logo_filename:
+        logo_path = project_root / 'assets' / logo_filename
+        if logo_path.exists():
+            count += 1
+    
+    # Count signature
+    sig_filename = db.get_setting('signature_filename', '')
+    if sig_filename:
+        sig_path = project_root / 'assets' / sig_filename
+        if sig_path.exists():
+            count += 1
+    
+    return count
+
+
+def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str, total_files: int):
+    """Re-encrypt all attachments and assets with new password, yielding progress."""
     from core.encryption import decrypt_file_to_bytes, encrypt_file
     from pathlib import Path
     import os
     
     project_root = Path(__file__).parent.parent.parent
-    reencrypted_count = 0
+    current_file = 0
     
     # Re-encrypt attachments from database
     conn = db.connect()
@@ -198,13 +284,24 @@ def _reencrypt_all_files(db, old_password: str, new_password: str):
         filepath = row[1]
         if filepath and os.path.exists(filepath):
             try:
+                current_file += 1
+                filename = os.path.basename(filepath)
+                
                 # Decrypt with old password
                 data = decrypt_file_to_bytes(filepath, old_password)
                 # Write decrypted, then encrypt with new password
                 with open(filepath, 'wb') as f:
                     f.write(data)
                 encrypt_file(filepath, new_password)
-                reencrypted_count += 1
+                
+                # Yield progress
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': filename,
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt {filepath}: {e}")
     
@@ -214,11 +311,19 @@ def _reencrypt_all_files(db, old_password: str, new_password: str):
         logo_path = project_root / 'assets' / logo_filename
         if logo_path.exists():
             try:
+                current_file += 1
                 data = decrypt_file_to_bytes(str(logo_path), old_password)
                 with open(logo_path, 'wb') as f:
                     f.write(data)
                 encrypt_file(str(logo_path), new_password)
-                reencrypted_count += 1
+                
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': 'logo',
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt logo: {e}")
     
@@ -228,12 +333,18 @@ def _reencrypt_all_files(db, old_password: str, new_password: str):
         sig_path = project_root / 'assets' / sig_filename
         if sig_path.exists():
             try:
+                current_file += 1
                 data = decrypt_file_to_bytes(str(sig_path), old_password)
                 with open(sig_path, 'wb') as f:
                     f.write(data)
                 encrypt_file(str(sig_path), new_password)
-                reencrypted_count += 1
+                
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': 'signature',
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt signature: {e}")
-    
-    print(f"[Password Change] Re-encrypted {reencrypted_count} files")
