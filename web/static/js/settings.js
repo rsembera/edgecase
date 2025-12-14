@@ -116,7 +116,7 @@ function updateFontPreview() {
 
 const CARD_NAMES = {
     'active-clients': 'Active Clients',
-    'sessions-week': 'Sessions This Week',
+    'sessions-month': 'Sessions This Month',
     'pending-invoices': 'Pending Invoices',
     'billable-month': 'Billable This Month',
     'current-time': 'Current Time',
@@ -124,7 +124,7 @@ const CARD_NAMES = {
 };
 
 const DEFAULT_CARD_ORDER = [
-    'active-clients', 'sessions-week', 'pending-invoices',
+    'active-clients', 'sessions-month', 'pending-invoices',
     'billable-month', 'current-time', 'navigation'
 ];
 

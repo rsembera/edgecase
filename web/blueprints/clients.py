@@ -162,21 +162,18 @@ def index():
     inactive_type = next((t for t in all_types if t['name'] == 'Inactive'), None)
     active_count = len([c for c in all_clients if c['type_id'] != inactive_type['id']]) if inactive_type else len(all_clients)
     
-    # Count sessions this week (lookback from Sunday 00:00 to now)
+    # Count sessions this month (lookback from 1st 00:00 to now)
     now = datetime.now()
     now_ts = int(now.timestamp())
+    month_start = datetime(now.year, now.month, 1, 0, 0, 0)
+    month_start_ts = int(month_start.timestamp())
     
-    # Get start of current week (most recent Sunday at midnight)
-    days_since_sunday = (now.weekday() + 1) % 7  # 0=Sunday, 1=Monday, etc.
-    week_start = datetime(now.year, now.month, now.day, 0, 0, 0) - timedelta(days=days_since_sunday)
-    week_start_ts = int(week_start.timestamp())
-    
-    sessions_this_week = 0
+    sessions_this_month = 0
     for client in all_clients:
         entries = db.get_client_entries(client['id'], entry_class='session')
-        sessions_this_week += sum(1 for e in entries 
-                                  if week_start_ts <= e.get('session_date', 0) <= now_ts
-                                  and not e.get('is_consultation'))
+        sessions_this_month += sum(1 for e in entries 
+                                   if month_start_ts <= e.get('session_date', 0) <= now_ts
+                                   and not e.get('is_consultation'))
     
     # Count pending invoices (statement portions not fully paid)
     pending_invoices = db.count_pending_invoices()
@@ -319,7 +316,7 @@ def index():
                          search=search,
                          view_mode=view_mode,
                          active_count=active_count,
-                         sessions_this_week=sessions_this_week,
+                         sessions_this_month=sessions_this_month,
                          pending_invoices=pending_invoices,
                          billable_this_month=billable_this_month,
                          current_date=current_date,
