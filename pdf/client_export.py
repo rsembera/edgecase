@@ -446,16 +446,16 @@ def build_absence_entry(entry, client, styles):
     elements.append(Paragraph(f'<b>Time:</b> {time_str}', styles['FieldValue']))
     
     # Fee fields (if present)
-    base_price = entry.get('base_price')
+    base_fee = entry.get('base_fee')
     tax_rate = entry.get('tax_rate')
     fee = entry.get('fee')
     
-    if base_price is not None or fee is not None:
-        base_str = f"${base_price:.2f}" if base_price is not None else "—"
+    if base_fee is not None or fee is not None:
+        base_str = f"${base_fee:.2f}" if base_fee is not None else "—"
         tax_str = f"{tax_rate:.1f}%" if tax_rate is not None else "—"
         fee_str = f"${fee:.2f}" if fee is not None else "—"
         
-        elements.append(Paragraph(f'<b>Base Price:</b> {base_str}', styles['FieldValue']))
+        elements.append(Paragraph(f'<b>Base Fee:</b> {base_str}', styles['FieldValue']))
         elements.append(Paragraph(f'<b>Tax Rate:</b> {tax_str}', styles['FieldValue']))
         elements.append(Paragraph(f'<b>Total:</b> {fee_str}', styles['FieldValue']))
     
