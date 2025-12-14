@@ -9,7 +9,7 @@
  * @param {string} changedField - Which field was changed: 'base', 'tax', or 'total'
  */
 function calculateAbsenceFee(changedField) {
-    const baseInput = document.getElementById('base_price');
+    const baseInput = document.getElementById('base_fee');
     const taxInput = document.getElementById('tax_rate');
     const totalInput = document.getElementById('fee');
     
@@ -133,7 +133,7 @@ const isBilled = absenceData ? absenceData.dataset.isBilled === 'true' : false;
 
 // Format dropdown fee logic
 const formatDropdown = document.getElementById('format');
-const basePriceInput = document.getElementById('base_price');
+const baseFeeInput = document.getElementById('base_fee');
 const taxRateInput = document.getElementById('tax_rate');
 const feeInput = document.getElementById('fee');
 const feeSourceSpan = document.getElementById('fee-source');
@@ -174,8 +174,8 @@ function updateFeesForFormat(format) {
         }
     }
     
-    if (fees && basePriceInput && taxRateInput && feeInput) {
-        basePriceInput.value = fees.base.toFixed(2);
+    if (fees && baseFeeInput && taxRateInput && feeInput) {
+        baseFeeInput.value = fees.base.toFixed(2);
         taxRateInput.value = fees.tax.toFixed(2);
         feeInput.value = fees.total.toFixed(2);
         
