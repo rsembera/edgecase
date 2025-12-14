@@ -281,7 +281,7 @@ def generate_statements():
             AND locked = 1
             AND (
                 (class = 'session' AND session_date BETWEEN ? AND ? AND fee > 0)
-                OR (class = 'absence' AND absence_date BETWEEN ? AND ? AND (fee > 0 OR base_price > 0))
+                OR (class = 'absence' AND absence_date BETWEEN ? AND ? AND (fee > 0 OR base_fee > 0))
                 OR (class = 'item' AND item_date BETWEEN ? AND ? AND (fee != 0 OR base_price != 0))
             )
         """, (client_id, start_ts, end_ts, start_ts, end_ts, start_ts, end_ts))
@@ -301,11 +301,15 @@ def generate_statements():
             total += fee
             
             # Calculate tax for this entry
-            if e['class'] == 'session' and e.get('base_fee'):
+            if e['class'] == 'session':
                 # Session: tax = fee - base_fee
                 entry_tax = fee - (e['base_fee'] or 0)
-            elif e.get('base_price') and fee:
-                # Item/Absence: tax = fee - base_price
+            elif e['class'] == 'absence':
+                # Absence: tax = fee - base_fee (new) or base_price (old)
+                base = e.get('base_fee') or e.get('base_price') or 0
+                entry_tax = fee - base
+            elif e['class'] == 'item':
+                # Item: tax = fee - base_price
                 entry_tax = fee - (e['base_price'] or 0)
             else:
                 entry_tax = 0
