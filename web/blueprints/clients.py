@@ -162,9 +162,11 @@ def index():
     inactive_type = next((t for t in all_types if t['name'] == 'Inactive'), None)
     active_count = len([c for c in all_clients if c['type_id'] != inactive_type['id']]) if inactive_type else len(all_clients)
     
-    # Count sessions this week (current calendar week: Sunday-Saturday)
+    # Count sessions this week (lookback from Sunday 00:00 to now)
     now = datetime.now()
-    # Get start of current week (most recent Sunday)
+    now_ts = int(now.timestamp())
+    
+    # Get start of current week (most recent Sunday at midnight)
     days_since_sunday = (now.weekday() + 1) % 7  # 0=Sunday, 1=Monday, etc.
     week_start = datetime(now.year, now.month, now.day, 0, 0, 0) - timedelta(days=days_since_sunday)
     week_start_ts = int(week_start.timestamp())
@@ -173,7 +175,7 @@ def index():
     for client in all_clients:
         entries = db.get_client_entries(client['id'], entry_class='session')
         sessions_this_week += sum(1 for e in entries 
-                                  if e.get('session_date', 0) >= week_start_ts 
+                                  if week_start_ts <= e.get('session_date', 0) <= now_ts
                                   and not e.get('is_consultation'))
     
     # Count pending invoices (statement portions not fully paid)
