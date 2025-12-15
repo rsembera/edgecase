@@ -26,6 +26,12 @@ env/
 .pytest_cache/
 **/.pytest_cache/
 
+# Build artifacts
+*.egg-info/
+**/*.egg-info/
+dist/
+build/
+
 # Local data (not for distribution)
 data/
 attachments/
