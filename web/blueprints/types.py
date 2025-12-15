@@ -5,11 +5,7 @@ Handles client type management (CRUD operations)
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
-from pathlib import Path
-import sys
 
-# Add parent directory to path for database import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint

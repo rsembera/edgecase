@@ -7,11 +7,8 @@ Handles main client management (list, add, view, change type)
 from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, jsonify
 from pathlib import Path
 from datetime import datetime, timedelta
-import sys
 import sqlcipher3 as sqlite3
 
-# Add parent directory to path for database import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint

@@ -8,14 +8,11 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from pathlib import Path
 from datetime import datetime, timedelta
 import calendar
-import sys
 import time
 import tempfile
 from flask import send_file
 from pdf.generator import generate_statement_pdf
 
-# Add parent directory to path for database import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint

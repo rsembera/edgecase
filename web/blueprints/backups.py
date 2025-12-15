@@ -6,10 +6,7 @@ Handles all backup and restore functionality
 
 from flask import Blueprint, render_template, request, jsonify
 from pathlib import Path
-import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint

@@ -1,0 +1,2 @@
+[console_scripts]
+edgecase = web.cli:run

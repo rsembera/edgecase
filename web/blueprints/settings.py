@@ -7,13 +7,10 @@ Handles practice settings, uploads, and configuration
 from flask import Blueprint, render_template, request, jsonify, send_file, Response
 from pathlib import Path
 from werkzeug.utils import secure_filename
-import sys
 import time
 import io
 from core.encryption import encrypt_file, decrypt_file_to_bytes
 
-# Add parent directory to path for database import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint

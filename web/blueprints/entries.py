@@ -8,7 +8,6 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from pathlib import Path
 from datetime import datetime
 from werkzeug.utils import secure_filename
-import sys
 import sqlcipher3 as sqlite3
 import time
 import os
@@ -17,8 +16,6 @@ from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_
 from core.encryption import decrypt_file_to_bytes
 from io import BytesIO
 
-# Add parent directory to path for database import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.database import Database
 
 # Initialize blueprint
