@@ -1,5 +1,0 @@
-ai
-core
-pdf
-utils
-web
