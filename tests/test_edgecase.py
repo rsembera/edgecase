@@ -21,12 +21,7 @@ import sqlite3
 import time
 import tempfile
 import os
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.database import Database
 from web.utils import parse_date_from_form, generate_content_diff

@@ -1,0 +1,36 @@
+Metadata-Version: 2.4
+Name: edgecase-equalizer
+Version: 1.0.0
+Summary: Practice management system for independent therapists
+Author: Richard Sembera
+License: MIT
+Project-URL: Homepage, https://github.com/rsembera/edgecase
+Project-URL: Repository, https://github.com/rsembera/edgecase
+Keywords: therapy,practice-management,healthcare,flask
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Flask
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Office/Business
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: Flask>=3.1.0
+Requires-Dist: Werkzeug>=3.1.0
+Requires-Dist: waitress>=3.0.0
+Requires-Dist: sqlcipher3-wheels>=0.5.0
+Requires-Dist: cryptography>=46.0.0
+Requires-Dist: reportlab>=4.4.0
+Requires-Dist: PyPDF2>=3.0.0
+Requires-Dist: Markdown>=3.10
+Requires-Dist: psutil>=7.0.0
+Provides-Extra: ai
+Requires-Dist: llama_cpp_python>=0.3.0; extra == "ai"
+Requires-Dist: huggingface_hub>=1.0.0; extra == "ai"
+Provides-Extra: dev
+Requires-Dist: pytest>=9.0.0; extra == "dev"

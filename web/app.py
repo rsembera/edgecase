@@ -5,12 +5,9 @@ Main web interface for EdgeCase Equalizer
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from pathlib import Path
-import sys
 import time
 import os
 from werkzeug.utils import secure_filename
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # ============================================================================
 # STARTUP RESTORE CHECK

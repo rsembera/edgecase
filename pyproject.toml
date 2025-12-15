@@ -1,0 +1,67 @@
+[project]
+name = "edgecase-equalizer"
+version = "1.0.0"
+description = "Practice management system for independent therapists"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Richard Sembera"}
+]
+keywords = ["therapy", "practice-management", "healthcare", "flask"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+]
+
+dependencies = [
+    "Flask>=3.1.0",
+    "Werkzeug>=3.1.0",
+    "waitress>=3.0.0",
+    "sqlcipher3-wheels>=0.5.0",
+    "cryptography>=46.0.0",
+    "reportlab>=4.4.0",
+    "PyPDF2>=3.0.0",
+    "Markdown>=3.10",
+    "psutil>=7.0.0",
+]
+
+[project.optional-dependencies]
+ai = [
+    "llama_cpp_python>=0.3.0",
+    "huggingface_hub>=1.0.0",
+]
+dev = [
+    "pytest>=9.0.0",
+]
+
+[project.scripts]
+edgecase = "web.cli:run"
+
+[project.urls]
+Homepage = "https://github.com/rsembera/edgecase"
+Repository = "https://github.com/rsembera/edgecase"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "web*", "utils*", "pdf*", "ai*"]
+
+[tool.setuptools.package-data]
+"web" = ["templates/**/*", "static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
