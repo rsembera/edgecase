@@ -1681,7 +1681,7 @@ class Database:
         Returns list of dicts with client info and calculated retain_until.
         """
         import time
-        from datetime import datetime, timedelta
+        from datetime import datetime
         
         conn = self.connect()
         cursor = conn.cursor()
