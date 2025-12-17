@@ -334,7 +334,7 @@ pytest tests/ -v
 
 ## RECENT CHANGES (Dec 14-16, 2025)
 
-- Comprehensive testing complete: All 10 phases of Testing Guide verified
+- Comprehensive testing complete: All features verified
 - Fixed 7 UX/logic issues discovered during testing (info cards, link validation, etc.)
 - Session timeout client-side protection (activity tracking, keepalive pings)
 - Date dropdown arrow alignment fix (Choices.js CSS override)
