@@ -1455,10 +1455,10 @@ h2 svg[data-lucide].page-icon {
     top: 50%;
     transform: translateY(-50%);
     color: #9CA3AF;
-    font-size: 1.125rem;
 }
 
-.search-icon i {
+.search-icon i,
+.search-icon svg {
     width: 16px;
     height: 16px;
     display: block;
