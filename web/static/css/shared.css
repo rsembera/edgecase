@@ -405,6 +405,27 @@ input[type="number"] {
 .month-select { width: 80px; }
 .day-select { width: 70px; }
 
+/* Force equal widths for date inputs when using Choices.js */
+.date-input-group .choices {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* Fix height consistency for all date dropdowns */
+.date-input-group .choices__inner {
+    min-height: 50px !important;
+    max-height: 50px !important;
+    display: flex;
+    align-items: center;
+}
+
+/* Force consistent arrow positioning for all date dropdowns */
+.date-input-group .choices.is-open::after,
+.date-input-group .choices::after {
+    top: 23.5px !important;
+    margin-top: -2.5px !important;
+}
+
 /* ============================================
    FORM LAYOUTS
    ============================================ */
