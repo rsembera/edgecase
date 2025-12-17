@@ -293,14 +293,9 @@ function updateDeleteButton() {
  */
 function saveAndApplyCardStyle() {
     const cardStyle = document.getElementById('card-style').value;
-    console.log('saveAndApplyCardStyle called, value:', cardStyle);
     localStorage.setItem('cardStyle', cardStyle);
-    console.log('Stored in localStorage, now calling applyTheme');
     if (typeof applyTheme === 'function') {
         applyTheme();
-        console.log('applyTheme called, body classes:', document.body.className);
-    } else {
-        console.error('applyTheme is not defined!');
     }
 }
 

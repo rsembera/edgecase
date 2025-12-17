@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** December 5, 2025
+**Last Updated:** December 16, 2025
 
 ---
 
@@ -20,7 +20,7 @@ EdgeCase uses SQLite with 12 tables organized around an entry-based architecture
 6. attachments - File uploads
 7. expense_categories - User-defined expense categories
 8. payees - Expense payee names
-9. income_payors - Income payor names (NEW)
+9. income_payors - Income payor names
 10. settings - Application settings
 11. archived_clients - Retention system archives
 12. statement_portions - Statement tracking
@@ -202,8 +202,8 @@ CREATE TABLE entries (
     
     -- Statement-specific fields
     statement_total REAL,
-    statement_tax_total REAL,        -- Total tax from billable entries (for pro-rata calculation)
-    statement_id INTEGER,           -- Links billable entries to their statement
+    statement_tax_total REAL,
+    statement_id INTEGER,
     payment_status TEXT,
     payment_notes TEXT,
     date_sent INTEGER,
@@ -240,6 +240,7 @@ CREATE TABLE entries (
 **Key Fields for Statements:**
 - `statement_id`: On billable entries (session, absence, item), links to the statement entry
 - `statement_total`: On statement entries, the total amount due
+- `statement_tax_total`: Total tax from billable entries (for pro-rata calculation)
 
 ---
 
@@ -399,7 +400,7 @@ CREATE TABLE archived_clients (
 
 ---
 
-### 12. statement_portions (NEW)
+### 12. statement_portions
 
 Tracks individual payment portions for statements.
 
@@ -408,12 +409,12 @@ CREATE TABLE statement_portions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     statement_entry_id INTEGER NOT NULL,
     client_id INTEGER NOT NULL,
-    guardian_number INTEGER,          -- NULL for client, 1 or 2 for guardians
+    guardian_number INTEGER,
     amount_due REAL NOT NULL,
     amount_paid REAL DEFAULT 0,
-    status TEXT DEFAULT 'ready',      -- 'ready', 'sent', 'partial', 'paid'
+    status TEXT DEFAULT 'ready',
     created_at INTEGER NOT NULL,
-    date_sent INTEGER,                -- When statement was emailed
+    date_sent INTEGER,
     FOREIGN KEY (statement_entry_id) REFERENCES entries(id),
     FOREIGN KEY (client_id) REFERENCES clients(id)
 );
@@ -482,16 +483,11 @@ When payment recorded:
 
 **Location:** `core/database.py` in `_run_migrations()` method
 
-**Recent Migrations (Nov 28):**
-- Added statement_portions table
-- Added statement_id field to entries (links billable entries to statements)
-
 **Philosophy:** Always additive, never destructive. Old data stays intact.
 
 ---
 
 *For route information, see Route_Reference.md*  
-*For design philosophy, see Architecture_Decisions.md*  
-*For debugging help, see Debugging_Guide.md*
+*For design philosophy, see Architecture_Decisions.md*
 
-*Last updated: November 28, 2025*
+*Last updated: December 16, 2025*

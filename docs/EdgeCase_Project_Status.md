@@ -60,14 +60,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | Metric | Value |
 |--------|-------|
 | Development Period | Nov 7 - Dec 2, 2025 (26 days) |
-| Total Lines of Code | ~32,600 |
-| Python Lines | ~13,000 |
-| HTML Lines | ~6,400 |
-| JavaScript Lines | ~7,900 |
-| CSS Lines | ~5,300 |
+| Total Lines of Code | ~38,000 |
+| Python Lines | ~14,300 |
+| HTML Lines | ~7,200 |
+| JavaScript Lines | ~8,900 |
+| CSS Lines | ~7,600 |
 | Blueprints | 12 |
 | Database Tables | 12 |
-| Templates | 34 |
+| Templates | 30 |
 | Entry Types | 8 |
 | Routes | 65+ |
 | Automated Tests | 41 |
@@ -100,72 +100,28 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - 38 items confirmed resolved (fixed, handled, or by design)
 - 3 minor theoretical edge cases that fail gracefully
 - Created Bug_Investigation_Log.md for reference
-- System ready for production launch
 
 **Double-Login Fix**
 - Fixed Safari/Firefox requiring two logins
 - Root cause: session cookie race condition on redirect
-- Solution: Clear stale session, set last_activity immediately, unique cookie name
 
 **Ledger Autocomplete Refactor**
 - Unified architecture for all three autocomplete fields
-- Expense categories, expense payees, income payors now use identical pattern
-- Each uses dedicated table for suggestions
-- X button removes from table, save adds to table
-- Removed legacy blacklist workaround
 - Added income_payors table to schema
-
-### December 4, 2025
-
-**Backup Deletion Protection**
-- Protected backups with dependents from accidental deletion
-- Allow cascade deletion of old chains when newer full backup exists
-- Grayed-out delete buttons with explanatory tooltips
-- Cascade warning in delete confirmation modal
-- Backend validation prevents deletion even if UI bypassed
-- Added explanatory text on backups page
-
-**Main View Polish**
-- Fixed vertical alignment of file numbers and client names
-- Preferred contact links now bold with proper underline styling
-- Fixed Status/Type column header text wrapping
-- JS-powered Detailed/Compact toggle (no page reload)
-
-**Settings Improvements**
-- Manual Save button for file number prefix-counter format
-- Auto-save for simple format changes (Manual, Date+Initials)
 
 ### December 2, 2025
 
 **AI Scribe Feature**
 - Local LLM integration using llama-cpp-python
 - Hermes 3 Llama 3.1 8B model (Q4_K_M quantization)
-- Four text processing actions
-- SSE streaming for real-time output
-- Seamless Session form integration
-- Purple AI Scribe button (hidden when session locked)
-- Model download with progress tracking
-- Settings page model management
-
-**Edit History Improvements**
-- Simplified word-level diff algorithm
-- Smart truncation with context (... before/after)
-- Fixed unclosed HTML tag bug
-- Added close_tags template filter
-- Increased max_length to 500 characters
-
-**Additional Polish**
-- 12h/24h time format setting
-- Custom date/time picker components
-- Form field width consistency
-- Session cookie reliability improvements
+- Four text processing actions with SSE streaming
 
 ---
 
 ## ARCHITECTURE SUMMARY
 
 ### Blueprints (12)
-1. **ai** - AI Scribe functionality (NEW)
+1. **ai** - AI Scribe functionality
 2. **auth** - Login/logout, session management
 3. **backups** - Backup/restore system
 4. **clients** - Client management, file viewing, session reports
@@ -181,14 +137,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ### Key Files
 | File | Lines | Purpose |
 |------|-------|---------|
-| core/database.py | ~1,800 | Database operations |
-| utils/backup.py | ~915 | Backup/restore system |
-| web/blueprints/entries.py | ~1,600 | Entry CRUD |
-| ai/assistant.py | ~350 | LLM model management |
-| web/blueprints/ai.py | ~280 | AI Scribe routes |
-| web/app.py | ~240 | Flask initialization |
-| web/utils.py | ~260 | Shared utilities |
-| static/css/shared.css | ~1,180 | Common CSS patterns |
+| core/database.py | ~1,930 | Database operations |
+| utils/backup.py | ~1,040 | Backup/restore system |
+| web/blueprints/entries.py | ~1,780 | Entry CRUD |
+| ai/assistant.py | ~340 | LLM model management |
+| web/blueprints/ai.py | ~330 | AI Scribe routes |
+| web/app.py | ~285 | Flask initialization |
+| web/utils.py | ~265 | Shared utilities |
+| web/static/css/shared.css | ~2,270 | Common CSS patterns |
 
 ---
 
@@ -209,7 +165,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - ✅ Backup/restore system
 - ✅ Session timeout for security
 - ✅ File retention compliance
-- ✅ AI-assisted note writing (NEW)
+- ✅ AI-assisted note writing
 
 ### Quality Requirements
 - ✅ Clean, modular codebase (12 blueprints)
@@ -221,23 +177,6 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## NEXT STEPS
-
-### Comprehensive Testing
-- Create fictional test clients
-- Work through every feature systematically
-- Test on both Mac and iPad
-- Document any issues found
-
-### Documentation
-- Update remaining docs if needed
-- Create testing checklist
-
-### Ready for Production
-The system is ready for Richard's January 2026 practice launch.
-
----
-
 ## KNOWN ISSUES
 
 None critical. System is production-ready.
@@ -246,17 +185,19 @@ None critical. System is production-ready.
 
 ## GIT STATUS
 
-**Latest Commit:** aa29c3f - Fix edit history diff display
-
 **Branch:** main
 
 **Recent Commits:**
 ```
-aa29c3f Fix edit history diff display
-d286b96 Add AI Scribe feature for session note assistance
-acb904a Fix: Auto-backup on login, calendar date comparison
-7328c7a UI polish: Fix form field widths
-c26c9ef Fix: Use thread-local storage for database connections
+0dd25fe Update Route_Reference.md: Add AI blueprint documentation
+66ddfba Update documentation for production release
+928472e Fix date dropdown arrow alignment in profile form
+e30d94c Remove unused timedelta import
+203b52c Add client-side timeout protection - blanks screen on inactivity
+9238c41 Add README with installation instructions
+cf8d23f Remove egg-info from repo, add to gitignore
+3b83253 Convert to proper Python package structure
+b28285d Production hardening: Waitress server, secure SECRET_KEY, pinned deps
 ```
 
 ---
@@ -279,13 +220,14 @@ python main.py
 
 | Document | Purpose |
 |----------|---------|
-| EdgeCase_Navigation_Map_v5_0.md | Quick reference, directory structure |
+| EdgeCase_Navigation_Map_v5_3.md | Quick reference, directory structure |
 | EdgeCase_Project_Status.md | This file - current state |
 | Database_Schema.md | Table definitions |
 | Route_Reference.md | All routes by blueprint |
 | Architecture_Decisions.md | Design rationale |
 | CSS_Architecture.md | CSS organization |
-| AI_Integration_Plan.md | AI feature design (historical) |
+| Bug_Investigation_Log.md | Production readiness audit |
+| Flask_Double_Login_Fix.md | Technical reference |
 
 ---
 
