@@ -2,7 +2,7 @@
 
 Practice management software for independent therapists.
 
-**Status:** In development. Production release planned for Spring 2026.
+**Status:** Production ready. In use as of January 2026.
 
 ## Features
 
