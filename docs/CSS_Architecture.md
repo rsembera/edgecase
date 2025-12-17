@@ -1,23 +1,23 @@
 # EdgeCase CSS Architecture
 
-**Last Updated:** December 6, 2025
+**Last Updated:** December 16, 2025
 
 ## Overview
 
 EdgeCase uses a layered CSS architecture:
 
-1. **shared.css** (~2,000 lines) - Common patterns used across multiple pages
+1. **shared.css** (~2,270 lines) - Common patterns used across multiple pages
 2. **Page-specific CSS** - Styles unique to individual pages
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~4,000 lines across 26 files
+**Total CSS:** ~7,560 lines across 27 files
 
 ---
 
-## shared.css Sections (~2,000 lines)
+## shared.css Sections (~2,270 lines)
 
-Consolidated December 6, 2025. Organized into logical sections:
+Organized into logical sections:
 
 | Line | Section | What's in it |
 |------|---------|--------------|
@@ -82,34 +82,36 @@ Consolidated December 6, 2025. Organized into logical sections:
 ### Large Files (100+ lines)
 | File | Lines | Page | Notes |
 |------|-------|------|-------|
-| main_view.css | ~645 | Client list | Filters, client cards, retention modal |
-| backups.css | ~563 | Backup settings | Backup cards, progress bars |
-| outstanding_statements.css | ~429 | Billing | Statement cards, payment UI |
-| add_edit_link_group.css | ~330 | Link groups | Member selection, fee allocation |
-| manage_links.css | ~189 | Link management | Link group list |
-| ledger_report.css | ~171 | Financial report | Report form, preview |
-| ledger.css | ~166 | Income/Expense | Ledger table, filters |
-| export.css | ~153 | Export entries | Export options |
-| add_edit_type.css | ~128 | Client types | Color picker, type form |
-| client_file.css | ~99 | Client timeline | Entry list, profile card |
+| main_view.css | ~758 | Client list | Filters, client cards, retention modal |
+| backups.css | ~611 | Backup settings | Backup cards, progress bars |
+| outstanding_statements.css | ~402 | Billing | Statement cards, payment UI |
+| add_edit_link_group.css | ~413 | Link groups | Member selection, fee allocation |
+| pickers.css | ~321 | Date/time pickers | Custom picker components |
+| ai_scribe.css | ~293 | AI Scribe | Modal and streaming UI |
+| profile.css | ~291 | Profile entry | Contact fields, guardian billing |
+| manage_links.css | ~237 | Link management | Link group list |
+| add_edit_type.css | ~172 | Client types | Color picker, type form |
+| ledger_report.css | ~170 | Financial report | Report form, preview |
+| session.css | ~168 | Session entry | Session form, AI button |
+| ledger.css | ~158 | Income/Expense | Ledger table, filters |
+| upload.css | ~135 | Upload entry | File upload UI |
+| schedule_form.css | ~123 | Calendar scheduling | Schedule form |
+| manage_types.css | ~116 | Types table | Types list |
+| expense.css | ~116 | Expense entry | Expense form |
+| settings.css | ~115 | Settings page | Settings sections |
+| export.css | ~114 | Export entries | Export options |
+| communication.css | ~103 | Communication | Communication form |
 
 ### Small Files (<100 lines)
 | File | Lines | Notes |
 |------|-------|-------|
-| settings.css | ~86 | Settings page |
-| profile.css | ~78 | Profile entry form |
-| expense.css | ~72 | Expense entry |
+| client_file.css | ~99 | Client timeline |
+| absence.css | ~98 | Absence entry |
+| income.css | ~97 | Income entry |
+| item.css | ~87 | Item entry |
 | deleted_clients.css | ~67 | Deleted clients view |
-| manage_types.css | ~65 | Types table |
-| schedule_form.css | ~61 | Calendar scheduling |
-| upload.css | ~57 | Upload entry |
-| ai_scribe.css | ~50 | AI Scribe modal |
 | add_client.css | ~25 | New client form |
-| session.css | ~22 | Session entry |
-| absence.css | ~21 | Absence entry |
-| communication.css | ~17 | Communication entry |
-| income.css | ~9 | Income entry |
-| item.css | ~8 | Item entry |
+| choices.min.css | - | Choices.js library (minified) |
 
 ---
 
@@ -217,3 +219,7 @@ The font declarations cannot be moved to external CSS because they use Jinja's `
 - Merged duplicate badge definitions
 - Consolidated modal styles
 - Organized into logical sections
+
+**December 16, 2025:**
+- Documentation refresh with accurate line counts
+- Total CSS now ~7,560 lines (growth from feature additions)

@@ -10,13 +10,13 @@
 
 EdgeCase Equalizer has **8 modular documentation files**:
 
-### 1. EdgeCase_Navigation_Map_v5_3.md (~363 lines)
+### 1. EdgeCase_Navigation_Map_v5_3.md (~360 lines)
 **Purpose:** Main overview and quick reference  
 **Use when:** Starting a session, need project overview, want quick commands
 
 **Contents:**
 - Project overview and current status (All Phases Complete)
-- Directory structure (all 11 blueprints)
+- Directory structure (all 12 blueprints)
 - Tech stack summary
 - Blueprint architecture overview
 - Database tables list
@@ -27,12 +27,12 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 2. EdgeCase_Project_Status.md (~215 lines)
+### 2. EdgeCase_Project_Status.md (~240 lines)
 **Purpose:** Current project state and accomplishments  
 **Use when:** Planning sessions, tracking progress, understanding what's done
 
 **Contents:**
-- Phase 1 & 2 completion status
+- Phase 1, 2, 3 completion status
 - Development statistics
 - Recent accomplishments
 - Architecture summary
@@ -47,7 +47,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 3. Database_Schema.md (~450 lines)
+### 3. Database_Schema.md (~490 lines)
 **Purpose:** Complete database table definitions and design decisions  
 **Use when:** Working with database, adding fields, understanding data structure
 
@@ -56,31 +56,31 @@ EdgeCase Equalizer has **8 modular documentation files**:
 - Field descriptions and purposes
 - Entry-based architecture explanation
 - statement_portions table
-- Migration history
 - Design pattern rationale
 - Color palette reference
 - Storage locations
 
 ---
 
-### 4. Route_Reference.md (~790 lines)
+### 4. Route_Reference.md (~820 lines)
 **Purpose:** Complete route listings organized by blueprint  
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
 **Contents:**
-- All 60+ routes across 11 blueprints
+- All 65+ routes across 12 blueprints
 - Route signatures (parameters, query params, form data)
 - Return values and redirects
 - Special behaviors and validation
 - Shared utility function documentation
 
 **Organized by blueprint:**
-- auth_bp: Login, logout, password change (NEW)
-- backups_bp: Backup/restore operations (NEW)
+- ai_bp: AI Scribe functionality
+- auth_bp: Login, logout, password change
+- backups_bp: Backup/restore operations
 - clients_bp: Main view, client file, export
 - entries_bp: Entry CRUD operations
 - ledger_bp: Income/Expense operations
-- links_bp: Link group management (EXTRACTED)
+- links_bp: Link group management
 - statements_bp: Statement generation, PDF, email
 - scheduler_bp: Calendar integration
 - types_bp: Type management
@@ -107,7 +107,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 6. CSS_Architecture.md (~160 lines)
+### 6. CSS_Architecture.md (~225 lines)
 **Purpose:** CSS organization and patterns  
 **Use when:** Adding styles, understanding CSS structure
 
@@ -120,17 +120,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 7. AI_Integration_Plan.md (~350 lines)
-**Purpose:** Future AI feature roadmap  
-**Use when:** Planning AI integration work
-
-**Contents:**
-- Local LLM integration plan
-- Tested prompts
-- Architecture design
-- Implementation phases
-
-### 7. Bug_Investigation_Log.md (~349 lines)
+### 7. Bug_Investigation_Log.md (~150 lines)
 **Purpose:** Complete bug investigation audit  
 **Use when:** Understanding production readiness verification
 
@@ -142,7 +132,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 8. Flask_Double_Login_Fix.md (~179 lines)
+### 8. Flask_Double_Login_Fix.md (~180 lines)
 **Purpose:** Technical reference for Flask session cookie issue  
 **Use when:** Debugging similar session/cookie problems
 
@@ -242,7 +232,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 - Nov 23, 2025: Initial modular documentation (5 files)
 - Nov 28, 2025: Updated for Statement System completion (Navigation Map v2.1)
 - Dec 1, 2025: Phase 2 complete - Navigation Map v4.0, updated all docs
-- **Dec 16, 2025: All phases complete - Navigation Map v5.3, testing complete**
+- **Dec 16, 2025: All phases complete - Navigation Map v5.3, full documentation refresh**
 
 ---
 

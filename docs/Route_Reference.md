@@ -7,7 +7,7 @@
 
 ## OVERVIEW
 
-EdgeCase has 60+ routes organized across 12 blueprints:
+EdgeCase has 65+ routes organized across 12 blueprints:
 
 1. **ai_bp** - AI Scribe functionality (4 routes)
 2. **auth_bp** - Login/logout, session management (3 routes)
@@ -819,4 +819,4 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None)
 *For database schema, see Database_Schema.md*  
 *For design decisions, see Architecture_Decisions.md*
 
-*Last updated: December 1, 2025*
+*Last updated: December 16, 2025*

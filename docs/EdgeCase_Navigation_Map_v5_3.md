@@ -58,17 +58,17 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 | Metric | Count |
 |--------|-------|
-| Python Lines | ~13,000 |
-| HTML Lines | ~6,400 |
-| JavaScript Lines | ~7,900 |
-| CSS Lines | ~5,300 |
-| **Total Lines** | **~32,600** |
+| Python Lines | ~14,300 |
+| HTML Lines | ~7,200 |
+| JavaScript Lines | ~8,900 |
+| CSS Lines | ~7,600 |
+| **Total Lines** | **~38,000** |
 | Blueprints | 12 |
 | Database Tables | 12 |
-| Templates | 34 |
-| CSS Files | 26 |
-| JS Files | 24 |
-| Python Files | 35 |
+| Templates | 30 |
+| CSS Files | 27 |
+| JS Files | 27 |
+| Python Files | 36 |
 | Entry Types | 8 (6 client + 2 ledger) |
 | Routes | 65+ |
 | Automated Tests | 41 |
@@ -79,11 +79,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ```
 ~/edgecase/
-├── main.py                      # Application entry point (21 lines)
+├── main.py                      # Application entry point
 ├── requirements.txt             # Python dependencies
+├── pyproject.toml               # Package configuration
+├── README.md                    # Installation instructions
 ├── core/
-│   ├── database.py              # Database class (~1,800 lines)
-│   └── encryption.py            # Fernet file encryption (48 lines)
+│   ├── database.py              # Database class (~1,930 lines)
+│   └── encryption.py            # Fernet file encryption
 ├── pdf/
 │   ├── generator.py             # Statement + Session report PDFs
 │   ├── ledger_report.py         # Financial report PDFs
@@ -91,29 +93,30 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── formatting.py            # PDF helpers
 │   └── templates.py             # PDF templates
 ├── utils/
-│   ├── backup.py                # Backup/restore system (~915 lines)
+│   ├── backup.py                # Backup/restore system (~1,040 lines)
 │   ├── formatters.py            # Date/string formatting
 │   └── validators.py            # Input validation
 ├── ai/
-│   ├── __init__.py
-│   ├── assistant.py             # Model loading and generation (~350 lines)
+│   ├── assistant.py             # Model loading and generation (~340 lines)
+│   ├── model_manager.py         # Model download management
 │   └── prompts.py               # Prompt templates for AI actions
 ├── web/
-│   ├── app.py                   # Flask app initialization (~240 lines)
-│   ├── utils.py                 # Shared web utilities (~260 lines)
+│   ├── app.py                   # Flask app initialization (~285 lines)
+│   ├── utils.py                 # Shared web utilities (~265 lines)
+│   ├── cli.py                   # Command-line interface
 │   └── blueprints/
-│       ├── ai.py                # AI Scribe routes (~280 lines) NEW
+│       ├── ai.py                # AI Scribe routes (~330 lines)
 │       ├── auth.py              # Login/logout, session management
 │       ├── backups.py           # Backup/restore UI
 │       ├── clients.py           # Client management, session reports
-│       ├── entries.py           # Entry CRUD (6 types)
+│       ├── entries.py           # Entry CRUD (~1,780 lines)
 │       ├── ledger.py            # Income/Expense, financial reports
 │       ├── links.py             # Link group management
 │       ├── scheduler.py         # Calendar integration
 │       ├── settings.py          # Practice configuration
 │       ├── statements.py        # Statement generation, payments
 │       └── types.py             # Client type management
-├── templates/                   # 34 HTML templates
+├── web/templates/               # 30 HTML templates
 │   ├── base.html
 │   ├── login.html
 │   ├── change_password.html
@@ -133,7 +136,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── add_edit_type.html
 │   ├── manage_links.html
 │   ├── add_edit_link_group.html
-│   ├── ai_scribe.html           # NEW
+│   ├── ai_scribe.html
 │   ├── components/
 │   │   ├── attachment_upload.html
 │   │   └── edit_history.html
@@ -146,24 +149,21 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │       ├── upload.html
 │       ├── income.html
 │       └── expense.html
-├── static/
-│   ├── css/                     # 26 CSS files
-│   │   ├── shared.css           # Common patterns (~1,180 lines)
-│   │   ├── ai_scribe.css        # NEW
+├── web/static/
+│   ├── css/                     # 27 CSS files
+│   │   ├── shared.css           # Common patterns (~2,270 lines)
 │   │   └── [page-specific].css
-│   ├── js/                      # 24 JS files
+│   ├── js/                      # 27 JS files
 │   │   ├── lucide.min.js        # Icon library
-│   │   ├── color_palette.js     # Type color picker
-│   │   ├── ai_scribe.js         # NEW (~200 lines)
+│   │   ├── choices.min.js       # Dropdown library
 │   │   └── [page-specific].js
 │   ├── fonts/                   # Lexend font family
 │   ├── favicons/
 │   └── img/                     # Background images
 ├── models/                      # AI models (git-ignored)
-│   └── hermes-3-8b/
-│       └── Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
-├── tests/                       # Automated test suite
-│   ├── test_edgecase.py         # 41 tests, ~875 lines
+│   └── Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+├── tests/
+│   ├── test_edgecase.py         # 41 tests
 │   └── pytest.ini               # Test configuration
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
@@ -176,7 +176,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## BLUEPRINTS OVERVIEW (12)
 
-### 1. ai_bp (ai.py) - NEW
+### 1. ai_bp (ai.py)
 - AI Scribe page
 - Model status/download/unload endpoints
 - Text processing with SSE streaming
@@ -192,7 +192,6 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Backup settings page
 - Create backup (auto full/incremental)
 - Restore from backup
-- Delete old backups
 - Cloud folder configuration
 
 ### 4. clients_bp (clients.py)
@@ -262,7 +261,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 6. **attachments** - Encrypted file uploads
 7. **expense_categories** - User-defined categories
 8. **payees** - Expense payee names
-9. **income_payors** - Income payor names (NEW)
+9. **income_payors** - Income payor names
 10. **settings** - Application configuration
 11. **archived_clients** - Retention archives
 12. **statement_portions** - Payment tracking
@@ -284,7 +283,6 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Auto-backup on login (configurable frequency)
 - Cloud folder support (iCloud, Dropbox, Google Drive)
 - One-click restore with safety backup
-- Backup deletion with orphan handling
 
 ### AI Scribe (Phase 3)
 - Local LLM (Hermes 3 Llama 3.1 8B)
