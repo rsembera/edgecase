@@ -1557,7 +1557,7 @@ h2 svg[data-lucide].page-icon {
     align-items: center;
     line-height: 1;
     height: 38px;
-    min-width: 140px;
+    width: 140px;
     box-sizing: border-box;
 }
 
