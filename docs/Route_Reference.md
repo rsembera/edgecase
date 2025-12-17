@@ -1,29 +1,99 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** December 1, 2025
+**Last Updated:** December 16, 2025
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 60+ routes organized across 11 blueprints:
+EdgeCase has 60+ routes organized across 12 blueprints:
 
-1. **auth_bp** - Login/logout, session management (3 routes) - NEW
-2. **backups_bp** - Backup/restore operations (9 routes) - NEW
-3. **clients_bp** - Client management and file viewing (11 routes)
-4. **entries_bp** - Entry CRUD operations (14 routes)
-5. **ledger_bp** - Income/Expense tracking (7 routes)
-6. **links_bp** - Link group management (5 routes) - EXTRACTED
-7. **statements_bp** - Statement generation (8 routes)
-8. **scheduler_bp** - Calendar integration (2 routes)
-9. **types_bp** - Client type management (4 routes)
-10. **settings_bp** - Settings and configuration (11 routes)
-11. **Main app.py** - Auto-backup, restore messages (4 routes)
+1. **ai_bp** - AI Scribe functionality (4 routes)
+2. **auth_bp** - Login/logout, session management (3 routes)
+3. **backups_bp** - Backup/restore operations (9 routes)
+4. **clients_bp** - Client management and file viewing (11 routes)
+5. **entries_bp** - Entry CRUD operations (14 routes)
+6. **ledger_bp** - Income/Expense tracking (7 routes)
+7. **links_bp** - Link group management (5 routes)
+8. **statements_bp** - Statement generation (8 routes)
+9. **scheduler_bp** - Calendar integration (2 routes)
+10. **types_bp** - Client type management (4 routes)
+11. **settings_bp** - Settings and configuration (11 routes)
+12. **Main app.py** - Auto-backup, restore messages (4 routes)
 
 ---
 
-## AUTH BLUEPRINT (NEW)
+## AI BLUEPRINT
+
+**Prefix:** None (mounted at root)  
+**File:** `~/edgecase/web/blueprints/ai.py`
+
+### AI Scribe Page
+
+```python
+@ai_bp.route('/ai-scribe')
+def ai_scribe()
+```
+**Purpose:** Display AI Scribe interface for session note assistance
+
+**Returns:** `ai_scribe.html`
+
+---
+
+### Model Status
+
+```python
+@ai_bp.route('/api/ai/status')
+def get_model_status()
+```
+**Purpose:** Get current AI model status (loaded/not loaded, platform detection)
+
+**Returns:** JSON with model state and platform info
+
+---
+
+### Download Model
+
+```python
+@ai_bp.route('/api/ai/download', methods=['POST'])
+def download_model()
+```
+**Purpose:** Download AI model with SSE progress tracking
+
+**Returns:** SSE stream with download progress
+
+---
+
+### Process Text
+
+```python
+@ai_bp.route('/api/ai/process', methods=['POST'])
+def process_text()
+```
+**Purpose:** Process text with AI (Write Up, Proofread, Expand, Contract)
+
+**POST JSON Data:**
+- `action` (str): 'write_up', 'proofread', 'expand', or 'contract'
+- `text` (str): Input text to process
+
+**Returns:** SSE stream with generated output
+
+---
+
+### Unload Model
+
+```python
+@ai_bp.route('/api/ai/unload', methods=['POST'])
+def unload_model()
+```
+**Purpose:** Unload AI model from memory
+
+**Returns:** JSON with success status
+
+---
+
+## AUTH BLUEPRINT
 
 **Prefix:** None (mounted at root)  
 **File:** `~/edgecase/web/blueprints/auth.py`
@@ -90,7 +160,7 @@ def change_password()
 
 ---
 
-## BACKUPS BLUEPRINT (NEW)
+## BACKUPS BLUEPRINT
 
 **Prefix:** None (mounted at root)  
 **File:** `~/edgecase/web/blueprints/backups.py`
