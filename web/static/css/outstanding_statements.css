@@ -1,6 +1,11 @@
 /* Outstanding Statements - Custom Styles */
 /* Shared styles imported: controls-bar, search-box, btn-icon, status-badge, page-header from shared.css */
 
+/* Fix filter button width to prevent resizing when text changes */
+.dropdown-btn {
+    width: 140px;
+}
+
 .card {
     max-width: 900px;
     margin-left: auto;
