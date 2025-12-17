@@ -1458,6 +1458,12 @@ h2 svg[data-lucide].page-icon {
     font-size: 1.125rem;
 }
 
+.search-icon i {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
 .clear-search {
     position: absolute;
     right: 0.75rem;
