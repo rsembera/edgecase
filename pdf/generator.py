@@ -750,7 +750,7 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         entry_class = e['class']
         
         # Filter by entry type
-        if entry_class == 'session' and include_sessions and not e.get('is_consultation'):
+        if entry_class == 'session' and include_sessions:
             entries.append(e)
         elif entry_class == 'item' and include_items:
             entries.append(e)
@@ -885,6 +885,9 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         if entry_class == 'session':
             entry_date = entry.get('session_date', 0)
             description = entry.get('service', 'Psychotherapy')
+            # If this is a consultation, use "Consultation" instead of generic "Psychotherapy"
+            if entry.get('is_consultation', 0) and description == 'Psychotherapy':
+                description = 'Consultation'
             duration = entry.get('duration', 0)
             base_fee = entry.get('base_fee', 0) or 0
             fee = entry.get('fee', 0) or 0
