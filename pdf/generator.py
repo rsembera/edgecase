@@ -350,6 +350,9 @@ class StatementPDFGenerator:
             if entry_class == 'session':
                 date_ts = entry.get('session_date', 0)
                 service = entry.get('service', 'Session')
+                # If this is a consultation, use "Consultation" instead of generic "Session"
+                if entry.get('is_consultation', 0) and service == 'Session':
+                    service = 'Consultation'
                 duration = entry.get('duration', 0)
                 duration_str = f"{duration} mins." if duration else ''
                 base = entry.get('base_fee', 0) or 0
