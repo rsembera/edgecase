@@ -751,7 +751,14 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         
         # Filter by entry type
         if entry_class == 'session' and include_sessions:
-            entries.append(e)
+            # If including fees, only include sessions with non-zero fees
+            if include_fees:
+                fee = e.get('fee', 0) or 0
+                if fee > 0:
+                    entries.append(e)
+            else:
+                # Not showing fees, include all sessions regardless of fee
+                entries.append(e)
         elif entry_class == 'item' and include_items:
             entries.append(e)
         elif entry_class == 'absence' and include_absences:
