@@ -38,7 +38,7 @@ body * {
 
 /* Tutti-Frutti theme colors by card ID */
 body.tutti-frutti .stat-card[data-card-id="active-clients"] { background: #C8D8E0; }
-body.tutti-frutti .stat-card[data-card-id="sessions-week"] { background: #DCD3E8; }
+body.tutti-frutti .stat-card[data-card-id="sessions-month"] { background: #DCD3E8; }
 body.tutti-frutti .stat-card[data-card-id="pending-invoices"] { background: #E9CFCF; }
 body.tutti-frutti .stat-card[data-card-id="billable-month"] { background: #CFE7DA; }
 body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0; }
@@ -46,7 +46,7 @@ body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
 /* Ocean Breeze theme - blue/teal tones */
 body.ocean-breeze .stat-card[data-card-id="active-clients"] { background: #B8D4E3; }
-body.ocean-breeze .stat-card[data-card-id="sessions-week"] { background: #A8C8D8; }
+body.ocean-breeze .stat-card[data-card-id="sessions-month"] { background: #A8C8D8; }
 body.ocean-breeze .stat-card[data-card-id="pending-invoices"] { background: #C2DDE8; }
 body.ocean-breeze .stat-card[data-card-id="billable-month"] { background: #B5D8D8; }
 body.ocean-breeze .stat-card[data-card-id="current-time"] { background: #95C4D1; }
@@ -54,7 +54,7 @@ body.ocean-breeze .stat-card[data-card-id="navigation"] { background: #7FB3C2; }
 
 /* Sunset Glow theme - warm peach/amber tones */
 body.sunset-glow .stat-card[data-card-id="active-clients"] { background: #F5DEB3; }
-body.sunset-glow .stat-card[data-card-id="sessions-week"] { background: #EECFB8; }
+body.sunset-glow .stat-card[data-card-id="sessions-month"] { background: #EECFB8; }
 body.sunset-glow .stat-card[data-card-id="pending-invoices"] { background: #E8C4A8; }
 body.sunset-glow .stat-card[data-card-id="billable-month"] { background: #F0D8C4; }
 body.sunset-glow .stat-card[data-card-id="current-time"] { background: #E5CFBB; }
@@ -62,7 +62,7 @@ body.sunset-glow .stat-card[data-card-id="navigation"] { background: #D4B896; }
 
 /* Garden Path theme - green/sage tones */
 body.garden-path .stat-card[data-card-id="active-clients"] { background: #C8D8C4; }
-body.garden-path .stat-card[data-card-id="sessions-week"] { background: #B8CEB5; }
+body.garden-path .stat-card[data-card-id="sessions-month"] { background: #B8CEB5; }
 body.garden-path .stat-card[data-card-id="pending-invoices"] { background: #D4DCC8; }
 body.garden-path .stat-card[data-card-id="billable-month"] { background: #C2D4BE; }
 body.garden-path .stat-card[data-card-id="current-time"] { background: #B5C8B0; }
