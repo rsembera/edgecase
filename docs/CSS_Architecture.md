@@ -1,6 +1,6 @@
 # EdgeCase CSS Architecture
 
-**Last Updated:** December 16, 2025
+**Last Updated:** December 19, 2025
 
 ## Overview
 
@@ -11,7 +11,7 @@ EdgeCase uses a layered CSS architecture:
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~7,560 lines across 27 files
+**Total CSS:** ~7,400 lines across 27 files
 
 ---
 
@@ -82,7 +82,7 @@ Organized into logical sections:
 ### Large Files (100+ lines)
 | File | Lines | Page | Notes |
 |------|-------|------|-------|
-| main_view.css | ~758 | Client list | Filters, client cards, retention modal |
+| main_view.css | ~684 | Client list | Filters, client cards, themes |
 | backups.css | ~611 | Backup settings | Backup cards, progress bars |
 | outstanding_statements.css | ~402 | Billing | Statement cards, payment UI |
 | add_edit_link_group.css | ~413 | Link groups | Member selection, fee allocation |
@@ -93,7 +93,7 @@ Organized into logical sections:
 | add_edit_type.css | ~172 | Client types | Color picker, type form |
 | ledger_report.css | ~170 | Financial report | Report form, preview |
 | session.css | ~168 | Session entry | Session form, AI button |
-| ledger.css | ~158 | Income/Expense | Ledger table, filters |
+| ledger.css | ~141 | Income/Expense | Ledger table, filters, themes |
 | upload.css | ~135 | Upload entry | File upload UI |
 | schedule_form.css | ~123 | Calendar scheduling | Schedule form |
 | manage_types.css | ~116 | Types table | Types list |
@@ -208,6 +208,28 @@ The font declarations cannot be moved to external CSS because they use Jinja's `
 
 ---
 
+## Theme System
+
+Themes are applied via body classes (e.g., `body.ocean-breeze`). Theme selection in Settings automatically applies a matching background color.
+
+**Available Themes:**
+| Theme | Card Color | Background |
+|-------|------------|------------|
+| EdgeCase (Default) | White | #C5CDD3 (Cool grey) |
+| Ocean Breeze | #B8D4E3 | #C5D3DD (Powder blue) |
+| Sunset Glow | #F0D8C4 | #E5E1D8 (Warm cream) |
+| Garden Path | #C8D8C4 | #C8D1C8 (Soft green) |
+| Warm Stone | #D8D2C8 | #D4CEC5 (Taupe) |
+| Tutti-Frutti | Mixed pastels | #D8D5DD (Soft lavender) |
+
+**Theme CSS Pattern:**
+- **Tutti-Frutti only:** Colorful - each stat card and nav button has a different color
+- **All other themes:** Uniform - all stat cards same color, all nav buttons same (darker) color
+
+Theme styles are in `main_view.css` (stat cards, nav buttons) and `ledger.css` (stat cards only).
+
+---
+
 ## Consolidation History
 
 **December 6, 2025:**
@@ -223,3 +245,10 @@ The font declarations cannot be moved to external CSS because they use Jinja's `
 **December 16, 2025:**
 - Documentation refresh with accurate line counts
 - Total CSS now ~7,560 lines (growth from feature additions)
+
+**December 19, 2025:**
+- Simplified theme system: only Tutti-Frutti has colorful cards/buttons
+- Reduced main_view.css from ~758 → ~684 lines (-10%)
+- Reduced ledger.css from ~158 → ~141 lines
+- Removed unused system background images (~17MB freed)
+- Unified Theme selector auto-applies matching background color
