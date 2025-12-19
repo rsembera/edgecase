@@ -3,7 +3,7 @@ name = "edgecase-equalizer"
 version = "1.0.0"
 description = "Practice management system for independent therapists"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "AGPL-3.0"}
 requires-python = ">=3.11"
 authors = [
     {name = "Richard Sembera"}
@@ -14,7 +14,7 @@ classifiers = [
     "Environment :: Web Environment",
     "Framework :: Flask",
     "Intended Audience :: Healthcare Industry",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
