@@ -200,10 +200,14 @@ async function loadBackgroundOptions() {
         // Build choices array for Choices.js
         const choices = [];
         
-        // Add Theme Default option
+        // Add Theme Default option (as a group with single item for consistency)
         choices.push({
-            value: 'theme-default',
-            label: 'Theme Default'
+            label: '',
+            id: 'default',
+            choices: [{
+                value: 'theme-default',
+                label: 'Theme Default'
+            }]
         });
         
         // Add user backgrounds group if any exist
