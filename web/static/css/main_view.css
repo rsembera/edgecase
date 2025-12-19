@@ -506,6 +506,10 @@ body.tutti-frutti .nav-btn.peach:hover {
     text-decoration-skip-ink: none;
 }
 
+.contact-link.preferred:hover {
+    color: #1F8F74;
+}
+
 /* Spacing between icon and text */
 .contact-link span {
     margin-left: 0.25rem;
