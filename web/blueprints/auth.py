@@ -119,8 +119,9 @@ def _run_auto_backup_check(db):
                         print(f"[Backup] Post-backup command completed")
                     except Exception as cmd_error:
                         print(f"[Backup] Post-backup command error: {cmd_error}")
-            else:
-                print(f"[Backup] No changes since last backup")
+            
+            # Record that we checked today (whether backup created or not)
+            backup.record_backup_check()
     except Exception as e:
         # Log and store for user notification
         error_msg = str(e)
