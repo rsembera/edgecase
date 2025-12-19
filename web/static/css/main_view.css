@@ -68,6 +68,14 @@ body.garden-path .stat-card[data-card-id="billable-month"] { background: #C2D4BE
 body.garden-path .stat-card[data-card-id="current-time"] { background: #B5C8B0; }
 body.garden-path .stat-card[data-card-id="navigation"] { background: #9BB89A; }
 
+/* Warm Stone theme - beige/taupe tones */
+body.warm-stone .stat-card[data-card-id="active-clients"] { background: #DDD8D0; }
+body.warm-stone .stat-card[data-card-id="sessions-month"] { background: #D4CEC4; }
+body.warm-stone .stat-card[data-card-id="pending-invoices"] { background: #E0DAD0; }
+body.warm-stone .stat-card[data-card-id="billable-month"] { background: #D8D2C8; }
+body.warm-stone .stat-card[data-card-id="current-time"] { background: #CFC8BC; }
+body.warm-stone .stat-card[data-card-id="navigation"] { background: #C4BCB0; }
+
 /* Ocean Breeze theme - nav buttons */
 body.ocean-breeze .nav-btn.teal {
     background: #B8D4E3;
@@ -156,6 +164,36 @@ body.garden-path .nav-btn.peach {
 }
 body.garden-path .nav-btn.peach:hover {
     background: #C0D2B8;
+}
+
+/* Warm Stone theme - nav buttons */
+body.warm-stone .nav-btn.teal {
+    background: #DDD8D0;
+    color: #4A4540;
+}
+body.warm-stone .nav-btn.teal:hover {
+    background: #D0CAC0;
+}
+body.warm-stone .nav-btn.purple {
+    background: #D4CEC4;
+    color: #48433E;
+}
+body.warm-stone .nav-btn.purple:hover {
+    background: #C8C0B5;
+}
+body.warm-stone .nav-btn.sage {
+    background: #CFC8BC;
+    color: #46413A;
+}
+body.warm-stone .nav-btn.sage:hover {
+    background: #C2BAB0;
+}
+body.warm-stone .nav-btn.peach {
+    background: #E0DAD0;
+    color: #4A4540;
+}
+body.warm-stone .nav-btn.peach:hover {
+    background: #D4CCC2;
 }
 
 .stat-number {

@@ -233,10 +233,10 @@
     
     function applyTheme() {
         const cardStyle = localStorage.getItem('cardStyle') || 'strait-laced';
-        const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+        const backgroundStyle = localStorage.getItem('backgroundStyle') || 'theme-default';
         
         // Apply card style
-        const cardThemes = ['tutti-frutti', 'ocean-breeze', 'sunset-glow', 'garden-path'];
+        const cardThemes = ['tutti-frutti', 'ocean-breeze', 'sunset-glow', 'garden-path', 'warm-stone'];
         // Remove all theme classes first
         cardThemes.forEach(theme => document.body.classList.remove(theme));
         // Add the selected theme (strait-laced has no class)
@@ -244,35 +244,34 @@
             document.body.classList.add(cardStyle);
         }
         
-        // Apply background
-            const solidBackgrounds = {
-                'suit-grey': '#C5CDD3',
-                'warm-stone': '#D4CEC5',
-                'sage-mist': '#C8D1C8',
-                'soft-cream': '#E5E1D8'
-            };
+        // Theme to background color mapping
+        const themeBackgrounds = {
+            'strait-laced': '#C5CDD3',   // Cool grey
+            'ocean-breeze': '#C5D3DD',   // Powder blue
+            'sunset-glow': '#E5E1D8',    // Warm cream
+            'garden-path': '#C8D1C8',    // Soft green
+            'warm-stone': '#D4CEC5',     // Taupe
+            'tutti-frutti': '#D8D5DD'    // Soft lavender
+        };
 
-            if (solidBackgrounds[backgroundStyle]) {
-                document.body.style.backgroundImage = 'none';
-                document.body.style.backgroundColor = solidBackgrounds[backgroundStyle];
-            } else {
-            // Parse the background value (system:filename or user:filename)
-            let bgPath;
-            if (backgroundStyle.startsWith('system:')) {
-                const filename = backgroundStyle.replace('system:', '');
-                bgPath = `/static/img/${filename}`;
-            } else if (backgroundStyle.startsWith('user:')) {
-                const filename = backgroundStyle.replace('user:', '');
-                bgPath = `/static/user_backgrounds/${filename}`;
-            } else {
-                // Legacy format (no prefix) - assume system
-                bgPath = `/static/img/${backgroundStyle}`;
-            }
-            
+        // Apply background
+        if (backgroundStyle === 'theme-default') {
+            // Use the theme's default background color
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = themeBackgrounds[cardStyle] || '#C5CDD3';
+        } else if (backgroundStyle.startsWith('user:')) {
+            // User-uploaded background image
+            const filename = backgroundStyle.replace('user:', '');
+            const bgPath = `/static/user_backgrounds/${filename}`;
             document.body.style.backgroundImage = `url('${bgPath}')`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center';
             document.body.style.backgroundAttachment = 'fixed';
+        } else {
+            // Legacy: old solid color values - migrate to theme-default
+            localStorage.setItem('backgroundStyle', 'theme-default');
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = themeBackgrounds[cardStyle] || '#C5CDD3';
         }
     }
         

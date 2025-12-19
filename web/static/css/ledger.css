@@ -134,6 +134,14 @@ body.garden-path .stat-card[data-card-id="mtd-income"] { background: #C2D4BE; }
 body.garden-path .stat-card[data-card-id="mtd-expenses"] { background: #D4DCC8; }
 body.garden-path .stat-card[data-card-id="top-categories"] { background: #B8CEB5; }
 
+/* Warm Stone */
+body.warm-stone .stat-card[data-card-id="ytd-income"] { background: #D8D2C8; }
+body.warm-stone .stat-card[data-card-id="ytd-expenses"] { background: #E0DAD0; }
+body.warm-stone .stat-card[data-card-id="ytd-net"] { background: #DDD8D0; }
+body.warm-stone .stat-card[data-card-id="mtd-income"] { background: #D8D2C8; }
+body.warm-stone .stat-card[data-card-id="mtd-expenses"] { background: #E0DAD0; }
+body.warm-stone .stat-card[data-card-id="top-categories"] { background: #D4CEC4; }
+
 /* RESPONSIVE - iPad Portrait */
 @media (max-width: 768px) {
     /* Hide Description, Source, Category, Files columns */

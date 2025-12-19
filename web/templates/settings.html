@@ -170,12 +170,13 @@ details[open] .settings-section-header .arrow {
         
         <div class="form-row-half">
             <div class="form-group">
-                <label for="card-style">Info Card Style</label>
+                <label for="card-style">Theme</label>
                 <select id="card-style" onchange="saveAndApplyCardStyle()">
-                    <option value="strait-laced">Strait-Laced (White)</option>
-                    <option value="garden-path">Garden Path (Green/sage)</option>
+                    <option value="strait-laced">EdgeCase (Default)</option>
                     <option value="ocean-breeze">Ocean Breeze (Blue/teal)</option>
                     <option value="sunset-glow">Sunset Glow (Warm peach)</option>
+                    <option value="garden-path">Garden Path (Green/sage)</option>
+                    <option value="warm-stone">Warm Stone (Beige/taupe)</option>
                     <option value="tutti-frutti">Tutti-Frutti (Mixed pastels)</option>
                 </select>
             </div>
@@ -185,11 +186,8 @@ details[open] .settings-section-header .arrow {
             <div class="form-group mb-0">
                 <label for="background-style">Background</label>
                 <select id="background-style" onchange="saveAndApplyBackground()">
-                    <option value="suit-grey">Suit Grey (Cool grey)</option>
-                    <option value="sage-mist">Sage Mist (Soft green)</option>
-                    <option value="soft-cream">Soft Cream (Warm cream)</option>
-                    <option value="warm-stone">Warm Stone (Taupe)</option>
-                    <!-- Background images will be added by JavaScript -->
+                    <option value="theme-default">Theme Default</option>
+                    <!-- User backgrounds will be added by JavaScript -->
                 </select>
             </div>
         </div>
