@@ -99,7 +99,8 @@ def load_manifest():
     return {
         'backups': [],
         'last_full_hashes': {},
-        'current_chain_id': None
+        'current_chain_id': None,
+        'last_backup_check': None
     }
 
 
@@ -881,9 +882,12 @@ def check_backup_needed(frequency='daily'):
     """
     Check if an automatic backup should run.
     
-    Uses CALENDAR DATE comparison, not hours:
-    - 'daily': backup if last backup was on a different calendar date
-    - 'weekly': backup if last backup was 7+ calendar days ago
+    Uses CALENDAR DATE comparison against last check date, not hours:
+    - 'daily': check if last check was on a different calendar date
+    - 'weekly': check if last check was 7+ calendar days ago
+    
+    This prevents repeated backup attempts when there are no changes -
+    we track when we last checked, not when we last created a backup.
     
     Args:
         frequency: 'startup', 'daily', 'weekly', or 'manual'
@@ -912,8 +916,14 @@ def check_backup_needed(frequency='daily'):
     now = datetime.now()
     today = now.date()
     
-    last_any = max(all_backups, key=lambda x: x['created_at'])
-    last_date = datetime.fromisoformat(last_any['created_at']).date()
+    # Use last_backup_check if available, otherwise fall back to last backup date
+    last_check = manifest.get('last_backup_check')
+    if last_check:
+        last_date = datetime.fromisoformat(last_check).date()
+    else:
+        # Legacy: no check recorded, use last backup date
+        last_any = max(all_backups, key=lambda x: x['created_at'])
+        last_date = datetime.fromisoformat(last_any['created_at']).date()
     
     # Use calendar date comparison
     if frequency == 'daily' and today > last_date:
@@ -922,6 +932,16 @@ def check_backup_needed(frequency='daily'):
         return True
     
     return False
+
+
+def record_backup_check():
+    """
+    Record that we checked for backup today.
+    Called after backup attempt (whether successful or no changes).
+    """
+    manifest = load_manifest()
+    manifest['last_backup_check'] = datetime.now().isoformat()
+    save_manifest(manifest)
 
 
 def get_backup_status():
