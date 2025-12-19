@@ -15,6 +15,10 @@ def run():
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
     
+    # Quiet Waitress queue warnings (normal for single-user app)
+    waitress_log = logging.getLogger('waitress')
+    waitress_log.setLevel(logging.ERROR)
+    
     print("\n" + "="*50)
     print("EdgeCase Equalizer")
     print("="*50)

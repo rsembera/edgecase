@@ -105,14 +105,12 @@ def _get_system_config() -> dict:
         config['use_gpu'] = True
         config['n_gpu_layers'] = -1  # Offload all layers to Metal
         config['platform_info'] = f"Apple Silicon Mac ({ram_gb:.0f}GB RAM) - Metal GPU"
-        print(f"[AI Scribe] Detected Apple Silicon - using Metal acceleration")
     
     # macOS with Intel - CPU only (no Metal for Intel Macs in llama.cpp)
     elif system == 'Darwin':
         config['use_gpu'] = False
         config['n_gpu_layers'] = 0
         config['platform_info'] = f"Intel Mac ({ram_gb:.0f}GB RAM) - CPU"
-        print(f"[AI Scribe] Detected Intel Mac - using CPU inference")
     
     # Windows/Linux - check for CUDA
     elif system in ('Windows', 'Linux'):
@@ -122,20 +120,16 @@ def _get_system_config() -> dict:
             config['use_gpu'] = True
             config['n_gpu_layers'] = -1
             config['platform_info'] = f"{system} ({ram_gb:.0f}GB RAM) - CUDA GPU"
-            print(f"[AI Scribe] Detected CUDA - using GPU acceleration")
         else:
             config['use_gpu'] = False
             config['n_gpu_layers'] = 0
             config['platform_info'] = f"{system} ({ram_gb:.0f}GB RAM) - CPU"
-            print(f"[AI Scribe] No CUDA detected - using CPU inference")
     
     # Adjust context based on available RAM (conservative)
     if ram_gb < 12:
         config['n_ctx'] = 2048  # Smaller context for low RAM
-        print(f"[AI Scribe] Limited RAM ({ram_gb:.0f}GB) - using 2K context")
     elif ram_gb >= 32:
         config['n_ctx'] = 8192  # Larger context if plenty of RAM
-        print(f"[AI Scribe] Plenty of RAM ({ram_gb:.0f}GB) - using 8K context")
     
     return config
 
