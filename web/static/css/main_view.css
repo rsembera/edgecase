@@ -50,37 +50,37 @@ body.sunset-glow .stat-card { background: #F0D8C4; }
 body.garden-path .stat-card { background: #C8D8C4; }
 body.warm-stone .stat-card { background: #D8D2C8; }
 
-/* Other themes - uniform nav buttons */
+/* Other themes - uniform nav buttons (darker than card background) */
 body.ocean-breeze .nav-btn {
-    background: #B8D4E3;
+    background: #95C0D5;
     color: #1E4D6B;
 }
 body.ocean-breeze .nav-btn:hover {
-    background: #A0C4D8;
+    background: #80B0C8;
 }
 
 body.sunset-glow .nav-btn {
-    background: #F0D8C4;
+    background: #E5C4A8;
     color: #5A4520;
 }
 body.sunset-glow .nav-btn:hover {
-    background: #E0C8B4;
+    background: #D8B498;
 }
 
 body.garden-path .nav-btn {
-    background: #C8D8C4;
+    background: #A8C8A0;
     color: #2D4228;
 }
 body.garden-path .nav-btn:hover {
-    background: #B8CCB2;
+    background: #98BB90;
 }
 
 body.warm-stone .nav-btn {
-    background: #D8D2C8;
+    background: #C5BDB0;
     color: #4A4540;
 }
 body.warm-stone .nav-btn:hover {
-    background: #C8C2B8;
+    background: #B8AFA2;
 }
 
 .stat-number {
