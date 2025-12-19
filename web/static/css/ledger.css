@@ -102,7 +102,7 @@ svg[data-lucide] {
     line-height: 1;
 }
 
-/* Theme-specific stat card colors - Tutti-Frutti */
+/* Theme-specific stat card colors - Tutti-Frutti (colorful) */
 body.tutti-frutti .stat-card[data-card-id="ytd-income"] { background: #CFE7DA; }
 body.tutti-frutti .stat-card[data-card-id="ytd-expenses"] { background: #E9CFCF; }
 body.tutti-frutti .stat-card[data-card-id="ytd-net"] { background: #C8D8E0; }
@@ -110,37 +110,11 @@ body.tutti-frutti .stat-card[data-card-id="mtd-income"] { background: #CFE7DA; }
 body.tutti-frutti .stat-card[data-card-id="mtd-expenses"] { background: #E9CFCF; }
 body.tutti-frutti .stat-card[data-card-id="top-categories"] { background: #DCD3E8; }
 
-/* Ocean Breeze */
-body.ocean-breeze .stat-card[data-card-id="ytd-income"] { background: #B5D8D8; }
-body.ocean-breeze .stat-card[data-card-id="ytd-expenses"] { background: #C2DDE8; }
-body.ocean-breeze .stat-card[data-card-id="ytd-net"] { background: #B8D4E3; }
-body.ocean-breeze .stat-card[data-card-id="mtd-income"] { background: #B5D8D8; }
-body.ocean-breeze .stat-card[data-card-id="mtd-expenses"] { background: #C2DDE8; }
-body.ocean-breeze .stat-card[data-card-id="top-categories"] { background: #A8C8D8; }
-
-/* Sunset Glow */
-body.sunset-glow .stat-card[data-card-id="ytd-income"] { background: #F0D8C4; }
-body.sunset-glow .stat-card[data-card-id="ytd-expenses"] { background: #EECFB8; }
-body.sunset-glow .stat-card[data-card-id="ytd-net"] { background: #F5DEB3; }
-body.sunset-glow .stat-card[data-card-id="mtd-income"] { background: #F0D8C4; }
-body.sunset-glow .stat-card[data-card-id="mtd-expenses"] { background: #EECFB8; }
-body.sunset-glow .stat-card[data-card-id="top-categories"] { background: #E8C4A8; }
-
-/* Garden Path */
-body.garden-path .stat-card[data-card-id="ytd-income"] { background: #C2D4BE; }
-body.garden-path .stat-card[data-card-id="ytd-expenses"] { background: #D4DCC8; }
-body.garden-path .stat-card[data-card-id="ytd-net"] { background: #C8D8C4; }
-body.garden-path .stat-card[data-card-id="mtd-income"] { background: #C2D4BE; }
-body.garden-path .stat-card[data-card-id="mtd-expenses"] { background: #D4DCC8; }
-body.garden-path .stat-card[data-card-id="top-categories"] { background: #B8CEB5; }
-
-/* Warm Stone */
-body.warm-stone .stat-card[data-card-id="ytd-income"] { background: #D8D2C8; }
-body.warm-stone .stat-card[data-card-id="ytd-expenses"] { background: #E0DAD0; }
-body.warm-stone .stat-card[data-card-id="ytd-net"] { background: #DDD8D0; }
-body.warm-stone .stat-card[data-card-id="mtd-income"] { background: #D8D2C8; }
-body.warm-stone .stat-card[data-card-id="mtd-expenses"] { background: #E0DAD0; }
-body.warm-stone .stat-card[data-card-id="top-categories"] { background: #D4CEC4; }
+/* Other themes - uniform card colors */
+body.ocean-breeze .stat-card { background: #B8D4E3; }
+body.sunset-glow .stat-card { background: #F0D8C4; }
+body.garden-path .stat-card { background: #C8D8C4; }
+body.warm-stone .stat-card { background: #D8D2C8; }
 
 /* RESPONSIVE - iPad Portrait */
 @media (max-width: 768px) {
