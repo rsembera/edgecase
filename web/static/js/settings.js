@@ -177,12 +177,15 @@ function handleCardSwap(position) {
 
 let userBackgrounds = [];
 
-const SOLID_COLORS = [
-    { value: 'suit-grey', name: 'Suit Grey (Cool grey)' },
-    { value: 'warm-stone', name: 'Warm Stone (Taupe)' },
-    { value: 'sage-mist', name: 'Sage Mist (Soft green)' },
-    { value: 'soft-cream', name: 'Soft Cream (Warm cream)' }
-];
+// Theme to background color mapping
+const THEME_BACKGROUNDS = {
+    'strait-laced': '#C5CDD3',   // Cool grey
+    'ocean-breeze': '#C5D3DD',   // Powder blue
+    'sunset-glow': '#E5E1D8',    // Warm cream
+    'garden-path': '#C8D1C8',    // Soft green
+    'warm-stone': '#D4CEC5',     // Taupe
+    'tutti-frutti': '#D8D5DD'    // Soft lavender
+};
 
 /**
  * Load available background images and populate dropdown
@@ -192,39 +195,18 @@ async function loadBackgroundOptions() {
         const response = await fetch('/api/backgrounds');
         const data = await response.json();
         
-        const systemBackgrounds = data.system || [];
         userBackgrounds = data.user || [];
         
-        // Build choices array with groups for Choices.js
+        // Build choices array for Choices.js
         const choices = [];
         
-        // Add solid colors group
+        // Add Theme Default option
         choices.push({
-            label: 'Solid Colors',
-            id: 'solid-colors',
-            choices: SOLID_COLORS.map(color => ({
-                value: color.value,
-                label: color.name
-            }))
+            value: 'theme-default',
+            label: 'Theme Default'
         });
         
-        // Add system backgrounds group
-        if (systemBackgrounds.length > 0) {
-            choices.push({
-                label: 'System Backgrounds',
-                id: 'system-backgrounds',
-                choices: systemBackgrounds.map(bg => {
-                    const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
-                        .replace(/\b\w/g, l => l.toUpperCase());
-                    return {
-                        value: 'system:' + bg,
-                        label: displayName
-                    };
-                })
-            });
-        }
-        
-        // Add user backgrounds group
+        // Add user backgrounds group if any exist
         if (userBackgrounds.length > 0) {
             choices.push({
                 label: 'My Backgrounds',
@@ -268,7 +250,7 @@ function loadCardStyleSetting() {
  */
 function loadCurrentSettings() {
     // Background style needs to be set after the dropdown is populated
-    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'suit-grey';
+    const backgroundStyle = localStorage.getItem('backgroundStyle') || 'theme-default';
     window.setChoicesValue('background-style', backgroundStyle);
     
     updateDeleteButton();
