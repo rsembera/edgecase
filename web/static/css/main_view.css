@@ -36,7 +36,7 @@ body * {
     border: 2px dashed #00aa88;
 }
 
-/* Tutti-Frutti theme colors by card ID */
+/* Tutti-Frutti theme - colorful cards (unique to this theme) */
 body.tutti-frutti .stat-card[data-card-id="active-clients"] { background: #C8D8E0; }
 body.tutti-frutti .stat-card[data-card-id="sessions-month"] { background: #DCD3E8; }
 body.tutti-frutti .stat-card[data-card-id="pending-invoices"] { background: #E9CFCF; }
@@ -44,156 +44,43 @@ body.tutti-frutti .stat-card[data-card-id="billable-month"] { background: #CFE7D
 body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0; }
 body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
-/* Ocean Breeze theme - blue/teal tones */
-body.ocean-breeze .stat-card[data-card-id="active-clients"] { background: #B8D4E3; }
-body.ocean-breeze .stat-card[data-card-id="sessions-month"] { background: #A8C8D8; }
-body.ocean-breeze .stat-card[data-card-id="pending-invoices"] { background: #C2DDE8; }
-body.ocean-breeze .stat-card[data-card-id="billable-month"] { background: #B5D8D8; }
-body.ocean-breeze .stat-card[data-card-id="current-time"] { background: #95C4D1; }
-body.ocean-breeze .stat-card[data-card-id="navigation"] { background: #7FB3C2; }
+/* Other themes - uniform card colors */
+body.ocean-breeze .stat-card { background: #B8D4E3; }
+body.sunset-glow .stat-card { background: #F0D8C4; }
+body.garden-path .stat-card { background: #C8D8C4; }
+body.warm-stone .stat-card { background: #D8D2C8; }
 
-/* Sunset Glow theme - warm peach/amber tones */
-body.sunset-glow .stat-card[data-card-id="active-clients"] { background: #F5DEB3; }
-body.sunset-glow .stat-card[data-card-id="sessions-month"] { background: #EECFB8; }
-body.sunset-glow .stat-card[data-card-id="pending-invoices"] { background: #E8C4A8; }
-body.sunset-glow .stat-card[data-card-id="billable-month"] { background: #F0D8C4; }
-body.sunset-glow .stat-card[data-card-id="current-time"] { background: #E5CFBB; }
-body.sunset-glow .stat-card[data-card-id="navigation"] { background: #D4B896; }
-
-/* Garden Path theme - green/sage tones */
-body.garden-path .stat-card[data-card-id="active-clients"] { background: #C8D8C4; }
-body.garden-path .stat-card[data-card-id="sessions-month"] { background: #B8CEB5; }
-body.garden-path .stat-card[data-card-id="pending-invoices"] { background: #D4DCC8; }
-body.garden-path .stat-card[data-card-id="billable-month"] { background: #C2D4BE; }
-body.garden-path .stat-card[data-card-id="current-time"] { background: #B5C8B0; }
-body.garden-path .stat-card[data-card-id="navigation"] { background: #9BB89A; }
-
-/* Warm Stone theme - beige/taupe tones */
-body.warm-stone .stat-card[data-card-id="active-clients"] { background: #DDD8D0; }
-body.warm-stone .stat-card[data-card-id="sessions-month"] { background: #D4CEC4; }
-body.warm-stone .stat-card[data-card-id="pending-invoices"] { background: #E0DAD0; }
-body.warm-stone .stat-card[data-card-id="billable-month"] { background: #D8D2C8; }
-body.warm-stone .stat-card[data-card-id="current-time"] { background: #CFC8BC; }
-body.warm-stone .stat-card[data-card-id="navigation"] { background: #C4BCB0; }
-
-/* Ocean Breeze theme - nav buttons */
-body.ocean-breeze .nav-btn.teal {
+/* Other themes - uniform nav buttons */
+body.ocean-breeze .nav-btn {
     background: #B8D4E3;
     color: #1E4D6B;
 }
-body.ocean-breeze .nav-btn.teal:hover {
+body.ocean-breeze .nav-btn:hover {
     background: #A0C4D8;
 }
-body.ocean-breeze .nav-btn.purple {
-    background: #A8C8D8;
-    color: #1A4A5E;
-}
-body.ocean-breeze .nav-btn.purple:hover {
-    background: #90B8CC;
-}
-body.ocean-breeze .nav-btn.sage {
-    background: #95C4D1;
-    color: #185060;
-}
-body.ocean-breeze .nav-btn.sage:hover {
-    background: #80B4C4;
-}
-body.ocean-breeze .nav-btn.peach {
-    background: #C5DCE5;
-    color: #1A4A5E;
-}
-body.ocean-breeze .nav-btn.peach:hover {
-    background: #B0D0DD;
-}
 
-/* Sunset Glow theme - nav buttons */
-body.sunset-glow .nav-btn.teal {
-    background: #F5DEB3;
+body.sunset-glow .nav-btn {
+    background: #F0D8C4;
     color: #5A4520;
 }
-body.sunset-glow .nav-btn.teal:hover {
-    background: #EDD49E;
-}
-body.sunset-glow .nav-btn.purple {
-    background: #EECFB8;
-    color: #5C4030;
-}
-body.sunset-glow .nav-btn.purple:hover {
-    background: #E4C0A5;
-}
-body.sunset-glow .nav-btn.sage {
-    background: #E8C4A8;
-    color: #5A3E28;
-}
-body.sunset-glow .nav-btn.sage:hover {
-    background: #DCB595;
-}
-body.sunset-glow .nav-btn.peach {
-    background: #F2E4D0;
-    color: #5A4520;
-}
-body.sunset-glow .nav-btn.peach:hover {
-    background: #E8D8C0;
+body.sunset-glow .nav-btn:hover {
+    background: #E0C8B4;
 }
 
-/* Garden Path theme - nav buttons */
-body.garden-path .nav-btn.teal {
+body.garden-path .nav-btn {
     background: #C8D8C4;
     color: #2D4228;
 }
-body.garden-path .nav-btn.teal:hover {
+body.garden-path .nav-btn:hover {
     background: #B8CCB2;
 }
-body.garden-path .nav-btn.purple {
-    background: #B8CEB5;
-    color: #2A3D26;
-}
-body.garden-path .nav-btn.purple:hover {
-    background: #A8C0A3;
-}
-body.garden-path .nav-btn.sage {
-    background: #B5C8B0;
-    color: #283A24;
-}
-body.garden-path .nav-btn.sage:hover {
-    background: #A5BA9E;
-}
-body.garden-path .nav-btn.peach {
-    background: #D0DFC8;
-    color: #2D4228;
-}
-body.garden-path .nav-btn.peach:hover {
-    background: #C0D2B8;
-}
 
-/* Warm Stone theme - nav buttons */
-body.warm-stone .nav-btn.teal {
-    background: #DDD8D0;
+body.warm-stone .nav-btn {
+    background: #D8D2C8;
     color: #4A4540;
 }
-body.warm-stone .nav-btn.teal:hover {
-    background: #D0CAC0;
-}
-body.warm-stone .nav-btn.purple {
-    background: #D4CEC4;
-    color: #48433E;
-}
-body.warm-stone .nav-btn.purple:hover {
-    background: #C8C0B5;
-}
-body.warm-stone .nav-btn.sage {
-    background: #CFC8BC;
-    color: #46413A;
-}
-body.warm-stone .nav-btn.sage:hover {
-    background: #C2BAB0;
-}
-body.warm-stone .nav-btn.peach {
-    background: #E0DAD0;
-    color: #4A4540;
-}
-body.warm-stone .nav-btn.peach:hover {
-    background: #D4CCC2;
+body.warm-stone .nav-btn:hover {
+    background: #C8C2B8;
 }
 
 .stat-number {
