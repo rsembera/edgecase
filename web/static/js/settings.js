@@ -178,10 +178,10 @@ function handleCardSwap(position) {
 let userBackgrounds = [];
 
 const SOLID_COLORS = [
-    { value: 'suit-grey', name: 'Suit Grey' },
-    { value: 'warm-stone', name: 'Warm Stone' },
-    { value: 'sage-mist', name: 'Sage Mist' },
-    { value: 'soft-cream', name: 'Soft Cream' }
+    { value: 'suit-grey', name: 'Suit Grey (Cool grey)' },
+    { value: 'warm-stone', name: 'Warm Stone (Taupe)' },
+    { value: 'sage-mist', name: 'Sage Mist (Soft green)' },
+    { value: 'soft-cream', name: 'Soft Cream (Warm cream)' }
 ];
 
 /**
