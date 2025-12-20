@@ -13,6 +13,24 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 
 
+def _get_currency_symbol(currency_code):
+    """Convert currency code to symbol."""
+    symbols = {
+        'CAD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£',
+        'AUD': '$', 'NZD': '$', 'JPY': '¥', 'CNY': '¥',
+        'INR': '₹', 'MXN': '$', 'BRL': 'R$', 'CHF': 'CHF'
+    }
+    return symbols.get(currency_code, '$')
+
+
+def _format_currency(amount, currency_code):
+    """Format amount with currency symbol."""
+    symbol = _get_currency_symbol(currency_code)
+    if amount is None:
+        amount = 0
+    return f"{symbol} {amount:,.2f}"
+
+
 def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True,
                                 include_taxes=True, start_date_str='', end_date_str=''):
     """
@@ -30,6 +48,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     
     # Get practice info
     practice_name = db.get_setting('practice_name', 'Practice Name')
+    currency = db.get_setting('currency', 'CAD')
     
     # Fetch all data
     conn = db.connect()
@@ -171,9 +190,9 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         
         for t in all_transactions:
             date_str = datetime.fromtimestamp(t['date']).strftime('%d-%b')
-            income_str = f"$ {t['income']:,.2f}" if t['income'] else ''
-            expense_str = f"$ {t['expense']:,.2f}" if t['expense'] else ''
-            tax_str = f"$ {t['tax']:,.2f}" if t['tax'] else ''
+            income_str = _format_currency(t['income'], currency) if t['income'] else ''
+            expense_str = _format_currency(t['expense'], currency) if t['expense'] else ''
+            tax_str = _format_currency(t['tax'], currency) if t['tax'] else ''
             desc = t['description'][:30] + ('...' if len(t['description']) > 30 else '')
             payor_payee = t['payor_payee'][:25] + ('...' if len(t['payor_payee']) > 25 else '')
             category = t['category'][:20] + ('...' if len(t['category']) > 20 else '')
@@ -185,9 +204,9 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         
         # Add totals row
         if include_taxes:
-            table_data.append(['TOTALS', f"$ {total_income:,.2f}", f"$ {total_expenses:,.2f}", '', '', '', ''])
+            table_data.append(['TOTALS', _format_currency(total_income, currency), _format_currency(total_expenses, currency), '', '', '', ''])
         else:
-            table_data.append(['TOTALS', f"$ {total_income:,.2f}", f"$ {total_expenses:,.2f}", '', '', ''])
+            table_data.append(['TOTALS', _format_currency(total_income, currency), _format_currency(total_expenses, currency), '', '', ''])
         
         # Create table with appropriate column widths
         if include_taxes:
@@ -263,10 +282,10 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     for cat in category_totals:
         cat_name = cat[0] or 'Uncategorized'
         cat_total = cat[1]
-        summary_data.append([cat_name, f"$ {cat_total:,.2f}"])
+        summary_data.append([cat_name, _format_currency(cat_total, currency)])
     
     # Add total row
-    summary_data.append(['TOTAL', f"$ {total_expenses:,.2f}"])
+    summary_data.append(['TOTAL', _format_currency(total_expenses, currency)])
     
     summary_table = Table(summary_data, colWidths=[4*inch, 2*inch])
     summary_table.setStyle(TableStyle([
@@ -310,18 +329,18 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Build net data - conditionally include tax rows
     if include_taxes:
         net_data = [
-            ['Total Income', f"$ {total_income:,.2f}"],
-            ['Total Expenses', f"$ {total_expenses:,.2f}"],
-            ['Net Income', f"$ {net_income:,.2f}"],
+            ['Total Income', _format_currency(total_income, currency)],
+            ['Total Expenses', _format_currency(total_expenses, currency)],
+            ['Net Income', _format_currency(net_income, currency)],
             ['', ''],  # Spacer row
-            ['Tax Collected', f"$ {tax_collected:,.2f}"],
-            ['Tax Paid', f"$ {tax_paid:,.2f}"],
+            ['Tax Collected', _format_currency(tax_collected, currency)],
+            ['Tax Paid', _format_currency(tax_paid, currency)],
         ]
     else:
         net_data = [
-            ['Total Income', f"$ {total_income:,.2f}"],
-            ['Total Expenses', f"$ {total_expenses:,.2f}"],
-            ['Net Income', f"$ {net_income:,.2f}"],
+            ['Total Income', _format_currency(total_income, currency)],
+            ['Total Expenses', _format_currency(total_expenses, currency)],
+            ['Net Income', _format_currency(net_income, currency)],
         ]
     
     net_table = Table(net_data, colWidths=[4*inch, 2*inch])
