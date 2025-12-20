@@ -884,6 +884,7 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     total_base = 0
     total_tax = 0
     total_fees = 0
+    currency = db.get_setting('currency', 'CAD')
     
     for entry in entries:
         entry_class = entry['class']
@@ -925,9 +926,9 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         
         if include_fees:
             if has_tax:
-                table_data.append([date_str, description, duration_str, f"${base_fee:.2f}", f"${tax_amount:.2f}"])
+                table_data.append([date_str, description, duration_str, generator._format_currency(base_fee, currency), generator._format_currency(tax_amount, currency)])
             else:
-                table_data.append([date_str, description, duration_str, f"${fee:.2f}"])
+                table_data.append([date_str, description, duration_str, generator._format_currency(fee, currency)])
         else:
             table_data.append([date_str, description, duration_str])
     
@@ -935,11 +936,11 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     if include_fees:
         if has_tax:
             # Add subtotal and tax rows, then total (matching statement format)
-            table_data.append(['', '', '', 'Subtotal', f"${total_base:.2f}"])
-            table_data.append(['', '', '', 'Tax', f"${total_tax:.2f}"])
-            table_data.append(['', '', '', 'TOTAL', f"${total_fees:.2f}"])
+            table_data.append(['', '', '', 'Subtotal', generator._format_currency(total_base, currency)])
+            table_data.append(['', '', '', 'Tax', generator._format_currency(total_tax, currency)])
+            table_data.append(['', '', '', 'TOTAL', generator._format_currency(total_fees, currency)])
         else:
-            table_data.append(['', '', 'TOTAL', f"${total_fees:.2f}"])
+            table_data.append(['', '', 'TOTAL', generator._format_currency(total_fees, currency)])
     
     # Create table
     table = Table(table_data, colWidths=col_widths)

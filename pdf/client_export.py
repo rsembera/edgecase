@@ -156,11 +156,21 @@ def format_date(timestamp):
         return "N/A"
 
 
-def format_currency(amount):
+def get_currency_symbol(currency_code):
+    """Convert currency code to symbol."""
+    symbols = {
+        'CAD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£',
+        'AUD': '$', 'NZD': '$', 'JPY': '¥', 'CNY': '¥',
+        'INR': '₹', 'MXN': '$', 'BRL': 'R$', 'CHF': 'CHF'
+    }
+    return symbols.get(currency_code, '$')
+
+
+def format_currency(amount, currency_symbol='$'):
     """Format amount as currency."""
     if amount is None:
-        return "$0.00"
-    return f"${amount:.2f}"
+        return f"{currency_symbol}0.00"
+    return f"{currency_symbol}{amount:.2f}"
 
 
 def format_edit_history(edit_history_json, styles):
@@ -428,7 +438,7 @@ def build_communication_entry(entry, client, styles, db=None):
     return elements
 
 
-def build_absence_entry(entry, client, styles):
+def build_absence_entry(entry, client, styles, currency_symbol='$'):
     """Build PDF elements for an Absence entry."""
     elements = []
     
@@ -451,9 +461,9 @@ def build_absence_entry(entry, client, styles):
     fee = entry.get('fee')
     
     if base_fee is not None or fee is not None:
-        base_str = f"${base_fee:.2f}" if base_fee is not None else "—"
+        base_str = f"{currency_symbol}{base_fee:.2f}" if base_fee is not None else "—"
         tax_str = f"{tax_rate:.1f}%" if tax_rate is not None else "—"
-        fee_str = f"${fee:.2f}" if fee is not None else "—"
+        fee_str = f"{currency_symbol}{fee:.2f}" if fee is not None else "—"
         
         elements.append(Paragraph(f'<b>Base Fee:</b> {base_str}', styles['FieldValue']))
         elements.append(Paragraph(f'<b>Tax Rate:</b> {tax_str}', styles['FieldValue']))
@@ -476,7 +486,7 @@ def build_absence_entry(entry, client, styles):
     
     return elements
 
-def build_item_entry(entry, client, styles):
+def build_item_entry(entry, client, styles, currency_symbol='$'):
     """Build PDF elements for an Item entry."""
     elements = []
     
@@ -494,9 +504,9 @@ def build_item_entry(entry, client, styles):
     tax_rate = entry.get('tax_rate')
     fee = entry.get('fee')
     
-    base_str = f"${base_price:.2f}" if base_price is not None else "—"
+    base_str = f"{currency_symbol}{base_price:.2f}" if base_price is not None else "—"
     tax_str = f"{tax_rate:.1f}%" if tax_rate is not None else "—"
-    fee_str = f"${fee:.2f}" if fee is not None else "—"
+    fee_str = f"{currency_symbol}{fee:.2f}" if fee is not None else "—"
     
     elements.append(Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']))
     elements.append(Paragraph(f'<b>Base Price:</b> {base_str}', styles['FieldValue']))
@@ -898,6 +908,10 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
         if not os.path.exists(signature_path):
             signature_path = None
     
+    # Get currency symbol
+    currency_code = db.get_setting('currency', 'CAD')
+    currency_symbol = get_currency_symbol(currency_code)
+    
     # Track PDF attachments to append at end
     pdf_attachments = []  # List of (entry_description, filepath) tuples
     
@@ -979,9 +993,9 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
             elements.extend(entry_elements)
             pdf_attachments.extend(entry_pdfs)
         elif entry_class == 'absence':
-            elements.extend(build_absence_entry(entry, client, styles))
+            elements.extend(build_absence_entry(entry, client, styles, currency_symbol))
         elif entry_class == 'item':
-            elements.extend(build_item_entry(entry, client, styles))
+            elements.extend(build_item_entry(entry, client, styles, currency_symbol))
         elif entry_class == 'upload':
             entry_elements, entry_pdfs = build_upload_entry_with_attachments(entry, client, styles, db)
             elements.extend(entry_elements)
