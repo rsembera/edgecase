@@ -200,29 +200,21 @@ async function loadBackgroundOptions() {
         // Build choices array for Choices.js
         const choices = [];
         
-        // Add Theme Default option (as a group with single item for consistency)
+        // Add Theme Default option
         choices.push({
-            label: '',
-            id: 'default',
-            choices: [{
-                value: 'theme-default',
-                label: 'Theme Default'
-            }]
+            value: 'theme-default',
+            label: 'Theme Default'
         });
         
-        // Add user backgrounds group if any exist
+        // Add user backgrounds (flat list, no group header)
         if (userBackgrounds.length > 0) {
-            choices.push({
-                label: 'My Backgrounds',
-                id: 'user-backgrounds',
-                choices: userBackgrounds.map(bg => {
-                    const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
-                        .replace(/\b\w/g, l => l.toUpperCase());
-                    return {
-                        value: 'user:' + bg,
-                        label: displayName
-                    };
-                })
+            userBackgrounds.forEach(bg => {
+                const displayName = bg.replace(/\.[^/.]+$/, '').replace(/-/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
+                choices.push({
+                    value: 'user:' + bg,
+                    label: displayName
+                });
             });
         }
         
