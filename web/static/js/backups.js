@@ -94,7 +94,7 @@ async function loadBackupStatus() {
 function populateLocationDropdown(cloudFolders, savedLocation) {
     // Build options array - default option plus cloud folders
     const options = [
-        { value: 'default', label: 'Default (~/edgecase/backups)', selected: !savedLocation || savedLocation === 'default' }
+        { value: 'default', label: 'Default (app folder)', selected: !savedLocation || savedLocation === 'default' }
     ];
     
     cloudFolders.forEach(folder => {
