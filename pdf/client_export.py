@@ -22,6 +22,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from core.encryption import decrypt_file_to_bytes
+from core.config import get_assets_path, get_attachments_path
 
 def get_styles():
     """Create custom paragraph styles for the export."""
@@ -740,7 +741,7 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
             
             for att in attachments:
                 filename = att['filename'].lower()
-                filepath = os.path.join(os.path.expanduser('~/edgecase/attachments'), 
+                filepath = os.path.join(get_attachments_path(), 
                                        str(client['id']), str(entry['id']), att['filename'])
                 
                 att_desc = att.get('description') or att['filename']
@@ -826,7 +827,7 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
             
             for att in attachments:
                 filename = att['filename'].lower()
-                filepath = os.path.join(os.path.expanduser('~/edgecase/attachments'), 
+                filepath = os.path.join(get_attachments_path(), 
                                        str(client['id']), str(entry['id']), att['filename'])
                 
                 att_desc = att.get('description') or att['filename']
@@ -901,7 +902,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
     
     # Get signature path
     signature_filename = db.get_setting('signature_filename')
-    assets_path = os.path.expanduser('~/edgecase/assets')
+    assets_path = get_assets_path()
     signature_path = None
     if signature_filename:
         signature_path = os.path.join(assets_path, signature_filename)

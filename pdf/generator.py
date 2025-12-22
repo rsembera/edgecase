@@ -14,6 +14,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
+from core.config import get_assets_path
 from io import BytesIO
 
 
@@ -814,7 +815,7 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         'attestation_text': db.get_setting('attestation_text', 'I attest that I have performed the services listed above.'),
     }
     
-    assets_path = os.path.expanduser('~/edgecase/assets')
+    assets_path = get_assets_path()
     
     # Create PDF generator instance to reuse styles and methods
     generator = StatementPDFGenerator(db)

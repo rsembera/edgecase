@@ -16,8 +16,8 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Project paths
-PROJECT_ROOT = Path.home() / 'edgecase'
+# Project paths - derived from file location so app is relocatable
+PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / 'data'
 ATTACHMENTS_DIR = PROJECT_ROOT / 'attachments'
 ASSETS_DIR = PROJECT_ROOT / 'assets'
