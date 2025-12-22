@@ -51,7 +51,7 @@
     
     {# Profile Entry - Always at top if exists #}
     {% if profile_entry %}
-    <div class="profile-entry" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
+    <div class="profile-entry" style="background-color: {{ client.type.bubble_color or '#CFE7DA' }};" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
         <div class="profile-header">
             <strong class="profile-title">Profile</strong>
             
