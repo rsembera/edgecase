@@ -2334,3 +2334,30 @@ body.parchment .empty-state-card {
     background: #f8f4ec;
     border: 1px solid #8b7355;
 }
+
+/* ============================================
+   DOCUMENT THEMES - MONOCHROME ENTRY BADGES
+   ============================================ */
+body.ink .session-badge-communication,
+body.ink .session-badge-absence,
+body.ink .session-badge-item,
+body.ink .session-badge-upload {
+    background: #e8e4e0;
+    color: #2a2a2a;
+}
+
+body.slate .session-badge-communication,
+body.slate .session-badge-absence,
+body.slate .session-badge-item,
+body.slate .session-badge-upload {
+    background: #e0e4e8;
+    color: #1a1e24;
+}
+
+body.parchment .session-badge-communication,
+body.parchment .session-badge-absence,
+body.parchment .session-badge-item,
+body.parchment .session-badge-upload {
+    background: #e8e0d0;
+    color: #2c2416;
+}
