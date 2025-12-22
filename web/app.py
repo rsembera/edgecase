@@ -149,7 +149,7 @@ def file_too_large(e):
 def require_login():
     """Redirect to login if not authenticated or session expired."""
     # Allow access to login page, static files, and session status endpoints without auth
-    allowed_endpoints = ['auth.login', 'auth.logout', 'static', 'session_status', 'keepalive']
+    allowed_endpoints = ['auth.login', 'auth.logout', 'static', 'session_status', 'keepalive', 'heartbeat']
     if request.endpoint in allowed_endpoints:
         return
     
@@ -268,6 +268,12 @@ def keepalive():
     # Update last activity timestamp
     session['last_activity'] = time.time()
     return jsonify({'success': True})
+
+
+@app.route('/api/heartbeat')
+def heartbeat():
+    """Simple endpoint to check if server is running."""
+    return jsonify({'ok': True})
 
 
 # ============================================================================

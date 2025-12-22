@@ -622,8 +622,40 @@
                 window.choicesInstances[select.id] = instance;
             }
         });
+        
+        // Server connection monitor
+        let disconnected = false;
+        const overlay = document.getElementById('server-disconnected-overlay');
+        
+        async function checkHeartbeat() {
+            try {
+                const response = await fetch('/api/heartbeat', { method: 'GET', cache: 'no-store' });
+                if (response.ok && disconnected) {
+                    // Reconnected
+                    disconnected = false;
+                    overlay.style.display = 'none';
+                }
+            } catch (e) {
+                if (!disconnected) {
+                    disconnected = true;
+                    overlay.style.display = 'flex';
+                }
+            }
+        }
+        
+        // Check every 5 seconds
+        setInterval(checkHeartbeat, 5000);
     });
     </script>
+    
+    <!-- Server disconnected overlay -->
+    <div id="server-disconnected-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 99999; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 1rem; text-align: center; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+            <h2 style="margin: 0 0 0.5rem 0; color: #1a202c;">Server Disconnected</h2>
+            <p style="margin: 0; color: #4a5568;">The EdgeCase server has stopped. Please restart it to continue.</p>
+        </div>
+    </div>
     
     <script>lucide.createIcons();</script>
 </body>
