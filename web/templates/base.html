@@ -236,7 +236,7 @@
         const backgroundStyle = localStorage.getItem('backgroundStyle') || 'theme-default';
         
         // Apply card style
-        const cardThemes = ['tutti-frutti', 'ocean-breeze', 'sunset-glow', 'garden-path', 'warm-stone'];
+        const cardThemes = ['ink', 'slate', 'parchment', 'tutti-frutti', 'ocean-breeze', 'sunset-glow', 'garden-path', 'warm-stone'];
         // Remove all theme classes first
         cardThemes.forEach(theme => document.body.classList.remove(theme));
         // Add the selected theme (strait-laced has no class)
@@ -247,6 +247,9 @@
         // Theme to background color mapping
         const themeBackgrounds = {
             'strait-laced': '#C5CDD3',   // Cool grey
+            'ink': '#e8e4e0',            // Warm off-white
+            'slate': '#e0e4e8',          // Cool gray
+            'parchment': '#e8e0d0',      // Warm cream
             'ocean-breeze': '#C5D3DD',   // Powder blue
             'sunset-glow': '#E5E1D8',    // Warm cream
             'garden-path': '#C8D1C8',    // Soft green
