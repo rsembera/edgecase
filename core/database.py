@@ -1276,7 +1276,6 @@ class Database:
         return row[0] if row else default
     
     # EdgeCase Ledger - Database Methods
-    # Add these methods to the Database class in ~/edgecase/core/database.py
 
     # ============================================================================
     # PAYEE OPERATIONS
@@ -1931,4 +1930,4 @@ class Database:
     # - get_attachments() - gets attachments for ledger entries
 
     # Ledger entries use client_id = NULL since they're practice-wide
-    # Attachments are stored in ~/edgecase/attachments/ledger/{entry_id}/
+    # Attachments are stored in attachments/ledger/{entry_id}/
