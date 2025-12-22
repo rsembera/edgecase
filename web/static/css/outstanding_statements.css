@@ -405,3 +405,8 @@
     background: #BFDCDC;
     color: #115D4F;
 }
+
+/* Document-style themes - generate section borders */
+body.ink .generate-section { border-color: #404040; }
+body.slate .generate-section { border-color: #4a6080; }
+body.parchment .generate-section { border-color: #8b7355; }

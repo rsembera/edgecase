@@ -97,3 +97,8 @@ svg[data-lucide] {
     height: 14px !important;
     vertical-align: middle;
 }
+
+/* Document-style themes - profile entry borders */
+body.ink .profile-entry { border: 1px solid #404040; border-left: 4px solid #404040; }
+body.slate .profile-entry { border: 1px solid #4a6080; border-left: 4px solid #4a6080; }
+body.parchment .profile-entry { border: 1px solid #8b7355; border-left: 4px solid #8b7355; }
