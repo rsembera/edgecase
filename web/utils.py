@@ -5,11 +5,15 @@ Reduces code duplication across blueprints.
 
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from pathlib import Path
 import os
 import time
 import difflib
 import calendar
 from core.encryption import encrypt_file
+
+# Project root for path calculations
+PROJECT_ROOT = Path(__file__).parent.parent
 
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
     """Convert date form data to Unix timestamp.
@@ -199,9 +203,9 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
     
     # Determine upload directory based on entry type
     if client_id:
-        upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
+        upload_dir = PROJECT_ROOT / 'attachments' / str(client_id) / str(entry_id)
     else:
-        upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+        upload_dir = PROJECT_ROOT / 'attachments' / 'ledger' / str(entry_id)
     
     os.makedirs(upload_dir, exist_ok=True)
     
@@ -252,9 +256,9 @@ def delete_attachment_files(entry_id, client_id=None):
     
     try:
         if client_id:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/{client_id}/{entry_id}')
+            upload_dir = PROJECT_ROOT / 'attachments' / str(client_id) / str(entry_id)
         else:
-            upload_dir = os.path.expanduser(f'~/edgecase/attachments/ledger/{entry_id}')
+            upload_dir = PROJECT_ROOT / 'attachments' / 'ledger' / str(entry_id)
         
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)
