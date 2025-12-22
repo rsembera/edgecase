@@ -123,10 +123,6 @@ body.parchment .stat-card {
     background: #f8f4ec; 
     border: 1px solid #8b7355;
 }
-body.ocean-breeze .stat-card { background: #B8D4E3; }
-body.sunset-glow .stat-card { background: #F0D8C4; }
-body.garden-path .stat-card { background: #C8D8C4; }
-body.warm-stone .stat-card { background: #D8D2C8; }
 
 /* RESPONSIVE - iPad Portrait */
 @media (max-width: 768px) {
