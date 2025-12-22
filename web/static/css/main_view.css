@@ -45,12 +45,51 @@ body.tutti-frutti .stat-card[data-card-id="current-time"] { background: #F5DEB0;
 body.tutti-frutti .stat-card[data-card-id="navigation"] { background: #95B8D1; }
 
 /* Other themes - uniform card colors */
+body.ink .stat-card { 
+    background: #f5f3f0; 
+    border: 1px solid #404040;
+}
+body.slate .stat-card { 
+    background: #f0f2f4; 
+    border: 1px solid #4a6080;
+}
+body.parchment .stat-card { 
+    background: #f8f4ec; 
+    border: 1px solid #8b7355;
+}
 body.ocean-breeze .stat-card { background: #B8D4E3; }
 body.sunset-glow .stat-card { background: #F0D8C4; }
 body.garden-path .stat-card { background: #C8D8C4; }
 body.warm-stone .stat-card { background: #D8D2C8; }
 
 /* Other themes - uniform nav buttons (darker than card background) */
+body.ink .nav-btn {
+    background: #ffffff;
+    color: #1a1a1a;
+    border: 1px solid #404040;
+}
+body.ink .nav-btn:hover {
+    background: #f5f3f0;
+}
+
+body.slate .nav-btn {
+    background: #ffffff;
+    color: #1a1e24;
+    border: 1px solid #4a6080;
+}
+body.slate .nav-btn:hover {
+    background: #f0f2f4;
+}
+
+body.parchment .nav-btn {
+    background: #ffffff;
+    color: #2c2416;
+    border: 1px solid #8b7355;
+}
+body.parchment .nav-btn:hover {
+    background: #f8f4ec;
+}
+
 body.ocean-breeze .nav-btn {
     background: #95C0D5;
     color: #1E4D6B;

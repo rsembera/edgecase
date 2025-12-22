@@ -2279,3 +2279,58 @@ tbody tr:hover {
 .guardian-split-status.invalid {
     color: var(--color-danger, #EF4444);
 }
+
+
+/* ============================================
+   INK THEME OVERRIDES
+   ============================================ */
+body.ink {
+    --color-primary: #2a2a2a;
+    --color-primary-light: #404040;
+    --color-primary-lighter: #2a2a2a;
+    --color-primary-dark: #f5f3f0;
+    --color-border-focus: #2a2a2a;
+    --shadow-focus: 0 0 0 3px rgba(42,42,42,0.15);
+}
+
+body.ink .card,
+body.ink .empty-state-card {
+    background: #f5f3f0;
+    border: 1px solid #404040;
+}
+
+/* ============================================
+   SLATE THEME OVERRIDES
+   ============================================ */
+body.slate {
+    --color-primary: #4a6080;
+    --color-primary-light: #708090;
+    --color-primary-lighter: #4a6080;
+    --color-primary-dark: #f0f2f4;
+    --color-border-focus: #4a6080;
+    --shadow-focus: 0 0 0 3px rgba(74,96,128,0.15);
+}
+
+body.slate .card,
+body.slate .empty-state-card {
+    background: #f0f2f4;
+    border: 1px solid #4a6080;
+}
+
+/* ============================================
+   PARCHMENT THEME OVERRIDES
+   ============================================ */
+body.parchment {
+    --color-primary: #8b7355;
+    --color-primary-light: #a09080;
+    --color-primary-lighter: #8b7355;
+    --color-primary-dark: #f8f4ec;
+    --color-border-focus: #8b7355;
+    --shadow-focus: 0 0 0 3px rgba(139,115,85,0.15);
+}
+
+body.parchment .card,
+body.parchment .empty-state-card {
+    background: #f8f4ec;
+    border: 1px solid #8b7355;
+}

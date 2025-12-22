@@ -111,6 +111,18 @@ body.tutti-frutti .stat-card[data-card-id="mtd-expenses"] { background: #E9CFCF;
 body.tutti-frutti .stat-card[data-card-id="top-categories"] { background: #DCD3E8; }
 
 /* Other themes - uniform card colors */
+body.ink .stat-card { 
+    background: #f5f3f0; 
+    border: 1px solid #404040;
+}
+body.slate .stat-card { 
+    background: #f0f2f4; 
+    border: 1px solid #4a6080;
+}
+body.parchment .stat-card { 
+    background: #f8f4ec; 
+    border: 1px solid #8b7355;
+}
 body.ocean-breeze .stat-card { background: #B8D4E3; }
 body.sunset-glow .stat-card { background: #F0D8C4; }
 body.garden-path .stat-card { background: #C8D8C4; }

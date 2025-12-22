@@ -180,6 +180,9 @@ let userBackgrounds = [];
 // Theme to background color mapping
 const THEME_BACKGROUNDS = {
     'strait-laced': '#C5CDD3',   // Cool grey
+    'ink': '#e8e4e0',            // Warm off-white
+    'slate': '#e0e4e8',          // Cool gray
+    'parchment': '#e8e0d0',      // Warm cream
     'ocean-breeze': '#C5D3DD',   // Powder blue
     'sunset-glow': '#E5E1D8',    // Warm cream
     'garden-path': '#C8D1C8',    // Soft green
