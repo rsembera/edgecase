@@ -115,11 +115,21 @@ def markdown_to_paragraphs(md_text, styles):
     html = re.sub(r'<h2>(.*?)</h2>', r'<para><b><font size="12">\1</font></b></para>', html)
     html = re.sub(r'<h3>(.*?)</h3>', r'<para><b><font size="11">\1</font></b></para>', html)
     
-    # Handle lists - convert to indented paragraphs with bullets
+    # Handle lists - convert to indented paragraphs with bullets or numbers
+    # Process ordered lists first, replacing <li> with numbered items
+    def replace_ol(match):
+        ol_content = match.group(1)
+        items = re.findall(r'<li>(.*?)</li>', ol_content, flags=re.DOTALL)
+        result = ''
+        for i, item in enumerate(items, 1):
+            result += f'<para>{i}. {item.strip()}</para>'
+        return result
+    
+    html = re.sub(r'<ol>\s*(.*?)\s*</ol>', replace_ol, html, flags=re.DOTALL)
+    
+    # Process unordered lists, replacing <li> with bullets
     html = re.sub(r'<ul>\s*', '', html)
     html = re.sub(r'</ul>\s*', '', html)
-    html = re.sub(r'<ol>\s*', '', html)
-    html = re.sub(r'</ol>\s*', '', html)
     html = re.sub(r'<li>(.*?)</li>', r'<para>• \1</para>', html, flags=re.DOTALL)
     
     # Handle blockquotes
