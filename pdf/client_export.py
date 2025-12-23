@@ -122,7 +122,7 @@ def markdown_to_paragraphs(md_text, styles):
         items = re.findall(r'<li>(.*?)</li>', ol_content, flags=re.DOTALL)
         result = ''
         for i, item in enumerate(items, 1):
-            result += f'<para>{i}. {item.strip()}</para>'
+            result += f'<para>&nbsp;&nbsp;&nbsp;&nbsp;{i}. {item.strip()}</para>'
         return result
     
     html = re.sub(r'<ol>\s*(.*?)\s*</ol>', replace_ol, html, flags=re.DOTALL)
@@ -130,7 +130,7 @@ def markdown_to_paragraphs(md_text, styles):
     # Process unordered lists, replacing <li> with bullets
     html = re.sub(r'<ul>\s*', '', html)
     html = re.sub(r'</ul>\s*', '', html)
-    html = re.sub(r'<li>(.*?)</li>', r'<para>• \1</para>', html, flags=re.DOTALL)
+    html = re.sub(r'<li>(.*?)</li>', r'<para>&nbsp;&nbsp;&nbsp;&nbsp;• \1</para>', html, flags=re.DOTALL)
     
     # Handle blockquotes
     html = re.sub(r'<blockquote>(.*?)</blockquote>', 
