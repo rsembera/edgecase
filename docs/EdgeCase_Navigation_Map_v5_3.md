@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** December 16, 2025 - Comprehensive testing complete, production ready
+**Last Updated:** December 27, 2025 - Documentation accuracy review
 
 ---
 
@@ -13,7 +13,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 **Tech Stack:**
 - Backend: Python 3.13, Flask with 12 Blueprints
 - Frontend: HTML, External CSS/JS files, Vanilla JavaScript
-- Database: SQLite with SQLCipher encryption (12 tables)
+- Database: SQLite with SQLCipher encryption (13 tables)
 - PDF Generation: ReportLab 4.4.5
 - Encryption: cryptography (Fernet for attachments)
 - AI: llama-cpp-python with Hermes 3 8B model
@@ -64,7 +64,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | CSS Lines | ~7,600 |
 | **Total Lines** | **~38,000** |
 | Blueprints | 12 |
-| Database Tables | 12 |
+| Database Tables | 13 |
 | Templates | 30 |
 | CSS Files | 27 |
 | JS Files | 27 |
@@ -251,20 +251,21 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## DATABASE TABLES (12)
+## DATABASE TABLES (13)
 
 1. **clients** - Client records
-2. **client_types** - Customizable categories
+2. **client_types** - Status categories (Active, Inactive)
 3. **entries** - Unified entry storage (THE CORE)
 4. **link_groups** - Couples/family/group therapy
 5. **client_links** - Link group membership with fees
-6. **attachments** - Encrypted file uploads
-7. **expense_categories** - User-defined categories
-8. **payees** - Expense payee names
-9. **income_payors** - Income payor names
-10. **settings** - Application configuration
-11. **archived_clients** - Retention archives
-12. **statement_portions** - Payment tracking
+6. **entry_links** - Links between entries across clients
+7. **attachments** - Encrypted file uploads
+8. **expense_categories** - User-defined categories
+9. **payees** - Expense payee names
+10. **income_payors** - Income payor names
+11. **settings** - Application configuration
+12. **archived_clients** - Retention archives
+13. **statement_portions** - Payment tracking
 
 ---
 

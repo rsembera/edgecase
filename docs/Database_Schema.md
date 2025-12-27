@@ -1,29 +1,44 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** December 16, 2025
+**Last Updated:** December 27, 2025
 
 ---
 
 ## OVERVIEW
 
-EdgeCase uses SQLite with 12 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
+EdgeCase uses SQLite with SQLCipher encryption, containing 13 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
 
 **Database Location:** `~/edgecase/data/edgecase.db`
 
 **Tables:**
 1. clients - Client records
-2. client_types - Customizable client categories
+2. client_types - Status categories (Active, Inactive)
 3. entries - Unified entry table (THE CORE)
 4. link_groups - Couples/Family/Group therapy
-5. client_links - Link group membership
-6. attachments - File uploads
-7. expense_categories - User-defined expense categories
-8. payees - Expense payee names
-9. income_payors - Income payor names
-10. settings - Application settings
-11. archived_clients - Retention system archives
-12. statement_portions - Statement tracking
+5. client_links - Link group membership with fees
+6. entry_links - Links between entries across clients
+7. attachments - Encrypted file uploads
+8. expense_categories - User-defined expense categories
+9. payees - Expense payee names
+10. income_payors - Income payor names
+11. settings - Application settings
+12. archived_clients - Retention system archives
+13. statement_portions - Statement tracking
+
+---
+
+## FEE ARCHITECTURE
+
+Fees are defined in three places:
+
+1. **Profile** – Individual session fees (`session_base`, `session_tax_rate`, `session_total`)
+2. **Link groups** – Per-member fees for couples/family/group sessions
+3. **Settings** – Consultation fee (practice-wide, applied when session is marked as consultation)
+
+**Client types have NO fee fields** – they're purely for organization and workflow.
+
+**Guardian billing** is separate from fee definition. It determines who pays (split percentages), not how much.
 
 ---
 
@@ -42,6 +57,7 @@ CREATE TABLE clients (
     last_name TEXT NOT NULL,
     type_id INTEGER NOT NULL,
     session_offset INTEGER DEFAULT 0,
+    retention_days INTEGER,
     created_at INTEGER NOT NULL,
     modified_at INTEGER NOT NULL,
     is_deleted INTEGER DEFAULT 0,
@@ -52,29 +68,22 @@ CREATE TABLE clients (
 **Key Fields:**
 - `file_number`: Unique identifier (format depends on settings)
 - `session_offset`: Starting session number for migrated clients
+- `retention_days`: Set when moving to Inactive status (snapshots the type's retention_period)
 - `is_deleted`: Soft delete flag (0 = active, 1 = deleted)
 
 ---
 
 ### 2. client_types
 
-Customizable client categories with billing defaults.
+Status categories for organization and workflow—NOT billing.
 
 ```sql
 CREATE TABLE client_types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     color TEXT NOT NULL,
-    color_name TEXT NOT NULL,
-    bubble_color TEXT NOT NULL,
-    file_number_style TEXT,
-    file_number_prefix TEXT,
-    file_number_suffix TEXT,
-    file_number_counter INTEGER,
-    session_base_price REAL,
-    session_tax_rate REAL,
-    session_fee REAL,
-    session_duration INTEGER,
+    color_name TEXT,
+    bubble_color TEXT,
     retention_period INTEGER,
     is_system INTEGER DEFAULT 0,
     is_system_locked INTEGER DEFAULT 0,
@@ -84,22 +93,15 @@ CREATE TABLE client_types (
 ```
 
 **Key Fields:**
-- `name`: Max 9 characters ("Active", "Low Fee", etc.)
-- `color`: Hex color (#9FCFC0)
+- `name`: Type name (e.g., "Active", "Inactive")
+- `color`: Hex color for client cards
 - `bubble_color`: Light background for client cards
-- `session_base_price`/`session_tax_rate`/`session_fee`: Three-way fee calculation
-- `is_system_locked`: 1 for Inactive/Deleted (can't delete or edit)
+- `retention_period`: How long to keep records after becoming inactive (in days)
+- `is_system_locked`: 1 for Inactive (can't delete or edit)
 
-**Color Palette (9 curated colors):**
-1. Soft Teal (#9FCFC0, bubble: #E6F5F1)
-2. Mint Green (#A7D4A4, bubble: #E8F5E7)
-3. Sage (#B8C5A8, bubble: #EEF2E9)
-4. Lavender (#C8B8D9, bubble: #F1EDF5)
-5. Dusty Rose (#D4A5A5, bubble: #F5E9E9)
-6. Peach (#E8C4A8, bubble: #F9F0E8)
-7. Powder Blue (#A8C8D9, bubble: #E8F0F5)
-8. Soft Gray (#B8B8C5, bubble: #EEEEEF)
-9. Warm Amber (#D9C8A5, bubble: #F5F0E9)
+**Default Types:**
+- Active (Seafoam #9FCFC0)
+- Inactive (Warm Amber #D9C8A5, system-locked)
 
 ---
 
@@ -112,11 +114,10 @@ CREATE TABLE entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER,
     class TEXT NOT NULL,
-    ledger_type TEXT,
     created_at INTEGER NOT NULL,
     modified_at INTEGER NOT NULL,
     
-    -- Common fields (all entries)
+    -- Common fields
     description TEXT,
     content TEXT,
     
@@ -136,25 +137,25 @@ CREATE TABLE entries (
     referral_source TEXT,
     additional_info TEXT,
     
-    -- Profile Session Fee (individual session pricing)
+    -- Profile session fee fields (individual session pricing)
     session_base REAL,
     session_tax_rate REAL,
     session_total REAL,
     default_session_duration INTEGER,
     
-    -- Profile Guardian/Billing
+    -- Profile guardian/billing fields
     is_minor INTEGER DEFAULT 0,
     guardian1_name TEXT,
     guardian1_email TEXT,
     guardian1_phone TEXT,
     guardian1_address TEXT,
-    guardian1_pays_percent REAL,
+    guardian1_pays_percent INTEGER DEFAULT 100,
     has_guardian2 INTEGER DEFAULT 0,
     guardian2_name TEXT,
     guardian2_email TEXT,
     guardian2_phone TEXT,
     guardian2_address TEXT,
-    guardian2_pays_percent REAL,
+    guardian2_pays_percent INTEGER DEFAULT 0,
     
     -- Session-specific fields
     modality TEXT,
@@ -187,23 +188,27 @@ CREATE TABLE entries (
     item_date INTEGER,
     item_time TEXT,
     base_price REAL,
+    guardian1_amount REAL,
+    guardian2_amount REAL,
     
     -- Upload-specific fields
     upload_date INTEGER,
     upload_time TEXT,
     
-    -- Ledger-specific fields
+    -- Ledger-specific fields (Income/Expense entries)
     ledger_date INTEGER,
+    ledger_type TEXT,
     source TEXT,
     payee_id INTEGER,
     category_id INTEGER,
-    total_amount REAL,
+    base_amount REAL,
     tax_amount REAL,
+    total_amount REAL,
+    statement_id INTEGER,
     
     -- Statement-specific fields
     statement_total REAL,
     statement_tax_total REAL,
-    statement_id INTEGER,
     payment_status TEXT,
     payment_notes TEXT,
     date_sent INTEGER,
@@ -215,32 +220,24 @@ CREATE TABLE entries (
     locked INTEGER DEFAULT 0,
     locked_at INTEGER,
     
-    FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (payee_id) REFERENCES payees(id),
-    FOREIGN KEY (category_id) REFERENCES expense_categories(id),
-    FOREIGN KEY (statement_id) REFERENCES entries(id)
+    FOREIGN KEY (client_id) REFERENCES clients(id)
 );
 ```
 
 **Entry Classes:**
 
 **Client Entry Types (client_id NOT NULL):**
-- `profile` - Client demographics and contact info
+- `profile` - Client demographics, contact info, and session fees
 - `session` - Therapy session notes
-- `communication` - Emails, calls, administrative notes (with file attachments)
+- `communication` - Emails, calls, administrative notes
 - `absence` - Cancellations and no-shows with fees
 - `item` - Billable items (books, letters, reports)
 - `upload` - File attachments and documents
 - `statement` - Generated invoice record
 
-**Ledger Entry Types (client_id NULL, ledger_type NOT NULL):**
+**Ledger Entry Types (client_id NULL, ledger_type set):**
 - `income` - Payment received (ledger_type='income')
 - `expense` - Business expenses (ledger_type='expense')
-
-**Key Fields for Statements:**
-- `statement_id`: On billable entries (session, absence, item), links to the statement entry
-- `statement_total`: On statement entries, the total amount due
-- `statement_tax_total`: Total tax from billable entries (for pro-rata calculation)
 
 ---
 
@@ -251,7 +248,7 @@ Groups for couples/family/group therapy.
 ```sql
 CREATE TABLE link_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    format TEXT NOT NULL,
+    format TEXT,
     session_duration INTEGER,
     created_at INTEGER NOT NULL
 );
@@ -272,7 +269,7 @@ CREATE TABLE client_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id_1 INTEGER NOT NULL,
     client_id_2 INTEGER NOT NULL,
-    group_id INTEGER NOT NULL,
+    group_id INTEGER,
     member_base_fee REAL,
     member_tax_rate REAL,
     member_total_fee REAL,
@@ -283,11 +280,31 @@ CREATE TABLE client_links (
 );
 ```
 
+In the self-referential pattern, `client_id_1` and `client_id_2` are the same value. All members of a group share the same `group_id`.
+
 ---
 
-### 6. attachments
+### 6. entry_links
 
-File uploads for entries.
+Links entries across client files (e.g., linked sessions for couples therapy).
+
+```sql
+CREATE TABLE entry_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id_1 INTEGER NOT NULL,
+    entry_id_2 INTEGER NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    FOREIGN KEY (entry_id_1) REFERENCES entries(id),
+    FOREIGN KEY (entry_id_2) REFERENCES entries(id),
+    UNIQUE(entry_id_1, entry_id_2)
+);
+```
+
+---
+
+### 7. attachments
+
+Encrypted file uploads for entries.
 
 ```sql
 CREATE TABLE attachments (
@@ -308,7 +325,7 @@ CREATE TABLE attachments (
 
 ---
 
-### 7. expense_categories
+### 8. expense_categories
 
 User-defined expense categories for tax reporting.
 
@@ -322,9 +339,9 @@ CREATE TABLE expense_categories (
 
 ---
 
-### 8. payees
+### 9. payees
 
-Expense payee names (reusable).
+Expense payee names (for autocomplete).
 
 ```sql
 CREATE TABLE payees (
@@ -336,9 +353,9 @@ CREATE TABLE payees (
 
 ---
 
-### 9. income_payors
+### 10. income_payors
 
-Income payor names (reusable, for autocomplete).
+Income payor names (for autocomplete).
 
 ```sql
 CREATE TABLE income_payors (
@@ -350,9 +367,9 @@ CREATE TABLE income_payors (
 
 ---
 
-### 10. settings
+### 11. settings
 
-Application configuration.
+Application configuration (key-value store).
 
 ```sql
 CREATE TABLE settings (
@@ -372,35 +389,30 @@ CREATE TABLE settings (
 - `logo_filename`, `signature_filename`
 - `calendar_method`, `calendar_name`
 - `email_method`: 'mailto' or 'applescript'
-- `email_from_address`: For AppleScript email
 - `statement_email_body`: Email body template
 - `registration_info`, `payment_instructions`
-- `include_attestation`, `attestation_text`
 
 ---
 
-### 11. archived_clients
+### 12. archived_clients
 
-Retention system archives (minimal info kept after deletion).
+Minimal info kept after retention deletion (audit trail).
 
 ```sql
 CREATE TABLE archived_clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_number TEXT NOT NULL,
-    first_name TEXT NOT NULL,
-    middle_name TEXT,
-    last_name TEXT NOT NULL,
+    full_name TEXT NOT NULL,
     first_contact INTEGER,
     last_contact INTEGER,
     retain_until INTEGER,
-    deletion_date INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
+    deleted_at INTEGER NOT NULL
 );
 ```
 
 ---
 
-### 12. statement_portions
+### 13. statement_portions
 
 Tracks individual payment portions for statements.
 
@@ -413,42 +425,21 @@ CREATE TABLE statement_portions (
     amount_due REAL NOT NULL,
     amount_paid REAL DEFAULT 0,
     status TEXT DEFAULT 'ready',
-    created_at INTEGER NOT NULL,
     date_sent INTEGER,
+    created_at INTEGER NOT NULL,
+    write_off_reason TEXT,
+    write_off_date INTEGER,
+    write_off_note TEXT,
     FOREIGN KEY (statement_entry_id) REFERENCES entries(id),
     FOREIGN KEY (client_id) REFERENCES clients(id)
 );
 ```
 
 **Key Fields:**
-- `statement_entry_id`: Links to the statement entry in entries table
-- `client_id`: The client this portion is for
 - `guardian_number`: NULL for client paying directly, 1 or 2 for guardian splits
 - `amount_due`: Total amount for this portion
 - `amount_paid`: Running total of payments received
-- `status`: Payment status for this portion
-- `date_sent`: Unix timestamp when "Mark Sent" was clicked
-
-**Status Values:**
-- `ready`: Statement generated, not yet sent
-- `sent`: Email sent to client/guardian
-- `partial`: Some payment received, balance remaining
-- `paid`: Fully paid
-
-**Guardian Billing:**
-When a client is a minor with guardian billing:
-- Two portions created (one per guardian)
-- Each portion has `guardian_number` = 1 or 2
-- `amount_due` calculated from guardian's `pays_percent`
-
-**Payment Status Calculation (in database.py):**
-```python
-def get_payment_status(self, client_id):
-    # Returns: 'paid', 'pending', or 'overdue'
-    # - 'paid': No outstanding portions
-    # - 'pending': Has sent/partial portions, none 30+ days old
-    # - 'overdue': Has sent/partial portions 30+ days old
-```
+- `status`: 'ready', 'sent', 'partial', 'paid', 'written_off'
 
 ---
 
@@ -461,14 +452,6 @@ def get_payment_status(self, client_id):
 - Handles guardian splits (2 portions per statement)
 - Tracks payment status independently
 - Easy to query outstanding statements
-- Payment status calculation doesn't require complex entry queries
-
-**Why Communication entry on send?**
-- Creates audit trail in client file
-- PDF attachment preserved
-- Email content recorded
-- No separate "sent statements" view needed
-- Natural fit with existing entry timeline
 
 **Auto-Income Generation:**
 When payment recorded:
@@ -490,4 +473,4 @@ When payment recorded:
 *For route information, see Route_Reference.md*  
 *For design philosophy, see Architecture_Decisions.md*
 
-*Last updated: December 16, 2025*
+*Last updated: December 27, 2025*
