@@ -509,7 +509,7 @@ def edit_profile(client_id)
 
 **POST Form Data:**
 - Demographics, contact info, emergency contact
-- Fee override fields
+- Session fee fields (base, tax rate, total)
 - Guardian billing fields (for minors)
 
 **Returns:** Redirect to client_file
@@ -819,4 +819,4 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None)
 *For database schema, see Database_Schema.md*  
 *For design decisions, see Architecture_Decisions.md*
 
-*Last updated: December 16, 2025*
+*Last updated: December 27, 2025*

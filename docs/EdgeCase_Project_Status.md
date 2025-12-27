@@ -66,7 +66,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | JavaScript Lines | ~8,900 |
 | CSS Lines | ~7,600 |
 | Blueprints | 12 |
-| Database Tables | 12 |
+| Database Tables | 13 |
 | Templates | 30 |
 | Entry Types | 8 |
 | Routes | 65+ |
