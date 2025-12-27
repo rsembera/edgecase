@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** December 1, 2025
+**Last Updated:** December 27, 2025
 
 ---
 
@@ -133,71 +133,62 @@ Extract duplicate code into shared utility functions in `web/utils.py`.
 
 ---
 
-## COMPREHENSIVE BILLING SYSTEM
+## FEE ARCHITECTURE
 
 ### The Problem
 
 Different billing scenarios need different fee structures:
-- Individual clients: Standard fee or custom fee
+- Individual clients: Custom fee per client
 - Minors: Parents pay, sometimes split between guardians
-- Couples: One pays, or split
+- Couples: Each partner may pay different portion
 - Family/Group: Each member may pay different portion
+- Consultations: Practice-wide fee for initial sessions
 
 ### The Solution
 
-**Multi-layered fee hierarchy:**
+**Three fee sources:**
 
-1. **Profile Fee Override** - Client-specific fees stored in Profile entry
-2. **Guardian Billing** - Split percentages between up to 2 guardians
-3. **Link Groups** - Format-based fees (couples/family/group) with per-member allocation
-4. **Client Type** - Default fallback fees
+1. **Profile** - Individual session fees stored in Profile entry (`session_base`, `session_tax_rate`, `session_total`). Used when session format is "Individual".
 
-### Fee Calculation Priority
+2. **Link Groups** - Per-member fees for couples/family/group sessions. Each member has their own `member_base_fee`, `member_tax_rate`, `member_total_fee`. Used when session format involves multiple clients.
 
-**For Individual Sessions:**
-1. Check Profile Fee Override → if set, use it
-2. Else use Client Type fees
+3. **Settings** - Consultation fee (`consultation_base_price`, `consultation_tax_rate`, `consultation_fee`). Applied practice-wide when a session is marked as consultation.
 
-**For Couples/Family/Group Sessions:**
-1. Check Link Group by format → if exists, use member's portion
-2. Else show error (no link group for that format)
+**Client types have NO fee fields** - they're purely for organization and workflow (Active/Inactive status, retention periods, color coding).
+
+### Guardian Billing
+
+Guardian billing is separate from fee definition—it determines **who pays**, not **how much**.
+
+For minors, the Profile stores:
+- Guardian 1 contact info and payment percentage
+- Guardian 2 contact info and payment percentage (optional)
+
+When generating statements, portions are created for each guardian based on their percentage of whatever fee was charged.
 
 ### Three-Way Fee Calculation
 
 **Pattern:** Base Price + Tax Rate = Total Fee
 
 **Used in:**
-- Client Types
-- Profile Fee Override
-- Item entries
+- Profile session fees
 - Link Group member fees
+- Item entries
 - Absence fees
+- Consultation settings
 
-**Why all three?**
+**Why store all three?**
 - **Historical accuracy** - Tax rates change over time
 - **Audit trail** - Show exact breakdown years later
 - **Flexibility** - User can edit any 2 fields, system calculates 3rd
 - **Professional** - Matches real accounting
 
-**Implementation:**
-```javascript
-// User edits base + tax → calculates total
-// User edits total + tax → calculates base
-// Always stores all three values
-```
-
 ### Why This Works
 
-✅ **Flexibility** - Handles every billing scenario we've encountered  
-✅ **Clarity** - Clear hierarchy, predictable behavior  
-✅ **Accuracy** - Historical fees preserved for invoicing  
+✅ **Simplicity** - No complex hierarchy or "override" logic  
+✅ **Flexibility** - Handles every billing scenario  
+✅ **Clarity** - Each fee source has a clear purpose  
 ✅ **Professional** - Meets accounting standards
-
-**Alternative considered:** Simple single fee field
-- Easier to implement
-- But can't handle: tax changes, guardian splits, group allocations
-- Would need hacks and workarounds
-- Decision: Complexity worth the flexibility
 
 ---
 
