@@ -60,7 +60,7 @@ All client records (profiles, sessions, communications, etc.) are stored as entr
 
 ### The Decision
 
-Organize routes into 11 modular blueprints instead of one monolithic app.py.
+Organize routes into 12 modular blueprints instead of one monolithic app.py.
 
 ### Why?
 
@@ -71,6 +71,7 @@ Organize routes into 11 modular blueprints instead of one monolithic app.py.
 - Testing difficult
 
 **Blueprint organization:**
+- `ai.py` - AI Scribe functionality (~330 lines)
 - `auth.py` - Login/logout, session management (~155 lines)
 - `backups.py` - Backup/restore operations (~224 lines)
 - `clients.py` - Client management (~400 lines)
