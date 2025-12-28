@@ -210,7 +210,7 @@ The font declarations cannot be moved to external CSS because they use Jinja's `
 
 ## Theme System
 
-Themes are applied via body classes (e.g., `body.ocean-breeze`). Theme selection in Settings automatically applies a matching background color.
+Themes are applied via body classes (e.g., `body.ink`, `body.slate`). Theme selection in Settings automatically applies a matching background color.
 
 **Available Themes:**
 | Theme | Card Color | Background |
