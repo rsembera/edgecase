@@ -11,6 +11,102 @@ import json
 
 auth_bp = Blueprint('auth', __name__)
 
+# ============================================================================
+# RATE LIMITING
+# Simple in-memory rate limiting for login attempts.
+# Tracks failed attempts by IP address with automatic lockout.
+# ============================================================================
+
+_login_attempts = {}  # {ip: {'count': int, 'first_attempt': timestamp, 'locked_until': timestamp}}
+
+# Configuration
+MAX_ATTEMPTS = 5          # Max failed attempts before lockout
+LOCKOUT_DURATION = 300    # Lockout duration in seconds (5 minutes)
+ATTEMPT_WINDOW = 600      # Window to count attempts (10 minutes)
+
+
+def _get_client_ip():
+    """Get client IP address, accounting for proxies."""
+    # Check X-Forwarded-For header (if behind proxy/load balancer)
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    # Check X-Real-IP header (nginx)
+    if request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    # Fall back to direct IP
+    return request.remote_addr or 'unknown'
+
+
+def _check_rate_limit():
+    """
+    Check if the client IP is rate limited.
+    
+    Returns:
+        (allowed: bool, message: str, retry_after: int or None)
+    """
+    ip = _get_client_ip()
+    now = time.time()
+    
+    if ip not in _login_attempts:
+        return True, None, None
+    
+    record = _login_attempts[ip]
+    
+    # Check if currently locked out
+    if record.get('locked_until') and now < record['locked_until']:
+        retry_after = int(record['locked_until'] - now)
+        minutes = retry_after // 60
+        seconds = retry_after % 60
+        if minutes > 0:
+            time_str = f"{minutes} minute{'s' if minutes != 1 else ''}"
+        else:
+            time_str = f"{seconds} second{'s' if seconds != 1 else ''}"
+        return False, f"Too many failed attempts. Please try again in {time_str}.", retry_after
+    
+    # Clear old attempts outside the window
+    if now - record.get('first_attempt', 0) > ATTEMPT_WINDOW:
+        del _login_attempts[ip]
+        return True, None, None
+    
+    return True, None, None
+
+
+def _record_failed_attempt():
+    """Record a failed login attempt for rate limiting."""
+    ip = _get_client_ip()
+    now = time.time()
+    
+    if ip not in _login_attempts:
+        _login_attempts[ip] = {
+            'count': 1,
+            'first_attempt': now,
+            'locked_until': None
+        }
+    else:
+        record = _login_attempts[ip]
+        
+        # Reset if outside window
+        if now - record['first_attempt'] > ATTEMPT_WINDOW:
+            _login_attempts[ip] = {
+                'count': 1,
+                'first_attempt': now,
+                'locked_until': None
+            }
+        else:
+            record['count'] += 1
+            
+            # Trigger lockout if max attempts exceeded
+            if record['count'] >= MAX_ATTEMPTS:
+                record['locked_until'] = now + LOCKOUT_DURATION
+                print(f"[Security] IP {ip} locked out after {record['count']} failed login attempts")
+
+
+def _clear_failed_attempts():
+    """Clear failed attempts after successful login."""
+    ip = _get_client_ip()
+    if ip in _login_attempts:
+        del _login_attempts[ip]
+
 def login_required(f):
     """Decorator to require login for routes."""
     @wraps(f)
@@ -32,6 +128,14 @@ def login():
     from core.database import Database
     
     first_run = is_first_run()
+    
+    # Check rate limiting before processing POST
+    if request.method == 'POST':
+        allowed, error_msg, retry_after = _check_rate_limit()
+        if not allowed:
+            return render_template('login.html', 
+                                 first_run=first_run, 
+                                 error=error_msg)
     
     if request.method == 'POST':
         password = request.form.get('password', '')
@@ -61,6 +165,9 @@ def login():
             # Success! Store db in app config
             current_app.config['db'] = db
             
+            # Clear failed login attempts on success
+            _clear_failed_attempts()
+            
             # Clear any old session data first, then set new values
             session.clear()
             session.permanent = True  # Use PERMANENT_SESSION_LIFETIME
@@ -81,6 +188,9 @@ def login():
             return response
             
         except Exception as e:
+            # Record failed attempt for rate limiting
+            _record_failed_attempt()
+            
             error_msg = str(e)
             if 'file is not a database' in error_msg or 'encrypted' in error_msg.lower():
                 error = "Incorrect password"
