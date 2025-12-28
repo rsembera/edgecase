@@ -32,7 +32,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Statement system with PDF generation
 - Ledger system with financial reports
 - Calendar integration
-- Export to PDF/Markdown
+- Export to PDF
 - Comprehensive billing
 
 ### Phase 2: Professional Features ✅ COMPLETE (Dec 1, 2025)

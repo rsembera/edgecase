@@ -490,19 +490,39 @@ def add_client()
 
 ---
 
-### Session Report
+### Retention Check
 
 ```python
-@clients_bp.route('/client/<int:client_id>/session-report', methods=['GET', 'POST'])
-def session_report(client_id)
+@clients_bp.route('/api/retention-check')
+def retention_check()
 ```
-**Purpose:** Generate PDF summary of sessions
+**Purpose:** Check for clients with expired retention periods
 
-**POST Form Data:**
-- `start_date`, `end_date`
-- `include_fees` (bool)
+**Returns:** JSON with clients ready for deletion
 
-**Returns:** PDF file or form
+---
+
+### Retention Delete
+
+```python
+@clients_bp.route('/api/retention-delete', methods=['POST'])
+def retention_delete()
+```
+**Purpose:** Archive and delete client after retention expires
+
+**Returns:** JSON with success status
+
+---
+
+### Deleted Clients
+
+```python
+@clients_bp.route('/deleted-clients')
+def deleted_clients()
+```
+**Purpose:** View soft-deleted clients
+
+**Returns:** `deleted_clients.html`
 
 ---
 
@@ -518,39 +538,43 @@ def export_entries(client_id)
 
 ---
 
+### Session Report
+
+```python
+@clients_bp.route('/client/<int:client_id>/session-report', methods=['GET'])
+def session_report(client_id)
+```
+**Purpose:** Generate PDF summary of sessions
+
+**Query Params:**
+- `start_date`, `end_date`
+- `include_fees` (bool)
+
+**Returns:** PDF file or form
+
+---
+
+### Export Calculate
+
+```python
+@clients_bp.route('/client/<int:client_id>/export/calculate')
+def export_calculate(client_id)
+```
+**Purpose:** Calculate entry data for export preview
+
+**Returns:** JSON with entry data
+
+---
+
 ### Export to PDF
 
 ```python
-@clients_bp.route('/client/<int:client_id>/export/pdf', methods=['POST'])
+@clients_bp.route('/client/<int:client_id>/export/pdf')
 def export_pdf(client_id)
 ```
 **Purpose:** Generate PDF of selected entries
 
 **Returns:** PDF file
-
----
-
-### Export to Markdown
-
-```python
-@clients_bp.route('/client/<int:client_id>/export/markdown', methods=['POST'])
-def export_markdown(client_id)
-```
-**Purpose:** Generate Markdown of selected entries
-
-**Returns:** .md file download
-
----
-
-### Deleted Clients
-
-```python
-@clients_bp.route('/deleted')
-def deleted_clients()
-```
-**Purpose:** View soft-deleted clients
-
-**Returns:** `deleted_clients.html`
 
 ---
 
