@@ -7,20 +7,20 @@
 
 ## OVERVIEW
 
-EdgeCase has 65+ routes organized across 12 blueprints:
+EdgeCase has 98 routes organized across 12 blueprints:
 
-1. **ai_bp** - AI Scribe functionality (4 routes)
-2. **auth_bp** - Login/logout, session management (3 routes)
+1. **ai_bp** - AI Scribe functionality (9 routes)
+2. **auth_bp** - Login/logout, session management (4 routes)
 3. **backups_bp** - Backup/restore operations (9 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
 5. **entries_bp** - Entry CRUD operations (14 routes)
-6. **ledger_bp** - Income/Expense tracking (7 routes)
-7. **links_bp** - Link group management (5 routes)
-8. **statements_bp** - Statement generation (8 routes)
-9. **scheduler_bp** - Calendar integration (2 routes)
+6. **ledger_bp** - Income/Expense tracking (13 routes)
+7. **links_bp** - Link group management (4 routes)
+8. **statements_bp** - Statement generation (9 routes)
+9. **scheduler_bp** - Calendar integration (1 route)
 10. **types_bp** - Client type management (4 routes)
-11. **settings_bp** - Settings and configuration (11 routes)
-12. **Main app.py** - Auto-backup, restore messages (4 routes)
+11. **settings_bp** - Settings and configuration (16 routes)
+12. **Main app.py** - Session/restore APIs (4 routes)
 
 ---
 
@@ -29,23 +29,11 @@ EdgeCase has 65+ routes organized across 12 blueprints:
 **Prefix:** None (mounted at root)  
 **File:** `~/edgecase/web/blueprints/ai.py`
 
-### AI Scribe Page
-
-```python
-@ai_bp.route('/ai-scribe')
-def ai_scribe()
-```
-**Purpose:** Display AI Scribe interface for session note assistance
-
-**Returns:** `ai_scribe.html`
-
----
-
-### Model Status
+### AI Status
 
 ```python
 @ai_bp.route('/api/ai/status')
-def get_model_status()
+def ai_status()
 ```
 **Purpose:** Get current AI model status (loaded/not loaded, platform detection)
 
@@ -53,11 +41,23 @@ def get_model_status()
 
 ---
 
+### AI Capability Check
+
+```python
+@ai_bp.route('/api/ai/capability')
+def ai_capability()
+```
+**Purpose:** Check if system can run AI
+
+**Returns:** JSON with capability status and message
+
+---
+
 ### Download Model
 
 ```python
 @ai_bp.route('/api/ai/download', methods=['POST'])
-def download_model()
+def ai_download()
 ```
 **Purpose:** Download AI model with SSE progress tracking
 
@@ -65,11 +65,47 @@ def download_model()
 
 ---
 
+### Delete Model
+
+```python
+@ai_bp.route('/api/ai/delete', methods=['POST'])
+def ai_delete()
+```
+**Purpose:** Delete downloaded AI model
+
+**Returns:** JSON with success status
+
+---
+
+### Load Model
+
+```python
+@ai_bp.route('/api/ai/load', methods=['POST'])
+def ai_load()
+```
+**Purpose:** Load AI model into memory
+
+**Returns:** JSON with success status
+
+---
+
+### Unload Model
+
+```python
+@ai_bp.route('/api/ai/unload', methods=['POST'])
+def ai_unload()
+```
+**Purpose:** Unload AI model from memory
+
+**Returns:** JSON with success status
+
+---
+
 ### Process Text
 
 ```python
 @ai_bp.route('/api/ai/process', methods=['POST'])
-def process_text()
+def ai_process()
 ```
 **Purpose:** Process text with AI (Write Up, Proofread, Expand, Contract)
 
@@ -81,15 +117,27 @@ def process_text()
 
 ---
 
-### Unload Model
+### AI Scribe Page
 
 ```python
-@ai_bp.route('/api/ai/unload', methods=['POST'])
-def unload_model()
+@ai_bp.route('/ai/scribe/<int:entry_id>')
+def ai_scribe(entry_id)
 ```
-**Purpose:** Unload AI model from memory
+**Purpose:** Display AI Scribe interface for a specific session entry
 
-**Returns:** JSON with success status
+**Returns:** `ai_scribe.html`
+
+---
+
+### Save AI Scribe Result
+
+```python
+@ai_bp.route('/ai/scribe/<int:entry_id>/save', methods=['POST'])
+def ai_scribe_save(entry_id)
+```
+**Purpose:** Save AI-generated content back to session entry
+
+**Returns:** Redirect to client file
 
 ---
 
@@ -157,6 +205,18 @@ def change_password()
 **Returns:** 
 - Success: Redirect to settings with flash message
 - Failure: Re-render with error
+
+---
+
+### Change Password Progress
+
+```python
+@auth_bp.route('/change-password-progress')
+def change_password_progress()
+```
+**Purpose:** SSE endpoint for password change progress updates
+
+**Returns:** SSE stream with progress events
 
 ---
 
@@ -672,6 +732,22 @@ def generate_report_pdf()
 
 ---
 
+### Autocomplete Suggestion Removal
+
+```python
+@ledger_bp.route('/ledger/suggestion/payee/remove', methods=['POST'])
+def remove_payee_suggestion()
+
+@ledger_bp.route('/ledger/suggestion/category/remove', methods=['POST'])
+def remove_category_suggestion()
+
+@ledger_bp.route('/ledger/suggestion/payor/remove', methods=['POST'])
+def remove_payor_suggestion()
+```
+**Purpose:** Remove autocomplete suggestions from dropdowns
+
+---
+
 ## STATEMENTS BLUEPRINT
 
 **Prefix:** /statements  
@@ -680,12 +756,24 @@ def generate_report_pdf()
 ### Outstanding Statements
 
 ```python
-@statements_bp.route('/statements')
+@statements_bp.route('/')
 def outstanding_statements()
 ```
 **Purpose:** View all statements with payment status
 
 **Returns:** `outstanding_statements.html`
+
+---
+
+### Find Unbilled Entries
+
+```python
+@statements_bp.route('/find-unbilled', methods=['GET'])
+def find_unbilled()
+```
+**Purpose:** Find clients with unbilled entries for statement generation
+
+**Returns:** JSON with unbilled clients and entries
 
 ---
 
@@ -702,23 +790,36 @@ def generate_statements()
 ### Mark Sent / View PDF
 
 ```python
-@statements_bp.route('/statements/mark-sent/<int:portion_id>', methods=['POST'])
+@statements_bp.route('/mark-sent/<int:portion_id>', methods=['POST'])
 def mark_sent(portion_id)
 
-@statements_bp.route('/statements/view-pdf/<int:portion_id>')
+@statements_bp.route('/pdf/<int:portion_id>')
+def get_pdf(portion_id)
+
+@statements_bp.route('/view-pdf/<int:portion_id>')
 def view_pdf(portion_id)
 ```
-**Purpose:** Send statement or view PDF
+**Purpose:** Mark statement as sent, generate PDF, or view PDF in browser
+
+---
+
+### Send via AppleScript
+
+```python
+@statements_bp.route('/send-applescript-email', methods=['POST'])
+def send_applescript_email()
+```
+**Purpose:** Send statement email via AppleScript (Mac only)
 
 ---
 
 ### Payment Operations
 
 ```python
-@statements_bp.route('/statements/mark-paid', methods=['POST'])
+@statements_bp.route('/mark-paid', methods=['POST'])
 def mark_paid()
 
-@statements_bp.route('/statements/write-off', methods=['POST'])
+@statements_bp.route('/write-off', methods=['POST'])
 def write_off()
 ```
 **Purpose:** Record payment or write off
@@ -775,26 +876,140 @@ def settings_page()
 
 ---
 
-### API Endpoints
+### File Number Settings
+
+```python
+@settings_bp.route('/settings/file-number', methods=['GET', 'POST'])
+def file_number_settings()
+```
+**Purpose:** Configure file number format (manual, date-initials, prefix-counter)
+
+---
+
+### Practice Info
 
 ```python
 @settings_bp.route('/api/practice_info', methods=['GET', 'POST'])
-@settings_bp.route('/upload_logo', methods=['POST'])
-@settings_bp.route('/delete_logo', methods=['POST'])
-@settings_bp.route('/upload_signature', methods=['POST'])
-@settings_bp.route('/delete_signature', methods=['POST'])
-@settings_bp.route('/api/backgrounds')
-@settings_bp.route('/upload_background', methods=['POST'])
-@settings_bp.route('/delete_background', methods=['POST'])
-@settings_bp.route('/settings/file-number', methods=['GET', 'POST'])
+def practice_info()
 ```
-**Purpose:** Various settings operations
+**Purpose:** Get/save practice information (name, address, credentials, etc.)
+
+---
+
+### Background Images
+
+```python
+@settings_bp.route('/api/backgrounds')
+def list_backgrounds()
+
+@settings_bp.route('/upload_background', methods=['POST'])
+def upload_background()
+
+@settings_bp.route('/delete_background', methods=['POST'])
+def delete_background()
+```
+**Purpose:** Manage background images for main view
+
+---
+
+### Logo and Signature
+
+```python
+@settings_bp.route('/view_logo')
+def view_logo()
+
+@settings_bp.route('/view_signature')
+def view_signature()
+
+@settings_bp.route('/upload_logo', methods=['POST'])
+def upload_logo()
+
+@settings_bp.route('/upload_signature', methods=['POST'])
+def upload_signature()
+
+@settings_bp.route('/delete_logo', methods=['POST'])
+def delete_logo()
+
+@settings_bp.route('/delete_signature', methods=['POST'])
+def delete_signature()
+```
+**Purpose:** Manage practice logo and signature images for PDFs
+
+---
+
+### Calendar Settings
+
+```python
+@settings_bp.route('/api/calendar_settings', methods=['GET', 'POST'])
+def calendar_settings()
+```
+**Purpose:** Configure calendar integration (method, calendar name)
+
+---
+
+### Statement Settings
+
+```python
+@settings_bp.route('/api/statement_settings', methods=['GET', 'POST'])
+def statement_settings()
+```
+**Purpose:** Configure statement email body and payment instructions
+
+---
+
+### Security Settings
+
+```python
+@settings_bp.route('/api/security_settings', methods=['GET', 'POST'])
+def security_settings()
+```
+**Purpose:** Configure session timeout
+
+---
+
+### Time Format
+
+```python
+@settings_bp.route('/api/time_format', methods=['GET', 'POST'])
+def time_format()
+```
+**Purpose:** Configure 12h/24h time display format
 
 ---
 
 ## MAIN APP ROUTES
 
 **File:** `~/edgecase/web/app.py`
+
+### Session Status
+
+```python
+@app.route('/api/session-status')
+def session_status()
+```
+**Purpose:** Get current session status and timeout info
+
+---
+
+### Keepalive
+
+```python
+@app.route('/api/keepalive', methods=['POST'])
+def keepalive()
+```
+**Purpose:** Reset session timeout on user activity
+
+---
+
+### Heartbeat
+
+```python
+@app.route('/api/heartbeat')
+def heartbeat()
+```
+**Purpose:** Check if session is still active
+
+---
 
 ### Restore Message
 

@@ -69,7 +69,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | Database Tables | 13 |
 | Templates | 30 |
 | Entry Types | 8 |
-| Routes | 65+ |
+| Routes | 98 |
 | Automated Tests | 41 |
 
 ---
