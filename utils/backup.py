@@ -52,6 +52,15 @@ def get_all_backup_files():
     if db_path.exists():
         files['data/edgecase.db'] = db_path
     
+    # Security files (salt and secret key - essential for decryption)
+    salt_path = DATA_DIR / '.salt'
+    if salt_path.exists():
+        files['data/.salt'] = salt_path
+    
+    secret_key_path = DATA_DIR / '.secret_key'
+    if secret_key_path.exists():
+        files['data/.secret_key'] = secret_key_path
+    
     # Attachments (all subdirectories)
     if ATTACHMENTS_DIR.exists():
         for filepath in ATTACHMENTS_DIR.rglob('*'):

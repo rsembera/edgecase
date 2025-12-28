@@ -9,6 +9,34 @@ import time
 import os
 from werkzeug.utils import secure_filename
 
+
+def _get_secret_key() -> bytes:
+    """Get or create persistent SECRET_KEY.
+    
+    Key is stored in data/.secret_key file. Generated once on first run,
+    then reused for all subsequent app starts. This ensures:
+    - Sessions persist across app restarts
+    - Each installation has a unique key
+    """
+    project_root = Path(__file__).parent.parent
+    secret_file = project_root / 'data' / '.secret_key'
+    
+    # Check environment variable first (for advanced users)
+    env_key = os.environ.get('EDGECASE_SECRET_KEY')
+    if env_key:
+        return env_key.encode() if isinstance(env_key, str) else env_key
+    
+    # Use persisted key if it exists
+    if secret_file.exists():
+        return secret_file.read_bytes()
+    
+    # Generate new key and persist it
+    secret_file.parent.mkdir(parents=True, exist_ok=True)
+    key = os.urandom(24)
+    secret_file.write_bytes(key)
+    
+    return key
+
 # ============================================================================
 # STARTUP RESTORE CHECK
 # Must happen BEFORE database is opened
@@ -44,7 +72,7 @@ from web.blueprints.backups import backups_bp
 from web.blueprints.ai import ai_bp
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('EDGECASE_SECRET_KEY', os.urandom(24))
+app.config['SECRET_KEY'] = _get_secret_key()
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
 app.config['SESSION_COOKIE_NAME'] = 'edgecase_session'  # Unique name to avoid conflicts

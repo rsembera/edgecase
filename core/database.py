@@ -39,7 +39,9 @@ class Database:
             
             # Set encryption key FIRST, before any other operations
             if self.password:
-                self._local.conn.execute(f"PRAGMA key = '{self.password}'")
+                # Escape single quotes to prevent SQL injection/breakage
+                escaped_password = self.password.replace("'", "''")
+                self._local.conn.execute(f"PRAGMA key = '{escaped_password}'")
             
             # Enable WAL mode for better concurrent access
             self._local.conn.execute('PRAGMA journal_mode=WAL')
