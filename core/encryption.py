@@ -4,13 +4,39 @@ Handles file encryption/decryption using Fernet (AES-128)
 """
 
 import base64
+import os
+from pathlib import Path
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from core.config import DATA_DIR
 
-# Fixed salt - okay because password is already strong and unique per install
-SALT = b'EdgeCaseEqualizer2025'
+
+def _get_salt() -> bytes:
+    """Get or create per-install salt.
+    
+    Salt is stored in data/.salt file. Generated once on first use,
+    then reused for all subsequent encryptions. This ensures:
+    - Each installation has a unique salt (no rainbow table attacks)
+    - Salt persists across app restarts
+    - Backups include the salt file
+    """
+    salt_file = DATA_DIR / '.salt'
+    
+    if salt_file.exists():
+        return salt_file.read_bytes()
+    
+    # Generate new random salt (32 bytes = 256 bits)
+    salt = os.urandom(32)
+    
+    # Ensure data directory exists
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Save salt
+    salt_file.write_bytes(salt)
+    
+    return salt
 
 
 def _get_fernet(password: str) -> Fernet:
@@ -18,7 +44,7 @@ def _get_fernet(password: str) -> Fernet:
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=SALT,
+        salt=_get_salt(),
         iterations=480000,
     )
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))

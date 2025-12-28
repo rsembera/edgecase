@@ -38,6 +38,10 @@ attachments/
 backups/
 assets/
 
+# Security files (per-installation, never commit)
+.salt
+.secret_key
+
 # AI models (large files)
 models/
 *.gguf
