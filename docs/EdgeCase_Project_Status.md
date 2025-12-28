@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** December 16, 2025  
+**Last Updated:** December 28, 2025  
 **Status:** ALL PHASES COMPLETE ✅ - Production Ready - Testing Complete
 
 ---
@@ -48,7 +48,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | Write Up Action | ✅ Complete | Point-form to prose |
 | Proofread Action | ✅ Complete | Grammar/spelling fixes |
 | Expand Action | ✅ Complete | Add clinical detail |
-| Contract Action | ✅ Complete | Make concise |
+| Condense Action | ✅ Complete | Make concise |
 | Model Download | ✅ Complete | Progress tracking via SSE |
 | Platform Detection | ✅ Complete | Auto-configures for Mac/Windows/Linux |
 | Model Management | ✅ Complete | Download/unload in Settings |
@@ -138,13 +138,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | File | Lines | Purpose |
 |------|-------|---------|
 | core/database.py | ~1,930 | Database operations |
-| utils/backup.py | ~1,040 | Backup/restore system |
+| utils/backup.py | ~1,060 | Backup/restore system |
 | web/blueprints/entries.py | ~1,780 | Entry CRUD |
-| ai/assistant.py | ~340 | LLM model management |
+| ai/assistant.py | ~335 | LLM model management |
 | web/blueprints/ai.py | ~330 | AI Scribe routes |
-| web/app.py | ~285 | Flask initialization |
-| web/utils.py | ~265 | Shared utilities |
-| web/static/css/shared.css | ~2,270 | Common CSS patterns |
+| web/app.py | ~290 | Flask initialization |
+| web/utils.py | ~270 | Shared utilities |
+| web/static/css/shared.css | ~2,360 | Common CSS patterns |
 
 ---
 
@@ -189,15 +189,15 @@ None critical. System is production-ready.
 
 **Recent Commits:**
 ```
-0dd25fe Update Route_Reference.md: Add AI blueprint documentation
-66ddfba Update documentation for production release
-928472e Fix date dropdown arrow alignment in profile form
-e30d94c Remove unused timedelta import
-203b52c Add client-side timeout protection - blanks screen on inactivity
-9238c41 Add README with installation instructions
-cf8d23f Remove egg-info from repo, add to gitignore
-3b83253 Convert to proper Python package structure
-b28285d Production hardening: Waitress server, secure SECRET_KEY, pinned deps
+64ac357 Fix documentation content accuracy
+3b4b3d8 Sync documentation with actual codebase
+827d97c Fix AI Scribe validation modal styling (modal-box -> modal-content)
+d1e0cc0 Add validation message when clicking AI Scribe with empty required fields
+c3b6886 Rename AI action 'contract' to 'condense' for consistency
+8b03f34 Fix remaining doc inaccuracies: table count (13), fee terminology, dates
+07b430d Update docs to match actual code: fix fee architecture, add entry_links table
+c2f81cf Add indentation to list items in PDF exports
+3abd397 Fix: Preserve numbered lists in PDF exports instead of converting to bullets
 ```
 
 ---

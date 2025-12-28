@@ -110,7 +110,7 @@ def ai_process()
 **Purpose:** Process text with AI (Write Up, Proofread, Expand, Contract)
 
 **POST JSON Data:**
-- `action` (str): 'write_up', 'proofread', 'expand', or 'contract'
+- `action` (str): 'write_up', 'proofread', 'expand', or 'condense'
 - `text` (str): Input text to process
 
 **Returns:** SSE stream with generated output

@@ -47,7 +47,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ### Phase 3: AI Integration ✅ COMPLETE (Dec 2, 2025)
 - Local LLM integration (Hermes 3 8B)
 - AI Scribe for session notes
-- Four actions: Write Up, Proofread, Expand, Contract
+- Four actions: Write Up, Proofread, Expand, Condense
 - Auto-platform detection (Mac/Windows/Linux)
 - Model download with progress tracking
 - Settings page model management
@@ -288,7 +288,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ### AI Scribe (Phase 3)
 - Local LLM (Hermes 3 Llama 3.1 8B)
-- Four actions: Write Up, Proofread, Expand, Contract
+- Four actions: Write Up, Proofread, Expand, Condense
 - SSE streaming for real-time output
 - Auto-platform detection (Metal on Mac, CPU elsewhere)
 - Model download with progress tracking
