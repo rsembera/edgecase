@@ -199,7 +199,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Main view with client list
 - Client file with entry timeline
 - Session summary reports
-- Export entries to PDF/Markdown
+- Export entries to PDF
 - Deleted clients view
 
 ### 5. entries_bp (entries.py)
