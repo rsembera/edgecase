@@ -395,3 +395,66 @@ if (document.readyState === 'loading') {
 } else {
     initSessionPickers();
 }
+
+
+// ============================================================
+// AI SCRIBE BUTTON VALIDATION
+// ============================================================
+
+/**
+ * Show a validation message for AI Scribe requirements
+ */
+function showAiScribeValidationMessage() {
+    // Check if we already have a modal for this
+    let modal = document.getElementById('ai-scribe-validation-modal');
+    if (!modal) {
+        // Create the modal
+        modal = document.createElement('div');
+        modal.id = 'ai-scribe-validation-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h2>Fill in Session Details First</h2>
+                <p>Please fill in the required session details (date, time, modality, format, duration) before using AI Scribe.</p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('ai-scribe-validation-modal').style.display='none'">OK</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+}
+
+/**
+ * Check if required fields for AI Scribe are filled
+ */
+function validateForAiScribe() {
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('session_time');
+    const modalitySelect = document.getElementById('modality');
+    const formatSelect = document.getElementById('format');
+    const durationInput = document.getElementById('duration');
+    
+    // Check each required field
+    if (!dateInput || !dateInput.value) return false;
+    if (!timeInput || !timeInput.value) return false;
+    if (!modalitySelect || !modalitySelect.value) return false;
+    if (!formatSelect || !formatSelect.value) return false;
+    if (!durationInput || !durationInput.value) return false;
+    
+    return true;
+}
+
+// Add click handler to AI Scribe button
+document.addEventListener('DOMContentLoaded', function() {
+    const aiScribeBtn = document.querySelector('button[name="ai_scribe"]');
+    if (aiScribeBtn) {
+        aiScribeBtn.addEventListener('click', function(e) {
+            if (!validateForAiScribe()) {
+                e.preventDefault();
+                showAiScribeValidationMessage();
+            }
+        });
+    }
+});
