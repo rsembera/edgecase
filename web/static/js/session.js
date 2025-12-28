@@ -413,8 +413,8 @@ function showAiScribeValidationMessage() {
         modal.id = 'ai-scribe-validation-modal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div class="modal-box">
-                <h2>Fill in Session Details First</h2>
+            <div class="modal-content">
+                <h3>Fill in Session Details First</h3>
                 <p>Please fill in the required session details (date, time, modality, format, duration) before using AI Scribe.</p>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('ai-scribe-validation-modal').style.display='none'">OK</button>
