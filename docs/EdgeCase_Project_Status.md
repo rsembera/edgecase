@@ -220,7 +220,7 @@ python main.py
 
 | Document | Purpose |
 |----------|---------|
-| EdgeCase_Navigation_Map_v5_3.md | Quick reference, directory structure |
+| EdgeCase_Navigation_Map_v5_4.md | Quick reference, directory structure |
 | EdgeCase_Project_Status.md | This file - current state |
 | Database_Schema.md | Table definitions |
 | Route_Reference.md | All routes by blueprint |
