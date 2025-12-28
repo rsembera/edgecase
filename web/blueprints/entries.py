@@ -18,6 +18,15 @@ from io import BytesIO
 
 from core.database import Database
 
+# Project root for resolving relative paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+def resolve_attachment_path(filepath):
+    """Resolve attachment filepath, handling both absolute and relative paths."""
+    if os.path.isabs(filepath):
+        return filepath
+    return str(PROJECT_ROOT / filepath)
+
 # Initialize blueprint
 entries_bp = Blueprint('entries', __name__)
 
@@ -1691,14 +1700,17 @@ def download_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
+    # Resolve filepath (handles both absolute and relative paths)
+    filepath = resolve_attachment_path(attachment['filepath'])
+    
     # Check file exists
-    if not os.path.exists(attachment['filepath']):
+    if not os.path.exists(filepath):
         return "Attachment file is missing from disk", 404
     
     # Decrypt file if database is encrypted
     if db.password:
         try:
-            decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+            decrypted = decrypt_file_to_bytes(filepath, db.password)
         except Exception as e:
             return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
         return send_file(
@@ -1707,7 +1719,7 @@ def download_attachment(attachment_id):
             download_name=attachment['filename']
         )
     else:
-        return send_file(attachment['filepath'], 
+        return send_file(filepath, 
                          as_attachment=True, 
                          download_name=attachment['filename'])
 
@@ -1725,14 +1737,17 @@ def view_attachment(attachment_id):
     if not attachment:
         return "Attachment not found", 404
     
+    # Resolve filepath (handles both absolute and relative paths)
+    filepath = resolve_attachment_path(attachment['filepath'])
+    
     # Check file exists
-    if not os.path.exists(attachment['filepath']):
+    if not os.path.exists(filepath):
         return "Attachment file is missing from disk", 404
     
     # Decrypt file if database is encrypted
     if db.password:
         try:
-            decrypted = decrypt_file_to_bytes(attachment['filepath'], db.password)
+            decrypted = decrypt_file_to_bytes(filepath, db.password)
         except Exception as e:
             return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
         # Guess mimetype from filename
@@ -1745,7 +1760,7 @@ def view_attachment(attachment_id):
             mimetype=mimetype
         )
     else:
-        return send_file(attachment['filepath'], as_attachment=False)
+        return send_file(filepath, as_attachment=False)
 
 
 @entries_bp.route('/attachment/<int:attachment_id>/delete', methods=['POST'])
@@ -1764,9 +1779,10 @@ def delete_attachment(attachment_id):
     cursor.execute("SELECT * FROM entries WHERE id = ?", (attachment['entry_id'],))
     entry = cursor.fetchone()
     
-    # Delete file from disk
-    if os.path.exists(attachment['filepath']):
-        os.remove(attachment['filepath'])
+    # Resolve filepath and delete file from disk
+    filepath = resolve_attachment_path(attachment['filepath'])
+    if os.path.exists(filepath):
+        os.remove(filepath)
     
     # Delete from database
     cursor.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))

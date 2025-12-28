@@ -227,13 +227,16 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             # Get description (use filename if not provided)
             description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
             
+            # Store relative path (from project root) for portability
+            relative_filepath = str(Path(filepath).relative_to(PROJECT_ROOT))
+            
             # Save attachment record to database
             conn = db.connect()
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (entry_id, filename, description, filepath, filesize, int(time.time())))
+            """, (entry_id, filename, description, relative_filepath, filesize, int(time.time())))
             conn.commit()
             
             saved_files.append(filename)
