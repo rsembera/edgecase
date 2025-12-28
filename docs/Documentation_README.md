@@ -10,7 +10,7 @@
 
 EdgeCase Equalizer has **8 modular documentation files**:
 
-### 1. EdgeCase_Navigation_Map_v5_3.md (~360 lines)
+### 1. EdgeCase_Navigation_Map_v5_4.md (~360 lines)
 **Purpose:** Main overview and quick reference  
 **Use when:** Starting a session, need project overview, want quick commands
 
@@ -148,7 +148,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ### Starting a New Session
 
-1. **Read:** EdgeCase_Navigation_Map_v5_3.md
+1. **Read:** EdgeCase_Navigation_Map_v5_4.md
    - Get current project state
    - See directory structure
    - Check system capabilities
@@ -203,7 +203,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 **Project docs folder:** `~/edgecase/docs/`
 
 **Files:**
-- EdgeCase_Navigation_Map_v5_3.md (main reference)
+- EdgeCase_Navigation_Map_v5_4.md (main reference)
 - EdgeCase_Project_Status.md (current state)
 - Architecture_Decisions.md (design philosophy)
 - Database_Schema.md (data reference)
@@ -216,7 +216,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ## QUICK ACCESS
 
-**Main entry point:** EdgeCase_Navigation_Map_v5_3.md  
+**Main entry point:** EdgeCase_Navigation_Map_v5_4.md  
 **Current status:** EdgeCase_Project_Status.md  
 **Design philosophy:** Architecture_Decisions.md  
 **Data reference:** Database_Schema.md  
@@ -233,6 +233,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 - Nov 28, 2025: Updated for Statement System completion (Navigation Map v2.1)
 - Dec 1, 2025: Phase 2 complete - Navigation Map v4.0, updated all docs
 - Dec 16, 2025: All phases complete - Navigation Map v5.3, comprehensive testing
+- **Dec 28, 2025: Python 3.13 upgrade, zero vulnerabilities - Navigation Map v5.4**
 - **Dec 27, 2025: Documentation accuracy review - synced all docs with actual code**
 
 ---
