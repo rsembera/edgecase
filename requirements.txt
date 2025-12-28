@@ -21,7 +21,7 @@ cryptography==46.0.3
 
 # PDF generation
 reportlab==4.4.5
-PyPDF2==3.0.1
+pypdf==5.1.0
 
 # Markdown export
 Markdown==3.9
