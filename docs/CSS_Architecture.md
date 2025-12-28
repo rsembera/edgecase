@@ -1,21 +1,21 @@
 # EdgeCase CSS Architecture
 
-**Last Updated:** December 19, 2025
+**Last Updated:** December 27, 2025
 
 ## Overview
 
 EdgeCase uses a layered CSS architecture:
 
-1. **shared.css** (~2,270 lines) - Common patterns used across multiple pages
+1. **shared.css** (~2,360 lines) - Common patterns used across multiple pages
 2. **Page-specific CSS** - Styles unique to individual pages
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~7,400 lines across 27 files
+**Total CSS:** ~7,600 lines across 27 files
 
 ---
 
-## shared.css Sections (~2,270 lines)
+## shared.css Sections (~2,360 lines)
 
 Organized into logical sections:
 

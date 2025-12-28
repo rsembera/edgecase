@@ -68,9 +68,9 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | Templates | 30 |
 | CSS Files | 27 |
 | JS Files | 27 |
-| Python Files | 36 |
+| Python Files | 37 |
 | Entry Types | 8 (6 client + 2 ledger) |
-| Routes | 65+ |
+| Routes | 98 |
 | Automated Tests | 41 |
 
 ---
@@ -84,6 +84,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ├── pyproject.toml               # Package configuration
 ├── README.md                    # Installation instructions
 ├── core/
+│   ├── config.py                # Path configuration (~35 lines)
 │   ├── database.py              # Database class (~1,930 lines)
 │   └── encryption.py            # Fernet file encryption
 ├── pdf/
@@ -93,7 +94,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── formatting.py            # PDF helpers
 │   └── templates.py             # PDF templates
 ├── utils/
-│   ├── backup.py                # Backup/restore system (~1,040 lines)
+│   ├── backup.py                # Backup/restore system (~1,060 lines)
 │   ├── formatters.py            # Date/string formatting
 │   └── validators.py            # Input validation
 ├── ai/
@@ -151,7 +152,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │       └── expense.html
 ├── web/static/
 │   ├── css/                     # 27 CSS files
-│   │   ├── shared.css           # Common patterns (~2,270 lines)
+│   │   ├── shared.css           # Common patterns (~2,360 lines)
 │   │   └── [page-specific].css
 │   ├── js/                      # 27 JS files
 │   │   ├── lucide.min.js        # Icon library
