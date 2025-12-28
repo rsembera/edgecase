@@ -216,11 +216,10 @@ Themes are applied via body classes (e.g., `body.ocean-breeze`). Theme selection
 | Theme | Card Color | Background |
 |-------|------------|------------|
 | EdgeCase (Default) | White | #C5CDD3 (Cool grey) |
-| Ocean Breeze | #B8D4E3 | #C5D3DD (Powder blue) |
-| Sunset Glow | #F0D8C4 | #E5E1D8 (Warm cream) |
-| Garden Path | #C8D8C4 | #C8D1C8 (Soft green) |
-| Warm Stone | #D8D2C8 | #D4CEC5 (Taupe) |
-| Tutti-Frutti | Mixed pastels | #D8D5DD (Soft lavender) |
+| Ink | #f5f3f0 | Charcoal tones |
+| Slate | #f0f2f4 | Cool gray tones |
+| Parchment | #f8f4ec | Warm cream tones |
+| Tutti-Frutti | Mixed pastels | Colorful per-card |
 
 **Theme CSS Pattern:**
 - **Tutti-Frutti only:** Colorful - each stat card and nav button has a different color
@@ -252,3 +251,7 @@ Theme styles are in `main_view.css` (stat cards, nav buttons) and `ledger.css` (
 - Reduced ledger.css from ~158 → ~141 lines
 - Removed unused system background images (~17MB freed)
 - Unified Theme selector auto-applies matching background color
+
+**December 27, 2025:**
+- Replaced Ocean Breeze, Sunset Glow, Garden Path, Warm Stone themes
+- Added Ink, Slate, Parchment themes (from Synesius)

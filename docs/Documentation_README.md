@@ -27,7 +27,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 2. EdgeCase_Project_Status.md (~240 lines)
+### 2. EdgeCase_Project_Status.md (~235 lines)
 **Purpose:** Current project state and accomplishments  
 **Use when:** Planning sessions, tracking progress, understanding what's done
 
@@ -47,7 +47,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 3. Database_Schema.md (~480 lines)
+### 3. Database_Schema.md (~475 lines)
 **Purpose:** Complete database table definitions and design decisions  
 **Use when:** Working with database, adding fields, understanding data structure
 
@@ -62,12 +62,12 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 4. Route_Reference.md (~820 lines)
+### 4. Route_Reference.md (~1,060 lines)
 **Purpose:** Complete route listings organized by blueprint  
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
 **Contents:**
-- All 65+ routes across 12 blueprints
+- All 98 routes across 12 blueprints
 - Route signatures (parameters, query params, form data)
 - Return values and redirects
 - Special behaviors and validation
@@ -88,7 +88,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 5. Architecture_Decisions.md (~550 lines)
+### 5. Architecture_Decisions.md (~980 lines)
 **Purpose:** Explain *why* we built things certain ways  
 **Use when:** Understanding design philosophy, making architectural decisions
 
@@ -107,7 +107,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 6. CSS_Architecture.md (~225 lines)
+### 6. CSS_Architecture.md (~255 lines)
 **Purpose:** CSS organization and patterns  
 **Use when:** Adding styles, understanding CSS structure
 
@@ -120,7 +120,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 7. Bug_Investigation_Log.md (~150 lines)
+### 7. Bug_Investigation_Log.md (~125 lines)
 **Purpose:** Complete bug investigation audit  
 **Use when:** Understanding production readiness verification
 
