@@ -903,7 +903,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
     Returns:
         Path to generated PDF or BytesIO buffer
     """
-    from PyPDF2 import PdfReader, PdfWriter
+    from pypdf import PdfReader, PdfWriter
     
     # Get client info
     client = db.get_client(client_id)
