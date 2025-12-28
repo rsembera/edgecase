@@ -107,7 +107,7 @@ def ai_unload()
 @ai_bp.route('/api/ai/process', methods=['POST'])
 def ai_process()
 ```
-**Purpose:** Process text with AI (Write Up, Proofread, Expand, Contract)
+**Purpose:** Process text with AI (Write Up, Proofread, Expand, Condense)
 
 **POST JSON Data:**
 - `action` (str): 'write_up', 'proofread', 'expand', or 'condense'
