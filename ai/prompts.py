@@ -36,7 +36,7 @@ NOTES:
 
 EXPANDED:""",
 
-    'contract': """Condense the following clinical notes to be more concise while preserving all essential clinical information. Remove redundancy.
+    'condense': """Condense the following clinical notes to be more concise while preserving all essential clinical information. Remove redundancy.
 
 NOTES:
 {text}
@@ -49,7 +49,7 @@ ACTION_LABELS = {
     'writeup': 'Write Up',
     'proofread': 'Proofread',
     'expand': 'Expand',
-    'contract': 'Condense',
+    'condense': 'Condense',
 }
 
 # Action descriptions for tooltips/help
@@ -57,7 +57,7 @@ ACTION_DESCRIPTIONS = {
     'writeup': 'Convert point-form notes to professional clinical prose',
     'proofread': 'Fix spelling, grammar, and punctuation',
     'expand': 'Add clinical detail and professional language',
-    'contract': 'Make notes more concise while preserving essentials',
+    'condense': 'Make notes more concise while preserving essentials',
 }
 
 # Icons for each action (Lucide icon names)
@@ -65,7 +65,7 @@ ACTION_ICONS = {
     'writeup': 'file-text',
     'proofread': 'spell-check',
     'expand': 'maximize-2',
-    'contract': 'minimize-2',
+    'condense': 'minimize-2',
 }
 
 
@@ -74,7 +74,7 @@ def build_prompt(action: str, text: str) -> str:
     Build the user prompt for a given action and input text.
     
     Args:
-        action: One of 'writeup', 'proofread', 'expand', 'contract'
+        action: One of 'writeup', 'proofread', 'expand', 'condense'
         text: The clinical notes to process
     
     Returns:
