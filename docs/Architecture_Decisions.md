@@ -72,17 +72,17 @@ Organize routes into 12 modular blueprints instead of one monolithic app.py.
 
 **Blueprint organization:**
 - `ai.py` - AI Scribe functionality (~330 lines)
-- `auth.py` - Login/logout, session management (~155 lines)
-- `backups.py` - Backup/restore operations (~224 lines)
-- `clients.py` - Client management (~400 lines)
-- `entries.py` - Entry CRUD (~450 lines)
-- `ledger.py` - Income/Expense (~350 lines)
-- `links.py` - Link group management (~193 lines)
-- `scheduler.py` - Calendar integration (~200 lines)
-- `statements.py` - Statement generation (~300 lines)
-- `types.py` - Client types (~100 lines)
-- `settings.py` - Configuration (~120 lines)
-- `app.py` - Just initialization (219 lines)
+- `auth.py` - Login/logout, session management (~340 lines)
+- `backups.py` - Backup/restore operations (~210 lines)
+- `clients.py` - Client management (~1,065 lines)
+- `entries.py` - Entry CRUD (~1,780 lines)
+- `ledger.py` - Income/Expense (~660 lines)
+- `links.py` - Link group management (~200 lines)
+- `scheduler.py` - Calendar integration (~440 lines)
+- `statements.py` - Statement generation (~1,090 lines)
+- `types.py` - Client types (~205 lines)
+- `settings.py` - Configuration (~550 lines)
+- `app.py` - Flask initialization (~290 lines)
 
 **Benefits:**
 - ✅ **Maintainability** - Find code faster
@@ -93,7 +93,7 @@ Organize routes into 12 modular blueprints instead of one monolithic app.py.
 
 **Implementation (Phase 7-9):**
 - Week 4, Day 1: Extracted all blueprints
-- Result: 77-line app.py, modular codebase
+- Result: Modular codebase with clean separation
 - No functionality lost, all tests passed
 
 ---
