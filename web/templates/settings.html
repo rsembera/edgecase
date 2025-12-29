@@ -328,110 +328,6 @@ details[open] .settings-section-header .arrow {
         </div>
     </details>
     
-    <!-- Practice Information Section -->
-    <details class="settings-section-collapsible">
-        <summary class="settings-section-header">
-            <span class="arrow">▶</span>
-            <div>
-                <h3>Practice Information</h3>
-                <p>Your contact details (used on statements)</p>
-            </div>
-        </summary>
-        <div class="settings-section-content">
-        
-        <div class="form-group">
-            <label for="practice-name">Practice Name</label>
-            <input type="text" id="practice-name" placeholder="e.g., Mindful Pathways Counselling">
-        </div>
-        
-        <div class="form-group">
-            <label for="therapist-name">Therapist Name</label>
-            <input type="text" id="therapist-name" placeholder="e.g., Dr. Jane Smith">
-        </div>
-        
-        <div class="form-group">
-            <label for="credentials">Credentials</label>
-            <input type="text" id="credentials" placeholder="e.g., MSW, RSW, PhD">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-email">Email</label>
-            <input type="email" id="practice-email" placeholder="e.g., contact@practice.com">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-phone">Phone</label>
-            <input type="tel" id="practice-phone" placeholder="(123) 456-7890">
-        </div>
-        
-        <div class="form-group">
-            <label for="practice-address">Practice Address</label>
-            <textarea id="practice-address" rows="5" placeholder="123 Main Street&#10;Suite 200&#10;Ottawa, ON K1A 0B1&#10;Canada"></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="website">Website (optional)</label>
-            <input type="url" id="website" placeholder="e.g., https://practice.com">
-        </div>
-        
-        <div class="form-group">
-            <label>Consultation Fee</label>
-            <div class="grid-3col max-w-600">
-                <div>
-                    <label for="consultation-base" class="text-muted label-light">Base Fee</label>
-                    <input type="number" 
-                           id="consultation-base" 
-                           step="0.01" 
-                           min="0" 
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('base')">
-                </div>
-                <div>
-                    <label for="consultation-tax" class="text-muted label-light">Tax Rate (%)</label>
-                    <input type="number" 
-                           id="consultation-tax" 
-                           step="0.01" 
-                           min="0" 
-                           max="100"
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('tax')">
-                </div>
-                <div>
-                    <label for="consultation-total" class="text-muted label-light">Total Fee</label>
-                    <input type="number" 
-                           id="consultation-total" 
-                           step="0.01" 
-                           min="0" 
-                           placeholder="0.00"
-                           oninput="calculateConsultationFee('total')">
-                </div>
-            </div>
-        </div>
-        
-        <div class="form-group" style="max-width: 280px;">
-            <label for="consultation-duration">Consultation Duration</label>
-            <select id="consultation-duration">
-                <option value="15">15 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="25">25 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="35">35 minutes</option>
-                <option value="40">40 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="50">50 minutes</option>
-                <option value="55">55 minutes</option>
-                <option value="60">60 minutes</option>
-            </select>
-        </div>
-        
-        <div class="section-save-row">
-            <button onclick="savePracticeInfo()" class="btn">Save</button>
-            <span id="practice-info-status" class="section-status">✓ Saved!</span>
-        </div>
-        </div>
-    </details>
-
-    
     <!-- File Number Format Section -->
     <details class="settings-section-collapsible">
         <summary class="settings-section-header">
@@ -637,13 +533,117 @@ details[open] .settings-section-header .arrow {
         </div>
     </details>
 
+    <!-- Practice Information Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Practice Information</h3>
+                <p>Your contact details (used on statements)</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+        
+        <div class="form-group">
+            <label for="practice-name">Practice Name</label>
+            <input type="text" id="practice-name" placeholder="e.g., Mindful Pathways Counselling">
+        </div>
+        
+        <div class="form-group">
+            <label for="therapist-name">Therapist Name</label>
+            <input type="text" id="therapist-name" placeholder="e.g., Dr. Jane Smith">
+        </div>
+        
+        <div class="form-group">
+            <label for="credentials">Credentials</label>
+            <input type="text" id="credentials" placeholder="e.g., MSW, RSW, PhD">
+        </div>
+        
+        <div class="form-group">
+            <label for="practice-email">Email</label>
+            <input type="email" id="practice-email" placeholder="e.g., contact@practice.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="practice-phone">Phone</label>
+            <input type="tel" id="practice-phone" placeholder="(123) 456-7890">
+        </div>
+        
+        <div class="form-group">
+            <label for="practice-address">Practice Address</label>
+            <textarea id="practice-address" rows="5" placeholder="123 Main Street&#10;Suite 200&#10;Ottawa, ON K1A 0B1&#10;Canada"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="website">Website (optional)</label>
+            <input type="url" id="website" placeholder="e.g., https://practice.com">
+        </div>
+        
+        <div class="form-group">
+            <label>Consultation Fee</label>
+            <div class="grid-3col max-w-600">
+                <div>
+                    <label for="consultation-base" class="text-muted label-light">Base Fee</label>
+                    <input type="number" 
+                           id="consultation-base" 
+                           step="0.01" 
+                           min="0" 
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('base')">
+                </div>
+                <div>
+                    <label for="consultation-tax" class="text-muted label-light">Tax Rate (%)</label>
+                    <input type="number" 
+                           id="consultation-tax" 
+                           step="0.01" 
+                           min="0" 
+                           max="100"
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('tax')">
+                </div>
+                <div>
+                    <label for="consultation-total" class="text-muted label-light">Total Fee</label>
+                    <input type="number" 
+                           id="consultation-total" 
+                           step="0.01" 
+                           min="0" 
+                           placeholder="0.00"
+                           oninput="calculateConsultationFee('total')">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group" style="max-width: 280px;">
+            <label for="consultation-duration">Consultation Duration</label>
+            <select id="consultation-duration">
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="25">25 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="35">35 minutes</option>
+                <option value="40">40 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="50">50 minutes</option>
+                <option value="55">55 minutes</option>
+                <option value="60">60 minutes</option>
+            </select>
+        </div>
+        
+        <div class="section-save-row">
+            <button onclick="savePracticeInfo()" class="btn">Save</button>
+            <span id="practice-info-status" class="section-status">✓ Saved!</span>
+        </div>
+        </div>
+    </details>
+
+    
     <!-- Statements Section -->
     <details class="settings-section-collapsible">
         <summary class="settings-section-header">
             <span class="arrow">▶</span>
             <div>
                 <h3>Statements</h3>
-                <p>Invoice appearance and payment details</p>
+                <p>Statement appearance and payment details</p>
             </div>
         </summary>
         <div class="settings-section-content">
@@ -688,12 +688,6 @@ details[open] .settings-section-header .arrow {
         </div>
         
         <div class="form-group">
-            <label for="payment_instructions">Payment Instructions</label>
-            <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" class="resize-v"></textarea>
-            <small class="helper-text">Appears at bottom of statement</small>
-        </div>
-        
-        <div class="form-group">
             <label class="checkbox-label-inline">
                 <input type="checkbox" id="include_attestation" onchange="toggleAttestationText()" class="checkbox-auto">
                 Include attestation statement
@@ -703,6 +697,12 @@ details[open] .settings-section-header .arrow {
         <div class="form-group" id="attestation-text-group" style="display: none;">
             <label for="attestation_text">Attestation Text</label>
             <textarea id="attestation_text" rows="3" class="resize-v">I attest that I have performed the services listed above.</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="payment_instructions">Payment Instructions</label>
+            <textarea id="payment_instructions" rows="3" placeholder="e.g., Please send payment by e-transfer to: you@email.com" class="resize-v"></textarea>
+            <small class="helper-text">Appears at bottom of statement</small>
         </div>
         
         <div class="form-row-half">
