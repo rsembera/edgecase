@@ -550,3 +550,70 @@ def time_format():
         return jsonify({
             'time_format': db.get_setting('time_format', '12h')
         })
+
+
+# ============================================================================
+# DATABASE RESET
+# ============================================================================
+
+@settings_bp.route('/api/reset_database', methods=['POST'])
+def reset_database():
+    """
+    Reset the entire database and delete all user data.
+    Requires password confirmation and typing 'RESET' to confirm.
+    """
+    import shutil
+    from flask import session
+    from core.config import DATA_DIR, ATTACHMENTS_DIR, BACKUPS_DIR, ASSETS_DIR
+    
+    data = request.get_json()
+    password = data.get('password', '')
+    confirmation = data.get('confirmation', '')
+    keep_ai_model = data.get('keep_ai_model', True)
+    
+    # Validate confirmation text
+    if confirmation != 'RESET':
+        return jsonify({'success': False, 'error': 'Please type RESET to confirm'}), 400
+    
+    # Validate password
+    if not db.verify_password(password):
+        return jsonify({'success': False, 'error': 'Incorrect password'}), 401
+    
+    try:
+        # Close database connection
+        db.close()
+        
+        # Delete database file
+        db_path = Path(DATA_DIR) / 'edgecase.db'
+        if db_path.exists():
+            db_path.unlink()
+        
+        # Delete attachments directory contents
+        attachments_path = Path(ATTACHMENTS_DIR)
+        if attachments_path.exists():
+            shutil.rmtree(attachments_path)
+            attachments_path.mkdir(parents=True, exist_ok=True)
+        
+        # Delete backups directory contents
+        backups_path = Path(BACKUPS_DIR)
+        if backups_path.exists():
+            shutil.rmtree(backups_path)
+            backups_path.mkdir(parents=True, exist_ok=True)
+        
+        # Delete assets (logo, signature) but keep directory
+        assets_path = Path(ASSETS_DIR)
+        if assets_path.exists():
+            for item in assets_path.iterdir():
+                if item.is_file():
+                    item.unlink()
+        
+        # Clear session to force re-login
+        session.clear()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Database reset complete. You will be redirected to set up a new password.'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
