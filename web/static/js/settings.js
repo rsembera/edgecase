@@ -1104,6 +1104,62 @@ function toggleEmailFromField() {
 }
 
 /**
+ * Update color preview box
+ */
+function updateColorPreview(color) {
+    const preview = document.getElementById('color-preview');
+    if (preview && /^#[0-9A-Fa-f]{6}$/.test(color)) {
+        preview.style.backgroundColor = color;
+    }
+}
+
+/**
+ * Update color swatch selection state
+ */
+function updateColorSwatchSelection(color) {
+    const swatches = document.querySelectorAll('.color-swatch');
+    swatches.forEach(swatch => {
+        if (swatch.dataset.color.toUpperCase() === color.toUpperCase()) {
+            swatch.classList.add('selected');
+        } else {
+            swatch.classList.remove('selected');
+        }
+    });
+}
+
+/**
+ * Initialize color picker event handlers
+ */
+function initColorPicker() {
+    // Swatch clicks
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const color = this.dataset.color;
+            document.getElementById('statement_name_color').value = color;
+            updateColorPreview(color);
+            updateColorSwatchSelection(color);
+        });
+    });
+    
+    // Manual hex input
+    const colorInput = document.getElementById('statement_name_color');
+    if (colorInput) {
+        colorInput.addEventListener('input', function() {
+            let val = this.value;
+            // Add # if missing
+            if (val && !val.startsWith('#')) {
+                val = '#' + val;
+                this.value = val;
+            }
+            if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                updateColorPreview(val);
+                updateColorSwatchSelection(val);
+            }
+        });
+    }
+}
+
+/**
  * Load statement settings from server
  */
 function loadStatementSettings() {
@@ -1126,6 +1182,12 @@ function loadStatementSettings() {
             toggleAttestationText();
             
             if (data.attestation_text) document.getElementById('attestation_text').value = data.attestation_text;
+            
+            // Load statement name color
+            const nameColor = data.statement_name_color || '#000000';
+            document.getElementById('statement_name_color').value = nameColor;
+            updateColorPreview(nameColor);
+            updateColorSwatchSelection(nameColor);
         });
 }
 
@@ -1145,7 +1207,8 @@ async function saveStatementSettings() {
                 attestation_text: document.getElementById('attestation_text').value,
                 email_method: document.getElementById('email_method').value,
                 email_from_address: document.getElementById('email_from').value,
-                statement_email_body: document.getElementById('statement_email_body').value
+                statement_email_body: document.getElementById('statement_email_body').value,
+                statement_name_color: document.getElementById('statement_name_color').value || '#000000'
             })
         });
         
@@ -1368,6 +1431,9 @@ document.addEventListener('DOMContentLoaded', function() {
         loadStatementSettings();
         loadTimeFormat();
         loadAIStatus();
+        
+        // Initialize color picker after statement settings load
+        initColorPicker();
     }, 0);
     
     // Event listeners can be set up immediately

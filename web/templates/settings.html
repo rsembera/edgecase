@@ -664,6 +664,24 @@ details[open] .settings-section-header .arrow {
         </div>
         
         <div class="form-group">
+            <label>Name Color on Statements</label>
+            <div class="color-picker-row">
+                <div class="color-swatches">
+                    <button type="button" class="color-swatch" data-color="#000000" style="background-color: #000000;" title="Black"></button>
+                    <button type="button" class="color-swatch" data-color="#D4A04A" style="background-color: #D4A04A;" title="Golden"></button>
+                    <button type="button" class="color-swatch" data-color="#2A9D8F" style="background-color: #2A9D8F;" title="Teal"></button>
+                    <button type="button" class="color-swatch" data-color="#1E3A5F" style="background-color: #1E3A5F;" title="Navy"></button>
+                    <button type="button" class="color-swatch" data-color="#722F37" style="background-color: #722F37;" title="Burgundy"></button>
+                </div>
+                <div class="color-custom">
+                    <input type="text" id="statement_name_color" placeholder="#000000" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$">
+                    <div class="color-preview" id="color-preview"></div>
+                </div>
+            </div>
+            <small class="helper-text">Color of your name at the top of PDF statements</small>
+        </div>
+        
+        <div class="form-group">
             <label for="registration_info">Registration Info</label>
             <input type="text" id="registration_info" placeholder="e.g., CRPO Registration Nr. #001234">
             <small class="helper-text">Appears in header next to your credentials</small>
