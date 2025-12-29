@@ -28,13 +28,16 @@ class StatementPDFGenerator:
         
     def _setup_custom_styles(self):
         """Create custom paragraph styles."""
+        # Get name color from settings, default to black
+        name_color = self.db.get_setting('statement_name_color', '#000000')
+        
         # Header - therapist name with credentials
         self.styles.add(ParagraphStyle(
             name='TherapistName',
             parent=self.styles['Normal'],
             fontSize=12,
             fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#D4A04A'),  # Golden color like your sample
+            textColor=colors.HexColor(name_color),
             spaceAfter=2,
             alignment=TA_RIGHT
         ))

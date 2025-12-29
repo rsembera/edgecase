@@ -502,6 +502,7 @@ def statement_settings():
         db.set_setting('email_method', data.get('email_method', 'mailto'))
         db.set_setting('email_from_address', data.get('email_from_address', ''))
         db.set_setting('statement_email_body', data.get('statement_email_body', ''))
+        db.set_setting('statement_name_color', data.get('statement_name_color', '#000000'))
         return jsonify({'success': True})
     else:
         return jsonify({
@@ -512,7 +513,8 @@ def statement_settings():
             'attestation_text': db.get_setting('attestation_text', 'I attest that I have performed the services listed above.'),
             'email_method': db.get_setting('email_method', 'mailto'),
             'email_from_address': db.get_setting('email_from_address', ''),
-            'statement_email_body': db.get_setting('statement_email_body', '')
+            'statement_email_body': db.get_setting('statement_email_body', ''),
+            'statement_name_color': db.get_setting('statement_name_color', '#000000')
         })
 
 
