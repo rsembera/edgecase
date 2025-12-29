@@ -1462,3 +1462,92 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+
+// ============================================================================
+// RESET DATABASE
+// ============================================================================
+
+function showResetDatabaseModal() {
+    document.getElementById('reset-database-modal').style.display = 'flex';
+    document.getElementById('reset-password').value = '';
+    document.getElementById('reset-confirmation').value = '';
+    document.getElementById('reset-error').style.display = 'none';
+    document.getElementById('reset-password').focus();
+    lucide.createIcons();
+}
+
+function closeResetDatabaseModal() {
+    document.getElementById('reset-database-modal').style.display = 'none';
+}
+
+async function executeResetDatabase() {
+    const password = document.getElementById('reset-password').value;
+    const confirmation = document.getElementById('reset-confirmation').value;
+    const errorDiv = document.getElementById('reset-error');
+    const btn = document.getElementById('reset-execute-btn');
+    
+    // Client-side validation
+    if (!password) {
+        errorDiv.textContent = 'Please enter your password';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (confirmation !== 'RESET') {
+        errorDiv.textContent = 'Please type RESET exactly to confirm';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Disable button and show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader" class="icon-sm icon-inline btn-spinner"></i> Resetting...';
+    lucide.createIcons();
+    errorDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/reset_database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                password: password,
+                confirmation: confirmation,
+                keep_ai_model: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect to login page
+            window.location.href = '/login?reset=1';
+        } else {
+            errorDiv.textContent = data.error || 'Reset failed';
+            errorDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="trash-2" class="icon-sm icon-inline"></i> Reset Everything';
+            lucide.createIcons();
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="trash-2" class="icon-sm icon-inline"></i> Reset Everything';
+        lucide.createIcons();
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeResetDatabaseModal();
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('reset-database-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeResetDatabaseModal();
+    }
+});

@@ -165,3 +165,47 @@ input[type="number"] {
     border: 1px solid #DEE2E6;
     background-color: #000000;
 }
+
+
+/* Danger Zone */
+.danger-zone .settings-section-header h3 {
+    color: #DC2626;
+}
+
+.danger-zone-box {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.danger-zone-box h4 {
+    color: #DC2626;
+    margin: 0 0 0.75rem 0;
+    font-size: 1.125rem;
+}
+
+.danger-zone-box p {
+    color: #7F1D1D;
+    margin-bottom: 0.75rem;
+}
+
+.danger-zone-box ul {
+    color: #991B1B;
+    margin: 0.5rem 0 1rem 1.5rem;
+    padding: 0;
+}
+
+.danger-zone-box ul li {
+    margin-bottom: 0.25rem;
+}
+
+.btn-danger {
+    background: #DC2626;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #B91C1C;
+}

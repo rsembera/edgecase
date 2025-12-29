@@ -53,6 +53,10 @@ class Database:
             self._local.conn.close()
             self._local.conn = None
     
+    def verify_password(self, password):
+        """Verify if the given password matches the database password."""
+        return password == self.password
+    
     def _initialize_schema(self):
         """Create tables if they don't exist."""
         conn = self.connect()
