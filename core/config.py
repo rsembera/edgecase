@@ -3,9 +3,10 @@ EdgeCase Configuration
 
 Provides dynamically-derived paths based on the application's location.
 
-In development mode (running from source), data is stored relative to the app.
-In installed mode (PyApp or /Applications), data is stored in platform-appropriate
-user directories to survive app updates.
+Priority for data location:
+1. EDGECASE_DATA environment variable (explicit override)
+2. Installed mode (PyApp, /Applications) -> platform user directories
+3. Development mode -> relative to app folder
 """
 
 import os
@@ -76,14 +77,34 @@ def _get_user_data_root():
     return base / 'EdgeCase'
 
 
-# Determine data root based on mode
-if _is_installed_mode():
-    DATA_ROOT = _get_user_data_root()
-    # Ensure directory exists
-    DATA_ROOT.mkdir(parents=True, exist_ok=True)
-else:
+def _get_data_root():
+    """
+    Determine the data root directory.
+    
+    Priority:
+    1. EDGECASE_DATA env var (explicit override for testing/alternate data)
+    2. Installed mode -> platform user directories
+    3. Development mode -> relative to app folder
+    """
+    # Check for explicit override first
+    custom_data_path = os.environ.get('EDGECASE_DATA')
+    if custom_data_path:
+        path = Path(custom_data_path)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    # Check if installed mode
+    if _is_installed_mode():
+        path = _get_user_data_root()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
     # Development mode - store relative to app
-    DATA_ROOT = APP_ROOT
+    return APP_ROOT
+
+
+# Determine data root based on mode
+DATA_ROOT = _get_data_root()
 
 # Key directories
 DATA_DIR = DATA_ROOT / 'data'
@@ -119,5 +140,10 @@ def get_models_path():
 
 
 def is_development_mode():
-    """Return True if running in development mode."""
-    return not _is_installed_mode()
+    """Return True if running in development mode (no env override, not installed)."""
+    return not os.environ.get('EDGECASE_DATA') and not _is_installed_mode()
+
+
+def get_data_root():
+    """Return the current data root path."""
+    return str(DATA_ROOT)
