@@ -181,6 +181,16 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 None critical. System is production-ready.
 
+### Features Not Yet Tested with Real Data
+
+The following features were extensively tested with test data during development but have not yet been used in production with real clients:
+
+- **Guardian billing / split payments** - For billing minors' guardians separately
+- **Link groups** - Couples, family, and group therapy billing
+- **Tax calculations** - HST/GST on session fees (current practice doesn't charge tax)
+
+These features passed all automated tests and manual testing in December 2025. First real-world use should be verified carefully.
+
 ---
 
 ## GIT STATUS
