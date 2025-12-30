@@ -24,6 +24,8 @@ Practice management software for independent therapists.
 
 ```bash
 brew install sqlcipher
+export LDFLAGS="-L/opt/homebrew/opt/sqlcipher/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/sqlcipher/include"
 ```
 
 ### Linux (Debian/Ubuntu)
