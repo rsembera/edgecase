@@ -242,6 +242,9 @@ def _run_auto_backup_check(db):
 @auth_bp.route('/logout')
 def logout():
     """Logout - close database connection."""
+    db = current_app.config.get('db')
+    if db:
+        db.close()
     current_app.config['db'] = None
     session.clear()
     return redirect(url_for('auth.login'))

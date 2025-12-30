@@ -13,6 +13,7 @@ import json
 import hashlib
 import zipfile
 import shutil
+import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +30,25 @@ MANIFEST_FILE = BACKUPS_DIR / 'manifest.json'
 def ensure_backup_dir():
     """Create backups directory if it doesn't exist."""
     BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def checkpoint_database():
+    """
+    Force WAL checkpoint to ensure all changes are written to main database file.
+    This is essential before backup to capture all pending changes.
+    """
+    db_path = DATA_DIR / 'edgecase.db'
+    if not db_path.exists():
+        return
+    
+    try:
+        # Open a temporary connection just for checkpointing
+        conn = sqlite3.connect(str(db_path))
+        conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+        conn.close()
+    except Exception as e:
+        # Log but don't fail - backup can still proceed with WAL data
+        print(f"[Backup] WAL checkpoint warning: {e}")
 
 
 def get_file_hash(filepath):
@@ -85,6 +105,9 @@ def get_file_hashes():
     Calculate hashes for all backup files.
     Returns dict: {relative_path: hash}
     """
+    # Ensure WAL is flushed before calculating hashes
+    checkpoint_database()
+    
     files = get_all_backup_files()
     hashes = {}
     for rel_path, abs_path in files.items():
