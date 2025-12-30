@@ -1131,7 +1131,7 @@ class Database:
             'absence_date', 'absence_time',
             'item_date', 'item_time', 'base_price',  # ← removed tax_rate from here (it's now above)
             'upload_date', 'upload_time',
-            'statement_total', 'payment_status',
+            'statement_total', 'statement_tax_total', 'payment_status',
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at',
             # Session fee fields
