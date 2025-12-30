@@ -104,6 +104,9 @@ def backup_now():
     from utils import backup
     import subprocess
     
+    # Checkpoint WAL to ensure all changes are in main database file
+    db.checkpoint()
+    
     location = db.get_setting('backup_location', '')
     if not location:
         location = None  # Use default

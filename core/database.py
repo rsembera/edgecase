@@ -53,6 +53,11 @@ class Database:
             self._local.conn.close()
             self._local.conn = None
     
+    def checkpoint(self):
+        """Force WAL checkpoint to flush all changes to main database file."""
+        conn = self.connect()
+        conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+    
     def verify_password(self, password):
         """Verify if the given password matches the database password."""
         return password == self.password
