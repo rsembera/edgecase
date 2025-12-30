@@ -167,7 +167,7 @@
                 <label for="duration">Session Duration (minutes) *</label>
                 <input type="number" id="duration" name="duration" 
                     min="1" required
-                    value="{% if is_edit %}{{ session.duration }}{% else %}{{ profile_fees.duration|default(50) }}{% endif %}"
+                    value="{% if is_edit %}{{ session.duration }}{% else %}50{% endif %}"
                     placeholder="50" {% if is_billed %}disabled{% endif %}>
             </div>
         </div>
