@@ -218,17 +218,16 @@ consultationCheckbox.addEventListener('change', function() {
         const currentFormat = formatDropdown.value;
         
         if (currentFormat && currentFormat !== '') {
-            // Format selected: apply fees for that format
+            // Format selected: apply fees and duration for that format
             updateFeesForFormat(currentFormat);
         } else {
             // No format selected: set to 0
             baseFeeInput.value = '0.00';
             taxRateInput.value = '0.00';
             totalFeeInput.value = '0.00';
+            // Restore original duration only when no format selected
+            durationInput.value = originalDuration;
         }
-        
-        // Restore original duration regardless
-        durationInput.value = originalDuration;
         
         // Only clear service field if it still says "Consultation"
         if (serviceInput && serviceInput.value === 'Consultation') {
