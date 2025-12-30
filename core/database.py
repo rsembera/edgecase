@@ -1135,7 +1135,7 @@ class Database:
             'payment_notes', 'date_sent', 'date_paid', 'is_void', 'edit_history',
             'locked', 'locked_at',
             # Session fee fields
-            'session_base', 'session_tax_rate', 'session_total',
+            'session_base', 'session_tax_rate', 'session_total', 'default_session_duration',
             # Guardian fields
             'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone',
             'guardian1_address', 'guardian1_pays_percent', 'has_guardian2',
