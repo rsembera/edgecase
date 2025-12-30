@@ -588,13 +588,50 @@ def reset_database():
         if db_path.exists():
             db_path.unlink()
         
+        # Delete WAL and SHM files if they exist
+        for ext in ['-wal', '-shm']:
+            wal_path = Path(DATA_DIR) / f'edgecase.db{ext}'
+            if wal_path.exists():
+                wal_path.unlink()
+        
         # Delete attachments directory contents
         attachments_path = Path(ATTACHMENTS_DIR)
         if attachments_path.exists():
             shutil.rmtree(attachments_path)
             attachments_path.mkdir(parents=True, exist_ok=True)
         
-        # Delete backups directory contents
+        # Delete all backups listed in manifest (handles multiple locations)
+        manifest_path = Path(BACKUPS_DIR) / 'manifest.json'
+        if manifest_path.exists():
+            import json
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+                
+                # Track directories that had backups deleted
+                cleaned_dirs = set()
+                
+                # Delete each backup file at its recorded location
+                for backup in manifest.get('backups', []):
+                    backup_dir = Path(backup.get('backup_dir', BACKUPS_DIR))
+                    backup_file = backup_dir / backup['filename']
+                    if backup_file.exists():
+                        backup_file.unlink()
+                        cleaned_dirs.add(backup_dir)
+                
+                # Remove empty backup directories (except default)
+                for dir_path in cleaned_dirs:
+                    if dir_path != Path(BACKUPS_DIR) and dir_path.exists():
+                        # Only remove if empty
+                        try:
+                            dir_path.rmdir()
+                        except OSError:
+                            pass  # Directory not empty, leave it
+                            
+            except (json.JSONDecodeError, KeyError):
+                pass  # Corrupted manifest, just clear default location
+        
+        # Clear default backups directory
         backups_path = Path(BACKUPS_DIR)
         if backups_path.exists():
             shutil.rmtree(backups_path)
