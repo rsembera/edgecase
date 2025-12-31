@@ -18,8 +18,8 @@ def _get_secret_key() -> bytes:
     - Sessions persist across app restarts
     - Each installation has a unique key
     """
-    project_root = Path(__file__).parent.parent
-    secret_file = project_root / 'data' / '.secret_key'
+    from core.config import DATA_DIR
+    secret_file = DATA_DIR / '.secret_key'
     
     # Check environment variable first (for advanced users)
     env_key = os.environ.get('EDGECASE_SECRET_KEY')
@@ -116,9 +116,8 @@ def init_all_blueprints(db):
     init_ai(db)
 
 # Ensure data directory exists
-project_root = Path(__file__).parent.parent
-data_dir = project_root / "data"
-data_dir.mkdir(exist_ok=True)
+from core.config import DATA_DIR
+DATA_DIR.mkdir(exist_ok=True)
 
 # Register blueprints (but don't initialize with db yet - that happens after login)
 app.register_blueprint(auth_bp)

@@ -11,9 +11,7 @@ import time
 import difflib
 import calendar
 from core.encryption import encrypt_file
-
-# Project root for path calculations
-PROJECT_ROOT = Path(__file__).parent.parent
+from core.config import DATA_ROOT, ATTACHMENTS_DIR
 
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
     """Convert date form data to Unix timestamp.
@@ -203,9 +201,9 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
     
     # Determine upload directory based on entry type
     if client_id:
-        upload_dir = PROJECT_ROOT / 'attachments' / str(client_id) / str(entry_id)
+        upload_dir = ATTACHMENTS_DIR / str(client_id) / str(entry_id)
     else:
-        upload_dir = PROJECT_ROOT / 'attachments' / 'ledger' / str(entry_id)
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
     
     os.makedirs(upload_dir, exist_ok=True)
     
@@ -227,8 +225,8 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             # Get description (use filename if not provided)
             description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
             
-            # Store relative path (from project root) for portability
-            relative_filepath = str(Path(filepath).relative_to(PROJECT_ROOT))
+            # Store relative path (from data root) for portability
+            relative_filepath = str(Path(filepath).relative_to(DATA_ROOT))
             
             # Save attachment record to database
             conn = db.connect()
@@ -259,9 +257,9 @@ def delete_attachment_files(entry_id, client_id=None):
     
     try:
         if client_id:
-            upload_dir = PROJECT_ROOT / 'attachments' / str(client_id) / str(entry_id)
+            upload_dir = ATTACHMENTS_DIR / str(client_id) / str(entry_id)
         else:
-            upload_dir = PROJECT_ROOT / 'attachments' / 'ledger' / str(entry_id)
+            upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
         
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)

@@ -16,13 +16,10 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Project paths - derived from file location so app is relocatable
-PROJECT_ROOT = Path(__file__).parent.parent
-DATA_DIR = PROJECT_ROOT / 'data'
-ATTACHMENTS_DIR = PROJECT_ROOT / 'attachments'
-ASSETS_DIR = PROJECT_ROOT / 'assets'
-BACKUPS_DIR = PROJECT_ROOT / 'backups'
-RESTORE_STAGING_DIR = PROJECT_ROOT / '.restore_staging'
+# Use config for all paths so EDGECASE_DATA override works
+from core.config import DATA_ROOT, DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+
+RESTORE_STAGING_DIR = DATA_ROOT / '.restore_staging'
 MANIFEST_FILE = BACKUPS_DIR / 'manifest.json'
 
 
@@ -65,7 +62,7 @@ def get_all_backup_files():
     if ATTACHMENTS_DIR.exists():
         for filepath in ATTACHMENTS_DIR.rglob('*'):
             if filepath.is_file() and not filepath.name.startswith('.'):
-                rel_path = filepath.relative_to(PROJECT_ROOT)
+                rel_path = filepath.relative_to(DATA_ROOT)
                 files[str(rel_path)] = filepath
     
     # Assets (logo and signature only)
@@ -74,7 +71,7 @@ def get_all_backup_files():
             if filepath.is_file() and not filepath.name.startswith('.'):
                 # Only include logo and signature files
                 if filepath.stem in ('logo', 'signature'):
-                    rel_path = filepath.relative_to(PROJECT_ROOT)
+                    rel_path = filepath.relative_to(DATA_ROOT)
                     files[str(rel_path)] = filepath
     
     return files

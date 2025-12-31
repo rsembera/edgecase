@@ -1872,9 +1872,8 @@ class Database:
             entry_ids = [row[0] for row in cursor.fetchall()]
             
             # Delete attachment files from disk
-            project_root = Path(__file__).parent.parent
-            attachments_base = project_root / 'attachments'
-            client_attachments_dir = attachments_base / str(client_id)
+            from core.config import ATTACHMENTS_DIR
+            client_attachments_dir = ATTACHMENTS_DIR / str(client_id)
             if os.path.exists(client_attachments_dir):
                 shutil.rmtree(client_attachments_dir)
             

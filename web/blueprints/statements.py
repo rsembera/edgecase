@@ -14,6 +14,7 @@ from flask import send_file
 from pdf.generator import generate_statement_pdf
 
 from core.database import Database
+from core.config import ASSETS_DIR, ATTACHMENTS_DIR
 
 # Initialize blueprint
 statements_bp = Blueprint('statements', __name__)
@@ -521,10 +522,9 @@ def mark_sent(portion_id):
     date_str = datetime.now().strftime('%Y%m%d')
     pdf_filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
     temp_pdf_path = Path(temp_dir) / pdf_filename
-    assets_path = Path(__file__).parent.parent.parent / 'assets'
     
     try:
-        generate_statement_pdf(db, portion_id, str(temp_pdf_path), str(assets_path))
+        generate_statement_pdf(db, portion_id, str(temp_pdf_path), str(ASSETS_DIR))
     except Exception as e:
         return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
     
@@ -562,10 +562,10 @@ def mark_sent(portion_id):
     comm_entry_id = cursor.lastrowid
     
     # Copy PDF to attachments folder and create attachment record
-    attachments_dir = Path(__file__).parent.parent.parent / 'attachments' / str(portion['client_id']) / str(comm_entry_id)
-    attachments_dir.mkdir(parents=True, exist_ok=True)
+    attachment_dir = ATTACHMENTS_DIR / str(portion['client_id']) / str(comm_entry_id)
+    attachment_dir.mkdir(parents=True, exist_ok=True)
     
-    final_pdf_path = attachments_dir / pdf_filename
+    final_pdf_path = attachment_dir / pdf_filename
     shutil.copy2(temp_pdf_path, final_pdf_path)
     
     # Encrypt the attachment if database is encrypted
@@ -783,10 +783,8 @@ def download_statement_pdf(portion_id):
     filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
     output_path = Path(temp_dir) / filename
     
-    assets_path = Path(__file__).parent.parent.parent / 'assets'
-    
     try:
-        generate_statement_pdf(db, portion_id, str(output_path), str(assets_path))
+        generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
         
         return send_file(
             output_path,
@@ -824,10 +822,8 @@ def view_statement_pdf(portion_id):
     filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
     output_path = Path(temp_dir) / filename
     
-    assets_path = Path(__file__).parent.parent.parent / 'assets'
-    
     try:
-        generate_statement_pdf(db, portion_id, str(output_path), str(assets_path))
+        generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
         
         return send_file(
             output_path,

@@ -13,6 +13,7 @@ import os
 import shutil
 import time
 from core.database import Database
+from core.config import ATTACHMENTS_DIR, ASSETS_DIR
 import tempfile
 from pathlib import Path
 
@@ -269,8 +270,7 @@ def delete_income_entry(entry_id):
         return "Income entry not found", 404
     
     try:
-        project_root = Path(__file__).parent.parent.parent
-        upload_dir = project_root / 'attachments' / 'ledger' / str(entry_id)
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)
         
@@ -463,8 +463,7 @@ def delete_expense_entry(entry_id):
         return "Expense entry not found", 404
     
     try:
-        project_root = Path(__file__).parent.parent.parent
-        upload_dir = project_root / 'attachments' / 'ledger' / str(entry_id)
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
         if os.path.exists(upload_dir):
             shutil.rmtree(upload_dir)
         
