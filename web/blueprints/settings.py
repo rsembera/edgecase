@@ -12,6 +12,7 @@ import io
 from core.encryption import encrypt_file, decrypt_file_to_bytes
 
 from core.database import Database
+from core.config import ASSETS_DIR
 
 # Initialize blueprint
 settings_bp = Blueprint('settings', __name__)
@@ -247,8 +248,7 @@ def view_logo():
             return Response('No logo uploaded', status=404)
         
         filename = row[0]
-        assets_dir = Path(__file__).parent.parent.parent / 'assets'
-        logo_path = assets_dir / filename
+        logo_path = ASSETS_DIR / filename
         
         if not logo_path.exists():
             return Response('Logo file not found', status=404)
@@ -281,8 +281,7 @@ def view_signature():
             return Response('No signature uploaded', status=404)
         
         filename = row[0]
-        assets_dir = Path(__file__).parent.parent.parent / 'assets'
-        sig_path = assets_dir / filename
+        sig_path = ASSETS_DIR / filename
         
         if not sig_path.exists():
             return Response('Signature file not found', status=404)
@@ -324,10 +323,9 @@ def upload_logo():
     filename = f'logo.{file_ext}'
     
     # Save to assets directory
-    assets_dir = Path(__file__).parent.parent.parent / 'assets'
-    assets_dir.mkdir(exist_ok=True)
+    ASSETS_DIR.mkdir(exist_ok=True)
     
-    upload_path = assets_dir / filename
+    upload_path = ASSETS_DIR / filename
     
     try:
         file.save(str(upload_path))
@@ -375,10 +373,9 @@ def upload_signature():
     filename = f'signature.{file_ext}'
     
     # Save to assets directory
-    assets_dir = Path(__file__).parent.parent.parent / 'assets'
-    assets_dir.mkdir(exist_ok=True)
+    ASSETS_DIR.mkdir(exist_ok=True)
     
-    upload_path = assets_dir / filename
+    upload_path = ASSETS_DIR / filename
     
     try:
         file.save(str(upload_path))
@@ -418,8 +415,7 @@ def delete_logo():
             filename = row[0]
             
             # Delete file from assets directory
-            assets_dir = Path(__file__).parent.parent.parent / 'assets'
-            logo_path = assets_dir / filename
+            logo_path = ASSETS_DIR / filename
             
             if logo_path.exists():
                 logo_path.unlink()
@@ -447,8 +443,7 @@ def delete_signature():
             filename = row[0]
             
             # Delete file from assets directory
-            assets_dir = Path(__file__).parent.parent.parent / 'assets'
-            signature_path = assets_dir / filename
+            signature_path = ASSETS_DIR / filename
             
             if signature_path.exists():
                 signature_path.unlink()

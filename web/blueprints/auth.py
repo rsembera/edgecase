@@ -118,8 +118,8 @@ def login_required(f):
 
 def is_first_run():
     """Check if this is first run (no database exists)."""
-    project_root = Path(__file__).parent.parent.parent
-    db_path = project_root / "data" / "edgecase.db"
+    from core.config import DATA_DIR
+    db_path = Path(DATA_DIR) / "edgecase.db"
     return not db_path.exists()
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -153,8 +153,8 @@ def login():
                                      error="Password must be at least 8 characters")
         
         # Try to open/create database with this password
-        project_root = Path(__file__).parent.parent.parent
-        db_path = project_root / "data" / "edgecase.db"
+        from core.config import DATA_DIR
+        db_path = Path(DATA_DIR) / "edgecase.db"
         
         try:
             db = Database(str(db_path), password=password)
@@ -341,9 +341,9 @@ def change_password_progress():
 def _count_encrypted_files(db) -> int:
     """Count total encrypted files to process."""
     from pathlib import Path
+    from core.config import ASSETS_DIR
     import os
     
-    project_root = Path(__file__).parent.parent.parent
     count = 0
     
     # Count attachments
@@ -357,14 +357,14 @@ def _count_encrypted_files(db) -> int:
     # Count logo
     logo_filename = db.get_setting('logo_filename', '')
     if logo_filename:
-        logo_path = project_root / 'assets' / logo_filename
+        logo_path = ASSETS_DIR / logo_filename
         if logo_path.exists():
             count += 1
     
     # Count signature
     sig_filename = db.get_setting('signature_filename', '')
     if sig_filename:
-        sig_path = project_root / 'assets' / sig_filename
+        sig_path = ASSETS_DIR / sig_filename
         if sig_path.exists():
             count += 1
     
@@ -374,10 +374,10 @@ def _count_encrypted_files(db) -> int:
 def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str, total_files: int):
     """Re-encrypt all attachments and assets with new password, yielding progress."""
     from core.encryption import decrypt_file_to_bytes, encrypt_file
+    from core.config import ASSETS_DIR
     from pathlib import Path
     import os
     
-    project_root = Path(__file__).parent.parent.parent
     current_file = 0
     
     # Re-encrypt attachments from database
@@ -413,7 +413,7 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
     # Re-encrypt logo if exists
     logo_filename = db.get_setting('logo_filename', '')
     if logo_filename:
-        logo_path = project_root / 'assets' / logo_filename
+        logo_path = ASSETS_DIR / logo_filename
         if logo_path.exists():
             try:
                 current_file += 1
@@ -435,7 +435,7 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
     # Re-encrypt signature if exists
     sig_filename = db.get_setting('signature_filename', '')
     if sig_filename:
-        sig_path = project_root / 'assets' / sig_filename
+        sig_path = ASSETS_DIR / sig_filename
         if sig_path.exists():
             try:
                 current_file += 1

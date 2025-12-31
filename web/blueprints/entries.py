@@ -17,15 +17,13 @@ from core.encryption import decrypt_file_to_bytes
 from io import BytesIO
 
 from core.database import Database
-
-# Project root for resolving relative paths
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+from core.config import DATA_ROOT, ATTACHMENTS_DIR, ASSETS_DIR
 
 def resolve_attachment_path(filepath):
     """Resolve attachment filepath, handling both absolute and relative paths."""
     if os.path.isabs(filepath):
         return filepath
-    return str(PROJECT_ROOT / filepath)
+    return str(DATA_ROOT / filepath)
 
 # Initialize blueprint
 entries_bp = Blueprint('entries', __name__)
