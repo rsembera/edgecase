@@ -275,8 +275,12 @@
         {% endfor %}
     </div>
 {% else %}
-<div class="empty-state-card">
-    <p>No clients found.</p>
+<div class="empty-state">
+    <h3>No Clients Yet</h3>
+    <p>Add your first client to get started.</p>
+    <p class="empty-state-actions">
+        <a href="{{ url_for('clients.add_client') }}" class="btn">+ Add Client</a>
+    </p>
 </div>
 {% endif %}
 
