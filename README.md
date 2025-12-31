@@ -62,11 +62,17 @@ python main.py
 
 Then open http://localhost:8080 in your browser.
 
-### Development mode (auto-reload)
+### Options
 
 ```bash
-python main.py --dev
+python main.py --port=9000    # Use a different port
+python main.py --dev          # Development mode (auto-reload)
 ```
+
+You can also set environment variables:
+
+- `EDGECASE_PORT` - Port number (default: 8080)
+- `EDGECASE_DATA` - Custom data directory (for testing or alternate databases)
 
 ## License
 
