@@ -7,8 +7,33 @@ import sys
 import os
 
 
+def show_help():
+    """Display help text and exit."""
+    help_text = """
+EdgeCase Equalizer - Practice management for independent therapists
+
+Usage: python main.py [options]
+
+Options:
+  --port=XXXX    Port to run on (default: 8080)
+  --dev          Development mode with auto-reload
+  --help         Show this message
+
+Environment variables:
+  EDGECASE_PORT  Port number (default: 8080)
+  EDGECASE_DATA  Custom data directory
+"""
+    print(help_text)
+    sys.exit(0)
+
+
 def run():
     """Entry point for the edgecase command."""
+    
+    # Check for --help first
+    if '--help' in sys.argv or '-h' in sys.argv:
+        show_help()
+    
     from web.app import app
     from waitress import serve
     
