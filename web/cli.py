@@ -5,6 +5,7 @@ EdgeCase CLI - Command line interface for starting the server
 import logging
 import sys
 import os
+import signal
 
 
 def show_help():
@@ -24,6 +25,26 @@ Environment variables:
   EDGECASE_DATA  Custom data directory
 """
     print(help_text)
+    sys.exit(0)
+
+
+def shutdown_handler(signum, frame):
+    """Handle Ctrl-C gracefully - checkpoint database before exit."""
+    print("\n\nShutting down...")
+    
+    try:
+        from flask import current_app
+        from web.app import app
+        
+        with app.app_context():
+            db = current_app.config.get('db')
+            if db:
+                db.checkpoint()
+                print("Database checkpoint completed.")
+    except Exception as e:
+        # Best effort - don't crash on shutdown
+        print(f"Checkpoint warning: {e}")
+    
     sys.exit(0)
 
 
@@ -67,6 +88,10 @@ def run():
     print("\n" + "="*50)
     print("EdgeCase Equalizer")
     print("="*50)
+    
+    # Register shutdown handler for clean database checkpoint on Ctrl-C
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
     
     # Check for --dev flag for development mode with auto-reload
     if '--dev' in sys.argv:

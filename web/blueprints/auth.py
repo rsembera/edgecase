@@ -211,7 +211,7 @@ def _run_auto_backup_check(db):
         from utils import backup
         import subprocess
         
-        frequency = db.get_setting('backup_frequency', 'daily')
+        frequency = db.get_setting('backup_frequency', 'daily')frequency = db.get_setting('backup_frequency', 'daily')
         
         if backup.check_backup_needed(frequency):
             location = db.get_setting('backup_location', '')
