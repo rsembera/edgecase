@@ -2,10 +2,50 @@
 EdgeCase CLI - Command line interface for starting the server
 """
 
+import atexit
 import logging
 import sys
 import os
 import signal
+
+# Track if cleanup has run to avoid running twice
+_cleanup_done = False
+
+
+def _cleanup():
+    """Cleanup function for atexit - backup and checkpoint database."""
+    global _cleanup_done
+    if _cleanup_done:
+        return
+    _cleanup_done = True
+    
+    try:
+        from flask import current_app
+        from web.app import app
+        
+        with app.app_context():
+            db = current_app.config.get('db')
+            if db:
+                # Run backup check before shutdown
+                try:
+                    from utils import backup
+                    frequency = db.get_setting('backup_frequency', 'daily')
+                    if backup.check_backup_needed(frequency):
+                        location = db.get_setting('backup_location', '')
+                        result = backup.create_backup(location if location else None)
+                        if result:
+                            print(f"Backup completed: {result['filename']}")
+                        backup.record_backup_check()
+                except Exception as e:
+                    print(f"Backup warning: {e}")
+                
+                db.checkpoint()
+    except Exception:
+        pass  # Silent fail on exit
+
+
+# Register atexit handler
+atexit.register(_cleanup)
 
 
 def show_help():
@@ -30,33 +70,37 @@ Environment variables:
 
 def shutdown_handler(signum, frame):
     """Handle Ctrl-C gracefully - backup and checkpoint database before exit."""
+    global _cleanup_done
+    
     print("\n\nShutting down...")
     
-    try:
-        from flask import current_app
-        from web.app import app
-        
-        with app.app_context():
-            db = current_app.config.get('db')
-            if db:
-                # Run backup check before shutdown
-                try:
-                    from utils import backup
-                    frequency = db.get_setting('backup_frequency', 'daily')
-                    if backup.check_backup_needed(frequency):
-                        location = db.get_setting('backup_location', '')
-                        result = backup.create_backup(location if location else None)
-                        if result:
-                            print(f"Backup completed: {result['filename']}")
-                        backup.record_backup_check()
-                except Exception as e:
-                    print(f"Backup warning: {e}")
-                
-                db.checkpoint()
-                print("Database checkpoint completed.")
-    except Exception as e:
-        # Best effort - don't crash on shutdown
-        print(f"Shutdown warning: {e}")
+    if not _cleanup_done:
+        _cleanup_done = True
+        try:
+            from flask import current_app
+            from web.app import app
+            
+            with app.app_context():
+                db = current_app.config.get('db')
+                if db:
+                    # Run backup check before shutdown
+                    try:
+                        from utils import backup
+                        frequency = db.get_setting('backup_frequency', 'daily')
+                        if backup.check_backup_needed(frequency):
+                            location = db.get_setting('backup_location', '')
+                            result = backup.create_backup(location if location else None)
+                            if result:
+                                print(f"Backup completed: {result['filename']}")
+                            backup.record_backup_check()
+                    except Exception as e:
+                        print(f"Backup warning: {e}")
+                    
+                    db.checkpoint()
+                    print("Database checkpoint completed.")
+        except Exception as e:
+            # Best effort - don't crash on shutdown
+            print(f"Shutdown warning: {e}")
     
     sys.exit(0)
 
