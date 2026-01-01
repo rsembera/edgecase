@@ -29,7 +29,7 @@ Environment variables:
 
 
 def shutdown_handler(signum, frame):
-    """Handle Ctrl-C gracefully - checkpoint database before exit."""
+    """Handle Ctrl-C gracefully - backup and checkpoint database before exit."""
     print("\n\nShutting down...")
     
     try:
@@ -39,11 +39,24 @@ def shutdown_handler(signum, frame):
         with app.app_context():
             db = current_app.config.get('db')
             if db:
+                # Run backup check before shutdown
+                try:
+                    from utils import backup
+                    frequency = db.get_setting('backup_frequency', 'daily')
+                    if backup.check_backup_needed(frequency):
+                        location = db.get_setting('backup_location', '')
+                        result = backup.create_backup(location if location else None)
+                        if result:
+                            print(f"Backup completed: {result['filename']}")
+                        backup.record_backup_check()
+                except Exception as e:
+                    print(f"Backup warning: {e}")
+                
                 db.checkpoint()
                 print("Database checkpoint completed.")
     except Exception as e:
         # Best effort - don't crash on shutdown
-        print(f"Checkpoint warning: {e}")
+        print(f"Shutdown warning: {e}")
     
     sys.exit(0)
 

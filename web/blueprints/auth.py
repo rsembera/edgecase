@@ -180,9 +180,6 @@ def login():
             from web.app import init_all_blueprints
             init_all_blueprints(db)
             
-            # Run automatic backup check after successful login
-            _run_auto_backup_check(db)
-            
             # Use make_response to ensure cookie is properly set before redirect
             response = make_response(redirect(url_for('clients.index')))
             return response
@@ -203,15 +200,15 @@ def login():
 
 def _run_auto_backup_check(db):
     """
-    Check if automatic backup should run after login.
-    Runs silently - errors are logged but don't affect login.
-    Stores failure in session for user notification.
+    Check if automatic backup should run on logout/shutdown.
+    Runs silently - errors are logged but don't affect logout.
+    Stores failure in session for user notification (though session clears on logout).
     """
     try:
         from utils import backup
         import subprocess
         
-        frequency = db.get_setting('backup_frequency', 'daily')frequency = db.get_setting('backup_frequency', 'daily')
+        frequency = db.get_setting('backup_frequency', 'daily')
         
         if backup.check_backup_needed(frequency):
             location = db.get_setting('backup_location', '')
@@ -241,9 +238,12 @@ def _run_auto_backup_check(db):
 
 @auth_bp.route('/logout')
 def logout():
-    """Logout - close database connection."""
+    """Logout - run backup check and close database connection."""
     db = current_app.config.get('db')
     if db:
+        # Run automatic backup check before closing
+        _run_auto_backup_check(db)
+        db.checkpoint()  # Ensure WAL is flushed
         db.close()
     current_app.config['db'] = None
     session.clear()
