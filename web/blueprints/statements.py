@@ -464,10 +464,10 @@ def mark_sent(portion_id):
     conn = db.connect()
     cursor = conn.cursor()
     
-    # Get portion with client info
+    # Get portion with client info and statement description
     cursor.execute("""
         SELECT sp.*, c.id as client_id, c.file_number, c.first_name, c.middle_name, c.last_name,
-               e.created_at as statement_date
+               e.created_at as statement_date, e.description as statement_description
         FROM statement_portions sp
         JOIN clients c ON sp.client_id = c.id
         JOIN entries e ON sp.statement_entry_id = e.id
@@ -504,9 +504,9 @@ def mark_sent(portion_id):
         recipient_first_name = portion['first_name']
         recipient_email = profile.get('email', '') if profile else ''
     
-    # Get statement month from statement date
-    statement_dt = datetime.fromtimestamp(portion['statement_date'])
-    statement_month_year = statement_dt.strftime('%B %Y')
+    # Get statement billing period from statement description (e.g., "Statement Dec 2025" or "Statement Nov - Dec 2025")
+    statement_description = portion.get('statement_description', '')
+    billing_period = statement_description.replace('Statement ', '') if statement_description.startswith('Statement ') else statement_description
     
     # Get email settings
     email_method = db.get_setting('email_method', 'mailto')
@@ -514,8 +514,8 @@ def mark_sent(portion_id):
     email_body_template = db.get_setting('statement_email_body', '')
     
     # Build email text
-    email_subject = f"Statement for {statement_month_year}"
-    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {statement_month_year}.\n\n{email_body_template}"
+    email_subject = f"Statement for {billing_period}"
+    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}"
     
     # Generate PDF to temp location
     temp_dir = tempfile.gettempdir()
@@ -530,10 +530,10 @@ def mark_sent(portion_id):
     
     # Create Communication entry - description varies based on skip_email
     if skip_email:
-        comm_description = f"Statement Generated - {statement_month_year}"
-        comm_content = f"Statement generated for {statement_month_year}."
+        comm_description = f"Statement Generated - {billing_period}"
+        comm_content = f"Statement generated for {billing_period}."
     else:
-        comm_description = f"Statement Sent - {statement_month_year}"
+        comm_description = f"Statement Sent - {billing_period}"
         comm_content = email_body
     
     # Get time format preference
@@ -579,7 +579,7 @@ def mark_sent(portion_id):
     """, (
         comm_entry_id,
         pdf_filename,
-        f"Statement for {statement_month_year}",
+        f"Statement for {billing_period}",
         str(final_pdf_path),
         final_pdf_path.stat().st_size,
         now
