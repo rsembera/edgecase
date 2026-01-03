@@ -204,13 +204,16 @@ def _run_auto_backup_check(db):
     Runs silently - errors are logged but don't affect logout.
     Stores failure in session for user notification (though session clears on logout).
     """
+    print("[Backup] Running auto-backup check...")
     try:
         from utils import backup
         import subprocess
         
         frequency = db.get_setting('backup_frequency', 'daily')
+        print(f"[Backup] Frequency setting: {frequency}")
         
         if backup.check_backup_needed(frequency):
+            print("[Backup] Backup needed, creating...")
             location = db.get_setting('backup_location', '')
             if not location:
                 location = None  # Use default BACKUPS_DIR
@@ -226,9 +229,13 @@ def _run_auto_backup_check(db):
                         print(f"[Backup] Post-backup command completed")
                     except Exception as cmd_error:
                         print(f"[Backup] Post-backup command error: {cmd_error}")
+            else:
+                print("[Backup] No changes to backup")
             
             # Record that we checked today (whether backup created or not)
             backup.record_backup_check()
+        else:
+            print("[Backup] Backup not needed (frequency check)")
     except Exception as e:
         # Log and store for user notification
         error_msg = str(e)
