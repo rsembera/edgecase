@@ -63,6 +63,10 @@
 }
 
 /* Amount colors */
+.amount-column {
+    text-align: right;
+}
+
 .income-amount {
     color: #0E5346;
     font-weight: 600;
