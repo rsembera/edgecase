@@ -372,6 +372,9 @@ def schedule_for_client(client_id):
             if success:
                 return redirect(url_for('clients.client_file', client_id=client_id))
             else:
+                # Log the actual error for debugging
+                print(f"[Calendar] AppleScript failed: {error}")
+                
                 # Fall back to .ics with message
                 ics_content = generate_ics(
                     event_title, start_dt, duration,
