@@ -11,6 +11,7 @@ RULES:
 - Use third person (e.g., "Client reported..." not "You reported...")
 - Maintain clinical terminology accurately
 - Preserve all clinical observations and details
+- Preserve the original spelling conventions (British, Canadian, American, etc.) - do not convert spellings like "colour" to "color" or vice versa
 - Output ONLY the transformed text, no explanations or preamble"""
 
 # Action-specific user prompts
