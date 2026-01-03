@@ -131,7 +131,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Transaction</th>
-                        <th>Amount</th>
+                        <th class="amount-column">Amount</th>
                         <th>Description</th>
                         <th>Payor/Payee</th>
                         <th>Expense Category</th>
@@ -156,7 +156,7 @@
                             <span class="type-badge expense-badge">Expense</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="amount-column">
                             {% if entry.ledger_type == 'income' %}
                             <span class="income-amount">{{ currency|currency_symbol }}{{ '%.2f'|format(entry.total_amount) }}</span>
                             {% else %}
