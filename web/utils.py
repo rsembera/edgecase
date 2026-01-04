@@ -10,6 +10,7 @@ import os
 import time
 import difflib
 import calendar
+import uuid
 from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
 
@@ -210,8 +211,12 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
     saved_files = []
     for i, file in enumerate(files):
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(upload_dir, filename)
+            # Keep original filename for display/download
+            original_filename = secure_filename(file.filename)
+            
+            # Use UUID for stored filename (privacy: no client info in filesystem)
+            stored_filename = f"{uuid.uuid4()}.enc"
+            filepath = os.path.join(upload_dir, stored_filename)
             
             # Save file to disk
             file.save(filepath)
@@ -223,7 +228,7 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             filesize = os.path.getsize(filepath)
             
             # Get description (use filename if not provided)
-            description = descriptions[i] if i < len(descriptions) and descriptions[i] else filename
+            description = descriptions[i] if i < len(descriptions) and descriptions[i] else original_filename
             
             # Store relative path (from data root) for portability
             relative_filepath = str(Path(filepath).relative_to(DATA_ROOT))
@@ -234,10 +239,10 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             cursor.execute("""
                 INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (entry_id, filename, description, relative_filepath, filesize, int(time.time())))
+            """, (entry_id, original_filename, description, relative_filepath, filesize, int(time.time())))
             conn.commit()
             
-            saved_files.append(filename)
+            saved_files.append(original_filename)
     
     return saved_files
 
