@@ -8,6 +8,8 @@ Practice management software for independent therapists.
 
 ![Client File](docs/screenshots/client_file.png)
 
+*Screenshots show fictional test data.*
+
 ## Features
 
 - Client records with encrypted database (SQLCipher)
