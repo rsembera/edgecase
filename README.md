@@ -4,6 +4,10 @@ Practice management software for independent therapists.
 
 **Status:** Production ready. In use as of January 2026.
 
+![Main View](docs/screenshots/main_view_detailed.png)
+
+![Client File](docs/screenshots/client_file.png)
+
 ## Features
 
 - Client records with encrypted database (SQLCipher)
