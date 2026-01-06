@@ -24,9 +24,25 @@ document.addEventListener('DOMContentLoaded', function() {
         saveSettingWithConfirm('retention');
     });
     
-    // Save location setting on change
+    // Save location setting on change (but not for 'custom' - that needs the save button)
     document.getElementById('backup-location').addEventListener('change', function() {
+        updateLocationPath();
+        if (this.value !== 'custom') {
+            saveSettingWithConfirm('location');
+        }
+    });
+    
+    // Save custom location when save button clicked
+    document.getElementById('save-custom-location-btn').addEventListener('click', function() {
         saveSettingWithConfirm('location');
+    });
+    
+    // Also save custom location on Enter key
+    document.getElementById('custom-location-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveSettingWithConfirm('location');
+        }
     });
     
     // Save post-backup command on blur (when user finishes typing)
@@ -92,7 +108,12 @@ async function loadBackupStatus() {
  * @param {string} savedLocation - Currently saved location path
  */
 function populateLocationDropdown(cloudFolders, savedLocation) {
-    // Build options array - default option plus cloud folders
+    // Check if saved location is a custom path (not default and not a cloud folder)
+    const isCustomLocation = savedLocation && 
+        savedLocation !== 'default' && 
+        !cloudFolders.some(f => f.path === savedLocation);
+    
+    // Build options array - default option plus cloud folders plus custom
     const options = [
         { value: 'default', label: 'Default (app folder)', selected: !savedLocation || savedLocation === 'default' }
     ];
@@ -105,23 +126,44 @@ function populateLocationDropdown(cloudFolders, savedLocation) {
         });
     });
     
+    // Add custom option
+    options.push({
+        value: 'custom',
+        label: 'Custom...',
+        selected: isCustomLocation
+    });
+    
     // Update using Choices API
     window.updateChoicesOptions('backup-location', options, true);
+    
+    // If we have a custom location, show the input and populate it
+    if (isCustomLocation) {
+        document.getElementById('custom-location-input').value = savedLocation;
+        document.getElementById('custom-location-wrapper').classList.remove('hidden');
+    }
     
     updateLocationPath();
 }
 
 /**
- * Update the location path display below dropdown
+ * Update the location path display below dropdown and handle custom input visibility
  */
 function updateLocationPath() {
     const select = document.getElementById('backup-location');
     const pathDisplay = document.getElementById('location-path');
+    const customWrapper = document.getElementById('custom-location-wrapper');
+    const customInput = document.getElementById('custom-location-input');
     
     if (select.value === 'default') {
         pathDisplay.textContent = '';
+        customWrapper.classList.add('hidden');
+    } else if (select.value === 'custom') {
+        // Show custom input, display its value (or empty if not set yet)
+        customWrapper.classList.remove('hidden');
+        pathDisplay.textContent = customInput.value || '';
     } else {
         pathDisplay.textContent = select.value;
+        customWrapper.classList.add('hidden');
     }
 }
 
@@ -369,8 +411,17 @@ async function performBackup() {
 async function saveSettingWithConfirm(settingType) {
     const frequency = document.getElementById('backup-frequency').value;
     const retention = document.getElementById('backup-retention').value;
-    const location = document.getElementById('backup-location').value;
+    let location = document.getElementById('backup-location').value;
     const postBackupCommand = document.getElementById('post-backup-command').value;
+    
+    // If custom location selected, get the actual path from the input
+    if (location === 'custom') {
+        location = document.getElementById('custom-location-input').value.trim();
+        if (!location) {
+            showMessage('Please enter a custom backup path', 'error');
+            return;
+        }
+    }
     
     // Update location path display if location changed
     if (settingType === 'location') {
@@ -401,6 +452,15 @@ async function saveSettingWithConfirm(settingType) {
             };
             const settingName = settingNames[settingType] || 'Setting';
             showMessage(`${settingName} saved`, 'success');
+            
+            // Update the location path display after saving custom location
+            if (settingType === 'location') {
+                const pathDisplay = document.getElementById('location-path');
+                const select = document.getElementById('backup-location');
+                if (select.value === 'custom') {
+                    pathDisplay.textContent = document.getElementById('custom-location-input').value;
+                }
+            }
             
             // Auto-hide the message after 2 seconds
             setTimeout(() => {

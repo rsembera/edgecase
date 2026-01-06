@@ -218,6 +218,22 @@
     font-family: monospace;
 }
 
+/* Custom location input wrapper */
+.custom-location-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.custom-location-wrapper input[type="text"] {
+    flex: 1;
+}
+
+.custom-location-wrapper.hidden {
+    display: none;
+}
+
 /* Full-width form group */
 .form-group-wide {
     flex: 1 1 100%;
