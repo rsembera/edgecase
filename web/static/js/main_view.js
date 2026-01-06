@@ -652,3 +652,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 window.addEventListener('orientationchange', () => setTimeout(manageViewToggleForDevice, 100));
 window.addEventListener('resize', manageViewToggleForDevice);
+
+/**
+ * Show logout modal and navigate to logout after brief delay
+ */
+function showLogoutModal() {
+    const modal = document.getElementById('logout-modal');
+    modal.classList.add('visible');
+    
+    // Navigate to logout after showing the modal
+    setTimeout(() => {
+        window.location.href = '/logout';
+    }, 100);
+}

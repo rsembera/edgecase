@@ -194,7 +194,7 @@ def create_backup(backup_dir=None):
         if full_backups:
             last_full = max(full_backups, key=lambda x: x['created_at'])
             last_full_date = datetime.fromisoformat(last_full['created_at'])
-            if datetime.now() - last_full_date > timedelta(days=7):
+            if datetime.now() - last_full_date >= timedelta(days=7):
                 need_full = True
         else:
             need_full = True  # No full backup exists

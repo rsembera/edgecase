@@ -154,7 +154,7 @@
 
                 <div class="dropdown-separator"></div>
                 
-                <a href="{{ url_for('auth.logout') }}" class="dropdown-item dropdown-item-danger">
+                <a href="#" onclick="showLogoutModal(); return false;" class="dropdown-item dropdown-item-danger">
                     <i data-lucide="log-out" class="icon-sm icon-inline"></i>Logout
                 </a>
             </div>
@@ -358,6 +358,16 @@
         <div class="flex-between-gap">
             <button onclick="cancelDeletion()" class="btn">Cancel</button>
             <button onclick="confirmDeletion()" class="btn-danger-solid">Delete Permanently</button>
+        </div>
+    </div>
+</div>
+
+<!-- Logout Modal -->
+<div id="logout-modal" class="modal-overlay">
+    <div class="modal-content max-w-300">
+        <div class="logout-modal-content">
+            <div class="logout-spinner"></div>
+            <p>Logging out...</p>
         </div>
     </div>
 </div>
