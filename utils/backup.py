@@ -189,12 +189,12 @@ def create_backup(backup_dir=None):
     elif not manifest['last_full_hashes']:
         need_full = True  # No hash baseline
     else:
-        # Check age of last full backup
+        # Check age of last full backup (calendar days, not hours)
         full_backups = [b for b in manifest['backups'] if b['type'] == 'full']
         if full_backups:
             last_full = max(full_backups, key=lambda x: x['created_at'])
-            last_full_date = datetime.fromisoformat(last_full['created_at'])
-            if datetime.now() - last_full_date >= timedelta(days=7):
+            last_full_date = datetime.fromisoformat(last_full['created_at']).date()
+            if (datetime.now().date() - last_full_date).days >= 7:
                 need_full = True
         else:
             need_full = True  # No full backup exists
