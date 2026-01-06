@@ -654,14 +654,14 @@ window.addEventListener('orientationchange', () => setTimeout(manageViewToggleFo
 window.addEventListener('resize', manageViewToggleForDevice);
 
 /**
- * Show logout modal and navigate to logout after brief delay
+ * Show logout modal and navigate to logout after minimum display time
  */
 function showLogoutModal() {
     const modal = document.getElementById('logout-modal');
     modal.classList.add('visible');
     
-    // Navigate to logout after showing the modal
+    // Minimum display time so modal doesn't flash too quickly
     setTimeout(() => {
         window.location.href = '/logout';
-    }, 100);
+    }, 400);
 }
