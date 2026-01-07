@@ -209,10 +209,6 @@ def _run_auto_backup_check(db):
         import subprocess
         
         frequency = db.get_setting('backup_frequency', 'daily')
-        # Migrate legacy 'startup' to 'session'
-        if frequency == 'startup':
-            frequency = 'session'
-            db.set_setting('backup_frequency', 'session')
         print(f"[Backup] Frequency setting: {frequency}")
         
         if backup.check_backup_needed(frequency):
