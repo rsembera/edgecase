@@ -200,16 +200,19 @@ def login():
 
 def _run_auto_backup_check(db):
     """
-    Check if automatic backup should run on logout/shutdown.
+    Check if automatic backup should run on logout.
     Runs silently - errors are logged but don't affect logout.
-    Stores failure in session for user notification (though session clears on logout).
     """
-    print("[Backup] Running auto-backup check...")
+    print("[Backup] Running logout backup check...")
     try:
         from utils import backup
         import subprocess
         
         frequency = db.get_setting('backup_frequency', 'daily')
+        # Migrate legacy 'startup' to 'session'
+        if frequency == 'startup':
+            frequency = 'session'
+            db.set_setting('backup_frequency', 'session')
         print(f"[Backup] Frequency setting: {frequency}")
         
         if backup.check_backup_needed(frequency):
@@ -219,7 +222,7 @@ def _run_auto_backup_check(db):
                 location = None  # Use default BACKUPS_DIR
             result = backup.create_backup(location)
             if result:
-                print(f"[Backup] Automatic {frequency} backup completed: {result['filename']}")
+                print(f"[Backup] Automatic backup completed: {result['filename']}")
                 
                 # Run post-backup command if configured
                 post_cmd = db.get_setting('post_backup_command', '')
