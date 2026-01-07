@@ -216,7 +216,6 @@ async function loadRestorePoints() {
             // Safety backups (standalone)
             if (chain.safety) {
                 html += renderSafetyBackup(chain.safety);
-                restoreOptions.push(buildRestoreOption(chain.safety));
                 continue;
             }
             
@@ -227,7 +226,6 @@ async function loadRestorePoints() {
                     fb => fb.created_at > chain.full.created_at
                 );
                 html += renderFullBackup(chain.full, newerFullExists);
-                restoreOptions.push(buildRestoreOption(chain.full));
                 
                 // Incremental backups (indented under full)
                 if (chain.incrementals && chain.incrementals.length > 0) {
@@ -239,7 +237,6 @@ async function loadRestorePoints() {
                         const isLast = (i === chain.incrementals.length - 1);
                         const laterCount = chain.incrementals.length - 1 - i;  // Number of later incrementals
                         html += renderIncrementalBackup(incr, isLast, laterCount);
-                        restoreOptions.push(buildRestoreOption(incr));
                     }
                 }
                 
@@ -249,6 +246,15 @@ async function loadRestorePoints() {
         }
         
         listEl.innerHTML = html;
+        
+        // Build restore dropdown separately - flat list sorted by date (newest first)
+        const allPoints = [...data.restore_points].sort((a, b) => 
+            b.created_at.localeCompare(a.created_at)
+        );
+        
+        for (const point of allPoints) {
+            restoreOptions.push(buildRestoreOption(point));
+        }
         
         // Update the restore dropdown with all options
         window.updateChoicesOptions('restore-point-select', restoreOptions, true);
