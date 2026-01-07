@@ -175,6 +175,11 @@ def file_too_large(e):
 @app.before_request
 def require_login():
     """Redirect to login if not authenticated or session expired."""
+    # Update desktop heartbeat on any request
+    heartbeat_func = app.config.get('HEARTBEAT_CALLBACK')
+    if heartbeat_func:
+        heartbeat_func()
+    
     # Allow access to login page, static files, and session status endpoints without auth
     allowed_endpoints = ['auth.login', 'auth.logout', 'static', 'session_status', 'keepalive', 'heartbeat']
     if request.endpoint in allowed_endpoints:
