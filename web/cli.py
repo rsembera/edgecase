@@ -7,9 +7,40 @@ import logging
 import sys
 import os
 import signal
+import time
+import threading
 
 # Track if cleanup has run to avoid running twice
 _cleanup_done = False
+
+# Heartbeat tracking for desktop mode
+_last_heartbeat = time.time()
+_heartbeat_lock = threading.Lock()
+HEARTBEAT_TIMEOUT = 30  # seconds without heartbeat before shutdown
+
+
+def update_heartbeat():
+    """Update the last heartbeat timestamp. Called on any browser request."""
+    global _last_heartbeat
+    with _heartbeat_lock:
+        _last_heartbeat = time.time()
+
+
+def _heartbeat_monitor():
+    """Background thread that monitors for heartbeat timeout in desktop mode."""
+    global _last_heartbeat
+    
+    while True:
+        time.sleep(5)  # Check every 5 seconds
+        
+        with _heartbeat_lock:
+            elapsed = time.time() - _last_heartbeat
+        
+        if elapsed > HEARTBEAT_TIMEOUT:
+            print(f"\n[Desktop] No browser heartbeat for {int(elapsed)}s - shutting down...")
+            # Trigger graceful shutdown
+            os.kill(os.getpid(), signal.SIGTERM)
+            break
 
 
 def _cleanup():
@@ -114,6 +145,12 @@ def run():
     
     from web.app import app
     from waitress import serve
+    import webbrowser
+    
+    # Desktop mode: register heartbeat callback
+    desktop_mode = os.environ.get('EDGECASE_DESKTOP') == '1'
+    if desktop_mode:
+        app.config['HEARTBEAT_CALLBACK'] = update_heartbeat
     
     # Reduce logging noise
     log = logging.getLogger('werkzeug')
@@ -149,6 +186,18 @@ def run():
     # Register shutdown handler for clean database checkpoint on Ctrl-C
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+    
+    # Desktop mode: start heartbeat monitor and auto-open browser
+    if desktop_mode:
+        # Start heartbeat monitor thread
+        monitor = threading.Thread(target=_heartbeat_monitor, daemon=True)
+        monitor.start()
+        
+        # Auto-open browser in desktop mode
+        def open_browser():
+            time.sleep(1.0)
+            webbrowser.open(f'http://localhost:{port}')
+        threading.Thread(target=open_browser, daemon=True).start()
     
     # Check for --dev flag for development mode with auto-reload
     if '--dev' in sys.argv:
