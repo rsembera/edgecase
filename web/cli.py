@@ -53,6 +53,7 @@ def _cleanup():
     try:
         from flask import current_app
         from web.app import app
+        import subprocess
         
         with app.app_context():
             db = current_app.config.get('db')
@@ -68,6 +69,14 @@ def _cleanup():
                         result = backup.create_backup(location if location else None)
                         if result:
                             print(f"Backup completed: {result['filename']}")
+                            # Run post-backup command if configured
+                            post_cmd = db.get_setting('post_backup_command', '')
+                            if post_cmd:
+                                try:
+                                    subprocess.run(post_cmd, shell=True, timeout=300)
+                                    print("Post-backup command completed")
+                                except Exception as cmd_error:
+                                    print(f"Post-backup command error: {cmd_error}")
                         backup.record_backup_check()
                 except Exception as e:
                     print(f"Backup warning: {e}")
@@ -110,6 +119,7 @@ def shutdown_handler(signum, frame):
         try:
             from flask import current_app
             from web.app import app
+            import subprocess
             
             with app.app_context():
                 db = current_app.config.get('db')
@@ -125,6 +135,14 @@ def shutdown_handler(signum, frame):
                             result = backup.create_backup(location if location else None)
                             if result:
                                 print(f"Backup completed: {result['filename']}")
+                                # Run post-backup command if configured
+                                post_cmd = db.get_setting('post_backup_command', '')
+                                if post_cmd:
+                                    try:
+                                        subprocess.run(post_cmd, shell=True, timeout=300)
+                                        print("Post-backup command completed")
+                                    except Exception as cmd_error:
+                                        print(f"Post-backup command error: {cmd_error}")
                             backup.record_backup_check()
                     except Exception as e:
                         print(f"Backup warning: {e}")
