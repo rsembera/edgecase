@@ -247,9 +247,10 @@ def logout():
     """Logout - run backup check and close database connection."""
     db = current_app.config.get('db')
     if db:
+        # Checkpoint WAL first so backup captures all changes
+        db.checkpoint()
         # Run automatic backup check before closing
         _run_auto_backup_check(db)
-        db.checkpoint()  # Ensure WAL is flushed
         db.close()
     current_app.config['db'] = None
     session.clear()

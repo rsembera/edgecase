@@ -57,6 +57,8 @@ def _cleanup():
         with app.app_context():
             db = current_app.config.get('db')
             if db:
+                # Checkpoint WAL first so backup captures all changes
+                db.checkpoint()
                 # Run backup check before shutdown
                 try:
                     from utils import backup
@@ -69,8 +71,6 @@ def _cleanup():
                         backup.record_backup_check()
                 except Exception as e:
                     print(f"Backup warning: {e}")
-                
-                db.checkpoint()
     except Exception:
         pass  # Silent fail on exit
 
@@ -114,6 +114,8 @@ def shutdown_handler(signum, frame):
             with app.app_context():
                 db = current_app.config.get('db')
                 if db:
+                    # Checkpoint WAL first so backup captures all changes
+                    db.checkpoint()
                     # Run backup check before shutdown
                     try:
                         from utils import backup
@@ -127,7 +129,6 @@ def shutdown_handler(signum, frame):
                     except Exception as e:
                         print(f"Backup warning: {e}")
                     
-                    db.checkpoint()
                     print("Database checkpoint completed.")
         except Exception as e:
             # Best effort - don't crash on shutdown
