@@ -140,8 +140,13 @@ details[open] .settings-section-header .arrow {
 
 {% block content %}
 <div class="card">
-    <h2><i data-lucide="sliders-horizontal" class="page-icon"></i>Settings</h2>
-    <p class="page-subtitle">Customize your EdgeCase experience</p>
+    <div class="page-header">
+        <div>
+            <h2><i data-lucide="sliders-horizontal" class="page-icon"></i>Settings</h2>
+            <p class="page-subtitle">Customize your EdgeCase experience</p>
+        </div>
+        <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
+    </div>
     
     <!-- Appearance Section -->
     <details class="settings-section-collapsible">
@@ -805,13 +810,6 @@ John Smith."></textarea>
         
         </div>
     </details>
-
-    <div class="text-right mt-2">
-        <a href="{{ url_for('clients.index') }}" class="btn">
-            <i data-lucide="arrow-left" class="icon-sm icon-inline"></i>
-            Back
-        </a>
-    </div>
 
     <div class="footer-section">
         <a href="javascript:void(0);" onclick="showAboutModal()" class="about-link">
