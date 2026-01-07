@@ -2,8 +2,8 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** December 28, 2025  
-**Status:** ALL PHASES COMPLETE ✅ - Production Ready - Testing Complete
+**Last Updated:** January 7, 2026  
+**Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
 
@@ -75,6 +75,51 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### January 6-7, 2026
+
+**Backup System Improvements**
+- Backup now runs on session timeout (not just explicit logout)
+- Post-backup command (rsync) now runs on all shutdown paths: logout, Ctrl+C, atexit
+- WAL checkpoint happens BEFORE backup (was after), ensuring recent changes are captured
+- Renamed backup frequency `startup` → `session` to reflect logout-based backup behavior
+
+**Desktop Mode Enhancements**
+- Implemented Libram-style heartbeat monitoring for packaged apps
+- Server auto-terminates after 30s without browser requests when `EDGECASE_DESKTOP=1`
+- Repurposed existing `/api/session-status` polling (already runs every 30s)
+
+**UI Consistency**
+- Moved Back button to top-right in Settings and Backups pages
+- Changed restore dropdown from chain hierarchy to flat reverse-chronological list
+
+### December 27-30, 2025
+
+**Security Hardening**
+- Replaced fixed encryption salt with per-installation unique salts
+- Added PRAGMA password escaping to prevent SQL injection
+- Implemented persistent SECRET_KEY generation
+- Created comprehensive input validators
+- Added login rate limiting (5 attempts → 5-minute lockout)
+- Replaced deprecated PyPDF2 with pypdf
+- Created SECURITY.md for open-source release
+
+**App Relocatability**
+- Fixed hardcoded paths throughout codebase
+- Added EDGECASE_DATA environment variable support
+- Server port now configurable via --port flag or EDGECASE_PORT
+- Added --help flag with usage information
+
+**Theme System**
+- Added Ink, Slate, Parchment themes (from Synesius)
+- Removed underused themes (Ocean Breeze, Sunset Glow, Garden Path, Warm Stone)
+- Final theme set: EdgeCase (default), Ink, Slate, Parchment, Tutti-Frutti
+
+**Production Readiness**
+- Server disconnect overlay when heartbeat fails
+- Client names removed from page titles (browser history privacy)
+- Canadian spelling preserved in AI Scribe prompts
+- Database reset feature in Settings (requires password + typing "RESET")
 
 ### December 14-16, 2025
 
@@ -179,7 +224,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## KNOWN ISSUES
 
-None critical. System is production-ready.
+None critical. System is in active production use.
 
 ### Features Not Yet Tested with Real Data
 
@@ -193,21 +238,26 @@ These features passed all automated tests and manual testing in December 2025. F
 
 ---
 
+## PRODUCTION MILESTONES
+
+- **January 3, 2026:** First real client session using EdgeCase
+- **AI Scribe:** Working well in production, generating quality session notes
+- **Backups:** Running reliably on logout with rsync to Sentinel server
+
+---
+
 ## GIT STATUS
 
-**Branch:** main
+**Branch:** main  
+**Total Commits:** 503+ (as of Jan 7, 2026)
 
 **Recent Commits:**
 ```
-64ac357 Fix documentation content accuracy
-3b4b3d8 Sync documentation with actual codebase
-827d97c Fix AI Scribe validation modal styling (modal-box -> modal-content)
-d1e0cc0 Add validation message when clicking AI Scribe with empty required fields
-c3b6886 Rename AI action 'contract' to 'condense' for consistency
-8b03f34 Fix remaining doc inaccuracies: table count (13), fee terminology, dates
-07b430d Update docs to match actual code: fix fee architecture, add entry_links table
-c2f81cf Add indentation to list items in PDF exports
-3abd397 Fix: Preserve numbered lists in PDF exports instead of converting to bullets
+0e8a27b Run post-backup command on Ctrl+C and atexit shutdown
+148ef0d Run backup on session timeout, not just explicit logout
+01bafd9 Fix backup missing recent changes: checkpoint WAL before backup, not after
+0bca8e8 Rename backup frequency 'startup' to 'session' to match logout-based backup behavior
+024c7e6 Remove inline migration - databases updated manually
 ```
 
 ---
@@ -219,7 +269,7 @@ c2f81cf Add indentation to list items in PDF exports
 
 ### Start Server
 ```bash
-cd ~/edgecase
+cd ~/apps/edgecase
 source venv/bin/activate
 python main.py
 ```
@@ -243,4 +293,5 @@ python main.py
 
 *EdgeCase Equalizer - Practice Management for Solo Therapists*  
 *"Every practice is an edge case"*  
-*All Phases Complete: December 2, 2025*
+*All Phases Complete: December 2, 2025*  
+*In Production: January 3, 2026*
