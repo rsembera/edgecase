@@ -917,7 +917,10 @@ def check_backup_needed(frequency='daily'):
         return True
     
     if frequency == 'startup':
-        return True  # Always backup on startup
+        return True  # Legacy value, treat as session
+    
+    if frequency == 'session':
+        return True  # Always backup on logout
     
     now = datetime.now()
     today = now.date()
