@@ -37,6 +37,7 @@ data/
 attachments/
 backups/
 assets/
+web/static/user_backgrounds/
 
 # Security files (per-installation, never commit)
 .salt
