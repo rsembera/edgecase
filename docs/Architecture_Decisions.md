@@ -921,6 +921,48 @@ HRFlowable(width=sig_width, thickness=0.5, color=colors.black)
 
 ---
 
+## BACKUP TIMING: LOGOUT VS LOGIN
+
+### The Problem
+
+When should automatic backups run - at login (start of session) or logout (end of session)?
+
+### The Decision
+
+**Backup on logout/shutdown**, not login.
+
+### Why?
+
+**Login backup** captures yesterday's state:
+- You're backing up work that's already been sitting unprotected overnight
+- If your disk died at 3am, that work is gone
+- You have to wait until tomorrow's login to back up today's work
+
+**Logout backup** captures today's work immediately:
+- Much shorter window of vulnerability
+- You finish your day's work, logout, and it's backed up
+- Natural "checkpoint" at the end of each session
+
+**Desktop apps have natural endpoints:**
+- Unlike servers that run 24/7, desktop apps start and stop
+- Logout/shutdown is the obvious moment to capture state
+- Matches user mental model of "save my work when I'm done"
+
+### Implementation
+
+Backup runs on:
+1. **Explicit logout** (clicking Logout button)
+2. **Session timeout** (when `before_request` detects expired session)
+3. **Ctrl+C** (via signal handler)
+4. **atexit** (when Python process exits)
+5. **Desktop heartbeat timeout** (when browser closes in packaged app)
+
+WAL checkpoint runs before every backup to ensure recent changes are flushed to the main database file.
+
+Post-backup command (e.g., rsync to remote server) runs after successful backup on all paths.
+
+---
+
 ## BACKUP DELETION PROTECTION
 
 ### The Problem
@@ -979,4 +1021,4 @@ EdgeCase uses incremental backups that depend on previous backups in a chain:
 
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: December 28, 2025*
+*Last Updated: January 7, 2026*

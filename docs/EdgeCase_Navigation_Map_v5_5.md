@@ -1,8 +1,8 @@
-# EdgeCase Equalizer - Navigation Map v5.4
+# EdgeCase Equalizer - Navigation Map v5.5
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** December 28, 2025 - Documentation accuracy audit
+**Last Updated:** January 7, 2026 - Production updates
 
 ---
 
@@ -41,7 +41,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Master password authentication
 - Session timeout (configurable)
 - Backup/restore system (full + incremental)
-- Auto-backup on login
+- Auto-backup on logout/shutdown
 - Performance optimizations
 
 ### Phase 3: AI Integration ✅ COMPLETE (Dec 2, 2025)
@@ -78,7 +78,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ## DIRECTORY STRUCTURE
 
 ```
-~/edgecase/
+~/apps/edgecase/
 ├── main.py                      # Application entry point
 ├── requirements.txt             # Python dependencies
 ├── pyproject.toml               # Package configuration
@@ -282,9 +282,10 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ### Backup System (Phase 2)
 - Full backups (weekly or first backup)
 - Incremental backups (daily changes only)
-- Auto-backup on login (configurable frequency)
+- Auto-backup on logout/shutdown (configurable frequency)
 - Cloud folder support (iCloud, Dropbox, Google Drive)
 - One-click restore with safety backup
+- Post-backup command support (e.g., rsync to remote server)
 
 ### AI Scribe (Phase 3)
 - Local LLM (Hermes 3 Llama 3.1 8B)
@@ -304,7 +305,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ### Start Server
 ```bash
-cd ~/edgecase
+cd ~/apps/edgecase
 source venv/bin/activate
 python main.py
 ```
@@ -327,20 +328,30 @@ git push
 
 ### Run Tests
 ```bash
-cd ~/edgecase
+cd ~/apps/edgecase
 source venv/bin/activate
 pytest tests/ -v
 ```
 
 ---
 
-## RECENT CHANGES (Dec 14-16, 2025)
+## RECENT CHANGES
 
-- Comprehensive testing complete: All features verified
-- Fixed 7 UX/logic issues discovered during testing (info cards, link validation, etc.)
-- Session timeout client-side protection (activity tracking, keepalive pings)
-- Date dropdown arrow alignment fix (Choices.js CSS override)
-- System verified production-ready for January 2026 launch
+### January 2026
+- **In production** since January 3, 2026
+- Backup now runs on logout/shutdown (not login)
+- Backup on session timeout added
+- Post-backup command runs on all shutdown paths
+- WAL checkpoint before backup (captures recent changes)
+- Desktop mode with heartbeat auto-shutdown
+- Server disconnect overlay when heartbeat fails
+
+### December 2025
+- Security hardening (unique salts, rate limiting, input validation)
+- App relocatability (EDGECASE_DATA, configurable port)
+- Theme system update (Ink, Slate, Parchment themes added)
+- Comprehensive testing complete
+- System verified production-ready
 
 ---
 
@@ -356,9 +367,11 @@ pytest tests/ -v
 - v5.1: Backup protection, UI polish (Dec 4, 2025)
 - v5.2: Bug investigation complete, autocomplete refactor (Dec 5, 2025)
 - v5.3: Comprehensive testing complete, production ready (Dec 16, 2025)
-- **v5.4: Documentation accuracy audit (Dec 28, 2025)**
+- v5.4: Documentation accuracy audit (Dec 28, 2025)
+- **v5.5: Production updates, backup improvements (Jan 7, 2026)**
 
 ---
 
 *EdgeCase Equalizer - All Phases Complete*  
+*In Production Since January 3, 2026*  
 *"Every practice is an edge case"*
