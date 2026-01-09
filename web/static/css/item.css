@@ -42,17 +42,6 @@
 }
 
 /* ============================================
-   FORM ACTIONS
-   ============================================ */
-.item-form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-}
-
-
-/* ============================================
    VALIDATION MODAL
    ============================================ */
 .validation-modal-content {

@@ -104,16 +104,6 @@
 }
 
 /* ============================================
-   FORM ACTIONS
-   ============================================ */
-.upload-form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-}
-
-/* ============================================
    MODALS
    ============================================ */
 .modal-content {
