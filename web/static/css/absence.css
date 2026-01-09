@@ -50,17 +50,6 @@ h3.section-heading {
 }
 
 /* ============================================
-   FORM ACTIONS
-   ============================================ */
-.absence-form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-}
-
-
-/* ============================================
    MISSING LINK GROUP MODAL
    ============================================ */
 .missing-link-modal-content {

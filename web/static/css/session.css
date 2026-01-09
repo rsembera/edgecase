@@ -76,16 +76,6 @@
     height: 16px;
 }
 
-/* ============================================
-   FORM ACTIONS
-   ============================================ */
-.session-form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-}
-
 .nav-buttons {
     display: flex;
     gap: 1rem;
