@@ -131,7 +131,7 @@ def ai_download():
                                     fsize = f.stat().st_size
                                     if fsize > current_size:
                                         current_size = fsize
-                                except:
+                                except OSError:
                                     pass
                 
                 # Send progress update every few seconds or when size changes significantly

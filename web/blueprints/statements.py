@@ -225,6 +225,9 @@ def generate_statements():
     """Generate statements for selected clients."""
     
     data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid request data'}), 400
+    
     client_ids = data.get('client_ids', [])
     start_date = data.get('start_date')
     end_date = data.get('end_date')
