@@ -91,12 +91,6 @@ svg[data-lucide] {
     color: #9CA3AF;
 }
 
-/* Dropdown button sizing override */
-.ledger-page .dropdown-btn {
-    padding: 0.75rem 1rem;
-    line-height: 1;
-}
-
 /* Theme-specific stat card colors - Tutti-Frutti (colorful) */
 body.tutti-frutti .stat-card[data-card-id="ytd-income"] { background: #CFE7DA; }
 body.tutti-frutti .stat-card[data-card-id="ytd-expenses"] { background: #E9CFCF; }
