@@ -1,36 +1,10 @@
 /* Expense Entry Form Styles */
-/* Shared patterns from shared.css: autocomplete-*, .date-field-narrow, .input-with-prefix, .section-* */
+/* Shared patterns from shared.css: autocomplete-*, .date-field-narrow, .input-with-prefix, .section-*, .attachment-* */
 
 .expense-card {
     max-width: 900px;
     margin: 0 auto;
 }
-
-/* ============================================
-   ATTACHMENTS
-   ============================================ */
-
-.attachment-details {
-    flex: 1;
-}
-
-.attachment-meta {
-    color: #6B7280;
-    font-size: 0.875rem;
-    margin-left: 0.5rem;
-}
-
-.attachment-size {
-    color: #9CA3AF;
-    font-size: 0.875rem;
-    margin-left: 0.5rem;
-}
-
-.attachment-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
 
 .file-row-grid {
     display: flex;

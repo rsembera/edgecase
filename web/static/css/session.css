@@ -85,36 +85,6 @@
 }
 
 /* ============================================
-   MISSING LINK MODAL
-   ============================================ */
-.missing-link-modal-content {
-    max-width: 500px;
-}
-
-.missing-link-modal-content h3 {
-    margin-top: 0;
-    color: #DC2626;
-}
-
-.missing-link-modal-content p {
-    color: #374151;
-    line-height: 1.6;
-}
-
-.missing-link-modal-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1.5rem;
-    gap: 1rem;
-}
-
-.missing-link-modal-actions .btn,
-.missing-link-modal-actions .btn-secondary {
-    flex: 1;
-    text-align: center;
-}
-
-/* ============================================
    SESSION-SPECIFIC OVERRIDES
    ============================================ */
 
