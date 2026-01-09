@@ -1796,6 +1796,25 @@ tbody tr:hover {
 }
 
 /* ============================================
+   ENTRY FORM HEADERS & ACTIONS
+   ============================================ */
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.entry-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #DEE2E6;
+}
+
+/* ============================================
    FORM SECTIONS
    ============================================ */
 .form-section {

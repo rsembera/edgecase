@@ -9,13 +9,6 @@
     margin: 0 auto;
 }
 
-.absence-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 2rem;
-}
-
 .client-info-line {
     margin-bottom: 0.25rem;
 }
