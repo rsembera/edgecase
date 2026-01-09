@@ -191,10 +191,14 @@
         <div class="nav-buttons">
             {% if prev_comm_id %}
             <a href="{{ url_for('entries.edit_communication', client_id=client.id, entry_id=prev_comm_id) }}" class="btn">← Prev</a>
+            {% else %}
+            <span class="btn btn-disabled">← Prev</span>
             {% endif %}
             
             {% if next_comm_id %}
             <a href="{{ url_for('entries.edit_communication', client_id=client.id, entry_id=next_comm_id) }}" class="btn">Next →</a>
+            {% else %}
+            <span class="btn btn-disabled">Next →</span>
             {% endif %}
         </div>
         {% endif %}
