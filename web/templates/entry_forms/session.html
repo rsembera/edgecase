@@ -239,20 +239,18 @@
             <!-- Cancel (Hard Left) -->
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
             
-            <!-- Previous/Next (Center) -->
+            <!-- Previous/Next (Center) - only in edit mode -->
+            {% if is_edit %}
             <div class="nav-buttons">
                 {% if prev_session_id %}
                 <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
-                {% else %}
-                <button class="btn btn-disabled" disabled>← Prev</button>
                 {% endif %}
                 
                 {% if next_session_id %}
                 <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=next_session_id) }}" class="btn">Next →</a>
-                {% else %}
-                <button class="btn btn-disabled" disabled>Next →</button>
                 {% endif %}
             </div>
+            {% endif %}
             
             <!-- Save Session (Hard Right) -->
             {% if is_edit %}
