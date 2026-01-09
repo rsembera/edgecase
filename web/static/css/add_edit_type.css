@@ -46,13 +46,6 @@ h2 {
     color: #111827;
 }
 
-.color-name {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: #5B6571;
-    text-align: center;
-}
-
 .checkmark {
     position: absolute;
     top: 0.5rem;

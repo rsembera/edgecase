@@ -17,15 +17,6 @@
     gap: 1rem;
 }
 
-/* Search box width override for ledger */
-.ledger-page .search-box {
-    flex: 1;
-}
-
-.ledger-page .search-box input {
-    width: 100%;
-}
-
 /* Ledger-specific table column widths (7 columns) */
 .ledger-table th:nth-child(1), 
 .ledger-table td:nth-child(1) { width: 10%; }  /* Date */

@@ -48,20 +48,3 @@
     font-family: monospace;
     color: #5B6571;
 }
-
-.placeholder-message {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #718096;
-}
-
-.placeholder-message h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #4A5568;
-    margin-bottom: 0.5rem;
-}
-
-.placeholder-message p {
-    margin: 0;
-}

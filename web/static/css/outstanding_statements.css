@@ -59,35 +59,6 @@
     display: block;
 }
 
-/* Date range row */
-.date-range-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    padding-top: 1rem;
-}
-
-.date-range-row label {
-    font-weight: 600;
-    color: #2D3748;
-    font-size: 0.875rem;
-}
-
-/* Individual select widths for date inputs */
-.date-input-group select.year-select {
-    width: 100px;
-}
-
-.date-input-group select.month-select {
-    width: 120px;
-}
-
-.date-input-group select.day-select {
-    width: 80px;
-}
-
 .date-buttons {
     display: flex;
     gap: 1rem;

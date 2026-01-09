@@ -55,12 +55,6 @@
     border: 1px solid #9FCFC0;
 }
 
-.parse-error {
-    background: #FEF2F2;
-    color: #B91C1C;
-    border: 1px solid #FECACA;
-}
-
 .parse-hint {
     background: #F7FAFC;
     color: #718096;

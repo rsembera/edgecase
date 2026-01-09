@@ -153,23 +153,6 @@ select, input, textarea, button {
     background: #D1D5DB;
 }
 
-/* Inline secondary button (links styled as buttons) */
-.btn-secondary-inline {
-    padding: 0.75rem 1.5rem;
-    background: #E3E9EE;
-    color: #55607D;
-    text-decoration: none;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-block;
-}
-
-.btn-secondary-inline:hover {
-    background: #D1D9E0;
-}
-
 /* Disabled buttons */
 .btn:disabled, .btn[disabled] {
     background: #718096 !important;
@@ -346,10 +329,6 @@ select, input, textarea, button {
     box-shadow: var(--shadow-focus);
 }
 
-textarea.large {
-    min-height: 300px;
-}
-
 .resize-v { resize: vertical; }
 
 .helper-text, .help-text {
@@ -399,11 +378,6 @@ input[type="number"] {
     border-color: var(--color-border-focus);
     box-shadow: var(--shadow-focus);
 }
-
-/* Date select width utilities */
-.year-select { width: 90px; }
-.month-select { width: 80px; }
-.day-select { width: 70px; }
 
 /* Force equal widths for date inputs when using Choices.js */
 .date-input-group .choices {
@@ -745,16 +719,6 @@ input[type="number"] {
     display: none;
 }
 
-.warning-text.warning-danger {
-    background: #FEE2E2;
-    color: #991B1B;
-    border: 1px solid #FECACA;
-}
-
-.warning-text.warning-danger .warning-icon {
-    color: #DC2626;
-}
-
 .warning-icon {
     width: 16px;
     height: 16px;
@@ -839,21 +803,6 @@ input[type="number"] {
 
 .card-narrow { max-width: 700px; margin: 0 auto; }
 .card-wide { max-width: 1400px; margin: 0 auto; }
-
-/* Empty state card */
-.empty-state-card {
-    text-align: center;
-    padding: 4rem;
-    background: white;
-    border-radius: 1rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.empty-state-card p {
-    color: #6B7280;
-    font-size: 1.125rem;
-    margin-bottom: 1.5rem;
-}
 
 /* ============================================
    SECTION DIVIDERS & HEADINGS
@@ -1261,7 +1210,6 @@ input[type="number"] {
 .text-divider { color: #9CA3AF; }
 .text-sm { font-size: 0.875rem; }
 .text-xs { font-size: 0.8125rem; }
-.text-right { text-align: right; }
 .text-center { text-align: center; }
 
 /* ============================================
@@ -1273,13 +1221,10 @@ input[type="number"] {
 .mb-1-5 { margin-bottom: 1.5rem; }
 .mb-2 { margin-bottom: var(--space-xl); }
 
-.mt-0 { margin-top: 0; }
 .mt-half { margin-top: 0.5rem; }
 .mt-1 { margin-top: var(--space-lg); }
 .mt-2 { margin-top: var(--space-2xl); }
 
-.pt-0 { padding-top: 0; }
-.pt-1 { padding-top: var(--space-sm); }
 .pt-2 { padding-top: var(--space-lg); }
 
 .ml-1 { margin-left: 1rem; }
@@ -1316,7 +1261,6 @@ input[type="number"] {
 /* Colors */
 .icon-warning { color: #D97706; }
 .icon-danger { color: #DC2626; }
-.icon-success { color: #059669; }
 .icon-teal { color: #1F8F74; }
 .icon-purple { color: #6366F1; }
 
@@ -1492,32 +1436,6 @@ h2 svg[data-lucide].page-icon {
     width: 100%;
 }
 
-/* Filter select */
-.filter-select {
-    padding: 0.5rem 1.25rem;
-    background: #FBFCFD;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #323B45;
-    cursor: pointer;
-    transition: all 0.2s;
-    height: 38px;
-    min-width: 140px;
-    box-sizing: border-box;
-}
-
-.filter-select:hover {
-    border-color: #1F8F74;
-}
-
-.filter-select:focus {
-    outline: none;
-    border-color: #1F8F74;
-    box-shadow: 0 0 0 3px rgba(31,143,116,0.06);
-}
-
 @media (max-width: 768px) {
     .controls-bar {
         flex-direction: column;
@@ -1528,9 +1446,6 @@ h2 svg[data-lucide].page-icon {
         align-items: stretch;
     }
     .search-box input {
-        width: 100%;
-    }
-    .filter-select {
         width: 100%;
     }
 }
@@ -2266,20 +2181,6 @@ tbody tr:hover {
     box-shadow: var(--shadow-focus);
 }
 
-.guardian-split-status {
-    font-size: 0.875rem;
-    margin-top: var(--space-xs);
-    margin-bottom: var(--space-lg);
-}
-
-.guardian-split-status.valid {
-    color: var(--color-success, #10B981);
-}
-
-.guardian-split-status.invalid {
-    color: var(--color-danger, #EF4444);
-}
-
 
 /* ============================================
    INK THEME OVERRIDES
@@ -2293,8 +2194,7 @@ body.ink {
     --shadow-focus: 0 0 0 3px rgba(42,42,42,0.15);
 }
 
-body.ink .card,
-body.ink .empty-state-card {
+body.ink .card {
     background: #f5f3f0;
     border: 1px solid #404040;
 }
@@ -2311,8 +2211,7 @@ body.slate {
     --shadow-focus: 0 0 0 3px rgba(74,96,128,0.15);
 }
 
-body.slate .card,
-body.slate .empty-state-card {
+body.slate .card {
     background: #f0f2f4;
     border: 1px solid #4a6080;
 }
@@ -2329,8 +2228,7 @@ body.parchment {
     --shadow-focus: 0 0 0 3px rgba(139,115,85,0.15);
 }
 
-body.parchment .card,
-body.parchment .empty-state-card {
+body.parchment .card {
     background: #f8f4ec;
     border: 1px solid #8b7355;
 }

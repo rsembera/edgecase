@@ -465,19 +465,6 @@
 }
 
 /* ============================================
-   BOTTOM BUTTONS
-   ============================================ */
-
-.bottom-buttons {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--color-border, #DEE2E6);
-}
-
-/* ============================================
    BACKUP-SPECIFIC MODAL ELEMENTS
    (Base modal styles in shared.css)
    ============================================ */
@@ -607,17 +594,6 @@
     
     .btn-restore-action {
         width: 100%;
-    }
-    
-    .bottom-buttons {
-        flex-direction: column-reverse;
-        gap: 0.75rem;
-    }
-    
-    .btn-cancel-bottom,
-    .btn-save-settings {
-        width: 100%;
-        text-align: center;
     }
     
     .backup-legend {
