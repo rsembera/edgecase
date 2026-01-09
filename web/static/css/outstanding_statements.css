@@ -327,11 +327,6 @@
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-    .date-range-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
     .date-input-group {
         width: 100%;
     }
