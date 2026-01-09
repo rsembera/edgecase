@@ -1272,8 +1272,8 @@ input[type="number"] {
 
 /* Header icons */
 .icon-header, .page-icon {
-    width: 28px;
-    height: 28px;
+    width: 28px !important;
+    height: 28px !important;
     vertical-align: -4px;
     margin-right: 0.5rem;
     color: #1F8F74;
@@ -1284,14 +1284,6 @@ svg[data-lucide] {
     width: 14px !important;
     height: 14px !important;
     vertical-align: middle;
-}
-
-h2 svg[data-lucide].page-icon {
-    width: 28px !important;
-    height: 28px !important;
-    vertical-align: -4px;
-    margin-right: 0.5rem;
-    color: #1F8F74;
 }
 
 /* Warning icons */
