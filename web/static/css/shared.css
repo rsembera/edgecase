@@ -1709,7 +1709,7 @@ tbody tr:hover {
 /* ============================================
    EMPTY STATES
    ============================================ */
-.empty-state, .placeholder-message {
+.empty-state {
     padding: 3rem 2rem;
     text-align: center;
     background: #E3E9EE;
@@ -1718,7 +1718,7 @@ tbody tr:hover {
     color: #718096;
 }
 
-.empty-state h3, .placeholder-message h3 {
+.empty-state h3 {
     color: #2d3748;
     margin-bottom: 0.5rem;
 }
