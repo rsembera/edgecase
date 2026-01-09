@@ -1272,9 +1272,9 @@ input[type="number"] {
 
 /* Header icons */
 .icon-header, .page-icon {
-    width: 28px !important;
-    height: 28px !important;
-    vertical-align: -4px;
+    width: 40px !important;
+    height: 40px !important;
+    vertical-align: middle !important;
     margin-right: 0.5rem;
     color: #1F8F74;
 }
@@ -1284,6 +1284,16 @@ svg[data-lucide] {
     width: 14px !important;
     height: 14px !important;
     vertical-align: middle;
+}
+
+/* Header icons - override base sizing */
+.page-icon svg[data-lucide],
+.icon-header svg[data-lucide],
+h2 svg[data-lucide].page-icon,
+.entry-header h2 svg[data-lucide] {
+    width: 28px !important;
+    height: 28px !important;
+    vertical-align: -0.1em !important;
 }
 
 /* Warning icons */
@@ -1320,9 +1330,9 @@ svg[data-lucide] {
 }
 
 .page-header h2 .page-icon, .header-row h2 .page-icon {
-    width: 28px;
-    height: 28px;
-    vertical-align: -4px;
+    width: 32px !important;
+    height: 32px !important;
+    vertical-align: middle;
     margin-right: 0.5rem;
     color: #1F8F74;
 }
