@@ -187,7 +187,7 @@
     <div class="entry-form-actions">
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
         
-        {% if is_edit %}
+        {% if is_edit and is_locked %}
         <div class="nav-buttons">
             {% if prev_comm_id %}
             <a href="{{ url_for('entries.edit_communication', client_id=client.id, entry_id=prev_comm_id) }}" class="btn">← Prev</a>
