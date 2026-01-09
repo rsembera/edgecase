@@ -1287,8 +1287,8 @@ svg[data-lucide] {
 }
 
 h2 svg[data-lucide].page-icon {
-    width: 28px;
-    height: 28px;
+    width: 28px !important;
+    height: 28px !important;
     vertical-align: -4px;
     margin-right: 0.5rem;
     color: #1F8F74;
