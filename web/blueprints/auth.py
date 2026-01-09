@@ -320,8 +320,12 @@ def change_password_progress():
             # Step 2: Re-encrypt all files with progress
             yield f"data: {json.dumps({'status': 'encrypting', 'total': total_files, 'current': 0, 'message': 'Re-encrypting files...'})}\n\n"
             
+            failed_files = []
             for progress in _reencrypt_all_files_with_progress(db, current_password, new_password, total_files):
                 yield f"data: {json.dumps(progress)}\n\n"
+                # Capture failed files from final yield
+                if progress.get('failed_files'):
+                    failed_files = progress['failed_files']
             
             # Step 3: Rekey the database
             yield f"data: {json.dumps({'status': 'database', 'message': 'Updating database encryption...'})}\n\n"
@@ -336,8 +340,12 @@ def change_password_progress():
             test_conn = db.connect()
             test_conn.execute("SELECT 1")
             
-            # Success!
-            yield f"data: {json.dumps({'status': 'complete', 'message': 'Password changed successfully!'})}\n\n"
+            # Success - but warn if any files failed
+            if failed_files:
+                file_names = [f['file'] for f in failed_files]
+                yield f"data: {json.dumps({'status': 'complete_with_warnings', 'message': 'Password changed, but some files failed to re-encrypt', 'failed_files': file_names})}\n\n"
+            else:
+                yield f"data: {json.dumps({'status': 'complete', 'message': 'Password changed successfully!'})}\n\n"
             
         except Exception as e:
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
@@ -379,13 +387,17 @@ def _count_encrypted_files(db) -> int:
 
 
 def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str, total_files: int):
-    """Re-encrypt all attachments and assets with new password, yielding progress."""
+    """Re-encrypt all attachments and assets with new password, yielding progress.
+    
+    Yields progress dicts. Final yield includes 'failed_files' list if any failures occurred.
+    """
     from core.encryption import decrypt_file_to_bytes, encrypt_file
     from core.config import ASSETS_DIR
     from pathlib import Path
     import os
     
     current_file = 0
+    failed_files = []
     
     # Re-encrypt attachments from database
     conn = db.connect()
@@ -395,10 +407,10 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
     for row in cursor.fetchall():
         filepath = row[1]
         if filepath and os.path.exists(filepath):
+            current_file += 1
+            filename = os.path.basename(filepath)
+            
             try:
-                current_file += 1
-                filename = os.path.basename(filepath)
-                
                 # Decrypt with old password
                 data = decrypt_file_to_bytes(filepath, old_password)
                 # Write decrypted, then encrypt with new password
@@ -416,14 +428,23 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
                 }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt {filepath}: {e}")
+                failed_files.append({'file': filename, 'error': str(e)})
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': filename,
+                    'warning': f'Failed to re-encrypt {filename}',
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
     
     # Re-encrypt logo if exists
     logo_filename = db.get_setting('logo_filename', '')
     if logo_filename:
         logo_path = ASSETS_DIR / logo_filename
         if logo_path.exists():
+            current_file += 1
             try:
-                current_file += 1
                 data = decrypt_file_to_bytes(str(logo_path), old_password)
                 with open(logo_path, 'wb') as f:
                     f.write(data)
@@ -438,14 +459,23 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
                 }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt logo: {e}")
+                failed_files.append({'file': 'logo', 'error': str(e)})
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': 'logo',
+                    'warning': 'Failed to re-encrypt logo',
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
     
     # Re-encrypt signature if exists
     sig_filename = db.get_setting('signature_filename', '')
     if sig_filename:
         sig_path = ASSETS_DIR / sig_filename
         if sig_path.exists():
+            current_file += 1
             try:
-                current_file += 1
                 data = decrypt_file_to_bytes(str(sig_path), old_password)
                 with open(sig_path, 'wb') as f:
                     f.write(data)
@@ -460,3 +490,20 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
                 }
             except Exception as e:
                 print(f"[Password Change] Failed to re-encrypt signature: {e}")
+                failed_files.append({'file': 'signature', 'error': str(e)})
+                yield {
+                    'status': 'encrypting',
+                    'total': total_files,
+                    'current': current_file,
+                    'filename': 'signature',
+                    'warning': 'Failed to re-encrypt signature',
+                    'message': f'Processing {current_file} of {total_files}...'
+                }
+    
+    # Final yield with any failures
+    if failed_files:
+        yield {
+            'status': 'files_complete',
+            'failed_files': failed_files,
+            'message': f'{len(failed_files)} file(s) failed to re-encrypt'
+        }

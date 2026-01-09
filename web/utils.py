@@ -14,6 +14,27 @@ import uuid
 from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
 
+
+def safe_float(value, default=None):
+    """Safely convert form value to float, returning default if invalid."""
+    if not value:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_int(value, default=None):
+    """Safely convert form value to int, returning default if invalid."""
+    if not value:
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
     """Convert date form data to Unix timestamp.
     
@@ -218,12 +239,20 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             stored_filename = f"{uuid.uuid4()}.enc"
             filepath = os.path.join(upload_dir, stored_filename)
             
-            # Save file to disk
-            file.save(filepath)
-            
-            # Encrypt the file
-            if db.password:
-                encrypt_file(filepath, db.password)
+            # Save file to disk and encrypt
+            try:
+                file.save(filepath)
+                
+                if db.password:
+                    encrypt_file(filepath, db.password)
+            except (IOError, OSError) as e:
+                # Clean up partial file if it exists
+                if os.path.exists(filepath):
+                    try:
+                        os.remove(filepath)
+                    except OSError:
+                        pass
+                raise IOError(f"Failed to save file '{original_filename}': {e}")
             
             filesize = os.path.getsize(filepath)
             
