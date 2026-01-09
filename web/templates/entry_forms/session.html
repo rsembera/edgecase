@@ -239,8 +239,8 @@
             <!-- Cancel (Hard Left) -->
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
             
-            <!-- Previous/Next (Center) - only for locked entries -->
-            {% if is_edit and is_locked %}
+            <!-- Previous/Next (Center) - only in edit mode -->
+            {% if is_edit %}
             <div class="nav-buttons">
                 {% if prev_session_id %}
                 <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=prev_session_id) }}" class="btn">← Prev</a>
