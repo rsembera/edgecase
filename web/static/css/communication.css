@@ -10,9 +10,6 @@
     margin: 0 auto;
 }
 
-.client-info-line {
-    margin-bottom: 0.25rem;
-}
 
 /* ============================================
    FORM GRID - Override base margin
@@ -45,14 +42,7 @@
 /* ============================================
    FILE UPLOAD
    ============================================ */
-.upload-toggle-wrapper {
-    margin-bottom: 1rem;
-}
 
-.nav-buttons {
-    display: flex;
-    gap: 1rem;
-}
 
 /* Disabled navigation button */
 .btn-disabled {

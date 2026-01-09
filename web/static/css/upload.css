@@ -16,9 +16,6 @@
     margin-bottom: 2rem;
 }
 
-.client-info-line {
-    margin-bottom: 0.25rem;
-}
 
 /* ============================================
    FORM GRID - Override base margin
@@ -57,9 +54,6 @@
 /* ============================================
    UPLOAD TOGGLE & SECTION
    ============================================ */
-.upload-toggle-wrapper {
-    margin-bottom: 1rem;
-}
 
 .upload-toggle-btn {
     width: 100%;

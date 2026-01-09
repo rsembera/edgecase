@@ -1828,6 +1828,19 @@ tbody tr:hover {
     margin-bottom: 1.5rem;
 }
 
+.client-info-line {
+    margin-bottom: 0.25rem;
+}
+
+.upload-toggle-wrapper {
+    margin-bottom: 1rem;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
 /* ============================================
    FORM SECTIONS
    ============================================ */
