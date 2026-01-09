@@ -229,29 +229,6 @@ body.tutti-frutti .nav-btn.peach:hover {
     letter-spacing: 0.05em;
 }
 
-.payment-legend {
-    display: flex;
-    gap: 1.5rem;
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #6B7AA1;
-    text-transform: none;
-    letter-spacing: normal;
-    margin-right: 2rem;
-}
-
-.payment-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-.payment-legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
 /* Column widths - match these in client cards */
 .col-status { 
     width: 12px; 
@@ -358,10 +335,6 @@ body.tutti-frutti .nav-btn.peach:hover {
     /* Smaller stat cards on narrow screens */
     .stat-card {
         padding: 0.75rem 1rem;
-    }
-    
-    .stat-value {
-        font-size: 1.5rem;
     }
 }
 

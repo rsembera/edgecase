@@ -130,60 +130,6 @@
     background: #FCA5A5;
 }
 
-/* Billing Options */
-.billing-options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.billing-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: white;
-    border: 2px solid #DEE2E6;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.billing-option:hover {
-    border-color: #9FCFC0;
-    background: #F9FAFB;
-}
-
-.billing-option input[type="radio"] {
-    margin-top: 0.25rem;
-    cursor: pointer;
-}
-
-.billing-option input[type="radio"]:checked ~ .option-content {
-    color: #115D4F;
-}
-
-.billing-option:has(input[type="radio"]:checked) {
-    border-color: #9FCFC0;
-    background: #F0F9F7;
-}
-
-.option-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.option-content strong {
-    color: #111827;
-    font-size: 0.875rem;
-}
-
-.option-content small {
-    color: #6B7280;
-    font-size: 0.75rem;
-}
-
 /* Member Fee Breakdown */
 .member-fee-row {
     padding: 1rem;

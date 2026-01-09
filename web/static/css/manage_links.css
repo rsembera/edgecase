@@ -53,29 +53,6 @@
     font-size: 0.875rem;
 }
 
-/* Billing badges */
-.billing-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.billing-principal {
-    background: #DBEAFE;
-    color: #1E40AF;
-}
-
-.billing-split {
-    background: #D1FAE5;
-    color: #065F46;
-}
-
-.billing-individual {
-    background: #FEF3C7;
-    color: #92400E;
-}
-
 .group-actions {
     display: flex;
     gap: 0.5rem;
@@ -134,26 +111,6 @@
 .member-file {
     color: #6B7280;
     font-size: 0.875rem;
-}
-
-.principal-badge {
-    padding: 0.25rem 0.5rem;
-    background: #DBEAFE;
-    color: #1E40AF;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-/* Empty state override */
-.manage-links-page .empty-state {
-    border: 2px dashed #DEE2E6;
-    background: #FBFCFD;
-}
-
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
 }
 
 .warning-text {

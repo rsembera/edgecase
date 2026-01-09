@@ -184,25 +184,6 @@ textarea[name="additional_info"] {
     margin-top: 0.25rem;
 }
 
-.guardian-validation-box {
-    background: #FEF2F2;
-    border: 1px solid #FCA5A5;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-top: 1rem;
-}
-
-.guardian-validation-header {
-    color: #991B1B;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.guardian-validation-message {
-    color: #7F1D1D;
-    font-size: 0.875rem;
-}
-
 /* ============================================
    FORM ACTIONS
    ============================================ */
