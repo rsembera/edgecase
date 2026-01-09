@@ -4,7 +4,7 @@ EdgeCase Statements Blueprint
 Handles statement generation and payment tracking
 """
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, after_this_request
 from pathlib import Path
 from datetime import datetime, timedelta
 import calendar
@@ -232,16 +232,19 @@ def generate_statements():
     if not client_ids:
         return jsonify({'success': False, 'error': 'No clients selected'}), 400
     
-    # Convert to timestamps (with day clamping for invalid dates like Nov 31)
-    start_parts = start_date.split('-')
-    start_year, start_month, start_day = int(start_parts[0]), int(start_parts[1]), int(start_parts[2])
-    start_day = min(start_day, calendar.monthrange(start_year, start_month)[1])
-    start_ts = int(datetime(start_year, start_month, start_day).timestamp())
-    
-    end_parts = end_date.split('-')
-    end_year, end_month, end_day = int(end_parts[0]), int(end_parts[1]), int(end_parts[2])
-    end_day = min(end_day, calendar.monthrange(end_year, end_month)[1])
-    end_ts = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
+    # Validate and convert date strings
+    try:
+        start_parts = start_date.split('-')
+        start_year, start_month, start_day = int(start_parts[0]), int(start_parts[1]), int(start_parts[2])
+        start_day = min(start_day, calendar.monthrange(start_year, start_month)[1])
+        start_ts = int(datetime(start_year, start_month, start_day).timestamp())
+        
+        end_parts = end_date.split('-')
+        end_year, end_month, end_day = int(end_parts[0]), int(end_parts[1]), int(end_parts[2])
+        end_day = min(end_day, calendar.monthrange(end_year, end_month)[1])
+        end_ts = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
+    except (ValueError, IndexError, TypeError, AttributeError) as e:
+        return jsonify({'success': False, 'error': f'Invalid date format: {e}'}), 400
     
     now = int(time.time())
     conn = db.connect()
@@ -432,7 +435,11 @@ def generate_statements():
             'total': total
         })
     
-    conn.commit()
+    try:
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
     
     # Count total portions created
     cursor.execute("""
@@ -786,6 +793,15 @@ def download_statement_pdf(portion_id):
     try:
         generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
         
+        @after_this_request
+        def cleanup(response):
+            try:
+                if output_path.exists():
+                    output_path.unlink()
+            except OSError:
+                pass
+            return response
+        
         return send_file(
             output_path,
             mimetype='application/pdf',
@@ -824,6 +840,15 @@ def view_statement_pdf(portion_id):
     
     try:
         generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
+        
+        @after_this_request
+        def cleanup(response):
+            try:
+                if output_path.exists():
+                    output_path.unlink()
+            except OSError:
+                pass
+            return response
         
         return send_file(
             output_path,
@@ -908,6 +933,15 @@ def send_applescript_email():
             text=True,
             timeout=10
         )
+        
+        # Clean up temp PDF after AppleScript has attached it
+        if pdf_path:
+            try:
+                pdf_path_obj = Path(pdf_path)
+                if pdf_path_obj.exists() and str(tempfile.gettempdir()) in str(pdf_path_obj):
+                    pdf_path_obj.unlink()
+            except OSError:
+                pass  # Non-critical, OS will eventually clean temp
         
         if result.returncode != 0:
             return jsonify({'success': False, 'error': result.stderr})

@@ -1777,19 +1777,27 @@ def delete_attachment(attachment_id):
     cursor.execute("SELECT * FROM entries WHERE id = ?", (attachment['entry_id'],))
     entry = cursor.fetchone()
     
-    # Resolve filepath and delete file from disk
+    # Resolve filepath for later deletion
     filepath = resolve_attachment_path(attachment['filepath'])
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    filename = attachment['filename']
+    entry_id = attachment['entry_id']
     
-    # Delete from database
+    # Delete from database FIRST (so if this fails, file is still intact)
     cursor.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
     conn.commit()
     
+    # Now delete file from disk (if DB succeeded, safe to remove file)
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except OSError as e:
+        # Log but don't fail - DB record is already gone, orphan file is acceptable
+        print(f"[Attachment] Warning: Could not delete file {filepath}: {e}")
+    
     # Add to edit history for any entry type that supports attachments
     if entry and entry['class'] in ('upload', 'communication', 'item'):
-        change_desc = f"Deleted file: {attachment['filename']}"
-        db.add_to_edit_history(attachment['entry_id'], change_desc)
+        change_desc = f"Deleted file: {filename}"
+        db.add_to_edit_history(entry_id, change_desc)
     
     
     return '', 200
