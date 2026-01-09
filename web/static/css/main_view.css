@@ -589,14 +589,7 @@ body.tutti-frutti .nav-btn.peach:hover {
 .legend-dot.pending, .payment-dot.pending { background: #D68A09; }
 .legend-dot.overdue, .payment-dot.overdue { background: #C93A3A; }
 
-/* Lucide icon sizing */
-svg[data-lucide] {
-    width: 14px !important;
-    height: 14px !important;
-    vertical-align: middle;
-}
-
-/* Icons in dropdown button */
+/* Icons in dropdown button - size override */
 .dropdown-btn svg[data-lucide] {
     width: 16px !important;
     height: 16px !important;

@@ -1279,6 +1279,13 @@ input[type="number"] {
     color: #1F8F74;
 }
 
+/* Base Lucide icon sizing */
+svg[data-lucide] {
+    width: 14px !important;
+    height: 14px !important;
+    vertical-align: middle;
+}
+
 h2 svg[data-lucide].page-icon {
     width: 28px;
     height: 28px;

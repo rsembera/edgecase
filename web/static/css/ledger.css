@@ -68,13 +68,7 @@
     font-weight: 600;
 }
 
-/* Lucide icon sizing */
-svg[data-lucide] {
-    width: 14px !important;
-    height: 14px !important;
-    vertical-align: middle;
-}
-
+/* Lucide icon sizing overrides */
 .dropdown-item svg[data-lucide] {
     width: 16px !important;
     height: 16px !important;
