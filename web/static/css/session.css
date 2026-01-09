@@ -9,9 +9,6 @@
     margin: 0 auto;
 }
 
-.client-info-line {
-    margin-bottom: 0.25rem;
-}
 
 /* ============================================
    FEE SOURCE DISPLAY
@@ -76,10 +73,6 @@
     height: 16px;
 }
 
-.nav-buttons {
-    display: flex;
-    gap: 1rem;
-}
 
 .btn-disabled {
     opacity: 0.5;
