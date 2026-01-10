@@ -8,7 +8,7 @@
 
 {% block content %}
 
-<div class="card card-narrow">
+<div class="card">
     <div class="entry-header">
         <div>
             <h2><i data-lucide="shield-alert" class="page-icon"></i>Redaction</h2>
@@ -33,11 +33,7 @@
     
     <div class="warning-box mb-2">
         <i data-lucide="alert-triangle" class="icon-sm"></i>
-        <div>
-            <strong>Privacy Protection</strong>
-            <p>Use when confidential information was entered in the wrong client file. 
-            Redaction permanently removes content while preserving the audit trail.</p>
-        </div>
+        <p>Redaction permanently removes content while preserving the audit trail.</p>
     </div>
     
     {% if entries %}
@@ -66,14 +62,17 @@
                     {% endif %}
                 </td>
                 <td>
-                    <span class="session-badge 
-                        {% if entry.class == 'session' %}{% if entry.is_consultation %}consultation{% else %}session{% endif %}
-                        {% elif entry.class == 'communication' %}session-badge-communication
-                        {% elif entry.class == 'absence' %}session-badge-absence
-                        {% elif entry.class == 'item' %}session-badge-item
-                        {% endif %}">
-                        {{ entry.class|capitalize }}
-                    </span>
+                    {% if entry.class == 'session' %}
+                        <span class="session-badge {% if entry.is_consultation %}consultation{% else %}session{% endif %}">
+                            {% if entry.is_consultation %}Consultation{% else %}Session{% endif %}
+                        </span>
+                    {% elif entry.class == 'communication' %}
+                        <span class="session-badge session-badge-communication">Communication</span>
+                    {% elif entry.class == 'absence' %}
+                        <span class="session-badge session-badge-absence">Absence</span>
+                    {% elif entry.class == 'item' %}
+                        <span class="session-badge session-badge-item">Item</span>
+                    {% endif %}
                 </td>
                 <td>
                     {% if entry.description|length > 30 %}
