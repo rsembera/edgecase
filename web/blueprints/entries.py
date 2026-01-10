@@ -1830,38 +1830,6 @@ def delete_attachment(attachment_id):
 # ENTRY REDACTION ROUTES
 # ============================================================================
 
-@entries_bp.route('/client/<int:client_id>/redact')
-def redact_entries_page(client_id):
-    """Show page listing locked entries that can be redacted."""
-    client = db.get_client(client_id)
-    if not client:
-        return "Client not found", 404
-    
-    client['type'] = db.get_client_type(client['type_id'])
-    
-    conn = db.connect()
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    # Get all locked, non-redacted, non-billed entries for this client
-    # Only entry types that lock immediately: session, communication, absence, item
-    cursor.execute("""
-        SELECT * FROM entries 
-        WHERE client_id = ? 
-          AND locked = 1 
-          AND is_redacted = 0
-          AND statement_id IS NULL
-          AND class IN ('session', 'communication', 'absence', 'item')
-        ORDER BY created_at DESC
-    """, (client_id,))
-    
-    entries = [dict(row) for row in cursor.fetchall()]
-    
-    return render_template('redact_entries.html', 
-                          client=client, 
-                          entries=entries)
-
-
 @entries_bp.route('/client/<int:client_id>/redact/<int:entry_id>', methods=['POST'])
 def redact_entry(client_id, entry_id):
     """Perform redaction on a specific entry."""
