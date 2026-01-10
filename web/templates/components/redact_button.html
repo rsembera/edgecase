@@ -3,24 +3,38 @@
 <!-- Required: client object with id -->
 
 {% if is_edit and entry.locked and not entry.is_redacted and not entry.statement_id %}
-<button type="button" class="btn btn-danger btn-sm" onclick="showRedactModal()">
+<button type="button" class="btn btn-danger btn-sm" onclick="showRedactReasonModal()">
     <i data-lucide="shield-alert" class="icon-sm"></i> Redact
 </button>
 
-<!-- Redaction Confirmation Modal -->
-<div id="redact-modal" class="modal-overlay" style="display: none;">
+<!-- Modal 1: Enter Reason -->
+<div id="redact-reason-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <h3><i data-lucide="alert-triangle" class="icon-sm" style="color: #dc2626;"></i> Confirm Redaction</h3>
+        <h3>Redact Entry</h3>
+        <p>Please provide a reason for this redaction.</p>
+        <div class="form-group">
+            <label for="redact-reason">Reason *</label>
+            <input type="text" id="redact-reason" required minlength="10" 
+                   placeholder="e.g., Entry created in wrong client file">
+            <small class="text-muted">Minimum 10 characters</small>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="hideRedactModals()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="showRedactConfirmModal()">Continue</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Confirm Redaction -->
+<div id="redact-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3>Confirm Redaction</h3>
         <p>This will <strong>permanently remove all content</strong> from this entry. The entry will be marked as [REDACTED] and cannot be restored.</p>
+        <p>Are you sure you want to proceed?</p>
         <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" id="redact-form">
-            <div class="form-group">
-                <label for="redact-reason">Reason for redaction *</label>
-                <input type="text" id="redact-reason" name="reason" required minlength="10" 
-                       placeholder="e.g., Entry created in wrong client file">
-                <small class="text-muted">Minimum 10 characters</small>
-            </div>
+            <input type="hidden" id="redact-reason-hidden" name="reason" value="">
             <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="hideRedactModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="backToReasonModal()">Back</button>
                 <button type="submit" class="btn btn-danger">Redact Entry</button>
             </div>
         </form>
@@ -28,28 +42,46 @@
 </div>
 
 <script>
-function showRedactModal() {
-    document.getElementById('redact-modal').style.display = 'flex';
+function showRedactReasonModal() {
+    document.getElementById('redact-reason-modal').style.display = 'flex';
     document.getElementById('redact-reason').focus();
 }
 
-function hideRedactModal() {
-    document.getElementById('redact-modal').style.display = 'none';
-    document.getElementById('redact-reason').value = '';
+function showRedactConfirmModal() {
+    const reason = document.getElementById('redact-reason').value.trim();
+    if (reason.length < 10) {
+        document.getElementById('redact-reason').reportValidity();
+        return;
+    }
+    document.getElementById('redact-reason-hidden').value = reason;
+    document.getElementById('redact-reason-modal').style.display = 'none';
+    document.getElementById('redact-confirm-modal').style.display = 'flex';
+}
+
+function backToReasonModal() {
+    document.getElementById('redact-confirm-modal').style.display = 'none';
+    document.getElementById('redact-reason-modal').style.display = 'flex';
+    document.getElementById('redact-reason').focus();
+}
+
+function hideRedactModals() {
+    document.getElementById('redact-reason-modal').style.display = 'none';
+    document.getElementById('redact-confirm-modal').style.display = 'none';
 }
 
 // Close on escape
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        hideRedactModal();
+        hideRedactModals();
     }
 });
 
 // Close on overlay click
-document.getElementById('redact-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideRedactModal();
-    }
+document.getElementById('redact-reason-modal').addEventListener('click', function(e) {
+    if (e.target === this) hideRedactModals();
+});
+document.getElementById('redact-confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) hideRedactModals();
 });
 </script>
 {% endif %}

@@ -22,28 +22,13 @@
 /* Redacted Entry View Page */
 .redacted-notice {
     text-align: center;
-    padding: 2rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
+    padding: 1rem 1.5rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
     border-radius: 8px;
     margin-bottom: 1.5rem;
-}
-
-.redacted-notice .redacted-icon {
-    width: 48px;
-    height: 48px;
-    color: #6b7280;
-    margin-bottom: 0.75rem;
-}
-
-.redacted-notice h3 {
-    margin: 0 0 0.5rem 0;
-    color: #374151;
-}
-
-.redacted-notice p {
-    margin: 0;
-    color: #6b7280;
+    color: #991b1b;
+    font-weight: 500;
 }
 
 .redacted-metadata {
