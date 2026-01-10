@@ -30,6 +30,7 @@ class Database:
         self.password = password
         self._local = threading.local()  # Thread-local storage for connections
         self._initialize_schema()
+        self._run_migrations()
         
     def connect(self):
         """Return thread-local database connection with encryption."""
@@ -213,6 +214,11 @@ class Database:
                 locked INTEGER DEFAULT 0,
                 locked_at INTEGER,
                 
+                -- Redaction fields
+                is_redacted INTEGER DEFAULT 0,
+                redacted_at INTEGER,
+                redaction_reason TEXT,
+                
                 FOREIGN KEY (client_id) REFERENCES clients(id)
             )
         """)
@@ -347,8 +353,27 @@ class Database:
     
     def _run_migrations(self):
         """Run database migrations to update schema."""
-        # No migrations needed - clean schema in _initialize_schema()
-        pass
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Get existing columns in entries table
+        cursor.execute("PRAGMA table_info(entries)")
+        existing_columns = {col[1] for col in cursor.fetchall()}
+        
+        # v1.1: Add redaction fields to entries
+        if 'is_redacted' not in existing_columns:
+            cursor.execute("ALTER TABLE entries ADD COLUMN is_redacted INTEGER DEFAULT 0")
+            print("✔ Migration: Added is_redacted to entries")
+        
+        if 'redacted_at' not in existing_columns:
+            cursor.execute("ALTER TABLE entries ADD COLUMN redacted_at INTEGER")
+            print("✔ Migration: Added redacted_at to entries")
+        
+        if 'redaction_reason' not in existing_columns:
+            cursor.execute("ALTER TABLE entries ADD COLUMN redaction_reason TEXT")
+            print("✔ Migration: Added redaction_reason to entries")
+        
+        conn.commit()
 
     def _create_default_types(self):
         """Create default client types on first run.
@@ -796,6 +821,73 @@ class Database:
         if result and result[0]:
             return json.loads(result[0])
         return []
+    
+    def redact_entry(self, entry_id: int, reason: str) -> bool:
+        """Redact an entry, clearing all content fields.
+        
+        This is for privacy incidents where confidential information was entered
+        in the wrong client file. The redaction clears all free-text content
+        but preserves structural metadata (dates, fees, session numbers) and
+        does NOT add to edit_history (to avoid capturing confidential content).
+        
+        Args:
+            entry_id: The entry to redact
+            reason: Required explanation for the redaction
+            
+        Returns:
+            True if successful, False if entry not found or not locked
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        
+        # Verify entry exists and is locked
+        cursor.execute("SELECT class, locked FROM entries WHERE id = ?", (entry_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            return False
+        
+        entry_class, is_locked = result
+        
+        # Only allow redaction of locked entries (Session, Communication, Absence, Item)
+        if not is_locked or entry_class not in ('session', 'communication', 'absence', 'item'):
+            return False
+        
+        # Clear all free-text content fields based on entry class
+        # These are the fields that could contain confidential information
+        redaction_fields = {
+            'description': '[REDACTED]',
+            'content': None,
+            'mood': None,
+            'affect': None,
+            'risk_assessment': None,
+            'comm_recipient': None,
+            'additional_info': None,
+            # Mark as redacted
+            'is_redacted': 1,
+            'redacted_at': int(time.time()),
+            'redaction_reason': reason,
+            'modified_at': int(time.time())
+        }
+        
+        # Build UPDATE statement
+        set_clauses = []
+        values = []
+        
+        for key, value in redaction_fields.items():
+            set_clauses.append(f"{key} = ?")
+            values.append(value)
+        
+        values.append(entry_id)
+        
+        cursor.execute(f"""
+            UPDATE entries 
+            SET {', '.join(set_clauses)}
+            WHERE id = ?
+        """, values)
+        
+        conn.commit()
+        return True
     
     # ===== CLIENT LINKING OPERATIONS =====
     

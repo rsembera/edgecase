@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Redact Entry - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/redact.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="entry-header">
+        <div>
+            <h2><i data-lucide="shield-alert" class="page-icon"></i>Redact Entry</h2>
+            <div class="text-muted">
+                <div class="client-info-line">
+                    <span class="type-badge" style="background-color: {{ client.type.color }}">
+                        {{ client.type.name }}
+                    </span>
+                </div>
+                <div class="client-info-line">
+                    {{ client.first_name }} {% if client.middle_name %}{{ client.middle_name }}{% endif %} {{ client.last_name }}
+                </div>
+                <div>
+                    File #{{ client.file_number }}
+                </div>
+            </div>
+        </div>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
+            <i data-lucide="arrow-left" class="icon-sm"></i> Back
+        </a>
+    </div>
+    
+    <div class="warning-box mb-2">
+        <i data-lucide="alert-triangle" class="icon-sm"></i>
+        <div>
+            <strong>Privacy Protection Tool</strong>
+            <p>Use this when confidential information was accidentally entered in the wrong client file. 
+            Redaction permanently removes all content while preserving the audit trail that an entry existed.</p>
+        </div>
+    </div>
+    
+    {% if entries %}
+    <div class="redact-list">
+        {% for entry in entries %}
+        <div class="redact-entry-card">
+            <div class="redact-entry-header">
+                <div class="redact-entry-info">
+                    <span class="session-badge 
+                        {% if entry.class == 'session' %}{% if entry.is_consultation %}consultation{% else %}session{% endif %}
+                        {% elif entry.class == 'communication' %}session-badge-communication
+                        {% elif entry.class == 'absence' %}session-badge-absence
+                        {% elif entry.class == 'item' %}session-badge-item
+                        {% endif %}">
+                        {{ entry.class|capitalize }}
+                    </span>
+                    <span class="redact-entry-date">
+                        {% if entry.class == 'session' %}
+                            {{ entry.session_date|timestamp_to_date }}
+                        {% elif entry.class == 'communication' %}
+                            {{ entry.comm_date|timestamp_to_date }}
+                        {% elif entry.class == 'absence' %}
+                            {{ entry.absence_date|timestamp_to_date }}
+                        {% elif entry.class == 'item' %}
+                            {{ entry.item_date|timestamp_to_date if entry.item_date else 'No date' }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="redact-entry-description">
+                    {{ entry.description }}
+                </div>
+            </div>
+            
+            <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" 
+                  class="redact-form" onsubmit="return confirmRedaction(this);">
+                <div class="form-group">
+                    <label for="reason-{{ entry.id }}">Reason for redaction *</label>
+                    <input type="text" 
+                           id="reason-{{ entry.id }}" 
+                           name="reason" 
+                           placeholder="e.g., Content entered in wrong client file"
+                           required
+                           minlength="10">
+                    <div class="helper-text">Explain why this entry is being redacted (minimum 10 characters)</div>
+                </div>
+                <button type="submit" class="btn btn-danger">
+                    <i data-lucide="shield-off" class="icon-sm"></i> Redact This Entry
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p class="text-muted">No locked entries available for redaction.</p>
+        <p class="text-muted small">Only locked Session, Communication, Absence, and Item entries can be redacted.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Confirmation Modal -->
+<div id="redact-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3><i data-lucide="alert-triangle" class="icon-sm icon-danger"></i> Confirm Redaction</h3>
+        <p>This action <strong>permanently removes all content</strong> from this entry. The entry will be marked as [REDACTED] and cannot be restored.</p>
+        <p>Are you sure you want to proceed?</p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="cancelRedaction()">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="proceedWithRedaction()">Yes, Redact Entry</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let pendingForm = null;
+
+function confirmRedaction(form) {
+    pendingForm = form;
+    document.getElementById('redact-confirm-modal').style.display = 'flex';
+    return false;
+}
+
+function cancelRedaction() {
+    pendingForm = null;
+    document.getElementById('redact-confirm-modal').style.display = 'none';
+}
+
+function proceedWithRedaction() {
+    if (pendingForm) {
+        pendingForm.submit();
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cancelRedaction();
+    }
+});
+
+// Close modal on overlay click
+document.getElementById('redact-confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cancelRedaction();
+    }
+});
+</script>
+{% endblock %}

@@ -585,6 +585,11 @@ def edit_session(client_id, entry_id):
     if not session or session['class'] != 'session':
         return "Session not found", 404
     
+    # Redirect to redacted view if this entry has been redacted
+    if session.get('is_redacted'):
+        return redirect(url_for('entries.view_redacted_entry', 
+                                client_id=client_id, entry_id=entry_id))
+    
     if request.method == 'POST':
         # Get the old session data for comparison
         old_session = session.copy()
@@ -933,6 +938,11 @@ def edit_communication(client_id, entry_id):
     if not communication or communication['class'] != 'communication':
         return "Communication not found", 404
     
+    # Redirect to redacted view if this entry has been redacted
+    if communication.get('is_redacted'):
+        return redirect(url_for('entries.view_redacted_entry', 
+                                client_id=client_id, entry_id=entry_id))
+    
     if request.method == 'POST':
         # Get the old communication data for comparison
         old_comm = communication.copy()
@@ -1182,6 +1192,11 @@ def edit_absence(client_id, entry_id):
     if not absence or absence['class'] != 'absence':
         return "Absence not found", 404
     
+    # Redirect to redacted view if this entry has been redacted
+    if absence.get('is_redacted'):
+        return redirect(url_for('entries.view_redacted_entry', 
+                                client_id=client_id, entry_id=entry_id))
+    
     if request.method == 'POST':
         # Get the old absence data for comparison
         old_absence = absence.copy()
@@ -1426,6 +1441,11 @@ def edit_item(client_id, entry_id):
     
     if not item or item['class'] != 'item':
         return "Item not found", 404
+    
+    # Redirect to redacted view if this entry has been redacted
+    if item.get('is_redacted'):
+        return redirect(url_for('entries.view_redacted_entry', 
+                                client_id=client_id, entry_id=entry_id))
     
     if request.method == 'POST':
         # Get the old item data for comparison
@@ -1801,3 +1821,85 @@ def delete_attachment(attachment_id):
     
     
     return '', 200
+
+
+# ============================================================================
+# ENTRY REDACTION ROUTES
+# ============================================================================
+
+@entries_bp.route('/client/<int:client_id>/redact')
+def redact_entries_page(client_id):
+    """Show page listing locked entries that can be redacted."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client['type'] = db.get_client_type(client['type_id'])
+    
+    conn = db.connect()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all locked, non-redacted entries for this client
+    # Only entry types that lock immediately: session, communication, absence, item
+    cursor.execute("""
+        SELECT * FROM entries 
+        WHERE client_id = ? 
+          AND locked = 1 
+          AND is_redacted = 0
+          AND class IN ('session', 'communication', 'absence', 'item')
+        ORDER BY created_at DESC
+    """, (client_id,))
+    
+    entries = [dict(row) for row in cursor.fetchall()]
+    
+    return render_template('redact_entries.html', 
+                          client=client, 
+                          entries=entries)
+
+
+@entries_bp.route('/client/<int:client_id>/redact/<int:entry_id>', methods=['POST'])
+def redact_entry(client_id, entry_id):
+    """Perform redaction on a specific entry."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    # Verify entry belongs to this client
+    entry = db.get_entry(entry_id)
+    if not entry or entry['client_id'] != client_id:
+        return "Entry not found", 404
+    
+    reason = request.form.get('reason', '').strip()
+    if not reason:
+        return "Redaction reason is required", 400
+    
+    success = db.redact_entry(entry_id, reason)
+    
+    if not success:
+        return "Entry cannot be redacted (not locked or invalid type)", 400
+    
+    return redirect(url_for('clients.client_file', client_id=client_id))
+
+
+@entries_bp.route('/client/<int:client_id>/redacted/<int:entry_id>')
+def view_redacted_entry(client_id, entry_id):
+    """View metadata for a redacted entry (no content shown)."""
+    client = db.get_client(client_id)
+    if not client:
+        return "Client not found", 404
+    
+    client['type'] = db.get_client_type(client['type_id'])
+    
+    entry = db.get_entry(entry_id)
+    if not entry or entry['client_id'] != client_id:
+        return "Entry not found", 404
+    
+    if not entry.get('is_redacted'):
+        # Redirect to normal edit page if not redacted
+        return redirect(url_for(f'entries.edit_{entry["class"]}', 
+                                client_id=client_id, entry_id=entry_id))
+    
+    return render_template('view_redacted.html',
+                          client=client,
+                          entry=entry)

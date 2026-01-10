@@ -1,0 +1,169 @@
+/* Redact Entry Page Styles */
+
+.redact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.redact-entry-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fafafa;
+}
+
+.redact-entry-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.redact-entry-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.redact-entry-date {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.redact-entry-description {
+    font-weight: 500;
+    color: #374151;
+}
+
+.redact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.redact-form .form-group {
+    margin-bottom: 0;
+}
+
+.redact-form .form-group label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.redact-form .form-group input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.redact-form .helper-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.redact-form .btn-danger {
+    align-self: flex-start;
+}
+
+/* Icon color helper */
+.icon-danger {
+    color: #dc2626;
+}
+
+/* Redacted entry display in timeline */
+.redacted-entry {
+    opacity: 0.7;
+    background-color: #f3f4f6 !important;
+}
+
+.redacted-entry td {
+    color: #9ca3af;
+}
+
+.redacted-badge {
+    background-color: #6b7280;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Redacted Entry View Page */
+.redacted-notice {
+    text-align: center;
+    padding: 2rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.redacted-notice .redacted-icon {
+    width: 48px;
+    height: 48px;
+    color: #6b7280;
+    margin-bottom: 0.75rem;
+}
+
+.redacted-notice h3 {
+    margin: 0 0 0.5rem 0;
+    color: #374151;
+}
+
+.redacted-notice p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.redacted-metadata {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.redacted-metadata h4 {
+    margin: 0 0 1rem 0;
+    color: #374151;
+    font-size: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.redacted-metadata h4:not(:first-child) {
+    margin-top: 1.5rem;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metadata-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.metadata-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metadata-value {
+    color: #374151;
+    font-weight: 500;
+}
