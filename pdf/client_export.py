@@ -283,8 +283,21 @@ def build_redacted_entry(entry, client, styles, entry_type, entry_date_field):
     redacted_date = format_date(entry.get('redacted_at'))
     reason = entry.get('redaction_reason', 'No reason provided')
     
-    elements.append(Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue']))
-    elements.append(Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue']))
+    # Use table for consistent left alignment with metadata above
+    redaction_data = [
+        [Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue'])],
+        [Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue'])],
+    ]
+    
+    redaction_table = Table(redaction_data, colWidths=[6.6*inch])
+    redaction_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    elements.append(redaction_table)
     
     return elements
 
