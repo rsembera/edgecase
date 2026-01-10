@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Redacted Entry - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/redact.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="entry-header">
+        <div>
+            <h2><i data-lucide="shield-off" class="page-icon"></i>Redacted Entry</h2>
+            <div class="text-muted">
+                <div class="client-info-line">
+                    <span class="type-badge" style="background-color: {{ client.type.color }}">
+                        {{ client.type.name }}
+                    </span>
+                </div>
+                <div class="client-info-line">
+                    {{ client.first_name }} {% if client.middle_name %}{{ client.middle_name }}{% endif %} {{ client.last_name }}
+                </div>
+                <div>
+                    File #{{ client.file_number }}
+                </div>
+            </div>
+        </div>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
+            <i data-lucide="arrow-left" class="icon-sm"></i> Back
+        </a>
+    </div>
+    
+    <div class="redacted-notice">
+        <i data-lucide="shield-off" class="redacted-icon"></i>
+        <h3>This entry has been redacted</h3>
+        <p>The content of this entry was removed for privacy protection.</p>
+    </div>
+    
+    <div class="redacted-metadata">
+        <h4>Entry Metadata</h4>
+        
+        <div class="metadata-grid">
+            <div class="metadata-item">
+                <span class="metadata-label">Entry Type</span>
+                <span class="metadata-value">{{ entry.class|capitalize }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span class="metadata-label">Entry Date</span>
+                <span class="metadata-value">
+                    {% if entry.class == 'session' %}
+                        {{ entry.session_date|timestamp_to_date }}
+                    {% elif entry.class == 'communication' %}
+                        {{ entry.comm_date|timestamp_to_date }}
+                    {% elif entry.class == 'absence' %}
+                        {{ entry.absence_date|timestamp_to_date }}
+                    {% elif entry.class == 'item' %}
+                        {{ entry.item_date|timestamp_to_date if entry.item_date else 'Not set' }}
+                    {% endif %}
+                </span>
+            </div>
+            
+            {% if entry.class == 'session' and entry.session_number %}
+            <div class="metadata-item">
+                <span class="metadata-label">Session Number</span>
+                <span class="metadata-value">{{ entry.session_number }}</span>
+            </div>
+            {% endif %}
+            
+            {% if entry.fee %}
+            <div class="metadata-item">
+                <span class="metadata-label">Fee</span>
+                <span class="metadata-value">${{ "%.2f"|format(entry.fee) }}</span>
+            </div>
+            {% endif %}
+            
+            {% if entry.duration %}
+            <div class="metadata-item">
+                <span class="metadata-label">Duration</span>
+                <span class="metadata-value">{{ entry.duration }} minutes</span>
+            </div>
+            {% endif %}
+            
+            <div class="metadata-item">
+                <span class="metadata-label">Created</span>
+                <span class="metadata-value">{{ entry.created_at|timestamp_to_date }}</span>
+            </div>
+        </div>
+        
+        <h4>Redaction Details</h4>
+        
+        <div class="metadata-grid">
+            <div class="metadata-item">
+                <span class="metadata-label">Redacted On</span>
+                <span class="metadata-value">{{ entry.redacted_at|timestamp_to_date }}</span>
+            </div>
+            
+            <div class="metadata-item full-width">
+                <span class="metadata-label">Reason</span>
+                <span class="metadata-value">{{ entry.redaction_reason }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -261,6 +261,10 @@
                     <a href="{{ url_for('clients.export_client', client_id=client.id) }}" class="dropdown-item">
                         <i data-lucide="file-text" class="icon-sm icon-inline"></i> Export
                     </a>
+                    <div class="dropdown-separator"></div>
+                    <a href="{{ url_for('entries.redact_entries_page', client_id=client.id) }}" class="dropdown-item">
+                        <i data-lucide="shield-alert" class="icon-sm icon-inline"></i> Redact Entry
+                    </a>
                 </div>
             </div>
         </div>
@@ -312,7 +316,8 @@
                             </thead>
                             <tbody>
                                 {% for entry in month_group.entries %}
-                                <tr onclick="window.location.href='{% if entry.class == 'session' %}{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'communication' %}{{ url_for('entries.edit_communication', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'absence' %}{{ url_for('entries.edit_absence', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'item' %}{{ url_for('entries.edit_item', client_id=client.id, entry_id=entry.id) }}{% elif entry.class == 'upload' %}{{ url_for('entries.edit_upload', client_id=client.id, entry_id=entry.id) }}{% endif %}'"
+                                <tr {% if entry.is_redacted %}class="redacted-entry"{% endif %}
+                                    onclick="{% if entry.is_redacted %}window.location.href='{{ url_for('entries.view_redacted_entry', client_id=client.id, entry_id=entry.id) }}'{% elif entry.class == 'session' %}window.location.href='{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}'{% elif entry.class == 'communication' %}window.location.href='{{ url_for('entries.edit_communication', client_id=client.id, entry_id=entry.id) }}'{% elif entry.class == 'absence' %}window.location.href='{{ url_for('entries.edit_absence', client_id=client.id, entry_id=entry.id) }}'{% elif entry.class == 'item' %}window.location.href='{{ url_for('entries.edit_item', client_id=client.id, entry_id=entry.id) }}'{% elif entry.class == 'upload' %}window.location.href='{{ url_for('entries.edit_upload', client_id=client.id, entry_id=entry.id) }}'{% endif %}"
                                     data-description="{{ entry.description|e }}" 
                                     data-content="{{ entry.content|e if entry.content else '' }}">
                                     <td>

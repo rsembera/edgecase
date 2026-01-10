@@ -94,3 +94,17 @@ a.edit-link:hover { color: #16735F; }
 body.ink .profile-entry { background: #f5f3f0 !important; border: 1px solid #404040; border-left: 4px solid #404040; }
 body.slate .profile-entry { background: #f0f2f4 !important; border: 1px solid #4a6080; border-left: 4px solid #4a6080; }
 body.parchment .profile-entry { background: #f8f4ec !important; border: 1px solid #8b7355; border-left: 4px solid #8b7355; }
+
+/* Redacted entries in timeline */
+tr.redacted-entry {
+    background-color: #f9fafb !important;
+    opacity: 0.8;
+}
+
+tr.redacted-entry td {
+    color: #9ca3af !important;
+}
+
+tr.redacted-entry:hover {
+    background-color: #f3f4f6 !important;
+}
