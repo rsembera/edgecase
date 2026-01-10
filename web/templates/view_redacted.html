@@ -59,13 +59,6 @@
                 </span>
             </div>
             
-            {% if entry.duration %}
-            <div class="metadata-item">
-                <span class="metadata-label">Duration</span>
-                <span class="metadata-value">{{ entry.duration }} minutes</span>
-            </div>
-            {% endif %}
-            
             <div class="metadata-item">
                 <span class="metadata-label">Created</span>
                 <span class="metadata-value">{{ entry.created_at|timestamp_to_date }}</span>
