@@ -1019,6 +1019,78 @@ EdgeCase uses incremental backups that depend on previous backups in a chain:
 
 ---
 
+## ENTRY REDACTION SYSTEM
+
+### The Problem
+
+Sometimes entries are created in the wrong client file. Simply deleting them would leave no audit trail. Editing them risks missing sensitive content. We need a way to permanently remove confidential content while preserving the fact that an entry existed.
+
+### The Solution
+
+**Redaction** - a one-way operation that:
+1. Clears all sensitive content fields (content, mood, affect, risk_assessment, etc.)
+2. Clears all fee fields (prevents billing)
+3. Sets description to "[REDACTED]"
+4. Records when and why the redaction occurred
+5. Preserves minimal metadata (entry type, entry date, created date)
+
+### Protection Rules
+
+**Can only redact entries that are:**
+- Locked (Session, Communication, Absence, Item)
+- NOT already billed (statement_id is NULL)
+- NOT already redacted
+
+**Fields cleared on redaction:**
+- `description` → "[REDACTED]"
+- `content`, `mood`, `affect`, `risk_assessment` → NULL
+- `comm_recipient`, `additional_info` → NULL
+- `session_number`, `duration` → NULL
+- `base_fee`, `tax_rate`, `fee`, `base_price` → NULL
+
+**Fields preserved:**
+- Entry type (class)
+- Entry date (session_date, comm_date, etc.)
+- Created timestamp
+- Redaction metadata (is_redacted, redacted_at, redaction_reason)
+
+### Billing System Protection
+
+Redacted entries cannot appear in billing because:
+- Fee fields are set to NULL
+- Billing query requires `fee > 0` (NULL fails this check)
+- Billed entries cannot be redacted (statement_id check)
+
+### Session Renumbering
+
+When a session is redacted:
+- Its session_number is cleared
+- Remaining sessions are automatically renumbered
+- Redacted sessions are excluded from the count
+
+### UI Flow
+
+1. Open locked entry (session, communication, absence, or item)
+2. If eligible, "Redact" button appears in header
+3. Two-step confirmation modal (enter reason → confirm warning)
+4. Entry redacted, redirect to client file
+
+### PDF Export
+
+Redacted entries in exports show only:
+- Entry Type, Entry Date, Created
+- Redaction Details (Redacted On, Reason)
+- No signature (nothing clinical to attest to)
+
+### Why Not Just Delete?
+
+- **Audit trail** - PHIPA requires knowing what records existed
+- **Accountability** - Reason documents the decision
+- **Safety** - Two-step confirmation prevents accidents
+- **Billing integrity** - Can't accidentally bill redacted entries
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: January 7, 2026*
+*Last Updated: January 10, 2026*

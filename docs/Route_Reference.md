@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** December 28, 2025
+**Last Updated:** January 10, 2026
 
 ---
 
@@ -688,6 +688,38 @@ def view_attachment(attachment_id)
 def delete_attachment(attachment_id)
 ```
 **Purpose:** Download, view, delete attachments
+
+---
+
+### Entry Redaction
+
+```python
+@entries_bp.route('/client/<int:client_id>/redact/<int:entry_id>', methods=['POST'])
+def redact_entry(client_id, entry_id)
+```
+**Purpose:** Permanently redact entry content for privacy protection
+
+**POST Form Data:**
+- `reason` (str): Reason for redaction (required, min 10 chars)
+
+**Requirements:**
+- Entry must be locked
+- Entry must not be billed (statement_id is NULL)
+- Entry must not already be redacted
+
+**Clears:** content, mood, affect, risk_assessment, comm_recipient, additional_info, session_number, duration, all fee fields
+
+**Returns:** Redirect to client_file
+
+---
+
+```python
+@entries_bp.route('/client/<int:client_id>/entry/<int:entry_id>/redacted')
+def view_redacted(client_id, entry_id)
+```
+**Purpose:** View redacted entry metadata
+
+**Returns:** `view_redacted.html` showing entry type, entry date, created date, redaction details
 
 ---
 
