@@ -840,21 +840,26 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         
-        # Verify entry exists and is locked
-        cursor.execute("SELECT class, locked FROM entries WHERE id = ?", (entry_id,))
+        # Verify entry exists, is locked, and is not billed
+        cursor.execute("SELECT class, locked, statement_id FROM entries WHERE id = ?", (entry_id,))
         result = cursor.fetchone()
         
         if not result:
             return False
         
-        entry_class, is_locked = result
+        entry_class, is_locked, statement_id = result
         
         # Only allow redaction of locked entries (Session, Communication, Absence, Item)
         if not is_locked or entry_class not in ('session', 'communication', 'absence', 'item'):
             return False
         
-        # Clear all free-text content fields based on entry class
+        # Cannot redact billed entries
+        if statement_id is not None:
+            return False
+        
+        # Clear all free-text content fields and fee fields
         # These are the fields that could contain confidential information
+        # Fee fields cleared so redacted entries can't be invoiced
         redaction_fields = {
             'description': '[REDACTED]',
             'content': None,
@@ -864,6 +869,11 @@ class Database:
             'comm_recipient': None,
             'additional_info': None,
             'session_number': None,  # Clear session number so it doesn't affect numbering
+            # Clear fee fields so entry can't be invoiced
+            'base_fee': None,
+            'tax_rate': None,
+            'fee': None,
+            'base_price': None,  # For Item entries
             # Mark as redacted
             'is_redacted': 1,
             'redacted_at': int(time.time()),

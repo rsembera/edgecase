@@ -34,7 +34,6 @@
     <div class="redacted-notice">
         <i data-lucide="shield-off" class="redacted-icon"></i>
         <h3>This entry has been redacted</h3>
-        <p>The content of this entry was removed for privacy protection.</p>
     </div>
     
     <div class="redacted-metadata">
@@ -60,20 +59,6 @@
                     {% endif %}
                 </span>
             </div>
-            
-            {% if entry.class == 'session' and entry.session_number %}
-            <div class="metadata-item">
-                <span class="metadata-label">Session Number</span>
-                <span class="metadata-value">{{ entry.session_number }}</span>
-            </div>
-            {% endif %}
-            
-            {% if entry.fee %}
-            <div class="metadata-item">
-                <span class="metadata-label">Fee</span>
-                <span class="metadata-value">${{ "%.2f"|format(entry.fee) }}</span>
-            </div>
-            {% endif %}
             
             {% if entry.duration %}
             <div class="metadata-item">
