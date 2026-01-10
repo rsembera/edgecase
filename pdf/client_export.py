@@ -283,20 +283,8 @@ def build_redacted_entry(entry, client, styles, entry_type, entry_date_field):
     redacted_date = format_date(entry.get('redacted_at'))
     reason = entry.get('redaction_reason', 'No reason provided')
     
-    redaction_data = [[
-        Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue']),
-        Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue']),
-    ]]
-    
-    redaction_table = Table(redaction_data, colWidths=[2.2*inch, 4.4*inch])
-    redaction_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    elements.append(redaction_table)
+    elements.append(Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue']))
+    elements.append(Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue']))
     
     return elements
 
