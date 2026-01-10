@@ -30,7 +30,6 @@ class Database:
         self.password = password
         self._local = threading.local()  # Thread-local storage for connections
         self._initialize_schema()
-        self._run_migrations()
         
     def connect(self):
         """Return thread-local database connection with encryption."""
@@ -350,30 +349,6 @@ class Database:
         
         # Create default client types if they don't exist
         self._create_default_types()
-    
-    def _run_migrations(self):
-        """Run database migrations to update schema."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        # Get existing columns in entries table
-        cursor.execute("PRAGMA table_info(entries)")
-        existing_columns = {col[1] for col in cursor.fetchall()}
-        
-        # v1.1: Add redaction fields to entries
-        if 'is_redacted' not in existing_columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN is_redacted INTEGER DEFAULT 0")
-            print("✔ Migration: Added is_redacted to entries")
-        
-        if 'redacted_at' not in existing_columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN redacted_at INTEGER")
-            print("✔ Migration: Added redacted_at to entries")
-        
-        if 'redaction_reason' not in existing_columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN redaction_reason TEXT")
-            print("✔ Migration: Added redaction_reason to entries")
-        
-        conn.commit()
 
     def _create_default_types(self):
         """Create default client types on first run.
