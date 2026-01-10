@@ -1,73 +1,59 @@
 /* Redact Entry Page Styles */
 
-.redact-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Table layout for redaction list */
+.redact-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.redact-entry-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
-    background: #fafafa;
-}
-
-.redact-entry-header {
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
+.redact-table th,
+.redact-table td {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    vertical-align: middle;
     border-bottom: 1px solid #e5e7eb;
 }
 
-.redact-entry-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
+.redact-table th {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.85rem;
+    background: #f9fafb;
 }
 
-.redact-entry-date {
-    color: #6b7280;
+.redact-table td:first-child {
+    width: 90px;
+}
+
+.redact-table td:nth-child(2) {
+    width: 110px;
+}
+
+.redact-table td:nth-child(3) {
+    width: 180px;
+}
+
+.redact-table td:last-child {
+    width: 80px;
+    text-align: right;
+}
+
+.redact-reason-input {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
     font-size: 0.9rem;
 }
 
-.redact-entry-description {
-    font-weight: 500;
-    color: #374151;
+.redact-reason-input:focus {
+    outline: none;
+    border-color: #9FCFC0;
+    box-shadow: 0 0 0 2px rgba(159, 207, 192, 0.2);
 }
 
-.redact-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.redact-form .form-group {
-    margin-bottom: 0;
-}
-
-.redact-form .form-group label {
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    display: block;
-}
-
-.redact-form .form-group input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 0.95rem;
-}
-
-.redact-form .helper-text {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin-top: 0.25rem;
-}
-
-.redact-form .btn-danger {
-    align-self: flex-start;
+.redact-inline-form {
+    display: inline;
 }
 
 /* Icon color helper */
@@ -166,4 +152,16 @@
 .metadata-value {
     color: #374151;
     font-weight: 500;
+}
+
+/* Responsive - stack on mobile */
+@media (max-width: 768px) {
+    .redact-table th:nth-child(3),
+    .redact-table td:nth-child(3) {
+        display: none;
+    }
+    
+    .redact-table td:nth-child(4) {
+        width: auto;
+    }
 }

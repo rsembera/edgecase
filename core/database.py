@@ -863,6 +863,7 @@ class Database:
             'risk_assessment': None,
             'comm_recipient': None,
             'additional_info': None,
+            'session_number': None,  # Clear session number so it doesn't affect numbering
             # Mark as redacted
             'is_redacted': 1,
             'redacted_at': int(time.time()),

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Redact Entry - EdgeCase Equalizer{% endblock %}
+{% block title %}Redaction - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/redact.css') }}">
@@ -8,10 +8,10 @@
 
 {% block content %}
 
-<div class="card">
+<div class="card card-narrow">
     <div class="entry-header">
         <div>
-            <h2><i data-lucide="shield-alert" class="page-icon"></i>Redact Entry</h2>
+            <h2><i data-lucide="shield-alert" class="page-icon"></i>Redaction</h2>
             <div class="text-muted">
                 <div class="client-info-line">
                     <span class="type-badge" style="background-color: {{ client.type.color }}">
@@ -34,18 +34,38 @@
     <div class="warning-box mb-2">
         <i data-lucide="alert-triangle" class="icon-sm"></i>
         <div>
-            <strong>Privacy Protection Tool</strong>
-            <p>Use this when confidential information was accidentally entered in the wrong client file. 
-            Redaction permanently removes all content while preserving the audit trail that an entry existed.</p>
+            <strong>Privacy Protection</strong>
+            <p>Use when confidential information was entered in the wrong client file. 
+            Redaction permanently removes content while preserving the audit trail.</p>
         </div>
     </div>
     
     {% if entries %}
-    <div class="redact-list">
-        {% for entry in entries %}
-        <div class="redact-entry-card">
-            <div class="redact-entry-header">
-                <div class="redact-entry-info">
+    <table class="redact-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Class</th>
+                <th>Description</th>
+                <th>Reason</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td class="text-muted">
+                    {% if entry.class == 'session' %}
+                        {{ entry.session_date|timestamp_to_date }}
+                    {% elif entry.class == 'communication' %}
+                        {{ entry.comm_date|timestamp_to_date }}
+                    {% elif entry.class == 'absence' %}
+                        {{ entry.absence_date|timestamp_to_date }}
+                    {% elif entry.class == 'item' %}
+                        {{ entry.item_date|timestamp_to_date if entry.item_date else '-' }}
+                    {% endif %}
+                </td>
+                <td>
                     <span class="session-badge 
                         {% if entry.class == 'session' %}{% if entry.is_consultation %}consultation{% else %}session{% endif %}
                         {% elif entry.class == 'communication' %}session-badge-communication
@@ -54,42 +74,40 @@
                         {% endif %}">
                         {{ entry.class|capitalize }}
                     </span>
-                    <span class="redact-entry-date">
-                        {% if entry.class == 'session' %}
-                            {{ entry.session_date|timestamp_to_date }}
-                        {% elif entry.class == 'communication' %}
-                            {{ entry.comm_date|timestamp_to_date }}
-                        {% elif entry.class == 'absence' %}
-                            {{ entry.absence_date|timestamp_to_date }}
-                        {% elif entry.class == 'item' %}
-                            {{ entry.item_date|timestamp_to_date if entry.item_date else 'No date' }}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="redact-entry-description">
-                    {{ entry.description }}
-                </div>
-            </div>
-            
-            <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" 
-                  class="redact-form" onsubmit="return confirmRedaction(this);">
-                <div class="form-group">
-                    <label for="reason-{{ entry.id }}">Reason for redaction *</label>
-                    <input type="text" 
-                           id="reason-{{ entry.id }}" 
-                           name="reason" 
-                           placeholder="e.g., Content entered in wrong client file"
-                           required
-                           minlength="10">
-                    <div class="helper-text">Explain why this entry is being redacted (minimum 10 characters)</div>
-                </div>
-                <button type="submit" class="btn btn-danger">
-                    <i data-lucide="shield-off" class="icon-sm"></i> Redact This Entry
-                </button>
-            </form>
-        </div>
-        {% endfor %}
-    </div>
+                </td>
+                <td>
+                    {% if entry.description|length > 30 %}
+                        {{ entry.description[:30] }}...
+                    {% else %}
+                        {{ entry.description }}
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" 
+                          class="redact-inline-form" onsubmit="return confirmRedaction(this);">
+                        <input type="text" 
+                               name="reason" 
+                               placeholder="Reason for redaction"
+                               required
+                               minlength="10"
+                               class="redact-reason-input">
+                    </form>
+                </td>
+                <td>
+                    <button type="submit" form="redact-form-{{ entry.id }}" class="btn btn-danger btn-sm">
+                        Redact
+                    </button>
+                    <form id="redact-form-{{ entry.id }}" method="POST" 
+                          action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}"
+                          onsubmit="return confirmRedaction(this);"
+                          style="display: none;">
+                        <input type="hidden" name="reason" class="reason-mirror-{{ entry.id }}">
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
     <div class="empty-state">
         <p class="text-muted">No locked entries available for redaction.</p>
@@ -106,7 +124,7 @@
         <p>Are you sure you want to proceed?</p>
         <div class="modal-actions">
             <button type="button" class="btn btn-secondary" onclick="cancelRedaction()">Cancel</button>
-            <button type="button" class="btn btn-danger" onclick="proceedWithRedaction()">Yes, Redact Entry</button>
+            <button type="button" class="btn btn-danger" onclick="proceedWithRedaction()">Yes, Redact</button>
         </div>
     </div>
 </div>
@@ -117,7 +135,43 @@
 <script>
 let pendingForm = null;
 
+// Mirror reason input to hidden form
+document.querySelectorAll('.redact-reason-input').forEach(input => {
+    const row = input.closest('tr');
+    const entryId = row.querySelector('form[id^="redact-form-"]').id.replace('redact-form-', '');
+    const hiddenInput = document.querySelector(`.reason-mirror-${entryId}`);
+    
+    input.addEventListener('input', () => {
+        hiddenInput.value = input.value;
+    });
+    
+    // Also handle Enter key in the input
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            hiddenInput.value = input.value;
+            const form = document.getElementById(`redact-form-${entryId}`);
+            if (input.value.length >= 10) {
+                confirmRedaction(form);
+            }
+        }
+    });
+});
+
 function confirmRedaction(form) {
+    const reasonInput = form.querySelector('input[name="reason"]');
+    if (!reasonInput.value || reasonInput.value.length < 10) {
+        // Find the visible input and focus it
+        const row = form.closest('tr') || document.querySelector(`tr:has(form[action="${form.action}"])`);
+        if (row) {
+            const visibleInput = row.querySelector('.redact-reason-input');
+            if (visibleInput) {
+                visibleInput.focus();
+                visibleInput.reportValidity();
+            }
+        }
+        return false;
+    }
     pendingForm = form;
     document.getElementById('redact-confirm-modal').style.display = 'flex';
     return false;
