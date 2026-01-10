@@ -48,7 +48,7 @@ dev = [
 edgecase = "web.cli:run"
 
 [project.urls]
-Homepage = "https://github.com/rsembera/edgecase"
+Homepage = "https://edgecaseequalizer.ca"
 Repository = "https://github.com/rsembera/edgecase"
 
 [build-system]
