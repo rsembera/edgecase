@@ -236,9 +236,77 @@ def format_edit_history(edit_history_json, styles):
     
     return elements
 
+def build_redacted_entry(entry, client, styles, entry_type, entry_date_field):
+    """Build PDF elements for a redacted entry - minimal metadata only.
+    
+    Args:
+        entry: The entry dict
+        client: The client dict
+        styles: PDF styles
+        entry_type: Display name (e.g., 'Session', 'Communication', 'Absence', 'Item')
+        entry_date_field: Field name for the entry date (e.g., 'session_date', 'comm_date')
+    """
+    elements = []
+    
+    # Title: "Redacted [Entry Type]"
+    elements.append(Paragraph(f"Redacted {entry_type}", styles['EntryTitle']))
+    
+    # Client info line
+    client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
+    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Spacer(1, 12))
+    
+    # Metadata table: Entry Type, Entry Date, Created
+    entry_date = format_date(entry.get(entry_date_field))
+    created_date = format_date(entry.get('created_at'))
+    
+    info_data = [[
+        Paragraph(f'<b>Entry Type:</b> {entry_type}', styles['FieldValue']),
+        Paragraph(f'<b>Entry Date:</b> {entry_date}', styles['FieldValue']),
+        Paragraph(f'<b>Created:</b> {created_date}', styles['FieldValue']),
+    ]]
+    
+    info_table = Table(info_data, colWidths=[2.2*inch, 2.2*inch, 2.2*inch])
+    info_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 12))
+    
+    # Redaction details
+    elements.append(Paragraph("Redaction Details", styles['SectionHeading']))
+    
+    redacted_date = format_date(entry.get('redacted_at'))
+    reason = entry.get('redaction_reason', 'No reason provided')
+    
+    redaction_data = [[
+        Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue']),
+        Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue']),
+    ]]
+    
+    redaction_table = Table(redaction_data, colWidths=[2.2*inch, 4.4*inch])
+    redaction_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    elements.append(redaction_table)
+    
+    return elements
+
 def build_session_entry(entry, client, styles, signature_path=None, db=None):
     """Build PDF elements for a Session entry."""
     elements = []
+    
+    # Handle redacted entries with minimal metadata
+    if entry.get('is_redacted'):
+        return build_redacted_entry(entry, client, styles, 'Session', 'session_date')
     
     # Entry title
     title = entry.get('description', 'Session')
@@ -377,6 +445,10 @@ def build_communication_entry(entry, client, styles, db=None):
     """Build PDF elements for a Communication entry."""
     elements = []
     
+    # Handle redacted entries with minimal metadata
+    if entry.get('is_redacted'):
+        return build_redacted_entry(entry, client, styles, 'Communication', 'comm_date')
+    
     title = entry.get('description', 'Communication')
     elements.append(Paragraph(f"Communication: {title}", styles['EntryTitle']))
     
@@ -453,6 +525,10 @@ def build_absence_entry(entry, client, styles, currency_symbol='$'):
     """Build PDF elements for an Absence entry."""
     elements = []
     
+    # Handle redacted entries with minimal metadata
+    if entry.get('is_redacted'):
+        return build_redacted_entry(entry, client, styles, 'Absence', 'absence_date')
+    
     title = entry.get('description', 'Absence')
     elements.append(Paragraph(f"Absence: {title}", styles['EntryTitle']))
     
@@ -500,6 +576,10 @@ def build_absence_entry(entry, client, styles, currency_symbol='$'):
 def build_item_entry(entry, client, styles, currency_symbol='$'):
     """Build PDF elements for an Item entry."""
     elements = []
+    
+    # Handle redacted entries with minimal metadata
+    if entry.get('is_redacted'):
+        return build_redacted_entry(entry, client, styles, 'Item', 'item_date')
     
     title = entry.get('description', 'Item')
     elements.append(Paragraph(f"Item: {title}", styles['EntryTitle']))
@@ -697,6 +777,10 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
     """Build PDF elements for a Communication entry, returning elements and PDF attachments separately."""
     elements = []
     pdf_attachments = []
+    
+    # Handle redacted entries with minimal metadata
+    if entry.get('is_redacted'):
+        return build_redacted_entry(entry, client, styles, 'Communication', 'comm_date'), []
     
     title = entry.get('description', 'Communication')
     elements.append(Paragraph(f"Communication: {title}", styles['EntryTitle']))
