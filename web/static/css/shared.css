@@ -73,6 +73,11 @@ select, input, textarea, button {
     vertical-align: middle;
 }
 
+/* Icons inside buttons */
+.btn svg, .btn-primary svg, .btn-secondary svg, .btn-danger svg, .btn-add svg {
+    margin-right: 0.35rem;
+}
+
 /* Primary button (teal) */
 .btn, .btn-primary, .btn-add {
     background: var(--color-primary-lighter);
