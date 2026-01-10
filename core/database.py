@@ -844,6 +844,7 @@ class Database:
             'comm_recipient': None,
             'additional_info': None,
             'session_number': None,  # Clear session number so it doesn't affect numbering
+            'duration': None,  # Clear duration
             # Clear fee fields so entry can't be invoiced
             'base_fee': None,
             'tax_rate': None,
