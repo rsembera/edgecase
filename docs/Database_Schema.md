@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** December 28, 2025
+**Last Updated:** January 10, 2026
 
 ---
 
@@ -219,6 +219,11 @@ CREATE TABLE entries (
     edit_history TEXT,
     locked INTEGER DEFAULT 0,
     locked_at INTEGER,
+    
+    -- Redaction (privacy protection)
+    is_redacted INTEGER DEFAULT 0,
+    redacted_at INTEGER,
+    redaction_reason TEXT,
     
     FOREIGN KEY (client_id) REFERENCES clients(id)
 );
