@@ -47,9 +47,12 @@ def renumber_sessions(client_id):
     client = db.get_client(client_id)
     offset = client.get('session_offset', 0)
     
-    # Get all non-consultation sessions with dates
+    # Get all non-consultation, non-redacted sessions with dates
     all_sessions = db.get_client_entries(client_id, 'session')
-    dated_sessions = [s for s in all_sessions if s.get('session_date') and not s.get('is_consultation')]
+    dated_sessions = [s for s in all_sessions 
+                      if s.get('session_date') 
+                      and not s.get('is_consultation')
+                      and not s.get('is_redacted')]
     
     # Sort by date, then by ID
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
@@ -1874,10 +1877,17 @@ def redact_entry(client_id, entry_id):
     if not reason:
         return "Redaction reason is required", 400
     
+    # Check if this is a session (for renumbering after redaction)
+    is_session = entry.get('class') == 'session'
+    
     success = db.redact_entry(entry_id, reason)
     
     if not success:
         return "Entry cannot be redacted (not locked or invalid type)", 400
+    
+    # Renumber sessions if we redacted a session
+    if is_session:
+        renumber_sessions(client_id)
     
     return redirect(url_for('clients.client_file', client_id=client_id))
 
