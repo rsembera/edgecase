@@ -1843,13 +1843,14 @@ def redact_entries_page(client_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    # Get all locked, non-redacted entries for this client
+    # Get all locked, non-redacted, non-billed entries for this client
     # Only entry types that lock immediately: session, communication, absence, item
     cursor.execute("""
         SELECT * FROM entries 
         WHERE client_id = ? 
           AND locked = 1 
           AND is_redacted = 0
+          AND statement_id IS NULL
           AND class IN ('session', 'communication', 'absence', 'item')
         ORDER BY created_at DESC
     """, (client_id,))
