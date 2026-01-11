@@ -379,7 +379,9 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-muted">
-                                        {% if entry.class == 'session' %}
+                                        {% if entry.is_redacted %}
+                                            -
+                                        {% elif entry.class == 'session' %}
                                             {{ entry.duration or '-' }} min
                                         {% elif entry.class == 'communication' %}
                                             {{ entry.comm_recipient|replace('_', ' ')|title if entry.comm_recipient else '-' }}
