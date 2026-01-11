@@ -137,6 +137,10 @@ body.parchment .client-card { border: 1px solid #8b7355; background: #f8f4ec !im
     background: #C8CED5;
 }
 
+.nav-btn .icon-inline {
+    vertical-align: -2px;
+}
+
 /* Tutti-Frutti theme - nav buttons (colorful) */
 body.tutti-frutti .nav-btn.teal {
     background: #BFDCDC;
