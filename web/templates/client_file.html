@@ -398,7 +398,9 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-muted">
-                                        {% if entry.class == 'session' and entry.fee %}
+                                        {% if entry.is_redacted %}
+                                            -
+                                        {% elif entry.class == 'session' and entry.fee %}
                                             ${{ "%.2f"|format(entry.fee) }}
                                         {% elif entry.class == 'communication' and entry.comm_type %}
                                             {{ entry.comm_type|capitalize }}
