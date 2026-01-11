@@ -832,7 +832,7 @@ class Database:
         if statement_id is not None:
             return False
         
-        # Clear all free-text content fields and fee fields
+        # Clear all free-text content fields, time fields, and fee fields
         # These are the fields that could contain confidential information
         # Fee fields cleared so redacted entries can't be invoiced
         redaction_fields = {
@@ -845,6 +845,13 @@ class Database:
             'additional_info': None,
             'session_number': None,  # Clear session number so it doesn't affect numbering
             'duration': None,  # Clear duration
+            'format': None,  # Clear format (Individual, Couples, etc.)
+            # Clear time fields - session time could be identifying
+            'session_time': None,
+            'absence_time': None,
+            'comm_time': None,
+            'item_time': None,
+            'upload_time': None,
             # Clear fee fields so entry can't be invoiced
             'base_fee': None,
             'tax_rate': None,
