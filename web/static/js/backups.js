@@ -38,9 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Save custom location when save button clicked
-    document.getElementById('save-custom-location-btn').addEventListener('click', function() {
-        saveSettingWithConfirm('location');
+    // Save custom location on blur (when user finishes typing)
+    document.getElementById('custom-location-input').addEventListener('blur', function() {
+        if (this.value.trim()) {
+            saveSettingWithConfirm('location');
+        }
     });
     
     // Also save custom location on Enter key
