@@ -1,17 +1,17 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** January 10, 2026
+**Last Updated:** January 12, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 98 routes organized across 12 blueprints:
+EdgeCase has 99 routes organized across 12 blueprints:
 
 1. **ai_bp** - AI Scribe functionality (9 routes)
 2. **auth_bp** - Login/logout, session management (4 routes)
-3. **backups_bp** - Backup/restore operations (9 routes)
+3. **backups_bp** - Backup/restore operations (10 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
 5. **entries_bp** - Entry CRUD operations (14 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
@@ -347,6 +347,27 @@ def cloud_folders()
 **Purpose:** Detect available cloud sync folders
 
 **Returns:** JSON with `folders` array (iCloud, Dropbox, Google Drive)
+
+---
+
+### List Folders (Folder Picker)
+
+```python
+@backups_bp.route('/api/backup/list-folders')
+def list_folders()
+```
+**Purpose:** List folders at a given path for the folder picker modal
+
+**Query Params:**
+- `path` (str): Directory path to list (defaults to home directory)
+
+**Returns:** JSON with:
+- `current_path`: The resolved absolute path
+- `parent_path`: Parent directory (null if at root)
+- `folders`: List of {name, path, inaccessible?} for subdirectories
+- `error`: Error message if path is invalid
+
+**Notes:** Excludes hidden folders (dotfiles). Used by the backup location folder picker UI.
 
 ---
 
