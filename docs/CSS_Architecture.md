@@ -1,6 +1,6 @@
 # EdgeCase CSS Architecture
 
-**Last Updated:** December 28, 2025
+**Last Updated:** January 12, 2026
 
 ## Overview
 
@@ -11,7 +11,7 @@ EdgeCase uses a layered CSS architecture:
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~7,600 lines across 27 files
+**Total CSS:** ~7,750 lines across 27 files
 
 ---
 
@@ -83,7 +83,7 @@ Organized into logical sections:
 | File | Lines | Page | Notes |
 |------|-------|------|-------|
 | main_view.css | ~684 | Client list | Filters, client cards, themes |
-| backups.css | ~611 | Backup settings | Backup cards, progress bars |
+| backups.css | ~765 | Backup settings | Backup cards, progress bars, folder picker |
 | outstanding_statements.css | ~402 | Billing | Statement cards, payment UI |
 | add_edit_link_group.css | ~413 | Link groups | Member selection, fee allocation |
 | pickers.css | ~321 | Date/time pickers | Custom picker components |
