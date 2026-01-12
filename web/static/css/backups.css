@@ -230,6 +230,28 @@
 .custom-location-wrapper input[type="text"] {
     flex: 1;
     min-width: 0;  /* Allow text to shrink for flexbox */
+    padding: 0.625rem 0.75rem;
+    border: 2px solid var(--color-border, #DEE2E6);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-family: monospace;
+    background: white;
+    color: var(--color-text, #323B45);
+    height: 38px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-location-wrapper input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-border-focus, #1F8F74);
+    box-shadow: var(--shadow-focus, 0 0 0 3px rgba(31,143,116,0.06));
+}
+
+.custom-location-wrapper input[type="text"]::placeholder {
+    color: var(--color-text-muted, #718096);
+    font-family: monospace;
+    font-size: 0.8rem;
 }
 
 .custom-location-wrapper.hidden {
