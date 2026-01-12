@@ -24,10 +24,16 @@ document.addEventListener('DOMContentLoaded', function() {
         saveSettingWithConfirm('retention');
     });
     
-    // Save location setting on change (but not for 'custom' - that needs the save button)
+    // Save location setting on change
     document.getElementById('backup-location').addEventListener('change', function() {
         updateLocationPath();
-        if (this.value !== 'custom') {
+        if (this.value === 'custom') {
+            // If switching to custom and there's already a path, auto-save it
+            const customPath = document.getElementById('custom-location-input').value.trim();
+            if (customPath) {
+                saveSettingWithConfirm('location');
+            }
+        } else {
             saveSettingWithConfirm('location');
         }
     });
