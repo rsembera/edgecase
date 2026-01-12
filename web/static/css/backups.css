@@ -224,10 +224,13 @@
     gap: 0.5rem;
     margin-top: 0.5rem;
     align-items: center;
+    /* Expand beyond parent form-group to match dropdown width */
+    width: calc(200% + 1.5rem);  /* 2 columns + gap */
 }
 
 .custom-location-wrapper input[type="text"] {
     flex: 1;
+    min-width: 0;  /* Allow text to shrink for flexbox */
 }
 
 .custom-location-wrapper.hidden {
