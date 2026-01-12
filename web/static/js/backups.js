@@ -590,3 +590,164 @@ function showMessage(text, type) {
         }, 5000);
     }
 }
+
+
+/* ============================================
+   FOLDER PICKER
+   ============================================ */
+
+/** Current path being viewed in folder picker */
+let folderPickerCurrentPath = '';
+
+/** Parent path of current folder (null if at root) */
+let folderPickerParentPath = null;
+
+/**
+ * Open the folder picker modal
+ */
+function openFolderPicker() {
+    const modal = document.getElementById('folder-picker-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('visible');
+    
+    // Start at current custom location if set, otherwise home directory
+    const customInput = document.getElementById('custom-location-input');
+    const startPath = customInput.value.trim() || '';
+    
+    loadFolderContents(startPath);
+    
+    // Re-initialize Lucide icons for new modal content
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * Close the folder picker modal
+ */
+function closeFolderPicker() {
+    const modal = document.getElementById('folder-picker-modal');
+    modal.classList.remove('visible');
+    modal.classList.add('hidden');
+}
+
+/**
+ * Load folder contents from server
+ * @param {string} path - Path to load (empty for home directory)
+ */
+async function loadFolderContents(path) {
+    const listEl = document.getElementById('folder-list');
+    const pathDisplay = document.getElementById('current-path-display');
+    const upBtn = document.getElementById('folder-up-btn');
+    
+    listEl.innerHTML = '<div class="folder-list-loading">Loading...</div>';
+    
+    try {
+        const url = '/api/backup/list-folders' + (path ? `?path=${encodeURIComponent(path)}` : '');
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.error) {
+            listEl.innerHTML = `<div class="folder-list-error">${data.error}</div>`;
+            return;
+        }
+        
+        // Update state
+        folderPickerCurrentPath = data.current_path;
+        folderPickerParentPath = data.parent_path;
+        
+        // Update path display
+        pathDisplay.textContent = data.current_path;
+        
+        // Enable/disable up button
+        upBtn.disabled = !data.parent_path;
+        
+        // Render folder list
+        if (data.folders.length === 0) {
+            listEl.innerHTML = '<div class="folder-list-empty">No subfolders</div>';
+        } else {
+            listEl.innerHTML = data.folders.map(folder => {
+                const inaccessible = folder.inaccessible ? ' inaccessible' : '';
+                const lockIcon = folder.inaccessible 
+                    ? '<i data-lucide="lock" class="folder-item-locked"></i>' 
+                    : '';
+                return `
+                    <div class="folder-item${inaccessible}" 
+                         data-path="${escapeHtml(folder.path)}"
+                         ${folder.inaccessible ? '' : `onclick="navigateToFolder('${escapeJs(folder.path)}')" `}
+                         title="${folder.inaccessible ? 'Permission denied' : folder.path}">
+                        <i data-lucide="folder" class="folder-item-icon"></i>
+                        <span class="folder-item-name">${escapeHtml(folder.name)}</span>
+                        ${lockIcon}
+                    </div>
+                `;
+            }).join('');
+            
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+    } catch (error) {
+        console.error('Error loading folders:', error);
+        listEl.innerHTML = '<div class="folder-list-error">Error loading folders</div>';
+    }
+}
+
+/**
+ * Navigate to a subfolder
+ * @param {string} path - Full path to navigate to
+ */
+function navigateToFolder(path) {
+    loadFolderContents(path);
+}
+
+/**
+ * Navigate to parent directory
+ */
+function navigateToParent() {
+    if (folderPickerParentPath) {
+        loadFolderContents(folderPickerParentPath);
+    }
+}
+
+/**
+ * Select the current folder and close the modal
+ */
+function selectCurrentFolder() {
+    if (folderPickerCurrentPath) {
+        // Populate the custom location input
+        document.getElementById('custom-location-input').value = folderPickerCurrentPath;
+        
+        // Make sure custom is selected in dropdown
+        window.setChoicesValue('backup-location', 'custom');
+        
+        // Show the custom location wrapper
+        document.getElementById('custom-location-wrapper').classList.remove('hidden');
+        
+        // Update path display
+        updateLocationPath();
+    }
+    
+    closeFolderPicker();
+}
+
+/**
+ * Escape HTML special characters
+ * @param {string} str - String to escape
+ * @returns {string} - Escaped string
+ */
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/**
+ * Escape string for use in JavaScript onclick handler
+ * @param {string} str - String to escape
+ * @returns {string} - Escaped string
+ */
+function escapeJs(str) {
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
