@@ -212,3 +212,81 @@ def cloud_folders():
     
     folders = backup.detect_cloud_folders()
     return jsonify({'folders': folders})
+
+
+# ============================================================================
+# FOLDER PICKER
+# ============================================================================
+
+@backups_bp.route('/api/backup/list-folders')
+def list_folders():
+    """List folders at a given path for the folder picker modal.
+    
+    Query params:
+        path: Directory path to list (defaults to home directory)
+    
+    Returns:
+        JSON with:
+            - current_path: The resolved absolute path
+            - parent_path: Parent directory (null if at root)
+            - folders: List of {name, path} for subdirectories
+            - error: Error message if path is invalid
+    """
+    import os
+    
+    # Get requested path, default to home directory
+    requested_path = request.args.get('path', '')
+    
+    # Default to home directory if no path provided
+    if not requested_path:
+        requested_path = str(Path.home())
+    
+    # Resolve to absolute path
+    try:
+        current_path = Path(requested_path).expanduser().resolve()
+    except Exception as e:
+        return jsonify({'error': f'Invalid path: {e}'}), 400
+    
+    # Check if path exists and is a directory
+    if not current_path.exists():
+        return jsonify({'error': 'Path does not exist'}), 400
+    
+    if not current_path.is_dir():
+        return jsonify({'error': 'Path is not a directory'}), 400
+    
+    # Get parent path (null if at filesystem root)
+    parent_path = None
+    if current_path.parent != current_path:  # Not at root
+        parent_path = str(current_path.parent)
+    
+    # List subdirectories, excluding hidden folders (starting with .)
+    folders = []
+    try:
+        for item in sorted(current_path.iterdir()):
+            # Skip hidden files/folders
+            if item.name.startswith('.'):
+                continue
+            # Only include directories
+            if item.is_dir():
+                # Skip directories we can't access
+                try:
+                    list(item.iterdir())  # Test if we can read it
+                    folders.append({
+                        'name': item.name,
+                        'path': str(item)
+                    })
+                except PermissionError:
+                    # Include but mark as inaccessible
+                    folders.append({
+                        'name': item.name,
+                        'path': str(item),
+                        'inaccessible': True
+                    })
+    except PermissionError:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    return jsonify({
+        'current_path': str(current_path),
+        'parent_path': parent_path,
+        'folders': folders
+    })

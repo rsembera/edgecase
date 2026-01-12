@@ -601,3 +601,141 @@
         gap: 0.5rem;
     }
 }
+
+/* ============================================
+   FOLDER PICKER MODAL
+   ============================================ */
+
+.folder-picker-modal {
+    max-width: 550px;
+    padding: 1.25rem;
+}
+
+.folder-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.folder-picker-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text-heading, #323B45);
+}
+
+.folder-picker-path {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-background, #F8FAFC);
+    border: 1px solid var(--color-border, #DEE2E6);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.folder-up-btn {
+    flex-shrink: 0;
+}
+
+.folder-up-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.current-path {
+    font-family: monospace;
+    font-size: 0.8125rem;
+    color: var(--color-text, #323B45);
+    word-break: break-all;
+    overflow: hidden;
+}
+
+.folder-list {
+    border: 1px solid var(--color-border, #DEE2E6);
+    border-radius: 0.5rem;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.folder-list-loading,
+.folder-list-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--color-text-muted, #718096);
+    font-size: 0.875rem;
+}
+
+.folder-list-error {
+    padding: 1rem;
+    text-align: center;
+    color: #DC2626;
+    font-size: 0.875rem;
+}
+
+.folder-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    border-bottom: 1px solid #F1F5F9;
+    transition: background-color 0.15s;
+    font-size: 0.875rem;
+    color: var(--color-text, #323B45);
+}
+
+.folder-item:last-child {
+    border-bottom: none;
+}
+
+.folder-item:hover {
+    background-color: #F8FAFC;
+}
+
+.folder-item.inaccessible {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.folder-item.inaccessible:hover {
+    background-color: transparent;
+}
+
+.folder-item-icon {
+    color: #F59E0B;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.folder-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folder-item-locked {
+    color: var(--color-text-muted, #718096);
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+}
+
+.folder-picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Browse button in custom location wrapper */
+#browse-folder-btn {
+    padding: 0.5rem;
+    min-width: 38px;
+}

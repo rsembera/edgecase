@@ -78,6 +78,7 @@
                 </select>
                 <div id="custom-location-wrapper" class="custom-location-wrapper hidden">
                     <input type="text" id="custom-location-input" placeholder="Enter full path, e.g., /Volumes/Backup/EdgeCase">
+                    <button type="button" class="btn btn-small" id="browse-folder-btn" onclick="openFolderPicker()"><i data-lucide="folder" class="icon-sm"></i></button>
                     <button type="button" class="btn btn-small" id="save-custom-location-btn">Save</button>
                 </div>
                 <div id="location-path" class="location-path"></div>
@@ -137,6 +138,31 @@
         <div class="modal-buttons">
             <button class="btn btn-modal-cancel" onclick="hideRestoreModal()">Cancel</button>
             <button class="btn btn-confirm" onclick="confirmRestore()">Restore</button>
+        </div>
+    </div>
+</div>
+
+<!-- Folder Picker Modal -->
+<div id="folder-picker-modal" class="modal-overlay hidden">
+    <div class="modal-content folder-picker-modal">
+        <div class="folder-picker-header">
+            <h3>Select Backup Folder</h3>
+            <button class="btn-icon-grey" onclick="closeFolderPicker()" title="Close">
+                <i data-lucide="x" class="icon-sm"></i>
+            </button>
+        </div>
+        <div class="folder-picker-path">
+            <button class="btn-icon-grey folder-up-btn" id="folder-up-btn" onclick="navigateToParent()" title="Go up">
+                <i data-lucide="arrow-up" class="icon-sm"></i>
+            </button>
+            <span id="current-path-display" class="current-path">Loading...</span>
+        </div>
+        <div class="folder-list" id="folder-list">
+            <div class="folder-list-loading">Loading...</div>
+        </div>
+        <div class="folder-picker-actions">
+            <button class="btn btn-secondary" onclick="closeFolderPicker()">Cancel</button>
+            <button class="btn" id="select-folder-btn" onclick="selectCurrentFolder()">Select This Folder</button>
         </div>
     </div>
 </div>
