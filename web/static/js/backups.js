@@ -733,6 +733,9 @@ function selectCurrentFolder() {
         
         // Update path display
         updateLocationPath();
+        
+        // Auto-save the selected folder
+        saveSettingWithConfirm('location');
     }
     
     closeFolderPicker();
