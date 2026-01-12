@@ -218,14 +218,12 @@
     font-family: monospace;
 }
 
-/* Custom location input wrapper */
+/* Custom location input wrapper - sits in its own row below the dropdown */
 .custom-location-wrapper {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
     align-items: center;
-    /* Expand beyond parent form-group to match dropdown width */
-    width: calc(200% + 1.5rem);  /* 2 columns + gap */
 }
 
 .custom-location-wrapper input[type="text"] {
