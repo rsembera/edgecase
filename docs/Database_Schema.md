@@ -136,6 +136,7 @@ CREATE TABLE entries (
     emergency_contact_relationship TEXT,
     referral_source TEXT,
     additional_info TEXT,
+    meeting_link TEXT,
     
     -- Profile session fee fields (individual session pricing)
     session_base REAL,
