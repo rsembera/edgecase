@@ -329,7 +329,6 @@ def schedule_for_client(client_id):
         start_dt = start_dt.replace(hour=hours, minute=minutes)
         
         duration = int(request.form.get('duration', individual_duration) or individual_duration)
-        meet_link = request.form.get('meet_link', '').strip() or None
         notes = request.form.get('notes', '').strip() or ''
         repeat = request.form.get('repeat', 'none')
         alert1 = request.form.get('alert1', 'none')
@@ -338,6 +337,12 @@ def schedule_for_client(client_id):
         # Get modality for event title
         modality = request.form.get('modality', '')
         is_consultation = request.form.get('is_consultation') == 'on'
+        
+        # Only include meet link for videoconference sessions
+        meet_link = None
+        if modality == 'videoconference':
+            meet_link = request.form.get('meet_link', '').strip() or None
+        
         modality_labels = {
             'in-person': 'In-Person',
             'videoconference': 'Videoconference',
