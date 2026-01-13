@@ -255,7 +255,7 @@
             <div class="form-group">
                 <label for="meeting_link">Meeting Link</label>
                 <input type="url" id="meeting_link" name="meeting_link" 
-                       value="{{ profile.meeting_link if profile else '' }}"
+                       value="{{ profile.meeting_link or '' if profile else '' }}"
                        placeholder="https://meet.google.com/...">
                 <p class="help-text">Default video conferencing link for scheduling appointments</p>
             </div>
