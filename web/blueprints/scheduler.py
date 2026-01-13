@@ -431,6 +431,9 @@ def schedule_for_client(client_id):
     date_parts = get_today_date_parts()
     time_format = db.get_setting('time_format', '12h')
     
+    # Get meeting link from profile (if set)
+    profile_meeting_link = profile.get('meeting_link', '') if profile else ''
+    
     return render_template('schedule_form.html',
                          client=client,
                          client_type=client_type,
@@ -439,4 +442,5 @@ def schedule_for_client(client_id):
                          link_group_durations=link_group_durations,
                          link_group_members=link_group_members,
                          time_format=time_format,
+                         profile_meeting_link=profile_meeting_link,
                          **date_parts)
