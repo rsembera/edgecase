@@ -7,13 +7,13 @@
 
 ## OVERVIEW
 
-EdgeCase has 99 routes organized across 12 blueprints:
+EdgeCase has 102 routes organized across 12 blueprints:
 
 1. **ai_bp** - AI Scribe functionality (9 routes)
 2. **auth_bp** - Login/logout, session management (4 routes)
 3. **backups_bp** - Backup/restore operations (10 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
-5. **entries_bp** - Entry CRUD operations (14 routes)
+5. **entries_bp** - Entry CRUD operations (16 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
 7. **links_bp** - Link group management (4 routes)
 8. **statements_bp** - Statement generation (9 routes)
