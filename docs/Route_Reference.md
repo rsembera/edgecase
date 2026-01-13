@@ -910,9 +910,28 @@ def write_off()
 
 ```python
 @scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
-def schedule(client_id)
+def schedule_for_client(client_id)
 ```
-**Purpose:** Create calendar events
+**Purpose:** Create calendar events for appointments
+
+**GET:** Shows schedule form with:
+- Client's default session duration from profile
+- Link group durations for couples/family/group formats
+- Consultation duration from settings
+- Meeting link from client profile (auto-populates for videoconference)
+
+**POST Form Data:**
+- `date`, `appointment_time` - When
+- `modality` - in-person, videoconference, telephone
+- `format` - individual, couples, family, group
+- `is_consultation` - Consultation checkbox
+- `duration` - Session length in minutes
+- `meet_link` - Video conferencing URL (only used for videoconference modality)
+- `repeat` - none, weekly, biweekly, monthly
+- `alert1`, `alert2` - Reminder settings
+- `notes` - Additional notes for calendar event
+
+**Returns:** .ics file download or AppleScript Calendar addition
 
 ---
 
