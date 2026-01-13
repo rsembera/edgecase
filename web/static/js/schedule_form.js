@@ -332,6 +332,9 @@ function initSchedulePickers() {
     
     // Initialize duration logic for format/consultation
     initDurationLogic(data.durations, data.linkGroupMembers);
+    
+    // Initialize meeting link visibility based on modality
+    initMeetingLinkVisibility();
 }
 
 /**
@@ -425,4 +428,29 @@ function initDurationLogic(durations, linkGroupMembers) {
     if (consultationCheckbox) {
         consultationCheckbox.addEventListener('change', updateDuration);
     }
+}
+
+/**
+ * Initialize meeting link visibility based on modality selection
+ * Shows the meeting link field only when videoconference is selected
+ */
+function initMeetingLinkVisibility() {
+    const modalitySelect = document.getElementById('modality');
+    const meetingLinkGroup = document.getElementById('meeting-link-group');
+    
+    if (!modalitySelect || !meetingLinkGroup) return;
+    
+    function updateMeetingLinkVisibility() {
+        if (modalitySelect.value === 'videoconference') {
+            meetingLinkGroup.style.display = 'block';
+        } else {
+            meetingLinkGroup.style.display = 'none';
+        }
+    }
+    
+    // Listen for changes
+    modalitySelect.addEventListener('change', updateMeetingLinkVisibility);
+    
+    // Set initial state
+    updateMeetingLinkVisibility();
 }
