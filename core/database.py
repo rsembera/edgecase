@@ -129,6 +129,7 @@ class Database:
                 emergency_contact_relationship TEXT,
                 referral_source TEXT,
                 additional_info TEXT,
+                meeting_link TEXT,
                 
                 -- Profile session fee fields (primary individual session fees)
                 session_base REAL,

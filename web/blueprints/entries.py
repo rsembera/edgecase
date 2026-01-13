@@ -103,6 +103,7 @@ def edit_profile(client_id):
             'emergency_contact_relationship': request.form.get('emergency_contact_relationship', ''),
             'referral_source': request.form.get('referral_source', ''),
             'additional_info': request.form.get('additional_info', ''),
+            'meeting_link': request.form.get('meeting_link', ''),
             
             # Session fee fields
             'session_base': float(request.form.get('session_base')) if request.form.get('session_base') else None,
@@ -171,6 +172,7 @@ def edit_profile(client_id):
                     'emergency_contact_phone': 'Emergency Phone',
                     'emergency_contact_relationship': 'Emergency Relationship',
                     'referral_source': 'Referral Source',
+                    'meeting_link': 'Meeting Link',
                     'guardian1_name': 'Guardian 1 Name',
                     'guardian1_email': 'Guardian 1 Email',
                     'guardian1_phone': 'Guardian 1 Phone',
