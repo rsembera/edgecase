@@ -985,8 +985,8 @@ def send_thunderbird_email():
         compose_parts.append(f"subject='{subject_escaped}'")
     
     if body:
-        # Escape single quotes and handle newlines
-        body_escaped = body.replace("'", "\\'").replace('\n', '\\n')
+        # Escape single quotes - Thunderbird handles literal newlines in the body
+        body_escaped = body.replace("'", "\\'")
         compose_parts.append(f"body='{body_escaped}'")
     
     if pdf_path:
