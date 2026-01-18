@@ -9,6 +9,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 import time
 import io
+import uuid
 from core.encryption import encrypt_file, decrypt_file_to_bytes
 
 from core.database import Database
@@ -319,8 +320,8 @@ def upload_logo():
     if file_ext not in allowed_extensions:
         return jsonify({'success': False, 'error': 'Invalid file type. Use: png, jpg, jpeg, or gif'})
     
-    # Save as 'logo.png' (or whatever extension)
-    filename = f'logo.{file_ext}'
+    # Generate UUID-based filename
+    filename = f'{uuid.uuid4().hex}.{file_ext}'
     
     # Save to assets directory
     ASSETS_DIR.mkdir(exist_ok=True)
@@ -369,8 +370,8 @@ def upload_signature():
     if file_ext not in allowed_extensions:
         return jsonify({'success': False, 'error': 'Invalid file type. Use: png, jpg, jpeg, or gif'})
     
-    # Save as 'signature.png' (or whatever extension)
-    filename = f'signature.{file_ext}'
+    # Generate UUID-based filename
+    filename = f'{uuid.uuid4().hex}.{file_ext}'
     
     # Save to assets directory
     ASSETS_DIR.mkdir(exist_ok=True)
