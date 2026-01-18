@@ -521,11 +521,11 @@ def mark_sent(portion_id):
     # Get email settings
     email_method = db.get_setting('email_method', 'mailto')
     email_from = db.get_setting('email_from_address', '')
-    email_body_template = db.get_setting('statement_email_body', '')
+    email_body_template = db.get_setting('statement_email_body', '').strip()
     
     # Build email text
     email_subject = f"Statement for {billing_period}"
-    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}"
+    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}".strip()
     
     # Generate PDF to temp location
     temp_dir = tempfile.gettempdir()
