@@ -302,6 +302,11 @@ def change_password_progress():
     new_password = session.get('password_change_new')
     db = current_app.config.get('db')
     
+    # Clear passwords from session immediately after retrieval (security)
+    session.pop('password_change_current', None)
+    session.pop('password_change_new', None)
+    session.modified = True
+    
     def generate():
         if not current_password or not new_password:
             yield f"data: {json.dumps({'error': 'Missing password data'})}\n\n"
@@ -331,7 +336,9 @@ def change_password_progress():
             yield f"data: {json.dumps({'status': 'database', 'message': 'Updating database encryption...'})}\n\n"
             
             conn = db.connect()
-            conn.execute(f"PRAGMA rekey = '{new_password}'")
+            # Escape single quotes in password for PRAGMA (can't use parameterized query)
+            escaped_password = new_password.replace("'", "''")
+            conn.execute(f"PRAGMA rekey = '{escaped_password}'")
             
             # Step 4: Update the Database object's password
             db.password = new_password
