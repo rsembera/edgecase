@@ -2,6 +2,8 @@
 
 Practice management software for independent therapists.
 
+Web-based for convenience, but single-user and local-only by design. Your data stays yours.
+
 **Status:** Production ready. In use as of January 2026.
 
 ![Main View](docs/screenshots/main_view_detailed.png)
@@ -17,13 +19,15 @@ Practice management software for independent therapists.
 - PDF invoice generation with payment tracking
 - Guardian billing for minor clients
 - Couples/family/group therapy support
+- Income and expense tracking
 - Calendar integration (.ics export, Apple Calendar)
 - Full backup/restore system
+- Edit history for compliance
 - Local AI assistant for session notes (optional)
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.11+ (3.13 recommended)
 - macOS, Linux, or Windows
 
 ### macOS
