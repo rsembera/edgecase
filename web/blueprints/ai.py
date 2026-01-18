@@ -50,17 +50,17 @@ def ai_download():
     def download_with_progress():
         """Generator that yields SSE events during download."""
         import os
+        import tempfile
         from pathlib import Path
-        from huggingface_hub import hf_hub_download, HfApi
+        from huggingface_hub import HfApi
+        import requests
         
         try:
-            # Get file size first
-            yield f"data: {json.dumps({'status': 'checking', 'message': 'Getting file info...'})}"
-            yield "\n\n"
+            # Get file info from HuggingFace
+            yield f"data: {json.dumps({'status': 'checking', 'message': 'Getting file info...'})}\n\n"
             
             try:
                 api = HfApi()
-                # Try to get the file size from repo info
                 repo_info = api.repo_info(MODEL_REPO, files_metadata=True)
                 total_size = None
                 for sibling in repo_info.siblings:
@@ -72,92 +72,59 @@ def ai_download():
                 total_size = None
             
             total_gb = f"{total_size / (1024**3):.1f}" if total_size else "~5"
-            yield f"data: {json.dumps({'status': 'downloading', 'message': f'Downloading model ({total_gb} GB)...', 'total': total_size})}"
-            yield "\n\n"
+            yield f"data: {json.dumps({'status': 'downloading', 'message': f'Downloading model ({total_gb} GB)...', 'total': total_size})}\n\n"
             
             # Ensure models directory exists
             MODEL_DIR.mkdir(parents=True, exist_ok=True)
             
-            # Download with progress polling
-            import threading
-            import time
+            # Construct download URL
+            download_url = f"https://huggingface.co/{MODEL_REPO}/resolve/main/{MODEL_FILENAME}"
             
-            download_complete = threading.Event()
-            download_error = [None]
-            
-            def do_download():
-                try:
-                    hf_hub_download(
-                        repo_id=MODEL_REPO,
-                        filename=MODEL_FILENAME,
-                        local_dir=MODEL_DIR,
-                        local_dir_use_symlinks=False,
-                    )
-                except Exception as e:
-                    download_error[0] = str(e)
-                finally:
-                    download_complete.set()
-            
-            thread = threading.Thread(target=do_download)
-            thread.start()
-            
-            # Poll for progress - check both MODEL_DIR and HF cache
+            # Download with streaming and progress tracking
             model_path = MODEL_DIR / MODEL_FILENAME
+            temp_path = MODEL_DIR / f"{MODEL_FILENAME}.tmp"
             
-            # Find HF cache directory
-            cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
-            cache_blob_pattern = f"models--{MODEL_REPO.replace('/', '--')}/blobs"
-            
-            last_size = 0
-            poll_count = 0
-            
-            while not download_complete.is_set():
-                time.sleep(1)
-                poll_count += 1
+            try:
+                response = requests.get(download_url, stream=True, timeout=30)
+                response.raise_for_status()
                 
-                current_size = 0
+                # Get content length from response if we don't have it
+                if total_size is None:
+                    total_size = int(response.headers.get('content-length', 0)) or None
                 
-                # Check if final file exists
-                if model_path.exists():
-                    current_size = model_path.stat().st_size
-                else:
-                    # Check cache for in-progress download
-                    cache_blob_dir = cache_dir / cache_blob_pattern
-                    if cache_blob_dir.exists():
-                        # Find the largest file being downloaded
-                        for f in cache_blob_dir.iterdir():
-                            if f.is_file():
-                                try:
-                                    fsize = f.stat().st_size
-                                    if fsize > current_size:
-                                        current_size = fsize
-                                except OSError:
-                                    pass
+                downloaded = 0
+                last_update = 0
+                chunk_size = 1024 * 1024  # 1MB chunks
                 
-                # Send progress update every few seconds or when size changes significantly
-                size_changed = current_size > last_size + (1024 * 1024)  # 1MB threshold
-                if size_changed or (poll_count % 5 == 0 and current_size > 0):
-                    progress_data = {
-                        'status': 'progress',
-                        'downloaded': current_size,
-                        'total': total_size,
-                    }
-                    yield f"data: {json.dumps(progress_data)}"
-                    yield "\n\n"
-                    last_size = current_size
-            
-            thread.join()
-            
-            if download_error[0]:
-                yield f"data: {json.dumps({'status': 'error', 'message': download_error[0]})}"
-                yield "\n\n"
-            else:
-                yield f"data: {json.dumps({'status': 'complete', 'message': 'Download complete!'})}"
-                yield "\n\n"
+                with open(temp_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            
+                            # Send progress update every ~10MB
+                            if downloaded - last_update >= 10 * 1024 * 1024:
+                                progress_data = {
+                                    'status': 'progress',
+                                    'downloaded': downloaded,
+                                    'total': total_size,
+                                }
+                                yield f"data: {json.dumps(progress_data)}\n\n"
+                                last_update = downloaded
+                
+                # Move temp file to final location
+                temp_path.rename(model_path)
+                
+                yield f"data: {json.dumps({'status': 'complete', 'message': 'Download complete!'})}\n\n"
+                
+            except Exception as e:
+                # Clean up temp file on error
+                if temp_path.exists():
+                    temp_path.unlink()
+                raise e
                 
         except Exception as e:
-            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}"
-            yield "\n\n"
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
     return Response(
         download_with_progress(),
