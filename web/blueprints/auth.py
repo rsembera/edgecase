@@ -317,6 +317,30 @@ def change_password_progress():
             return
         
         try:
+            # Step 0: Create safety backup before making any changes
+            yield f"data: {json.dumps({'status': 'backup', 'message': 'Creating safety backup...'})}\n\n"
+            
+            try:
+                from utils.backup import create_backup
+                from core.config import DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+                
+                backup_result = create_backup(
+                    db_path=str(DATA_DIR / "edgecase.db"),
+                    attachments_dir=str(ATTACHMENTS_DIR),
+                    assets_dir=str(ASSETS_DIR),
+                    backup_dir=str(BACKUPS_DIR),
+                    force_full=True  # Always full backup before password change
+                )
+                
+                if backup_result:
+                    yield f"data: {json.dumps({'status': 'backup', 'message': f'Safety backup created: {backup_result[\"filename\"]}'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'status': 'backup', 'message': 'Safety backup created (no changes to back up)'})}\n\n"
+            except Exception as e:
+                # Backup failed - abort password change
+                yield f"data: {json.dumps({'status': 'error', 'message': f'Failed to create safety backup: {e}. Password change aborted.'})}\n\n"
+                return
+            
             # Step 1: Count total files
             yield f"data: {json.dumps({'status': 'counting', 'message': 'Counting files...'})}\n\n"
             
