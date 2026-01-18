@@ -333,7 +333,8 @@ def change_password_progress():
                 )
                 
                 if backup_result:
-                    yield f"data: {json.dumps({'status': 'backup', 'message': f'Safety backup created: {backup_result[\"filename\"]}'})}\n\n"
+                    backup_filename = backup_result['filename']
+                    yield f"data: {json.dumps({'status': 'backup', 'message': f'Safety backup created: {backup_filename}'})}\n\n"
                 else:
                     yield f"data: {json.dumps({'status': 'backup', 'message': 'Safety backup created (no changes to back up)'})}\n\n"
             except Exception as e:
