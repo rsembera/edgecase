@@ -37,7 +37,7 @@ export CPPFLAGS="-I/opt/homebrew/opt/sqlcipher/include"
 ### Linux (Debian/Ubuntu)
 
 ```bash
-sudo apt install sqlcipher libsqlcipher-dev
+sudo apt install python3-venv python3-dev libsqlcipher-dev
 ```
 
 ### Windows
