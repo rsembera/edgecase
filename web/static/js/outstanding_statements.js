@@ -380,6 +380,8 @@ function markSent(portionId) {
                 
                 if (data.email_method === 'applescript') {
                     triggerAppleScriptEmail(data);
+                } else if (data.email_method === 'thunderbird') {
+                    triggerThunderbirdEmail(data);
                 } else {
                     triggerMailtoEmail(data);
                 }
@@ -468,6 +470,37 @@ function triggerAppleScriptEmail(data) {
     .catch(error => {
         console.error('AppleScript error:', error);
         alert('AppleScript email failed. Falling back to mailto...');
+        triggerMailtoEmail(data);
+    });
+}
+
+/**
+ * Send email via Thunderbird with PDF attachment
+ * @param {Object} data - Email data from server
+ */
+function triggerThunderbirdEmail(data) {
+    fetch('/statements/send-thunderbird-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            recipient_email: data.recipient_email,
+            subject: data.subject,
+            body: data.body,
+            pdf_path: data.pdf_path
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Thunderbird email failed: ' + result.error + '\n\nFalling back to mailto...');
+            triggerMailtoEmail(data);
+        }
+    })
+    .catch(error => {
+        console.error('Thunderbird error:', error);
+        alert('Thunderbird email failed. Falling back to mailto...');
         triggerMailtoEmail(data);
     });
 }

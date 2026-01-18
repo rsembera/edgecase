@@ -1099,6 +1099,7 @@ function toggleEmailFromField() {
     const method = document.getElementById('email_method').value;
     const emailFromGroup = document.getElementById('email-from-group');
     if (emailFromGroup) {
+        // Show email_from for applescript only (Thunderbird uses system default)
         emailFromGroup.style.display = method === 'applescript' ? 'block' : 'none';
     }
 }

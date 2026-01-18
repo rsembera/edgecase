@@ -956,6 +956,59 @@ def send_applescript_email():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
+@statements_bp.route('/send-thunderbird-email', methods=['POST'])
+def send_thunderbird_email():
+    """Send email via Thunderbird command line."""
+    
+    import subprocess
+    import shutil
+    
+    data = request.get_json()
+    recipient = data.get('recipient_email', '')
+    subject = data.get('subject', '')
+    body = data.get('body', '')
+    pdf_path = data.get('pdf_path', '')
+    
+    # Check if thunderbird is available
+    thunderbird_path = shutil.which('thunderbird')
+    if not thunderbird_path:
+        return jsonify({'success': False, 'error': 'Thunderbird not found. Please install Thunderbird or use mailto method.'})
+    
+    # Build the compose string for Thunderbird
+    # Format: thunderbird -compose "to='email',subject='subject',body='body',attachment='file:///path'"
+    compose_parts = [f"to='{recipient}'"]
+    
+    if subject:
+        # Escape single quotes in subject
+        subject_escaped = subject.replace("'", "\\'")
+        compose_parts.append(f"subject='{subject_escaped}'")
+    
+    if body:
+        # Escape single quotes and handle newlines
+        body_escaped = body.replace("'", "\\'").replace('\n', '\\n')
+        compose_parts.append(f"body='{body_escaped}'")
+    
+    if pdf_path:
+        # Convert to file:// URL
+        compose_parts.append(f"attachment='file://{pdf_path}'")
+    
+    compose_string = ','.join(compose_parts)
+    
+    try:
+        # Launch Thunderbird in background (don't wait for it to close)
+        subprocess.Popen(
+            ['thunderbird', '-compose', compose_string],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
 # ============================================
 # ADD THIS ROUTE TO THE END OF statements.py
 # (before the last line if there is one)
