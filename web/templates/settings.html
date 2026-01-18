@@ -849,6 +849,27 @@ John Smith."></textarea>
         </div>
     </div>
 
+    <!-- Delete AI Model Modal -->
+    <div id="delete-ai-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="margin-bottom: 1rem;">
+                <i data-lucide="trash-2" class="icon-sm icon-inline"></i>
+                Delete AI Model
+            </h2>
+            <p style="margin-bottom: 1.5rem;">Are you sure you want to delete the AI model? You will need to download it again (~5 GB) to use AI Scribe.</p>
+            
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="closeDeleteAIModal()" class="btn btn-secondary" style="flex: 1;">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteAIModel()" id="delete-ai-confirm-btn" class="btn btn-danger" style="flex: 1;">
+                    <i data-lucide="trash-2" class="icon-sm icon-inline"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Reset Database Modal -->
     <div id="reset-database-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 450px;">

@@ -85,7 +85,7 @@ def ai_download():
             temp_path = MODEL_DIR / f"{MODEL_FILENAME}.tmp"
             
             try:
-                response = requests.get(download_url, stream=True, timeout=30)
+                response = requests.get(download_url, stream=True, timeout=(30, None), allow_redirects=True)
                 response.raise_for_status()
                 
                 # Get content length from response if we don't have it

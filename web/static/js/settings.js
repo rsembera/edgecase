@@ -1389,24 +1389,45 @@ async function unloadAIModel() {
 }
 
 /**
- * Delete the AI model
+ * Delete the AI model - show confirmation modal
  */
-async function deleteAIModel() {
-    if (!confirm('Are you sure you want to delete the AI model? You will need to download it again to use AI Scribe.')) {
-        return;
-    }
+function deleteAIModel() {
+    document.getElementById('delete-ai-modal').style.display = 'flex';
+    lucide.createIcons();
+}
+
+/**
+ * Close delete AI modal
+ */
+function closeDeleteAIModal() {
+    document.getElementById('delete-ai-modal').style.display = 'none';
+}
+
+/**
+ * Actually delete the AI model after confirmation
+ */
+async function confirmDeleteAIModel() {
+    const btn = document.getElementById('delete-ai-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader" class="icon-sm icon-inline btn-spinner"></i> Deleting...';
+    lucide.createIcons();
     
     try {
         const response = await fetch('/api/ai/delete', { method: 'POST' });
         const data = await response.json();
         
         if (data.success) {
+            closeDeleteAIModal();
             loadAIStatus();
         } else {
             throw new Error(data.error || 'Delete failed');
         }
     } catch (error) {
         alert('Failed to delete model: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="trash-2" class="icon-sm icon-inline"></i> Delete';
+        lucide.createIcons();
     }
 }
 
@@ -1543,6 +1564,7 @@ async function executeResetDatabase() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeResetDatabaseModal();
+        closeDeleteAIModal();
     }
 });
 
@@ -1550,5 +1572,11 @@ document.addEventListener('keydown', function(e) {
 document.getElementById('reset-database-modal')?.addEventListener('click', function(e) {
     if (e.target === this) {
         closeResetDatabaseModal();
+    }
+});
+
+document.getElementById('delete-ai-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteAIModal();
     }
 });
