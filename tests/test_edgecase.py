@@ -865,6 +865,71 @@ class TestSettings:
 
 
 # ============================================================================
+# ENCRYPTION TESTS
+# ============================================================================
+
+class TestEncryption:
+    """Test SQLCipher database encryption."""
+    
+    def test_encrypted_db_requires_correct_password(self):
+        """Database encrypted with password should reject wrong password."""
+        import sqlcipher3
+        
+        # Create encrypted database with known password
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+            db_path = f.name
+        
+        correct_password = "correct_password_123"
+        wrong_password = "wrong_password_456"
+        
+        # Create database with encryption
+        db = Database(db_path, password=correct_password)
+        db.set_setting('test_key', 'test_value')
+        db.close()
+        
+        # Try to open with wrong password - should fail
+        conn = sqlcipher3.connect(db_path)
+        conn.execute(f"PRAGMA key = '{wrong_password}'")
+        
+        with pytest.raises(sqlcipher3.DatabaseError):
+            # This should fail because the key is wrong
+            conn.execute("SELECT * FROM settings")
+        
+        conn.close()
+        
+        # Verify correct password still works
+        db_reopened = Database(db_path, password=correct_password)
+        value = db_reopened.get_setting('test_key')
+        assert value == 'test_value'
+        db_reopened.close()
+        
+        # Cleanup
+        os.unlink(db_path)
+    
+    def test_encrypted_db_unreadable_without_password(self):
+        """Encrypted database should be unreadable without any password."""
+        import sqlcipher3
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+            db_path = f.name
+        
+        # Create encrypted database
+        db = Database(db_path, password="my_secret_password")
+        db.set_setting('sensitive_data', 'should_be_protected')
+        db.close()
+        
+        # Try to open without providing any password
+        conn = sqlcipher3.connect(db_path)
+        # No PRAGMA key = ... call
+        
+        with pytest.raises(sqlcipher3.DatabaseError):
+            conn.execute("SELECT * FROM settings")
+        
+        conn.close()
+        os.unlink(db_path)
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 
