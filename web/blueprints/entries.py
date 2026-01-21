@@ -1907,10 +1907,9 @@ def view_entry_pdf(client_id, entry_id):
     
     entry_class = entry['class']
     
-    # Only allow supported types
-    supported_types = ('session', 'communication', 'absence', 'item')
-    if entry_class not in supported_types:
-        return "PDF view not supported for this entry type", 400
+    # Only allow session entries
+    if entry_class != 'session':
+        return "PDF view only supported for session entries", 400
     
     # Must be locked
     if not entry.get('locked'):

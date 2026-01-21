@@ -1,8 +1,8 @@
-<!-- View PDF button - include in entry forms for locked Session, Communication, Absence, Item -->
+<!-- View PDF button - include in entry forms for locked Session entries -->
 <!-- Required: entry object with id, class, locked -->
 <!-- Required: client object with id -->
 
-{% if is_edit and entry.locked and entry.class in ('session', 'communication', 'absence', 'item') %}
+{% if is_edit and entry.locked and entry.class == 'session' %}
 <a href="{{ url_for('entries.view_entry_pdf', client_id=client.id, entry_id=entry.id) }}" 
    target="_blank"
    class="btn-icon btn-icon-sm"
