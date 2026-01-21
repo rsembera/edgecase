@@ -1203,3 +1203,149 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
         pdf_writer.write(final_buffer)
         final_buffer.seek(0)
         return final_buffer
+
+
+def generate_single_entry_pdf(db, client_id, entry_id):
+    """
+    Generate a PDF for a single entry.
+    
+    Args:
+        db: Database instance
+        client_id: Client ID
+        entry_id: Entry ID
+    
+    Returns:
+        BytesIO buffer containing the PDF
+    
+    Raises:
+        ValueError: If entry not found or not a supported type
+    """
+    from pypdf import PdfReader, PdfWriter
+    
+    # Get client info
+    client = db.get_client(client_id)
+    if not client:
+        raise ValueError(f"Client {client_id} not found")
+    
+    # Get the entry
+    conn = db.connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM entries WHERE id = ? AND client_id = ?", (entry_id, client_id))
+    row = cursor.fetchone()
+    
+    if not row:
+        raise ValueError(f"Entry {entry_id} not found for client {client_id}")
+    
+    entry = dict(row)
+    entry_class = entry['class']
+    
+    # Only support session, communication, absence, item
+    supported_types = ('session', 'communication', 'absence', 'item')
+    if entry_class not in supported_types:
+        raise ValueError(f"PDF view not supported for {entry_class} entries")
+    
+    # Get signature path (for sessions)
+    signature_filename = db.get_setting('signature_filename')
+    assets_path = get_assets_path()
+    signature_path = None
+    if signature_filename:
+        signature_path = os.path.join(assets_path, signature_filename)
+        if not os.path.exists(signature_path):
+            signature_path = None
+    
+    # Get currency symbol
+    currency_code = db.get_setting('currency', 'CAD')
+    currency_symbol = get_currency_symbol(currency_code)
+    
+    styles = get_styles()
+    elements = []
+    pdf_attachments = []
+    
+    # Build the entry
+    if entry_class == 'session':
+        elements.extend(build_session_entry(entry, client, styles, signature_path, db))
+    elif entry_class == 'communication':
+        entry_elements, entry_pdfs = build_communication_entry_with_attachments(entry, client, styles, db)
+        elements.extend(entry_elements)
+        pdf_attachments.extend(entry_pdfs)
+    elif entry_class == 'absence':
+        elements.extend(build_absence_entry(entry, client, styles, currency_symbol))
+    elif entry_class == 'item':
+        elements.extend(build_item_entry(entry, client, styles, currency_symbol))
+    
+    # Build main PDF
+    main_buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        main_buffer,
+        pagesize=letter,
+        rightMargin=0.75*inch,
+        leftMargin=0.75*inch,
+        topMargin=0.75*inch,
+        bottomMargin=0.75*inch
+    )
+    
+    doc.build(elements)
+    main_buffer.seek(0)
+    
+    # If no PDF attachments, return the main PDF
+    if not pdf_attachments:
+        return main_buffer
+    
+    # Merge PDF attachments
+    pdf_writer = PdfWriter()
+    
+    # Add main PDF pages
+    main_reader = PdfReader(main_buffer)
+    for page in main_reader.pages:
+        pdf_writer.add_page(page)
+    
+    # Add each PDF attachment with a header page
+    for att_entry_type, att_title, att_date, att_filepath in pdf_attachments:
+        if os.path.exists(att_filepath):
+            try:
+                # Create header page for this attachment
+                header_buffer = BytesIO()
+                header_doc = SimpleDocTemplate(
+                    header_buffer,
+                    pagesize=letter,
+                    rightMargin=0.75*inch,
+                    leftMargin=0.75*inch,
+                    topMargin=2*inch,
+                    bottomMargin=0.75*inch
+                )
+                header_elements = [
+                    Paragraph("Attachment", styles['EntryTitle']),
+                    Spacer(1, 12),
+                    Paragraph(f"<b>{att_entry_type}:</b> {att_title}", styles['FieldValue']),
+                    Spacer(1, 6),
+                    Paragraph(f"<b>Date:</b> {att_date}", styles['FieldValue']),
+                    Spacer(1, 24),
+                    Paragraph(f"<i>Original filename: {os.path.basename(att_filepath)}</i>", styles['FieldValue']),
+                ]
+                header_doc.build(header_elements)
+                header_buffer.seek(0)
+                
+                # Add header page
+                header_reader = PdfReader(header_buffer)
+                for page in header_reader.pages:
+                    pdf_writer.add_page(page)
+                
+                # Add attachment pages (decrypt if needed)
+                if db.password:
+                    from core.encryption import decrypt_file_to_bytes
+                    decrypted_data = decrypt_file_to_bytes(att_filepath, db.password)
+                    att_buffer = BytesIO(decrypted_data)
+                    att_reader = PdfReader(att_buffer)
+                else:
+                    att_reader = PdfReader(att_filepath)
+                for page in att_reader.pages:
+                    pdf_writer.add_page(page)
+                    
+            except Exception as e:
+                print(f"Warning: Could not include attachment {att_filepath}: {e}")
+    
+    # Write final merged PDF
+    final_buffer = BytesIO()
+    pdf_writer.write(final_buffer)
+    final_buffer.seek(0)
+    return final_buffer

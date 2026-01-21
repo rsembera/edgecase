@@ -1852,6 +1852,12 @@ tbody tr:hover {
     margin-bottom: 2rem;
 }
 
+.entry-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: start;
+}
+
 .entry-form-actions {
     display: flex;
     justify-content: space-between;
