@@ -465,7 +465,6 @@ def mark_sent(portion_id):
     
     import subprocess
     import shutil
-    from urllib.parse import quote
     
     # Check if we should skip email (generate-only mode)
     skip_email = request.args.get('skip_email') == '1'
