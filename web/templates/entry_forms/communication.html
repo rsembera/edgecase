@@ -33,7 +33,10 @@
                 </div>
             </div>
         </div>
-        {% include 'components/redact_button.html' %}
+        <div class="entry-header-actions">
+            {% include 'components/redact_button.html' %}
+            {% include 'components/view_pdf_button.html' %}
+        </div>
     </div>
     
     <form method="POST" id="communication-form" enctype="multipart/form-data">
