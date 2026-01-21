@@ -71,7 +71,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | Python Files | 29 |
 | Entry Types | 8 (6 client + 2 ledger) |
 | Routes | 103 |
-| Automated Tests | 41 |
+| Automated Tests | 43 |
 
 ---
 
