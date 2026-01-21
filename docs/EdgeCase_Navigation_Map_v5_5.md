@@ -58,11 +58,11 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 | Metric | Count |
 |--------|-------|
-| Python Lines | ~9,400 |
+| Python Lines | ~8,500 |
 | HTML Lines | ~6,500 |
 | JavaScript Lines | ~6,200 |
 | CSS Lines | ~5,700 |
-| **Total Lines** | **~30,000** |
+| **Total Lines** | **~28,000** |
 | Blueprints | 12 |
 | Database Tables | 13 |
 | Templates | 32 |
