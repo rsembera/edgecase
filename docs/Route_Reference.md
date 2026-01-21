@@ -1,19 +1,19 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** January 12, 2026
+**Last Updated:** January 21, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 102 routes organized across 12 blueprints:
+EdgeCase has 103 routes organized across 12 blueprints:
 
 1. **ai_bp** - AI Scribe functionality (9 routes)
 2. **auth_bp** - Login/logout, session management (4 routes)
 3. **backups_bp** - Backup/restore operations (10 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
-5. **entries_bp** - Entry CRUD operations (16 routes)
+5. **entries_bp** - Entry CRUD operations (17 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
 7. **links_bp** - Link group management (4 routes)
 8. **statements_bp** - Statement generation (9 routes)
@@ -741,6 +741,24 @@ def view_redacted(client_id, entry_id)
 **Purpose:** View redacted entry metadata
 
 **Returns:** `view_redacted.html` showing entry type, entry date, created date, redaction details
+
+---
+
+### Session PDF View
+
+```python
+@entries_bp.route('/client/<int:client_id>/entry/<int:entry_id>/pdf')
+def view_entry_pdf(client_id, entry_id)
+```
+**Purpose:** Generate and serve a PDF for a single locked session entry
+
+**Requirements:**
+- Entry must be a session
+- Entry must be locked
+
+**Returns:** PDF file in browser (new tab)
+
+**Notes:** Useful for sharing individual session records with supervisors or for documentation. Uses same format as client file export.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** January 7, 2026  
+**Last Updated:** January 21, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### January 21, 2026
+
+**View PDF Button for Sessions**
+- Added View PDF button (eye icon) to locked Session entries
+- Generates single-session PDF for sharing with supervisors or documentation
+- Uses same format as client file export (practice header, signature, edit history)
+- Button appears in entry header next to Redact button
 
 ### January 6-7, 2026
 
