@@ -5,8 +5,8 @@
 {% if is_edit and entry.locked and entry.class in ('session', 'communication', 'absence', 'item') %}
 <a href="{{ url_for('entries.view_entry_pdf', client_id=client.id, entry_id=entry.id) }}" 
    target="_blank"
-   class="btn btn-secondary btn-sm"
+   class="btn-icon"
    title="View as PDF">
-    <i data-lucide="eye" class="icon-sm"></i>
+    <i data-lucide="eye"></i>
 </a>
 {% endif %}
