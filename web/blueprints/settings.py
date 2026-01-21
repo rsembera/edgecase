@@ -8,7 +8,6 @@ from flask import Blueprint, render_template, request, jsonify, send_file, Respo
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import time
-import io
 import uuid
 from core.encryption import encrypt_file, decrypt_file_to_bytes
 

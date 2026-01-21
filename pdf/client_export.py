@@ -1268,4 +1268,3 @@ def generate_single_entry_pdf(db, client_id, entry_id):
     buffer.seek(0)
     
     return buffer
-    return final_buffer
