@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** January 12, 2026 - Folder picker for backup location
+**Last Updated:** January 21, 2026 - View PDF button for Session entries
 
 ---
 
@@ -70,7 +70,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 | JS Files | 27 |
 | Python Files | 29 |
 | Entry Types | 8 (6 client + 2 ledger) |
-| Routes | 102 |
+| Routes | 103 |
 | Automated Tests | 41 |
 
 ---
@@ -339,6 +339,7 @@ pytest tests/ -v
 
 ### January 2026
 - **In production** since January 3, 2026
+- View PDF button for locked Session entries (Jan 21)
 - Folder picker modal for backup location settings (Jan 12)
 - Backup now runs on logout/shutdown (not login)
 - Backup on session timeout added
