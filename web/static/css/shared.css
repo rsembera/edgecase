@@ -257,6 +257,16 @@ select, input, textarea, button {
     color: #4B5563;
 }
 
+.btn-icon.btn-icon-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.btn-icon.btn-icon-sm i, .btn-icon.btn-icon-sm svg {
+    width: 16px;
+    height: 16px;
+}
+
 /* ============================================
    FORM ELEMENTS
    ============================================ */
