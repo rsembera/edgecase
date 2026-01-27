@@ -41,15 +41,6 @@ Files are encrypted on upload and decrypted only when accessed through the appli
 - Automatic logout after inactivity
 - Client-side activity tracking with keepalive
 
-### Rate Limiting
-
-Login attempts are rate-limited to prevent brute force attacks:
-
-- **5 failed attempts** triggers a lockout
-- **5 minute** lockout duration
-- **10 minute** sliding window for attempt counting
-- Tracks by IP address (supports proxy headers)
-
 ## Data Storage
 
 ### Local-Only Architecture
