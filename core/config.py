@@ -35,16 +35,17 @@ def _is_installed_mode():
     if os.environ.get('PYAPP'):
         return True
     
-    # Check common install locations
-    app_path = str(APP_ROOT).lower()
+    # Check if running from an installed app bundle/location
+    app_path = str(APP_ROOT)
     
     if sys.platform == 'darwin':
-        # macOS: /Applications or ~/Applications
-        if '/applications/' in app_path:
+        # macOS: Check if we're inside a .app bundle (PyApp creates this structure)
+        # App bundles run from: Something.app/Contents/MacOS/ or Something.app/Contents/Resources/
+        if '.app/Contents/' in app_path:
             return True
     elif sys.platform == 'win32':
         # Windows: Program Files
-        if 'program files' in app_path:
+        if 'program files' in app_path.lower():
             return True
     else:
         # Linux: /usr, /opt, or ~/.local/bin
