@@ -73,7 +73,8 @@ def _cleanup():
                             post_cmd = db.get_setting('post_backup_command', '')
                             if post_cmd:
                                 try:
-                                    subprocess.run(post_cmd, shell=True, timeout=300)
+                                    import shlex
+                                    subprocess.run(shlex.split(post_cmd), timeout=300)
                                     print("Post-backup command completed")
                                 except Exception as cmd_error:
                                     print(f"Post-backup command error: {cmd_error}")
@@ -139,7 +140,8 @@ def shutdown_handler(signum, frame):
                                 post_cmd = db.get_setting('post_backup_command', '')
                                 if post_cmd:
                                     try:
-                                        subprocess.run(post_cmd, shell=True, timeout=300)
+                                        import shlex
+                                        subprocess.run(shlex.split(post_cmd), timeout=300)
                                         print("Post-backup command completed")
                                     except Exception as cmd_error:
                                         print(f"Post-backup command error: {cmd_error}")

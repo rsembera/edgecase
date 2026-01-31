@@ -305,6 +305,7 @@ async function uploadBackground() {
     
     const formData = new FormData();
     formData.append('background', file);
+    formData.append('csrf_token', window.getCSRFToken());
     
     try {
         const response = await fetch('/upload_background', {
@@ -690,6 +691,7 @@ async function uploadLogo() {
     
     const formData = new FormData();
     formData.append('logo', file);
+    formData.append('csrf_token', window.getCSRFToken());
     
     try {
         const response = await fetch('/upload_logo', { method: 'POST', body: formData });
@@ -734,6 +736,7 @@ async function uploadSignature() {
     
     const formData = new FormData();
     formData.append('signature', file);
+    formData.append('csrf_token', window.getCSRFToken());
     
     try {
         const response = await fetch('/upload_signature', { method: 'POST', body: formData });

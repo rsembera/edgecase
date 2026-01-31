@@ -83,16 +83,13 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # We'll check manually for forms o
 
 @app.before_request
 def csrf_protect_forms():
-    """Apply CSRF protection only to form submissions, not JSON APIs."""
+    """Apply CSRF protection to form submissions, not JSON APIs."""
     if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
         # Skip CSRF for JSON API requests (protected by same-origin policy)
         content_type = request.content_type or ''
         if 'application/json' in content_type:
             return  # Skip CSRF check for JSON
-        # Skip CSRF for multipart (file uploads with form data)
-        if 'multipart/form-data' in content_type:
-            return  # Skip CSRF for file uploads
-        # For regular form submissions, validate CSRF
+        # For regular form submissions (including multipart file uploads), validate CSRF
         csrf.protect()
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
@@ -265,7 +262,8 @@ def require_login():
                         post_cmd = db.get_setting('post_backup_command', '')
                         if post_cmd:
                             try:
-                                subprocess.run(post_cmd, shell=True, timeout=300)
+                                import shlex
+                                subprocess.run(shlex.split(post_cmd), timeout=300)
                                 print("[Timeout] Post-backup command completed")
                             except Exception as cmd_error:
                                 print(f"[Timeout] Post-backup command error: {cmd_error}")
