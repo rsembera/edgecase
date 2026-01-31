@@ -196,7 +196,8 @@ def _run_auto_backup_check(db):
                 post_cmd = db.get_setting('post_backup_command', '')
                 if post_cmd:
                     try:
-                        subprocess.run(post_cmd, shell=True, timeout=300)
+                        import shlex
+                        subprocess.run(shlex.split(post_cmd), timeout=300)
                         print(f"[Backup] Post-backup command completed")
                     except Exception as cmd_error:
                         print(f"[Backup] Post-backup command error: {cmd_error}")
