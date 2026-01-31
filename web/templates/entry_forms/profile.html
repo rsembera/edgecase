@@ -24,6 +24,7 @@
                 <!-- Type change dropdown -->
                 <div id="type-dropdown" class="type-dropdown" style="display: none;">
                     <form method="post" action="{{ url_for('clients.change_client_type', client_id=client.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {% for type in all_types %}
                         {% if type.name != 'Deleted' %}
                         <label class="type-dropdown-label {% if type.id == client.type_id %}selected{% endif %}">
@@ -66,6 +67,7 @@
     {% endif %}
 
     <form method="post" id="profile-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     
     <div class="form-row">
             <div class="form-group">

@@ -16,6 +16,7 @@
     </div>
 
     <form method="POST" id="link-group-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Client Search and Selection -->
         <div class="form-section">
             <label>Linked Clients</label>

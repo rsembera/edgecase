@@ -11,6 +11,75 @@ import json
 
 auth_bp = Blueprint('auth', __name__)
 
+# ============================================================================
+# LOGIN RATE LIMITING
+# ============================================================================
+
+# Track failed login attempts: {ip_address: {'count': N, 'lockout_until': timestamp}}
+_login_attempts = {}
+MAX_ATTEMPTS = 5
+LOCKOUT_SECONDS = 300  # 5 minutes
+
+
+def _get_client_ip():
+    """Get client IP address, handling proxies."""
+    # Check X-Forwarded-For header (for reverse proxy setups)
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    return request.remote_addr or '127.0.0.1'
+
+
+def _check_rate_limit():
+    """Check if client IP is rate-limited. Returns (is_blocked, seconds_remaining)."""
+    ip = _get_client_ip()
+    now = time.time()
+    
+    if ip in _login_attempts:
+        attempt_info = _login_attempts[ip]
+        
+        # Check if currently locked out
+        if attempt_info.get('lockout_until', 0) > now:
+            remaining = int(attempt_info['lockout_until'] - now)
+            return True, remaining
+        
+        # Clear old lockout if expired
+        if attempt_info.get('lockout_until', 0) <= now:
+            attempt_info['lockout_until'] = 0
+    
+    return False, 0
+
+
+def _record_failed_attempt():
+    """Record a failed login attempt and potentially trigger lockout."""
+    ip = _get_client_ip()
+    now = time.time()
+    
+    if ip not in _login_attempts:
+        _login_attempts[ip] = {'count': 0, 'lockout_until': 0, 'first_attempt': now}
+    
+    attempt_info = _login_attempts[ip]
+    
+    # Reset count if first attempt was more than lockout period ago
+    if now - attempt_info.get('first_attempt', now) > LOCKOUT_SECONDS:
+        attempt_info['count'] = 0
+        attempt_info['first_attempt'] = now
+    
+    attempt_info['count'] += 1
+    
+    # Trigger lockout if max attempts exceeded
+    if attempt_info['count'] >= MAX_ATTEMPTS:
+        attempt_info['lockout_until'] = now + LOCKOUT_SECONDS
+        return True  # Lockout triggered
+    
+    return False
+
+
+def _clear_failed_attempts():
+    """Clear failed attempts for current IP after successful login."""
+    ip = _get_client_ip()
+    if ip in _login_attempts:
+        del _login_attempts[ip]
+
 def login_required(f):
     """Decorator to require login for routes."""
     @wraps(f)
@@ -32,6 +101,13 @@ def login():
     from core.database import Database
     
     first_run = is_first_run()
+    
+    # Check rate limiting before processing POST
+    is_blocked, seconds_remaining = _check_rate_limit()
+    if is_blocked:
+        return render_template('login.html', 
+                             first_run=first_run, 
+                             lockout_seconds=seconds_remaining)
     
     if request.method == 'POST':
         password = request.form.get('password', '')
@@ -61,6 +137,9 @@ def login():
             # Success! Store db in app config
             current_app.config['db'] = db
             
+            # Clear failed login attempts on success
+            _clear_failed_attempts()
+            
             # Clear any old session data first, then set new values
             session.clear()
             session.permanent = True  # Use PERMANENT_SESSION_LIFETIME
@@ -78,6 +157,9 @@ def login():
             return response
             
         except Exception as e:
+            # Record failed attempt (may trigger lockout)
+            _record_failed_attempt()
+            
             error_msg = str(e)
             if 'file is not a database' in error_msg or 'encrypted' in error_msg.lower():
                 error = "Incorrect password"

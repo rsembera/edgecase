@@ -37,6 +37,7 @@
     </div>
     
     <form method="POST" id="communication-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Date and Time -->
         <div class="two-column-grid">
             <div class="form-group">
