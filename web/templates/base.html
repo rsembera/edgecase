@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}EdgeCase Equalizer{% endblock %}</title>
     
     <!-- Shared styles -->
@@ -657,5 +658,23 @@
     </div>
     
     <script>lucide.createIcons();</script>
+    
+    <!-- CSRF Token for AJAX requests -->
+    <script>
+    // Get CSRF token from meta tag
+    window.getCSRFToken = function() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+    
+    // Helper for fetch with CSRF - use for all POST/PUT/DELETE requests
+    window.fetchWithCSRF = function(url, options = {}) {
+        options.headers = options.headers || {};
+        if (!options.headers['X-CSRFToken']) {
+            options.headers['X-CSRFToken'] = window.getCSRFToken();
+        }
+        return fetch(url, options);
+    };
+    </script>
 </body>
 </html>

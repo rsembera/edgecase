@@ -30,6 +30,7 @@
                 {% if allow_delete %}
                 <form method="POST" action="{{ url_for('entries.delete_attachment', attachment_id=attachment.id) }}" 
                       onsubmit="return confirm('Delete this attachment?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn-small btn-danger">Delete</button>
                 </form>
                 {% endif %}
@@ -47,6 +48,7 @@
           action="{{ url_for('upload_attachment', entry_id=entry.id) }}" 
           enctype="multipart/form-data" 
           class="upload-form-dashed">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="upload-form-grid">
             <div class="file-field">
                 <label for="file">Choose file</label>

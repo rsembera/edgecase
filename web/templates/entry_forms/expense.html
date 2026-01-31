@@ -26,6 +26,7 @@
     </div>
     
     <form method="POST" id="expense-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Date field -->
         <div class="form-group date-field-narrow">
             <label>Date *</label>

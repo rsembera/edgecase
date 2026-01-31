@@ -20,6 +20,7 @@
     <form method="POST" id="type-form"
           data-type-id="{{ type.id if type else '' }}"
           data-retention-days="{{ type.retention_period if type and type.retention_period else 0 }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="form-group">
             <label for="name">Type Name</label>

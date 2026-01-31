@@ -273,11 +273,16 @@
         <p class="subtitle">Enter your master password to continue</p>
         {% endif %}
         
-        {% if error %}
+        {% if lockout_seconds %}
+        <div class="error" id="lockout-error" style="text-align: center;">
+            Too many failed attempts.<br>Try again in <span id="countdown">{{ lockout_seconds }}</span>
+        </div>
+        {% elif error %}
         <div class="error">{{ error }}</div>
         {% endif %}
         
         <form method="POST" autocomplete="on" id="login-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Hidden username field for password managers -->
             <input type="text" name="username" value="edgecase" autocomplete="username" style="position: absolute; left: -9999px;" tabindex="-1" aria-hidden="true">
             
@@ -331,6 +336,44 @@
     </div>
     
     <script>
+        // Lockout countdown timer
+        {% if lockout_seconds %}
+        (function() {
+            let remaining = {{ lockout_seconds }};
+            const countdownEl = document.getElementById('countdown');
+            const form = document.getElementById('login-form');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const passwordInput = document.getElementById('password');
+            
+            // Disable form during lockout
+            submitBtn.disabled = true;
+            passwordInput.disabled = true;
+            
+            function formatTime(secs) {
+                const mins = Math.floor(secs / 60);
+                const s = secs % 60;
+                if (mins > 0) {
+                    return mins + ':' + s.toString().padStart(2, '0');
+                }
+                return secs.toString();
+            }
+            
+            function updateCountdown() {
+                countdownEl.textContent = formatTime(remaining);
+                
+                if (remaining <= 0) {
+                    // Re-enable form and reload to clear lockout state
+                    window.location.reload();
+                } else {
+                    remaining--;
+                    setTimeout(updateCountdown, 1000);
+                }
+            }
+            
+            updateCountdown();
+        })();
+        {% endif %}
+        
         // Prevent double form submission
         document.getElementById('login-form').addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');

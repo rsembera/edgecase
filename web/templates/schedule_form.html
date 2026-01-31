@@ -30,6 +30,7 @@
     </div>
     
     <form method="POST" id="schedule-form" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Quick Entry -->
         <div class="form-group quick-entry-group">
             <label for="quick_entry">Quick Entry</label>

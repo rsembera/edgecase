@@ -71,8 +71,29 @@ from web.blueprints.statements import statements_bp
 from web.blueprints.backups import backups_bp
 from web.blueprints.ai import ai_bp
 
+from flask_wtf.csrf import CSRFProtect
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = _get_secret_key()
+
+# CSRF Protection - protects form submissions
+# JSON API requests are exempt (protected by same-origin policy)
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # We'll check manually for forms only
+
+@app.before_request
+def csrf_protect_forms():
+    """Apply CSRF protection only to form submissions, not JSON APIs."""
+    if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+        # Skip CSRF for JSON API requests (protected by same-origin policy)
+        content_type = request.content_type or ''
+        if 'application/json' in content_type:
+            return  # Skip CSRF check for JSON
+        # Skip CSRF for multipart (file uploads with form data)
+        if 'multipart/form-data' in content_type:
+            return  # Skip CSRF for file uploads
+        # For regular form submissions, validate CSRF
+        csrf.protect()
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
 app.config['SESSION_COOKIE_NAME'] = 'edgecase_session'  # Unique name to avoid conflicts
@@ -353,5 +374,5 @@ def get_restore_message():
     return jsonify({'message': message})
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+# Note: This file should not be run directly. Use main.py or `python -m edgecase`
+# The CLI uses Waitress for production serving with proper security settings.

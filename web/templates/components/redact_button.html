@@ -32,6 +32,7 @@
         <p>This will <strong>permanently remove all content</strong> from this entry. The entry will be marked as [REDACTED] and cannot be restored.</p>
         <p>Are you sure you want to proceed?</p>
         <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" id="redact-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="redact-reason-hidden" name="reason" value="">
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" onclick="backToReasonModal()">Back</button>
