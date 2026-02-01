@@ -4,13 +4,17 @@ Ledger Report PDF Generator
 Generates income and expense reports for tax filing.
 """
 
+import os
+from io import BytesIO
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether, PageBreak, Image, HRFlowable
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
+from core.config import get_attachments_path
+from core.encryption import decrypt_file_to_bytes
 
 
 def _get_currency_symbol(currency_code):
@@ -32,7 +36,8 @@ def _format_currency(amount, currency_code):
 
 
 def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True,
-                                include_taxes=True, start_date_str='', end_date_str=''):
+                                include_taxes=True, include_attachments=False,
+                                start_date_str='', end_date_str=''):
     """
     Generate a PDF financial report.
     
@@ -42,6 +47,8 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         end_ts: End timestamp  
         output_path: Where to save the PDF
         include_details: Whether to include transaction detail pages
+        include_taxes: Whether to include tax information
+        include_attachments: Whether to include receipt attachments as appendix
         start_date_str: Start date string for display
         end_date_str: End date string for display
     """
@@ -54,9 +61,9 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     conn = db.connect()
     cursor = conn.cursor()
     
-    # Get income entries
+    # Get income entries (include id for attachments)
     cursor.execute("""
-        SELECT ledger_date, total_amount, source, description, tax_amount
+        SELECT id, ledger_date, total_amount, source, description, tax_amount
         FROM entries
         WHERE class = 'income' AND ledger_type = 'income'
         AND ledger_date >= ? AND ledger_date <= ?
@@ -66,7 +73,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     
     # Get expense entries with category names and payee names (via JOINs)
     cursor.execute("""
-        SELECT e.ledger_date, e.total_amount, e.description, 
+        SELECT e.id, e.ledger_date, e.total_amount, e.description, 
                COALESCE(ec.name, 'Uncategorized') as category_name,
                COALESCE(p.name, '') as payee_name,
                e.tax_amount
@@ -93,11 +100,11 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     category_totals = cursor.fetchall()
     
     
-    # Calculate totals
-    total_income = sum(e[1] for e in income_entries) if income_entries else 0
-    total_expenses = sum(e[1] for e in expense_entries) if expense_entries else 0
-    tax_collected = sum((e[4] or 0) for e in income_entries) if income_entries else 0
-    tax_paid = sum((e[5] or 0) for e in expense_entries) if expense_entries else 0
+    # Calculate totals (indices shifted by 1 due to id column)
+    total_income = sum(e[2] for e in income_entries) if income_entries else 0
+    total_expenses = sum(e[2] for e in expense_entries) if expense_entries else 0
+    tax_collected = sum((e[5] or 0) for e in income_entries) if income_entries else 0
+    tax_paid = sum((e[6] or 0) for e in expense_entries) if expense_entries else 0
     
     # Create document
     doc = SimpleDocTemplate(
@@ -157,26 +164,28 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         # Combine income and expenses into one list, sorted by date
         all_transactions = []
         
+        # Income: id=0, date=1, amount=2, source=3, description=4, tax=5
         for entry in income_entries:
             all_transactions.append({
-                'date': entry[0],
-                'income': entry[1],
+                'date': entry[1],
+                'income': entry[2],
                 'expense': None,
-                'description': entry[3] or '',  # description field
-                'payor_payee': entry[2] or '',  # source field (who paid)
+                'description': entry[4] or '',  # description field
+                'payor_payee': entry[3] or '',  # source field (who paid)
                 'category': '',
-                'tax': entry[4] or 0  # tax_amount
+                'tax': entry[5] or 0  # tax_amount
             })
         
+        # Expense: id=0, date=1, amount=2, description=3, category=4, payee=5, tax=6
         for entry in expense_entries:
             all_transactions.append({
-                'date': entry[0],
+                'date': entry[1],
                 'income': None,
-                'expense': entry[1],
-                'description': entry[2] or '',  # description field
-                'payor_payee': entry[4] or '',  # payee_name (who was paid)
-                'category': entry[3] or 'Uncategorized',
-                'tax': entry[5] or 0  # tax_amount
+                'expense': entry[2],
+                'description': entry[3] or '',  # description field
+                'payor_payee': entry[5] or '',  # payee_name (who was paid)
+                'category': entry[4] or 'Uncategorized',
+                'tax': entry[6] or 0  # tax_amount
             })
         
         # Sort by date
@@ -388,5 +397,207 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Add all summary elements wrapped in KeepTogether
     story.append(KeepTogether(summary_elements))
     
-    # Build PDF
-    doc.build(story)
+    # Collect attachments if requested
+    pdf_attachments = []  # (entry_type, description, date_str, filepath) tuples for PDF files
+    
+    if include_attachments:
+        # Gather all attachments from income and expense entries
+        attachment_info = []  # (entry_type, entry_id, date, description, payee_source)
+        
+        # Income entries: id=0, date=1, amount=2, source=3, description=4, tax=5
+        for entry in income_entries:
+            atts = db.get_attachments(entry[0])
+            if atts:
+                date_str = datetime.fromtimestamp(entry[1]).strftime('%b %d, %Y')
+                desc = entry[4] or entry[3] or 'Income'  # description or source
+                attachment_info.append(('Income', entry[0], date_str, desc, atts))
+        
+        # Expense entries: id=0, date=1, amount=2, description=3, category=4, payee=5, tax=6
+        for entry in expense_entries:
+            atts = db.get_attachments(entry[0])
+            if atts:
+                date_str = datetime.fromtimestamp(entry[1]).strftime('%b %d, %Y')
+                desc = entry[3] or entry[5] or 'Expense'  # description or payee
+                attachment_info.append(('Expense', entry[0], date_str, desc, atts))
+        
+        if attachment_info:
+            # Create appendix section style
+            appendix_title_style = ParagraphStyle(
+                'AppendixTitle',
+                parent=styles['Heading1'],
+                fontSize=14,
+                alignment=TA_CENTER,
+                spaceBefore=20,
+                spaceAfter=20,
+                textColor=colors.HexColor('#1E293B')
+            )
+            
+            appendix_heading_style = ParagraphStyle(
+                'AppendixHeading',
+                parent=styles['Heading2'],
+                fontSize=11,
+                spaceBefore=16,
+                spaceAfter=8,
+                textColor=colors.HexColor('#1F8F74')
+            )
+            
+            appendix_text_style = ParagraphStyle(
+                'AppendixText',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#64748B'),
+                spaceAfter=4
+            )
+            
+            # Start appendix on new page
+            story.append(PageBreak())
+            story.append(Paragraph("ATTACHMENTS", appendix_title_style))
+            
+            attachments_path = get_attachments_path()
+            
+            for entry_type, entry_id, date_str, desc, atts in attachment_info:
+                # Entry header
+                story.append(Paragraph(f"{entry_type}: {desc}", appendix_heading_style))
+                story.append(Paragraph(f"Date: {date_str}", appendix_text_style))
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
+                story.append(Spacer(1, 8))
+                
+                for att in atts:
+                    filename = att['filename']
+                    filename_lower = filename.lower()
+                    filepath = os.path.join(attachments_path, 'ledger', str(entry_id), filename)
+                    att_desc = att.get('description') or filename
+                    
+                    if filename_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                        # Embed image
+                        if os.path.exists(filepath):
+                            try:
+                                # Decrypt if needed
+                                if db.password:
+                                    decrypted = decrypt_file_to_bytes(filepath, db.password)
+                                    img = Image(BytesIO(decrypted))
+                                else:
+                                    img = Image(filepath)
+                                
+                                # Scale to fit page width while maintaining aspect ratio
+                                max_width = 6.5 * inch
+                                max_height = 7 * inch
+                                aspect = img.imageWidth / img.imageHeight
+                                if aspect > (max_width / max_height):
+                                    img.drawWidth = max_width
+                                    img.drawHeight = max_width / aspect
+                                else:
+                                    img.drawHeight = max_height
+                                    img.drawWidth = max_height * aspect
+                                # Don't exceed original size
+                                if img.drawWidth > img.imageWidth:
+                                    img.drawWidth = img.imageWidth
+                                    img.drawHeight = img.imageHeight
+                                img.hAlign = 'LEFT'
+                                
+                                story.append(Paragraph(f"<b>{att_desc}</b>", appendix_text_style))
+                                story.append(Spacer(1, 4))
+                                story.append(img)
+                                story.append(Spacer(1, 12))
+                            except Exception as e:
+                                story.append(Paragraph(f"• {att_desc} <i>(could not embed image: {str(e)})</i>", appendix_text_style))
+                        else:
+                            story.append(Paragraph(f"• {att_desc} <i>(file not found)</i>", appendix_text_style))
+                    
+                    elif filename_lower.endswith('.pdf'):
+                        # Queue PDF for merging at end
+                        story.append(Paragraph(f"• {att_desc} <i>(PDF follows)</i>", appendix_text_style))
+                        pdf_attachments.append((entry_type, desc, date_str, filepath, att_desc))
+                    
+                    else:
+                        # Other file types - just note them
+                        story.append(Paragraph(f"• {att_desc} <i>(file type not rendered: {filename})</i>", appendix_text_style))
+                
+                story.append(Spacer(1, 8))
+    
+    # Build main PDF
+    if pdf_attachments:
+        # Build to buffer first, then merge PDFs
+        from pypdf import PdfReader, PdfWriter
+        
+        main_buffer = BytesIO()
+        main_doc = SimpleDocTemplate(
+            main_buffer,
+            pagesize=letter,
+            rightMargin=0.75*inch,
+            leftMargin=0.75*inch,
+            topMargin=0.75*inch,
+            bottomMargin=0.75*inch
+        )
+        main_doc.build(story)
+        main_buffer.seek(0)
+        
+        # Merge PDFs
+        pdf_writer = PdfWriter()
+        
+        # Add main PDF pages
+        main_reader = PdfReader(main_buffer)
+        for page in main_reader.pages:
+            pdf_writer.add_page(page)
+        
+        # Add each PDF attachment with a header page
+        header_style = ParagraphStyle(
+            'PDFHeader',
+            parent=styles['Heading2'],
+            fontSize=12,
+            spaceBefore=20,
+            spaceAfter=12,
+            textColor=colors.HexColor('#1E293B')
+        )
+        
+        for entry_type, entry_desc, date_str, filepath, att_desc in pdf_attachments:
+            if os.path.exists(filepath):
+                try:
+                    # Create header page for this PDF attachment
+                    header_buffer = BytesIO()
+                    header_doc = SimpleDocTemplate(
+                        header_buffer,
+                        pagesize=letter,
+                        rightMargin=0.75*inch,
+                        leftMargin=0.75*inch,
+                        topMargin=2*inch,
+                        bottomMargin=0.75*inch
+                    )
+                    header_elements = [
+                        Paragraph("PDF Attachment", header_style),
+                        Spacer(1, 12),
+                        Paragraph(f"<b>{entry_type}:</b> {entry_desc}", styles['Normal']),
+                        Spacer(1, 6),
+                        Paragraph(f"<b>Date:</b> {date_str}", styles['Normal']),
+                        Spacer(1, 6),
+                        Paragraph(f"<b>Attachment:</b> {att_desc}", styles['Normal']),
+                        Spacer(1, 24),
+                        Paragraph(f"<i>Original filename: {os.path.basename(filepath)}</i>", styles['Normal']),
+                    ]
+                    header_doc.build(header_elements)
+                    header_buffer.seek(0)
+                    
+                    # Add header page
+                    header_reader = PdfReader(header_buffer)
+                    for page in header_reader.pages:
+                        pdf_writer.add_page(page)
+                    
+                    # Add attachment pages (decrypt if needed)
+                    if db.password:
+                        decrypted_data = decrypt_file_to_bytes(filepath, db.password)
+                        att_buffer = BytesIO(decrypted_data)
+                        att_reader = PdfReader(att_buffer)
+                    else:
+                        att_reader = PdfReader(filepath)
+                    for page in att_reader.pages:
+                        pdf_writer.add_page(page)
+                        
+                except Exception as e:
+                    print(f"Warning: Could not include PDF attachment {filepath}: {e}")
+        
+        # Write final merged PDF
+        with open(output_path, 'wb') as f:
+            pdf_writer.write(f)
+    else:
+        # No PDF attachments, build directly to file
+        doc.build(story)

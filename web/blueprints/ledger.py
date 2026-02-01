@@ -628,6 +628,7 @@ def generate_report_pdf():
     end_date = request.args.get('end')
     include_details = request.args.get('details') == '1'
     include_taxes = request.args.get('taxes') == '1'
+    include_attachments = request.args.get('attachments') == '1'
     
     if not start_date or not end_date:
         return jsonify({'success': False, 'error': 'Missing date range'}), 400
@@ -647,6 +648,7 @@ def generate_report_pdf():
             output_path=str(output_path),
             include_details=include_details,
             include_taxes=include_taxes,
+            include_attachments=include_attachments,
             start_date_str=start_date,
             end_date_str=end_date
         )
