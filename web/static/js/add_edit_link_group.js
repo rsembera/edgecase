@@ -4,6 +4,18 @@
  * member selection, per-member fee configuration, and format conflict validation.
  */
 
+/**
+ * Escape HTML to prevent XSS
+ * @param {string} text - Raw text
+ * @returns {string} HTML-escaped text
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Get all clients data from hidden div
 const allClientsData = JSON.parse(document.getElementById('all-clients-data').textContent);
 
@@ -139,11 +151,11 @@ searchInput.addEventListener('input', function(e) {
     if (matches.length > 0) {
         searchResults.innerHTML = matches.map(client => `
             <div class="search-result" onclick="selectClient(${client.id})">
-                <span class="client-badge" style="background-color: ${client.type.color}">
-                    ${client.type.name}
+                <span class="client-badge" style="background-color: ${escapeHtml(client.type.color)}">
+                    ${escapeHtml(client.type.name)}
                 </span>
-                <span class="client-name">${client.first_name} ${client.middle_name || ''} ${client.last_name}</span>
-                <span class="client-file">${client.file_number}</span>
+                <span class="client-name">${escapeHtml(client.first_name)} ${escapeHtml(client.middle_name || '')} ${escapeHtml(client.last_name)}</span>
+                <span class="client-file">${escapeHtml(client.file_number)}</span>
             </div>
         `).join('');
         searchResults.classList.add('active');
@@ -178,11 +190,11 @@ function selectClient(clientId) {
     clientDiv.className = 'selected-client';
     clientDiv.dataset.clientId = clientId;
     clientDiv.innerHTML = `
-        <span class="client-badge" style="background-color: ${client.type.color}">
-            ${client.type.name}
+        <span class="client-badge" style="background-color: ${escapeHtml(client.type.color)}">
+            ${escapeHtml(client.type.name)}
         </span>
-        <span class="client-name">${client.first_name} ${client.middle_name || ''} ${client.last_name}</span>
-        <span class="client-file">${client.file_number}</span>
+        <span class="client-name">${escapeHtml(client.first_name)} ${escapeHtml(client.middle_name || '')} ${escapeHtml(client.last_name)}</span>
+        <span class="client-file">${escapeHtml(client.file_number)}</span>
         <button type="button" class="remove-client" onclick="removeClient(${clientId})">×</button>
     `;
     selectedContainer.appendChild(clientDiv);
@@ -262,11 +274,11 @@ function updateMemberFees() {
         return `
             <div class="member-fee-row" data-client-id="${clientId}">
                 <div class="member-info">
-                    <span class="client-badge" style="background-color: ${client.type.color}">
-                        ${client.type.name}
+                    <span class="client-badge" style="background-color: ${escapeHtml(client.type.color)}">
+                        ${escapeHtml(client.type.name)}
                     </span>
-                    <strong>${client.first_name} ${client.middle_name || ''} ${client.last_name}</strong>
-                    <span style="color: #718096;">${client.file_number}</span>
+                    <strong>${escapeHtml(client.first_name)} ${escapeHtml(client.middle_name || '')} ${escapeHtml(client.last_name)}</strong>
+                    <span style="color: #718096;">${escapeHtml(client.file_number)}</span>
                 </div>
                 <div class="fee-inputs">
                     <div class="fee-input-group">

@@ -587,20 +587,67 @@ class Database:
         rows = cursor.fetchall()
         
         return [dict(row) for row in rows]
-    
+
+    # Allowed column names for dynamic UPDATE queries (security: prevents SQL injection via column names)
+    ALLOWED_CLIENT_COLUMNS = frozenset({
+        'file_number', 'first_name', 'middle_name', 'last_name', 'type_id',
+        'session_offset', 'retention_days', 'is_deleted', 'modified_at'
+    })
+
+    ALLOWED_ENTRY_COLUMNS = frozenset({
+        # Common fields
+        'client_id', 'class', 'description', 'content',
+        # Profile fields
+        'email', 'phone', 'home_phone', 'work_phone', 'text_number', 'address',
+        'date_of_birth', 'preferred_contact', 'ok_to_leave_message',
+        'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
+        'referral_source', 'additional_info', 'meeting_link',
+        'session_base', 'session_tax_rate', 'session_total', 'default_session_duration',
+        'is_minor', 'guardian1_name', 'guardian1_email', 'guardian1_phone', 'guardian1_address',
+        'guardian1_pays_percent', 'has_guardian2', 'guardian2_name', 'guardian2_email',
+        'guardian2_phone', 'guardian2_address', 'guardian2_pays_percent',
+        # Session fields
+        'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
+        'duration', 'base_fee', 'tax_rate', 'fee', 'is_consultation', 'is_pro_bono',
+        'mood', 'affect', 'risk_assessment',
+        # Communication fields
+        'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
+        # Absence fields
+        'absence_date', 'absence_time',
+        # Item fields
+        'item_date', 'item_time', 'base_price', 'guardian1_amount', 'guardian2_amount',
+        # Upload fields
+        'upload_date', 'upload_time',
+        # Ledger fields
+        'ledger_date', 'ledger_type', 'source', 'payee_id', 'category_id',
+        'base_amount', 'tax_amount', 'total_amount', 'statement_id',
+        # Statement fields
+        'statement_total', 'statement_tax_total', 'payment_status', 'payment_notes',
+        'date_sent', 'date_paid', 'is_void',
+        # Edit tracking
+        'edit_history', 'locked', 'locked_at',
+        # Redaction
+        'is_redacted', 'redacted_at', 'redaction_reason',
+        # Metadata
+        'modified_at'
+    })
+
     def update_client(self, client_id: int, client_data: Dict[str, Any]) -> bool:
         """Update client."""
         conn = self.connect()
         cursor = conn.cursor()
-        
+
         now = int(time.time())
-        
+
         # Build UPDATE statement dynamically based on provided fields
         set_clauses = []
         values = []
-        
+
         for key, value in client_data.items():
             if key != 'id':
+                # Validate column name against whitelist
+                if key not in self.ALLOWED_CLIENT_COLUMNS:
+                    raise ValueError(f"Invalid column name: {key}")
                 set_clauses.append(f"{key} = ?")
                 values.append(value)
         
@@ -1305,13 +1352,16 @@ class Database:
         """Update entry (adds to edit history if locked)."""
         conn = self.connect()
         cursor = conn.cursor()
-        
+
         # Build UPDATE statement dynamically
         set_clauses = []
         values = []
-        
+
         for key, value in entry_data.items():
             if key != 'id':
+                # Validate column name against whitelist
+                if key not in self.ALLOWED_ENTRY_COLUMNS:
+                    raise ValueError(f"Invalid column name: {key}")
                 set_clauses.append(f"{key} = ?")
                 values.append(value)
         
