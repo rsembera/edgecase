@@ -13,7 +13,6 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether, PageBreak, Image, HRFlowable
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
-from core.config import get_attachments_path
 from core.encryption import decrypt_file_to_bytes
 
 
@@ -453,8 +452,6 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             story.append(PageBreak())
             story.append(Paragraph("ATTACHMENTS", appendix_title_style))
             
-            attachments_path = get_attachments_path()
-            
             for entry_type, entry_id, date_str, desc, atts in attachment_info:
                 # Entry header
                 story.append(Paragraph(f"{entry_type}: {desc}", appendix_heading_style))
@@ -463,9 +460,9 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
                 story.append(Spacer(1, 8))
                 
                 for att in atts:
-                    filename = att['filename']
+                    filename = att['filename']  # Original filename for display
                     filename_lower = filename.lower()
-                    filepath = os.path.join(attachments_path, 'ledger', str(entry_id), filename)
+                    filepath = att['filepath']  # Actual path on disk (may be encrypted .enc file)
                     att_desc = att.get('description') or filename
                     
                     if filename_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
