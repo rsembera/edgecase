@@ -537,48 +537,10 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         for page in main_reader.pages:
             pdf_writer.add_page(page)
         
-        # Add each PDF attachment with a header page
-        header_style = ParagraphStyle(
-            'PDFHeader',
-            parent=styles['Heading2'],
-            fontSize=12,
-            spaceBefore=20,
-            spaceAfter=12,
-            textColor=colors.HexColor('#1E293B')
-        )
-        
+        # Add each PDF attachment
         for entry_type, entry_desc, date_str, filepath, att_desc in pdf_attachments:
             if os.path.exists(filepath):
                 try:
-                    # Create header page for this PDF attachment
-                    header_buffer = BytesIO()
-                    header_doc = SimpleDocTemplate(
-                        header_buffer,
-                        pagesize=letter,
-                        rightMargin=0.75*inch,
-                        leftMargin=0.75*inch,
-                        topMargin=2*inch,
-                        bottomMargin=0.75*inch
-                    )
-                    header_elements = [
-                        Paragraph("PDF Attachment", header_style),
-                        Spacer(1, 12),
-                        Paragraph(f"<b>{entry_type}:</b> {entry_desc}", styles['Normal']),
-                        Spacer(1, 6),
-                        Paragraph(f"<b>Date:</b> {date_str}", styles['Normal']),
-                        Spacer(1, 6),
-                        Paragraph(f"<b>Attachment:</b> {att_desc}", styles['Normal']),
-                        Spacer(1, 24),
-                        Paragraph(f"<i>Original filename: {os.path.basename(filepath)}</i>", styles['Normal']),
-                    ]
-                    header_doc.build(header_elements)
-                    header_buffer.seek(0)
-                    
-                    # Add header page
-                    header_reader = PdfReader(header_buffer)
-                    for page in header_reader.pages:
-                        pdf_writer.add_page(page)
-                    
                     # Add attachment pages (decrypt if needed)
                     if db.password:
                         decrypted_data = decrypt_file_to_bytes(filepath, db.password)
