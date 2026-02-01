@@ -247,19 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
-    /**
-     * Get client ID from the page URL or back link
-     */
-    function getClientId() {
-        const backLink = document.querySelector('.back-link');
-        if (backLink) {
-            const match = backLink.href.match(/\/client\/(\d+)/);
-            if (match) return match[1];
-        }
-        return null;
-    }
-    
+
     /**
      * Revert to original text (clear generated)
      */

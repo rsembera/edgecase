@@ -4,6 +4,22 @@
  */
 
 // ============================================================
+// UTILITIES
+// ============================================================
+
+/**
+ * Escape HTML to prevent XSS
+ * @param {string} text - Raw text
+ * @returns {string} HTML-escaped text
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================================
 // STATE
 // ============================================================
 
@@ -268,8 +284,8 @@ function findUnbilled() {
                     html += `
                         <div class="unbilled-client">
                             <input type="checkbox" class="client-checkbox" value="${client.id}" data-amount="${client.unbilled_total}">
-                            <span class="client-name">${client.name}</span>
-                            <span class="file-number">${client.file_number}</span>
+                            <span class="client-name">${escapeHtml(client.name)}</span>
+                            <span class="file-number">${escapeHtml(client.file_number)}</span>
                             <span class="unbilled-amount">$${client.unbilled_total.toFixed(2)}</span>
                         </div>
                     `;

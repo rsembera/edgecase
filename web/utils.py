@@ -15,26 +15,6 @@ from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
 
 
-def safe_float(value, default=None):
-    """Safely convert form value to float, returning default if invalid."""
-    if not value:
-        return default
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def safe_int(value, default=None):
-    """Safely convert form value to int, returning default if invalid."""
-    if not value:
-        return default
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return default
-
-
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
     """Convert date form data to Unix timestamp.
     
@@ -274,31 +254,3 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None):
             saved_files.append(original_filename)
     
     return saved_files
-
-
-def delete_attachment_files(entry_id, client_id=None):
-    """
-    Delete all attachment files for an entry from disk.
-    
-    Args:
-        entry_id: Entry ID
-        client_id: Client ID if client entry, None if ledger entry
-        
-    Returns:
-        bool: True if successful, False if error
-    """
-    import shutil
-    
-    try:
-        if client_id:
-            upload_dir = ATTACHMENTS_DIR / str(client_id) / str(entry_id)
-        else:
-            upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
-        
-        if os.path.exists(upload_dir):
-            shutil.rmtree(upload_dir)
-        
-        return True
-    except Exception as e:
-        print(f"Error deleting attachment files: {e}")
-        return False

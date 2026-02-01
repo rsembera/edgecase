@@ -316,7 +316,7 @@ function renderFullBackup(point, newerFullExists) {
             <div class="backup-item backup-full" data-id="${point.id}" data-type="full">
                 <div class="backup-item-info">
                     <span class="backup-type-badge badge-full">Full</span>
-                    <span class="backup-item-name">${point.display_name}</span>
+                    <span class="backup-item-name">${escapeHtml(point.display_name)}</span>
                     ${dependentText}
                 </div>
             </div>
@@ -337,7 +337,7 @@ function renderIncrementalBackup(point, isLast, laterCount) {
                 <div class="backup-connector ${connectorClass}"></div>
                 <div class="backup-item-info">
                     <span class="backup-type-badge badge-incr">Incr</span>
-                    <span class="backup-item-name">${point.display_name}</span>
+                    <span class="backup-item-name">${escapeHtml(point.display_name)}</span>
                 </div>
             </div>
     `;
@@ -352,7 +352,7 @@ function renderSafetyBackup(point) {
             <div class="backup-item backup-safety" data-id="${point.id}" data-type="pre_restore">
                 <div class="backup-item-info">
                     <span class="backup-type-badge badge-safety">Safety</span>
-                    <span class="backup-item-name">${point.display_name}</span>
+                    <span class="backup-item-name">${escapeHtml(point.display_name)}</span>
                 </div>
             </div>
         </div>
