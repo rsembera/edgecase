@@ -201,8 +201,9 @@ function generateReport() {
     const endDate = getDateFromInput('end_date');
     const includeDetails = document.getElementById('include-details').checked;
     const includeTaxes = document.getElementById('include-taxes').checked;
+    const includeAttachments = document.getElementById('include-attachments').checked;
     
-    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}`;
+    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}&attachments=${includeAttachments ? '1' : '0'}`;
     
     window.open(url, '_blank');
 }
