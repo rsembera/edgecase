@@ -211,7 +211,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ### 6. ledger_bp (ledger.py)
 - Income and expense entries
 - Category and payee management
-- Financial reports with PDF
+- Financial reports with PDF (optional attachment appendix)
 
 ### 7. links_bp (links.py)
 - Link group CRUD
@@ -336,6 +336,11 @@ pytest tests/ -v
 ---
 
 ## RECENT CHANGES
+
+### February 2026
+- Financial Report attachment appendix option (Feb 1)
+  - Receipts/invoices attached to ledger entries can be included in tax reports
+  - Images rendered inline, PDFs merged at end
 
 ### January 2026
 - **In production** since January 3, 2026

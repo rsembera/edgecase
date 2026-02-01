@@ -84,6 +84,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Uses same format as client file export (practice header, signature, edit history)
 - Button appears in entry header next to Redact button
 
+### February 1, 2026
+
+**Financial Report Enhancements**
+- Added attachment appendix option to Financial Reports
+- Receipts and invoices attached to ledger entries can now be included in tax reports
+- Images rendered inline in appendix, PDFs merged at end of report
+
 ### January 6-7, 2026
 
 **Backup System Improvements**

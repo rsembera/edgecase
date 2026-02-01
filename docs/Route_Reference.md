@@ -825,6 +825,11 @@ def generate_report_pdf()
 ```
 **Purpose:** Generate financial reports
 
+**Query Params (for /pdf):**
+- `start_date`, `end_date` - Date range
+- `include_income`, `include_expenses` - Filter by type
+- `attachments` - Include receipt/invoice appendix (1 or 0)
+
 ---
 
 ### Autocomplete Suggestion Removal
