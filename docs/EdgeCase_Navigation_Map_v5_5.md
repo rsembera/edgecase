@@ -78,7 +78,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ## DIRECTORY STRUCTURE
 
 ```
-~/apps/edgecase/
+~/Applications/edgecase/
 ├── main.py                      # Application entry point
 ├── requirements.txt             # Python dependencies
 ├── pyproject.toml               # Package configuration
@@ -305,7 +305,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ### Start Server
 ```bash
-cd ~/apps/edgecase
+cd ~/Applications/edgecase
 source venv/bin/activate
 python main.py
 ```
@@ -328,7 +328,7 @@ git push
 
 ### Run Tests
 ```bash
-cd ~/apps/edgecase
+cd ~/Applications/edgecase
 source venv/bin/activate
 pytest tests/ -v
 ```
