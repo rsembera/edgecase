@@ -83,13 +83,17 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # We'll check manually for forms o
 
 @app.before_request
 def csrf_protect_forms():
-    """Apply CSRF protection to form submissions, not JSON APIs."""
+    """Apply CSRF protection to form submissions, not JSON/fetch APIs."""
     if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
-        # Skip CSRF for JSON API requests (protected by same-origin policy)
         content_type = request.content_type or ''
+        # Skip CSRF for JSON API requests (protected by same-origin policy)
         if 'application/json' in content_type:
-            return  # Skip CSRF check for JSON
-        # For regular form submissions (including multipart file uploads), validate CSRF
+            return
+        # Skip CSRF for multipart/form-data from fetch (also same-origin protected)
+        # These are file uploads via JavaScript fetch(), not traditional form submissions
+        if 'multipart/form-data' in content_type:
+            return
+        # For traditional HTML form submissions, validate CSRF
         csrf.protect()
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)

@@ -237,7 +237,10 @@ function closeDeleteEntryModal() {
 
 function deleteEntry() {
     const entryId = window.location.pathname.split('/')[3];
-    fetch(`/ledger/income/${entryId}/delete`, { method: 'POST' })
+    fetch(`/ledger/income/${entryId}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
         .then(r => r.ok ? window.location.href = '/ledger' : alert('Error'))
         .catch(() => alert('Error'));
 }

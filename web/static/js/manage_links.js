@@ -9,7 +9,8 @@ function deleteGroup(groupId, groupName) {
     confirmBtn.onclick = async function() {
         try {
             const response = await fetch(`/links/${groupId}/delete`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
             
             if (response.ok) {
