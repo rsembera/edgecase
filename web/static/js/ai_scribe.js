@@ -39,7 +39,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            const response = await fetch('/api/ai/load', { method: 'POST' });
+            const response = await fetch('/api/ai/load', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
             const data = await response.json();
             
             if (data.success) {

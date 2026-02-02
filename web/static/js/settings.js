@@ -770,7 +770,10 @@ async function uploadSignature() {
 async function deleteLogo() {
     showConfirmModal('Delete Logo', 'Delete practice logo?', async function() {
         try {
-            const response = await fetch('/delete_logo', { method: 'POST' });
+            const response = await fetch('/delete_logo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
             const result = await response.json();
             
             if (result.success) {
@@ -797,7 +800,10 @@ async function deleteLogo() {
 async function deleteSignature() {
     showConfirmModal('Delete Signature', 'Delete digital signature?', async function() {
         try {
-            const response = await fetch('/delete_signature', { method: 'POST' });
+            const response = await fetch('/delete_signature', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
             const result = await response.json();
             
             if (result.success) {
@@ -1305,7 +1311,10 @@ async function downloadAIModel() {
     sizeText.textContent = '';
     
     try {
-        const response = await fetch('/api/ai/download', { method: 'POST' });
+        const response = await fetch('/api/ai/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         
         if (!response.ok) {
             throw new Error('Download request failed');
@@ -1380,7 +1389,10 @@ async function downloadAIModel() {
  */
 async function unloadAIModel() {
     try {
-        const response = await fetch('/api/ai/unload', { method: 'POST' });
+        const response = await fetch('/api/ai/unload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         const data = await response.json();
         
         if (data.success) {
@@ -1416,7 +1428,10 @@ async function confirmDeleteAIModel() {
     lucide.createIcons();
     
     try {
-        const response = await fetch('/api/ai/delete', { method: 'POST' });
+        const response = await fetch('/api/ai/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         const data = await response.json();
         
         if (data.success) {

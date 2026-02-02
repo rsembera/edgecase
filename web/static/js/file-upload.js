@@ -133,7 +133,8 @@ function confirmDelete() {
     if (!deleteAttachmentId) return;
     
     fetch(`/attachment/${deleteAttachmentId}/delete`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
         if (response.ok) {
