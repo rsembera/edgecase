@@ -874,9 +874,10 @@ def send_applescript_email():
     pdf_path = data.get('pdf_path', '')
     email_from = data.get('email_from', '')
     
-    # Escape double quotes and backslashes for AppleScript
+    # Escape for AppleScript string and handle newlines
+    # AppleScript doesn't interpret \n - need to use return character
     def escape_for_applescript(s):
-        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '" & return & "')
     
     subject_escaped = escape_for_applescript(subject)
     body_escaped = escape_for_applescript(body)
