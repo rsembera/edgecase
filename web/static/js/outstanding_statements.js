@@ -388,7 +388,10 @@ function generateStatements() {
  * @param {number} portionId - Statement portion ID
  */
 function markSent(portionId) {
-    fetch(`/statements/mark-sent/${portionId}`, { method: 'POST' })
+    fetch(`/statements/mark-sent/${portionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -419,7 +422,10 @@ function generateOnly(portionId) {
     // Open window immediately to avoid popup blocker
     const pdfWindow = window.open('about:blank', '_blank');
     
-    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, { method: 'POST' })
+    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
