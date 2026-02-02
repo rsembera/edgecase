@@ -342,9 +342,9 @@ def generate_statements():
         # Create statement description (use already-clamped values)
         start_dt = datetime(start_year, start_month, start_day)
         end_dt = datetime(end_year, end_month, end_day)
-        description = f"Statement {start_dt.strftime('%b %Y')}"
+        description = f"Statement {start_dt.strftime('%B %Y')}"
         if start_dt.month != end_dt.month:
-            description = f"Statement {start_dt.strftime('%b')} - {end_dt.strftime('%b %Y')}"
+            description = f"Statement {start_dt.strftime('%B')} - {end_dt.strftime('%B %Y')}"
         
         # Create Statement entry
         cursor.execute("""
