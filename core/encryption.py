@@ -29,6 +29,7 @@ def _get_salt() -> bytes:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     salt = os.urandom(32)
     salt_file.write_bytes(salt)
+    os.chmod(salt_file, 0o600)  # Owner read/write only
     
     return salt
 

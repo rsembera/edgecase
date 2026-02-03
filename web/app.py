@@ -34,6 +34,7 @@ def _get_secret_key() -> bytes:
     secret_file.parent.mkdir(parents=True, exist_ok=True)
     key = os.urandom(24)
     secret_file.write_bytes(key)
+    os.chmod(secret_file, 0o600)  # Owner read/write only
     
     return key
 
