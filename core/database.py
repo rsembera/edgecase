@@ -6,6 +6,7 @@ Handles SQLite database operations with SQLCipher encryption.
 import sqlcipher3 as sqlite3  # Drop-in replacement with encryption
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+import os
 import time
 import threading
 from datetime import datetime, timedelta
@@ -30,6 +31,9 @@ class Database:
         self.password = password
         self._local = threading.local()  # Thread-local storage for connections
         self._initialize_schema()
+        # Restrict database file permissions to owner only
+        if self.db_path.exists():
+            os.chmod(self.db_path, 0o600)
         
     def connect(self):
         """Return thread-local database connection with encryption."""
