@@ -483,7 +483,8 @@ function triggerAppleScriptEmail(data) {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            window.location.reload();
+            // Delay reload so Mail.app keeps focus after activate
+            setTimeout(() => window.location.reload(), 2000);
         } else {
             alert('AppleScript email failed: ' + result.error + '\n\nFalling back to mailto...');
             triggerMailtoEmail(data);
