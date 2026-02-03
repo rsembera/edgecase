@@ -98,11 +98,13 @@ Usage: python main.py [options]
 
 Options:
   --port=XXXX    Port to run on (default: 8080)
+  --lan          Allow access from other devices on your network (e.g. iPad)
   --dev          Development mode with auto-reload
   --help         Show this message
 
 Environment variables:
   EDGECASE_PORT  Port number (default: 8080)
+  EDGECASE_LAN   Set to 1 to allow LAN access
   EDGECASE_DATA  Custom data directory
 """
     print(help_text)
@@ -220,15 +222,24 @@ def run():
             webbrowser.open(f'http://localhost:{port}')
         threading.Thread(target=open_browser, daemon=True).start()
     
+    # Bind to localhost only by default (security: don't expose to network)
+    # Use --lan flag or EDGECASE_LAN=1 for access from other devices (e.g. iPad)
+    lan_mode = '--lan' in sys.argv or os.environ.get('EDGECASE_LAN') == '1'
+    bind_host = '0.0.0.0' if lan_mode else '127.0.0.1'
+    
     # Check for --dev flag for development mode with auto-reload
     if '--dev' in sys.argv:
         print("\nStarting in DEVELOPMENT mode (auto-reload enabled)...")
+        if lan_mode:
+            print("LAN access enabled - accessible from other devices on your network")
         print(f"Open your browser to: http://localhost:{port}")
         print("\nPress Ctrl+C to stop the server\n")
-        app.run(host='0.0.0.0', port=port, debug=True)
+        app.run(host=bind_host, port=port, debug=True)
     else:
         # Production mode with Waitress
         print("\nStarting web server...")
+        if lan_mode:
+            print("LAN access enabled - accessible from other devices on your network")
         print(f"Open your browser to: http://localhost:{port}")
         print("\nPress Ctrl+C to stop the server\n")
-        serve(app, host='0.0.0.0', port=port)
+        serve(app, host=bind_host, port=port)

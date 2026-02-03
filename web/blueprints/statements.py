@@ -877,10 +877,15 @@ def send_applescript_email():
     # Escape for AppleScript string and handle newlines
     # AppleScript doesn't interpret \n - need to use return character
     def escape_for_applescript(s):
+        if not s:
+            return ''
         return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '" & return & "')
     
     subject_escaped = escape_for_applescript(subject)
     body_escaped = escape_for_applescript(body)
+    recipient_escaped = escape_for_applescript(recipient)
+    pdf_path_escaped = escape_for_applescript(pdf_path)
+    email_from_escaped = escape_for_applescript(email_from)
     
     # Build AppleScript
     applescript = f'''
@@ -888,10 +893,10 @@ def send_applescript_email():
         set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
         
         tell newMessage
-            make new to recipient at end of to recipients with properties {{address:"{recipient}"}}
+            make new to recipient at end of to recipients with properties {{address:"{recipient_escaped}"}}
             
-            if "{pdf_path}" is not "" then
-                make new attachment with properties {{file name:POSIX file "{pdf_path}"}} at after last paragraph
+            if "{pdf_path_escaped}" is not "" then
+                make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
             end if
         end tell
         
@@ -905,7 +910,7 @@ def send_applescript_email():
         tell application "Mail"
             set senderAccount to null
             repeat with acct in accounts
-                if (email addresses of acct) contains "{email_from}" then
+                if (email addresses of acct) contains "{email_from_escaped}" then
                     set senderAccount to acct
                     exit repeat
                 end if
@@ -914,14 +919,14 @@ def send_applescript_email():
             set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
             
             if senderAccount is not null then
-                set sender of newMessage to "{email_from}"
+                set sender of newMessage to "{email_from_escaped}"
             end if
             
             tell newMessage
-                make new to recipient at end of to recipients with properties {{address:"{recipient}"}}
+                make new to recipient at end of to recipients with properties {{address:"{recipient_escaped}"}}
                 
-                if "{pdf_path}" is not "" then
-                    make new attachment with properties {{file name:POSIX file "{pdf_path}"}} at after last paragraph
+                if "{pdf_path_escaped}" is not "" then
+                    make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
                 end if
             end tell
             

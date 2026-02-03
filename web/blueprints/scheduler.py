@@ -205,6 +205,11 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
         desc_parts.append(f'\n---\n{notes}')
     description = escape_applescript_text(''.join(desc_parts))
     
+    # Escape all interpolated values
+    calendar_name_escaped = escape_applescript_text(calendar_name)
+    file_number_escaped = escape_applescript_text(file_number)
+    meet_link_escaped = escape_applescript_text(meet_link) if meet_link else ''
+    
     # Build recurrence rule (iCal RRULE format)
     recurrence_rule = ''
     if repeat == 'weekly':
@@ -217,11 +222,11 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     # Build the AppleScript
     script = f'''
     tell application "Calendar"
-        tell calendar "{calendar_name}"
-            set newEvent to make new event with properties {{summary:"{file_number}", start date:date "{start_str}", end date:date "{end_str}", description:"{description}"'''
+        tell calendar "{calendar_name_escaped}"
+            set newEvent to make new event with properties {{summary:"{file_number_escaped}", start date:date "{start_str}", end date:date "{end_str}", description:"{description}"'''
     
     if meet_link:
-        script += f', url:"{meet_link}", location:"{meet_link}"'
+        script += f', url:"{meet_link_escaped}", location:"{meet_link_escaped}"'
     
     if recurrence_rule:
         script += f', recurrence:"{recurrence_rule}"'
