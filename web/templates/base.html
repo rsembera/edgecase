@@ -353,7 +353,11 @@
         
         // Expose stayLoggedIn to global scope
         window.stayLoggedIn = function() {
-            fetch('/api/keepalive', { method: 'POST' })
+            fetch('/api/keepalive', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}'
+            })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
@@ -388,7 +392,7 @@
         let lastActivityTime = Date.now();
         let lastKeepaliveSent = Date.now();
         let timeoutCheckInterval = null;
-        const KEEPALIVE_INTERVAL_MS = 60000; // Ping server max once per minute
+        const KEEPALIVE_INTERVAL_MS = 30000; // Ping server every 30 seconds (matches session check interval)
         
         // Expose reset function for Stay Logged In button
         window.resetActivityTimer = function() {
@@ -415,7 +419,7 @@
             .catch(() => {});
         
         function trackActivity() {
-            const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+            const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
             events.forEach(event => {
                 document.addEventListener(event, function() {
                     lastActivityTime = Date.now();
@@ -441,8 +445,19 @@
         
         function sendKeepalive() {
             lastKeepaliveSent = Date.now();
-            fetch('/api/keepalive', { method: 'POST' })
-                .catch(() => {});
+            console.log('[Keepalive] Sending ping to server...');
+            fetch('/api/keepalive', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}'
+            })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('[Keepalive] Server response:', data);
+                })
+                .catch(err => {
+                    console.error('[Keepalive] Failed:', err);
+                });
         }
         
         function checkTimeoutNow() {
