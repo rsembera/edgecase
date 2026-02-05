@@ -353,11 +353,11 @@ def session_status():
     # 30 min -> warn at 3 min (180s)
     # 60+ min -> warn at 5 min (300s)
     if timeout_minutes <= 15:
-        warning_threshold = 120
+        warning_threshold = 135
     elif timeout_minutes <= 30:
-        warning_threshold = 180
+        warning_threshold = 195
     else:
-        warning_threshold = 300
+        warning_threshold = 315
     
     return jsonify({
         'logged_in': True,
