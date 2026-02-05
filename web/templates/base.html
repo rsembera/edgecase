@@ -358,6 +358,10 @@
                 .then(data => {
                     if (data.success) {
                         hideWarning();
+                        // Also reset client-side activity tracker
+                        if (window.resetActivityTimer) {
+                            window.resetActivityTimer();
+                        }
                     }
                 })
                 .catch(() => {});
@@ -385,6 +389,12 @@
         let lastKeepaliveSent = Date.now();
         let timeoutCheckInterval = null;
         const KEEPALIVE_INTERVAL_MS = 60000; // Ping server max once per minute
+        
+        // Expose reset function for Stay Logged In button
+        window.resetActivityTimer = function() {
+            lastActivityTime = Date.now();
+            lastKeepaliveSent = Date.now();
+        };
         
         // Get timeout setting from server
         fetch('/api/session-status')
