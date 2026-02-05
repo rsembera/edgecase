@@ -445,19 +445,14 @@
         
         function sendKeepalive() {
             lastKeepaliveSent = Date.now();
-            console.log('[Keepalive] Sending ping to server...');
             fetch('/api/keepalive', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: '{}'
             })
                 .then(r => r.json())
-                .then(data => {
-                    console.log('[Keepalive] Server response:', data);
-                })
-                .catch(err => {
-                    console.error('[Keepalive] Failed:', err);
-                });
+                .then(data => {})
+                .catch(err => {});
         }
         
         function checkTimeoutNow() {
