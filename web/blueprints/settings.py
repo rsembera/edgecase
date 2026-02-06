@@ -570,7 +570,7 @@ def reset_database():
     if confirmation != 'RESET':
         return jsonify({'success': False, 'error': 'Please type RESET to confirm'}), 400
     
-    # Validate password
+    # Validate password with fresh decryption test
     if not db.verify_password(password):
         return jsonify({'success': False, 'error': 'Incorrect password'}), 401
     

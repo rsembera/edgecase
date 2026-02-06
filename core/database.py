@@ -64,8 +64,21 @@ class Database:
         conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     
     def verify_password(self, password):
-        """Verify if the given password matches the database password."""
-        return password == self.password
+        """Verify if the given password can decrypt the database.
+        
+        Opens a fresh connection to test the password rather than
+        comparing against the in-memory password string.
+        """
+        try:
+            import sqlcipher3 as test_sqlite3
+            test_conn = test_sqlite3.connect(str(self.db_path), timeout=5.0)
+            escaped = password.replace("'", "''")
+            test_conn.execute(f"PRAGMA key = '{escaped}'")
+            test_conn.execute("SELECT count(*) FROM client_types")
+            test_conn.close()
+            return True
+        except Exception:
+            return False
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
