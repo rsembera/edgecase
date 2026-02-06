@@ -821,7 +821,7 @@ def edit_session(client_id, entry_id):
     session_month = None
     session_day = None
     if session_entry.get('session_date'):
-        session_dt = datetime.fromtimestamp(session['session_date'])
+        session_dt = datetime.fromtimestamp(session_entry['session_date'])
         session_year = session_dt.year
         session_month = session_dt.month
         session_day = session_dt.day
