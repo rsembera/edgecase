@@ -248,10 +248,15 @@ def change_password():
         if not db:
             return redirect(url_for('auth.login'))
         
-        # Verify current password first
+        # Verify current password by opening a fresh connection
+        # (Don't just test the existing connection — it's already authenticated)
         try:
-            conn = db.connect()
-            conn.execute("SELECT 1")  # Verify we can read with current password
+            import sqlcipher3 as sqlite3
+            test_conn = sqlite3.connect(str(db.db_path), timeout=5.0)
+            escaped = current_password.replace("'", "''")
+            test_conn.execute(f"PRAGMA key = '{escaped}'")
+            test_conn.execute("SELECT count(*) FROM client_types")
+            test_conn.close()
         except Exception as e:
             return render_template('change_password.html', error="Current password is incorrect")
         
