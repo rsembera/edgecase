@@ -79,9 +79,9 @@ def renumber_sessions(client_id):
     dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
     
     # Renumber sessions starting from (offset + 1)
-    for i, session in enumerate(dated_sessions, start=offset + 1):
-        if session['session_number'] != i:
-            db.update_entry(session['id'], {
+    for i, sess in enumerate(dated_sessions, start=offset + 1):
+        if sess['session_number'] != i:
+            db.update_entry(sess['id'], {
                 'session_number': i,
                 'description': f"Session {i}"
             })
@@ -606,22 +606,22 @@ def edit_session(client_id, entry_id):
     client_type = db.get_client_type(client['type_id'])
     
     # Get existing session entry
-    session = db.get_entry(entry_id)
+    session_entry = db.get_entry(entry_id)
     
-    if not session or session['class'] != 'session':
+    if not session_entry or session_entry['class'] != 'session':
         return "Session not found", 404
     
     # Redirect to redacted view if this entry has been redacted
-    if session.get('is_redacted'):
+    if session_entry.get('is_redacted'):
         return redirect(url_for('entries.view_redacted_entry', 
                                 client_id=client_id, entry_id=entry_id))
     
     if request.method == 'POST':
         # Get the old session data for comparison
-        old_session = session.copy()
+        old_session = session_entry.copy()
         
         # Check if entry is billed (has statement_id) - billing fields cannot be changed
-        is_billed = session.get('statement_id') is not None
+        is_billed = session_entry.get('statement_id') is not None
         
         # Check if consultation
         is_consultation = 1 if request.form.get('is_consultation') else 0
@@ -671,10 +671,10 @@ def edit_session(client_id, entry_id):
             session_data['fee'] = 0
             session_data['base_fee'] = 0
             session_data['tax_rate'] = 0
-            session_data['description'] = f"Session {session['session_number']} (Pro Bono)"
+            session_data['description'] = f"Session {session_entry['session_number']} (Pro Bono)"
         else:
             # Keep existing session number
-            session_data['description'] = f"Session {session['session_number']}"
+            session_data['description'] = f"Session {session_entry['session_number']}"
         
         # Check if this is a draft save (or AI Scribe - treat as draft)
         is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
@@ -820,7 +820,7 @@ def edit_session(client_id, entry_id):
     session_year = None
     session_month = None
     session_day = None
-    if session.get('session_date'):
+    if session_entry.get('session_date'):
         session_dt = datetime.fromtimestamp(session['session_date'])
         session_year = session_dt.year
         session_month = session_dt.month
@@ -888,7 +888,7 @@ def edit_session(client_id, entry_id):
     return render_template('entry_forms/session.html',
                          client=client,
                          client_type=client_type,
-                         session=session,
+                         session=session_entry,
                          profile_override=profile_override,
                          profile_fees=profile_fees,
                          link_group_fees=link_group_fees,

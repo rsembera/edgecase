@@ -6,6 +6,7 @@ Handles SQLite database operations with SQLCipher encryption.
 import sqlcipher3 as sqlite3  # Drop-in replacement with encryption
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+import json
 import os
 import time
 import threading
@@ -785,7 +786,6 @@ class Database:
     
     def lock_entry(self, entry_id):
         """Lock an entry after first save, making it immutable."""
-        import time
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -809,8 +809,6 @@ class Database:
 
     def add_to_edit_history(self, entry_id, change_description):
         """Add an edit to the entry's history."""
-        import time
-        import json
         
         conn = self.connect()
         cursor = conn.cursor()
@@ -838,7 +836,6 @@ class Database:
 
     def get_edit_history(self, entry_id):
         """Get the edit history for an entry."""
-        import json
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -1403,7 +1400,6 @@ class Database:
     
     def set_setting(self, key: str, value: str):
         """Set a setting value."""
-        import time
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -1435,7 +1431,6 @@ class Database:
 
     def add_payee(self, name: str) -> int:
         """Add a new payee to the payees table."""
-        import time
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -1511,7 +1506,6 @@ class Database:
 
     def add_expense_category(self, name: str) -> int:
         """Add a new expense category."""
-        import time
         conn = self.connect()
         cursor = conn.cursor()
         
@@ -1831,7 +1825,6 @@ class Database:
         Get all Inactive clients whose retention period has expired.
         Returns list of dicts with client info and calculated retain_until.
         """
-        import time
         from datetime import datetime
         
         conn = self.connect()
@@ -1931,7 +1924,6 @@ class Database:
         Archive client info and delete all their data.
         Returns True on success, False on failure.
         """
-        import time
         import os
         import shutil
         from datetime import datetime
@@ -2055,7 +2047,6 @@ class Database:
         """
         When changing to Inactive, store the retention_days from the original type.
         """
-        import time
         conn = self.connect()
         cursor = conn.cursor()
         
