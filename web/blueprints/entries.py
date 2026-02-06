@@ -897,7 +897,7 @@ def edit_session(client_id, entry_id):
                          session_day=session_day,
                          is_edit=True,
                          is_locked=is_locked,
-                         is_billed=session.get('statement_id') is not None,
+                         is_billed=session_entry.get('statement_id') is not None,
                          edit_history=edit_history,
                          prev_session_id=prev_session_id,
                          next_session_id=next_session_id)
