@@ -58,7 +58,7 @@ Flask code stays identical either way. Pywebview is purely a window around the s
 - [ ] Create .dmg for drag-to-Applications install
 
 **Code signing:**
-- [ ] Enroll in Apple Developer Program ($99 USD/year)
+- [ ] Enroll in Apple Developer Program
 - [ ] Obtain Developer ID certificate
 - [ ] Sign the .app bundle
 - [ ] Submit for notarization
