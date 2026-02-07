@@ -1031,7 +1031,7 @@ def detect_cloud_folders():
     if dropbox.exists():
         cloud_folders.append({
             'name': 'Dropbox',
-            'path': str(dropbox / 'EdgeCase Backups')
+            'path': str(dropbox / 'Apps' / 'EdgeCase Backups')
         })
     
     # Google Drive (new location)
