@@ -10,6 +10,17 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/session.js') }}"></script>
+<script>
+// Auto-size session notes textarea on load
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    if (textarea && textarea.value) {
+        textarea.style.height = 'auto';
+        const minHeight = 300;
+        textarea.style.height = Math.max(minHeight, textarea.scrollHeight + 4) + 'px';
+    }
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -311,18 +322,4 @@
 }
 </script>
 
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Auto-size session notes textarea on load
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.getElementById('content');
-    if (textarea && textarea.value) {
-        textarea.style.height = 'auto';
-        const minHeight = 300;
-        textarea.style.height = Math.max(minHeight, textarea.scrollHeight + 4) + 'px';
-    }
-});
-</script>
 {% endblock %}
