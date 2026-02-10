@@ -180,6 +180,9 @@ def _run_auto_backup_check(db):
         from utils import backup
         import subprocess
         
+        # Checkpoint WAL to ensure all changes are in main database file
+        db.checkpoint()
+        
         frequency = db.get_setting('backup_frequency', 'daily')
         print(f"[Backup] Frequency setting: {frequency}")
         
@@ -289,6 +292,9 @@ def change_password_progress():
         try:
             # Step 0: Create safety backup before making any changes
             yield f"data: {json.dumps({'status': 'backup', 'message': 'Creating safety backup...'})}\n\n"
+            
+            # Checkpoint WAL to ensure all changes are in main database file
+            db.checkpoint()
             
             try:
                 from utils.backup import create_backup
