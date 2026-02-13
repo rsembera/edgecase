@@ -27,7 +27,7 @@
 
 /* Only in profile is the badge clickable */
 .type-badge-wrapper .type-badge {
-    cursor: pointer;
+    cursor: pointer !important;
 }
 
 .type-dropdown {

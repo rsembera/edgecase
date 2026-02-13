@@ -1,6 +1,11 @@
 /* Client File View - Custom Styles */
 /* Shared patterns from shared.css: controls-bar, search-box, table base, year/month headers, empty-state */
 
+/* Type badge is clickable in client file */
+.type-badge-wrapper .type-badge {
+    cursor: pointer;
+}
+
 /* Profile entry styling (unique to client file) */
 .profile-entry {
     padding: 1.5rem;
