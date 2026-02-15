@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** February 5, 2026  
+**Last Updated:** February 15, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,15 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### February 15, 2026
+
+**Statement Email Font Consistency**
+- Fixed inconsistent font rendering in Apple Mail statement emails
+- Salutation ("Dear Name,") was rendering in different font than body text when exported
+- Changed AppleScript email generation from plain text `content` to `html content`
+- All text now wrapped in styled divs with explicit Helvetica font family
+- Thunderbird/Betterbird path unchanged (uses plain text which renders consistently)
 
 ### February 5, 2026
 
