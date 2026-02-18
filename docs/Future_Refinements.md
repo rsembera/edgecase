@@ -12,13 +12,15 @@ This document tracks architectural improvements and refactoring ideas that aren'
 
 ### Current State
 
-EdgeCase uses a `refresh_hash_baseline()` function that must be called after every `Database.checkpoint()` to prevent WAL checkpoint operations from triggering false-positive backup detection. This works but requires developer discipline - miss a checkpoint site and you get subtle bugs (as happened in MailRepo, February 2026).
+EdgeCase's backup system uses frequency-first checking (`check_backup_needed()` checks `last_backup_check` timestamp before comparing hashes), which largely avoids the WAL checkpoint false-positive issue. However, the backup state is still stored in the manifest file alongside backup metadata.
 
-See `docs/WAL_Checkpoint_Backup_Issue.md` for full background.
+MailRepo uses a `refresh_hash_baseline()` function that must be called after every `Database.checkpoint()`. This requires developer discipline - miss a checkpoint site and you get subtle bugs (as happened in MailRepo, February 2026).
+
+See `docs/WAL_Checkpoint_Backup_Issue.md` for full background on the different approaches.
 
 ### Proposed Improvement
 
-Adopt Libram's external state file pattern, which eliminates the need for manual coordination entirely.
+Adopt Libram's external state file pattern for both EdgeCase and MailRepo, which provides the cleanest architecture.
 
 **Key changes:**
 
@@ -58,21 +60,20 @@ Adopt Libram's external state file pattern, which eliminates the need for manual
    })
    ```
 
-4. Modify `check_backup_needed()` to check frequency *before* comparing hashes (avoids unnecessary hash computation).
+4. Keep frequency-first checking in `check_backup_needed()` (EdgeCase already does this).
 
-5. Remove `refresh_hash_baseline()` calls from `main.py` and any blueprints - they become unnecessary.
-
-6. Remove `last_full_hashes` and `last_backup_check` from the manifest (or keep for backward compatibility during transition).
+5. Remove `last_full_hashes` and `last_backup_check` from the manifest (or keep for backward compatibility during transition).
 
 ### Why This Is Better
 
-- **No manual coordination required** - developers can't forget to call `refresh_hash_baseline()`
+- **Separation of concerns** - backup state separate from backup metadata
+- **No manual coordination required** - no need for `refresh_hash_baseline()` calls
 - **Avoids circular modification** - checking database state doesn't modify the database
-- **Frequency-first checking** - skip hash comparison entirely when backup isn't due
+- **Consistent across projects** - same pattern in EdgeCase, MailRepo, and Libram
 
 ### Why We Haven't Done It Yet
 
-EdgeCase is production with real clients. The current fix works. This is a "nice to have" architectural improvement, not a bug fix.
+EdgeCase is production with real clients. The current frequency-first approach works fine. This is a "nice to have" architectural improvement for consistency across projects, not a bug fix.
 
 ### Reference Implementation
 
