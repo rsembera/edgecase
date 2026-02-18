@@ -268,35 +268,8 @@ def require_login():
             # Session expired - run backup before clearing
             print("[Timeout] Session expired, running backup check...")
             try:
-                from utils import backup
-                import subprocess
-                
-                # Checkpoint WAL first so backup captures all changes
-                db.checkpoint()
-                
-                frequency = db.get_setting('backup_frequency', 'daily')
-                if backup.check_backup_needed(frequency):
-                    print("[Timeout] Backup needed, creating...")
-                    location = db.get_setting('backup_location', '')
-                    if not location:
-                        location = None
-                    result = backup.create_backup(location)
-                    if result:
-                        print(f"[Timeout] Automatic backup completed: {result['filename']}")
-                        # Run post-backup command if configured
-                        post_cmd = db.get_setting('post_backup_command', '')
-                        if post_cmd:
-                            try:
-                                import shlex
-                                subprocess.run(shlex.split(post_cmd), timeout=300)
-                                print("[Timeout] Post-backup command completed")
-                            except Exception as cmd_error:
-                                print(f"[Timeout] Post-backup command error: {cmd_error}")
-                    else:
-                        print("[Timeout] No changes to backup")
-                    backup.record_backup_check()
-                else:
-                    print("[Timeout] Backup not needed (frequency check)")
+                from web.cli import _run_shutdown_backup
+                _run_shutdown_backup(db, label="Timeout")
             except Exception as e:
                 print(f"[Timeout] Backup error: {e}")
             
