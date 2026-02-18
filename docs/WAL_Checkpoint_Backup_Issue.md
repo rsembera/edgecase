@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes a subtle but important issue that can cause backup systems to create unnecessary backups when using SQLite in WAL (Write-Ahead Logging) mode. The issue has been encountered and resolved in both EdgeCase Equalizer and MailRepo.
+This document describes a subtle issue that can cause backup systems to create unnecessary backups when using SQLite in WAL (Write-Ahead Logging) mode. Different projects handle this differently.
 
 ## The Problem
 
@@ -12,7 +12,7 @@ SQLite's WAL mode improves concurrency by writing changes to a separate `-wal` f
 
 ### How This Affects Backups
 
-Our backup systems use file hashes to detect changes:
+Backup systems that use file hashes to detect changes can be fooled:
 1. After a backup, we store the SHA-256 hash of each file (including the `.db` file)
 2. Before the next backup, we compare current hashes to stored hashes
 3. If hashes differ, we know the file changed and needs backing up
@@ -34,9 +34,24 @@ The problem occurs in this sequence:
 - Backup logs showing activity even during idle periods
 - Multiple small backups accumulating with minimal actual changes
 
-## The Solution
+## Solutions by Project
 
-### The `refresh_hash_baseline()` Function
+### EdgeCase Approach: Frequency-First Checking
+
+EdgeCase avoids this issue through its backup flow design:
+
+1. `check_backup_needed(frequency)` checks the `last_backup_check` timestamp first
+2. If a backup isn't due based on frequency settings, hash comparison never happens
+3. After any backup attempt (successful or "no changes"), `record_backup_check()` updates the timestamp
+4. The next check sees "already checked today" and skips entirely
+
+This means WAL checkpoint timing doesn't matter - if we already checked/backed up today, we won't check again regardless of hash changes.
+
+**Key function:** `record_backup_check()` in `utils/backup.py`
+
+### MailRepo Approach: Hash Baseline Refresh
+
+MailRepo uses an explicit `refresh_hash_baseline()` function that must be called after every `checkpoint()`:
 
 ```python
 def refresh_hash_baseline():
@@ -52,85 +67,38 @@ def refresh_hash_baseline():
         save_manifest(manifest)
 ```
 
-This function recalculates and stores the current file hashes, effectively saying "the current state is the baseline - don't treat it as a change."
+This requires discipline - every `checkpoint()` call site needs a corresponding `refresh_hash_baseline()` call.
 
-### Where to Call It
+### Libram Approach: External State File (Best)
 
-**Critical Rule:** Call `refresh_hash_baseline()` immediately after any `Database.checkpoint()` call, BEFORE any backup logic runs.
+Libram stores backup state in an external JSON file (`data/.backup_state.json`) rather than in the manifest. This:
+- Avoids circular modification (checking state doesn't change state)
+- Checks frequency before comparing hashes
+- Captures final hash after checkpoint automatically
 
-Typical locations that need this fix:
+See `/Users/rick/Applications/libram/docs/WAL_Checkpoint_Backup_Handling.md` for details.
 
-1. **Shutdown/cleanup handlers** - where checkpoint is called before exit
-2. **Logout handlers** - where auto-backup runs on session end
-3. **Manual backup endpoints** - where user triggers "Backup Now"
-4. **Any scheduled backup job** - if it does checkpoint first
+## Comparison
 
-### Code Pattern
-
-```python
-# WRONG - will cause unnecessary backups
-Database.checkpoint()
-if backup.check_backup_needed(frequency):
-    result = backup.create_backup(location)
-
-# CORRECT - refresh baseline after checkpoint
-Database.checkpoint()
-backup.refresh_hash_baseline()  # ← Add this line
-if backup.check_backup_needed(frequency):
-    result = backup.create_backup(location)
-```
-
-## Implementation Checklist
-
-When implementing or debugging this issue, check all these locations:
-
-- [ ] `main.py` - shutdown handler / cleanup function
-- [ ] Auth blueprint - logout route and auto-backup check
-- [ ] Backups blueprint - manual "Backup Now" endpoint
-- [ ] Any scheduled/cron backup tasks
-- [ ] Any other code that calls `Database.checkpoint()`
-
-### Search Commands
-
-To find all checkpoint calls that might need the fix:
-```bash
-grep -rn "checkpoint()" --include="*.py" /path/to/project
-```
-
-To verify refresh_hash_baseline is being called:
-```bash
-grep -rn "refresh_hash_baseline" --include="*.py" /path/to/project
-```
-
-## Testing
-
-To verify the fix is working:
-
-1. Start the application fresh
-2. Make a small change and let it back up
-3. Wait for the backup frequency period (or trigger manually)
-4. Check if a new backup was created
-5. If no changes were made, the backup should report "No changes since last backup"
+| Aspect | EdgeCase | MailRepo | Libram |
+|--------|----------|----------|--------|
+| WAL protection | Frequency-first check | Manual refresh calls | External state file |
+| Manual coordination | None needed | Required at each checkpoint | None needed |
+| Failure mode | None (frequency check protects) | Missed refresh → extra backups | None |
+| Complexity | Low | Medium (discipline required) | Low |
 
 ## History
 
 | Date | Project | Issue | Resolution |
 |------|---------|-------|------------|
-| Dec 2025 | EdgeCase | Backups on every shutdown | Added refresh_hash_baseline() to main.py cleanup |
-| Feb 2026 | MailRepo | Backups more frequent than expected | Added refresh_hash_baseline() to auth.py and backups.py |
-
-## Related Files
-
-### EdgeCase
-- `utils/backup.py` - contains `refresh_hash_baseline()`
-- `main.py` - shutdown handler
-
-### MailRepo
-- `utils/backup.py` - contains `refresh_hash_baseline()`
-- `main.py` - shutdown handler
-- `web/blueprints/auth.py` - logout and auto-backup
-- `web/blueprints/backups.py` - manual backup endpoint
+| Feb 2026 | MailRepo | Backups more frequent than expected | Added `refresh_hash_baseline()` to auth.py and backups.py |
+| Feb 2026 | EdgeCase | (No issue) | Frequency-first design prevents the problem |
 
 ## Key Insight
 
-The fundamental issue is a **mismatch between logical state and binary representation**. SQLite WAL mode is excellent for performance and concurrency, but it means the `.db` file's binary content can change without any logical data changes. Any hash-based change detection must account for this by refreshing its baseline after checkpoint operations.
+The fundamental issue is a **mismatch between logical state and binary representation**. SQLite WAL mode is excellent for performance and concurrency, but it means the `.db` file's binary content can change without any logical data changes.
+
+Different solutions:
+- **Refresh baseline after checkpoint** (MailRepo) - requires discipline
+- **Check frequency before hashes** (EdgeCase) - avoids the comparison entirely
+- **External state file** (Libram) - cleanest architecture, no coordination needed
