@@ -96,8 +96,6 @@ def outstanding_statements():
         portions.append(portion)
     
     # Calculate default date range (last month)
-    
-    # Calculate default date range (last month)
     today = datetime.now()
     first_of_this_month = today.replace(day=1)
     last_month_end = first_of_this_month - timedelta(days=1)
