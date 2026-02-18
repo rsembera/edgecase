@@ -43,6 +43,31 @@ def _heartbeat_monitor():
             break
 
 
+def _run_shutdown_backup(db, label="Shutdown"):
+    """Checkpoint WAL and run backup check. Shared by all shutdown paths."""
+    import subprocess
+    try:
+        from utils import backup
+        db.checkpoint()
+        frequency = db.get_setting('backup_frequency', 'daily')
+        if backup.check_backup_needed(frequency):
+            location = db.get_setting('backup_location', '')
+            result = backup.create_backup(location if location else None)
+            if result:
+                print(f"[{label}] Backup completed: {result['filename']}")
+                post_cmd = db.get_setting('post_backup_command', '')
+                if post_cmd:
+                    try:
+                        import shlex
+                        subprocess.run(shlex.split(post_cmd), timeout=300)
+                        print(f"[{label}] Post-backup command completed")
+                    except Exception as cmd_error:
+                        print(f"[{label}] Post-backup command error: {cmd_error}")
+            backup.record_backup_check()
+    except Exception as e:
+        print(f"[{label}] Backup warning: {e}")
+
+
 def _cleanup():
     """Cleanup function for atexit - backup and checkpoint database."""
     global _cleanup_done
@@ -53,34 +78,11 @@ def _cleanup():
     try:
         from flask import current_app
         from web.app import app
-        import subprocess
         
         with app.app_context():
             db = current_app.config.get('db')
             if db:
-                # Checkpoint WAL first so backup captures all changes
-                db.checkpoint()
-                # Run backup check before shutdown
-                try:
-                    from utils import backup
-                    frequency = db.get_setting('backup_frequency', 'daily')
-                    if backup.check_backup_needed(frequency):
-                        location = db.get_setting('backup_location', '')
-                        result = backup.create_backup(location if location else None)
-                        if result:
-                            print(f"Backup completed: {result['filename']}")
-                            # Run post-backup command if configured
-                            post_cmd = db.get_setting('post_backup_command', '')
-                            if post_cmd:
-                                try:
-                                    import shlex
-                                    subprocess.run(shlex.split(post_cmd), timeout=300)
-                                    print("Post-backup command completed")
-                                except Exception as cmd_error:
-                                    print(f"Post-backup command error: {cmd_error}")
-                        backup.record_backup_check()
-                except Exception as e:
-                    print(f"Backup warning: {e}")
+                _run_shutdown_backup(db, label="atexit")
     except Exception:
         pass  # Silent fail on exit
 
@@ -122,38 +124,13 @@ def shutdown_handler(signum, frame):
         try:
             from flask import current_app
             from web.app import app
-            import subprocess
             
             with app.app_context():
                 db = current_app.config.get('db')
                 if db:
-                    # Checkpoint WAL first so backup captures all changes
-                    db.checkpoint()
-                    # Run backup check before shutdown
-                    try:
-                        from utils import backup
-                        frequency = db.get_setting('backup_frequency', 'daily')
-                        if backup.check_backup_needed(frequency):
-                            location = db.get_setting('backup_location', '')
-                            result = backup.create_backup(location if location else None)
-                            if result:
-                                print(f"Backup completed: {result['filename']}")
-                                # Run post-backup command if configured
-                                post_cmd = db.get_setting('post_backup_command', '')
-                                if post_cmd:
-                                    try:
-                                        import shlex
-                                        subprocess.run(shlex.split(post_cmd), timeout=300)
-                                        print("Post-backup command completed")
-                                    except Exception as cmd_error:
-                                        print(f"Post-backup command error: {cmd_error}")
-                            backup.record_backup_check()
-                    except Exception as e:
-                        print(f"Backup warning: {e}")
-                    
+                    _run_shutdown_backup(db, label="Shutdown")
                     print("Database checkpoint completed.")
         except Exception as e:
-            # Best effort - don't crash on shutdown
             print(f"Shutdown warning: {e}")
     
     sys.exit(0)

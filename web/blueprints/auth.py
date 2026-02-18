@@ -8,6 +8,8 @@ from pathlib import Path
 from functools import wraps
 import time
 import json
+import os
+import tempfile
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -394,15 +396,58 @@ def _count_encrypted_files(db) -> int:
     return count
 
 
+def _atomic_reencrypt(filepath: str, old_password: str, new_password: str) -> None:
+    """Re-encrypt a single file atomically - plaintext never touches the original path.
+    
+    Strategy:
+    1. Decrypt to a temp file in the same directory (same filesystem = atomic rename)
+    2. Encrypt the temp file in place with new password
+    3. Atomically replace the original with the newly encrypted temp file
+    
+    If anything fails, the original encrypted file is untouched.
+    """
+    from core.encryption import decrypt_file_to_bytes, encrypt_file
+    
+    original = Path(filepath)
+    parent_dir = original.parent
+    
+    # Write to a temp file in the same directory so os.replace() is atomic
+    fd, tmp_path = tempfile.mkstemp(dir=parent_dir, suffix='.tmp')
+    try:
+        # Decrypt old content and write to temp file
+        data = decrypt_file_to_bytes(filepath, old_password)
+        with os.fdopen(fd, 'wb') as f:
+            f.write(data)
+        fd = None  # fdopen took ownership
+        
+        # Encrypt temp file in place with new password
+        encrypt_file(tmp_path, new_password)
+        
+        # Atomically replace original with newly encrypted temp file
+        os.replace(tmp_path, filepath)
+        tmp_path = None  # os.replace succeeded, nothing to clean up
+        
+    finally:
+        # Clean up temp file if anything went wrong
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        if tmp_path is not None and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
 def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str, total_files: int):
     """Re-encrypt all attachments and assets with new password, yielding progress.
     
+    Uses atomic re-encryption so plaintext never touches the original file path.
     Yields progress dicts. Final yield includes 'failed_files' list if any failures occurred.
     """
-    from core.encryption import decrypt_file_to_bytes, encrypt_file
     from core.config import ASSETS_DIR
-    from pathlib import Path
-    import os
     
     current_file = 0
     failed_files = []
@@ -419,14 +464,7 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
             filename = os.path.basename(filepath)
             
             try:
-                # Decrypt with old password
-                data = decrypt_file_to_bytes(filepath, old_password)
-                # Write decrypted, then encrypt with new password
-                with open(filepath, 'wb') as f:
-                    f.write(data)
-                encrypt_file(filepath, new_password)
-                
-                # Yield progress
+                _atomic_reencrypt(filepath, old_password, new_password)
                 yield {
                     'status': 'encrypting',
                     'total': total_files,
@@ -453,11 +491,7 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
         if logo_path.exists():
             current_file += 1
             try:
-                data = decrypt_file_to_bytes(str(logo_path), old_password)
-                with open(logo_path, 'wb') as f:
-                    f.write(data)
-                encrypt_file(str(logo_path), new_password)
-                
+                _atomic_reencrypt(str(logo_path), old_password, new_password)
                 yield {
                     'status': 'encrypting',
                     'total': total_files,
@@ -484,11 +518,7 @@ def _reencrypt_all_files_with_progress(db, old_password: str, new_password: str,
         if sig_path.exists():
             current_file += 1
             try:
-                data = decrypt_file_to_bytes(str(sig_path), old_password)
-                with open(sig_path, 'wb') as f:
-                    f.write(data)
-                encrypt_file(str(sig_path), new_password)
-                
+                _atomic_reencrypt(str(sig_path), old_password, new_password)
                 yield {
                     'status': 'encrypting',
                     'total': total_files,
