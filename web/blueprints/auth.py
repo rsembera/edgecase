@@ -172,63 +172,13 @@ def login():
     return render_template('login.html', first_run=first_run)
 
 
-def _run_auto_backup_check(db):
-    """
-    Check if automatic backup should run on logout.
-    Runs silently - errors are logged but don't affect logout.
-    """
-    print("[Backup] Running logout backup check...")
-    try:
-        from utils import backup
-        import subprocess
-        
-        # Checkpoint WAL to ensure all changes are in main database file
-        db.checkpoint()
-        
-        frequency = db.get_setting('backup_frequency', 'daily')
-        print(f"[Backup] Frequency setting: {frequency}")
-        
-        if backup.check_backup_needed(frequency):
-            print("[Backup] Backup needed, creating...")
-            location = db.get_setting('backup_location', '')
-            if not location:
-                location = None  # Use default BACKUPS_DIR
-            result = backup.create_backup(location)
-            if result:
-                print(f"[Backup] Automatic backup completed: {result['filename']}")
-                
-                # Run post-backup command if configured
-                post_cmd = db.get_setting('post_backup_command', '')
-                if post_cmd:
-                    try:
-                        import shlex
-                        subprocess.run(shlex.split(post_cmd), timeout=300)
-                        print(f"[Backup] Post-backup command completed")
-                    except Exception as cmd_error:
-                        print(f"[Backup] Post-backup command error: {cmd_error}")
-            else:
-                print("[Backup] No changes to backup")
-            
-            # Record that we checked today (whether backup created or not)
-            backup.record_backup_check()
-        else:
-            print("[Backup] Backup not needed (frequency check)")
-    except Exception as e:
-        # Log and store for user notification
-        error_msg = str(e)
-        print(f"[Backup] Auto-backup failed: {error_msg}")
-        session['backup_warning'] = error_msg
-
-
 @auth_bp.route('/logout')
 def logout():
     """Logout - run backup check and close database connection."""
     db = current_app.config.get('db')
     if db:
-        # Checkpoint WAL first so backup captures all changes
-        db.checkpoint()
-        # Run automatic backup check before closing
-        _run_auto_backup_check(db)
+        from web.cli import _run_shutdown_backup
+        _run_shutdown_backup(db, label="Logout")
         db.close()
     current_app.config['db'] = None
     session.clear()
@@ -299,22 +249,16 @@ def change_password_progress():
             db.checkpoint()
             
             try:
-                from utils.backup import create_backup
-                from core.config import DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+                from utils.backup import create_pre_restore_backup
                 
-                backup_result = create_backup(
-                    db_path=str(DATA_DIR / "edgecase.db"),
-                    attachments_dir=str(ATTACHMENTS_DIR),
-                    assets_dir=str(ASSETS_DIR),
-                    backup_dir=str(BACKUPS_DIR),
-                    force_full=True  # Always full backup before password change
-                )
-                
-                if backup_result:
-                    backup_filename = backup_result['filename']
+                # create_pre_restore_backup() always does a full backup of current state
+                backup_path = create_pre_restore_backup()
+                if backup_path:
+                    import os
+                    backup_filename = os.path.basename(backup_path)
                     yield f"data: {json.dumps({'status': 'backup', 'message': f'Safety backup created: {backup_filename}'})}\n\n"
                 else:
-                    yield f"data: {json.dumps({'status': 'backup', 'message': 'Safety backup created (no changes to back up)'})}\n\n"
+                    yield f"data: {json.dumps({'status': 'backup', 'message': 'Safety backup created (no files to back up)'})}\n\n"
             except Exception as e:
                 # Backup failed - abort password change
                 yield f"data: {json.dumps({'status': 'error', 'message': f'Failed to create safety backup: {e}. Password change aborted.'})}\n\n"
