@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** December 28, 2025
+**Last Updated:** February 17, 2026
 
 ---
 
@@ -750,7 +750,9 @@ Could have implemented two-way calendar sync (EdgeCase ↔ Google/Apple Calendar
 11. **Year/month grouping** - Scale with natural thinking patterns
 12. **Safe migrations** - Never destructive, always additive
 13. **Manual testing** - Sufficient for solo development with fast iteration
-14. **Calendar as source of truth** - Generate events, don't store them (NEW)
+14. **Calendar as source of truth** - Generate events, don't store them
+15. **Single shutdown function** - Extract shared logic, eliminate duplication across signal paths
+16. **Atomic file re-encryption** - Temp file + os.replace(); plaintext never touches original path
 
 **Overarching principle:** Build for the specific user (solo therapists) with their specific needs (flexibility, privacy, professional standards), not for hypothetical future users or corporate features.
 
@@ -997,6 +999,82 @@ EdgeCase uses incremental backups that depend on previous backups in a chain:
 **Alternative considered:** Never allow deletion of backups with dependents
 - Problem: Old backup chains accumulate forever
 - Users can't clean up after a new full backup is created
+
+---
+
+## SHARED SHUTDOWN BACKUP FUNCTION
+
+### The Problem
+
+Backup-on-shutdown logic was duplicated in three places:
+- `_cleanup()` in cli.py (atexit handler)
+- `shutdown_handler()` in cli.py (SIGINT/SIGTERM handler)
+- `require_login()` in app.py (session timeout path)
+
+Each copy had the same ~25 lines of checkpoint + backup + post-command logic. Any change to backup behaviour required updating all three.
+
+### The Decision
+
+Extract a single `_run_shutdown_backup(db, label)` function in `cli.py`. All three shutdown paths call it.
+
+### Why?
+
+- ✅ **Single source of truth** - Fix a bug once, not three times
+- ✅ **Consistent behaviour** - All shutdown paths behave identically
+- ✅ **Readable** - Each handler is now 3 lines instead of 25
+- ✅ **Labelled logging** - `[atexit]`, `[Shutdown]`, `[Timeout]` prefixes distinguish paths in output
+
+### Result
+
+3 implementations → 1. Net: ~50 lines removed.
+
+---
+
+## ATOMIC FILE RE-ENCRYPTION ON PASSWORD CHANGE
+
+### The Problem
+
+During password change, `_reencrypt_all_files_with_progress()` decrypted each file to bytes then wrote the raw plaintext back to the original file path before re-encrypting:
+
+```python
+data = decrypt_file_to_bytes(filepath, old_password)
+with open(filepath, 'wb') as f:
+    f.write(data)          # ← plaintext written to original path
+encrypt_file(filepath, new_password)
+```
+
+This creates a window where plaintext clinical data exists unencrypted at the known file path. On journaled filesystems, that plaintext can survive in filesystem metadata, snapshots, or Time Machine backups even after re-encryption.
+
+### The Decision
+
+Use `_atomic_reencrypt()` which writes to a temp file in the same directory, encrypts the temp file, then uses `os.replace()` to atomically swap it into place.
+
+### Why Same Directory?
+
+`os.replace()` is only guaranteed atomic when source and destination are on the same filesystem. Writing the temp file to the same directory as the original ensures this — no cross-device rename.
+
+### Implementation
+
+```python
+fd, tmp_path = tempfile.mkstemp(dir=parent_dir, suffix='.tmp')
+# Write plaintext to temp file
+data = decrypt_file_to_bytes(filepath, old_password)
+with os.fdopen(fd, 'wb') as f:
+    f.write(data)
+# Encrypt temp file in place
+encrypt_file(tmp_path, new_password)
+# Atomic swap - original path never held plaintext
+os.replace(tmp_path, filepath)
+```
+
+The `finally` block ensures temp file cleanup if anything fails mid-operation.
+
+### Why This Matters
+
+- ✅ **Plaintext never at original path** - Reduces exposure window to zero
+- ✅ **Crash-safe** - If power fails mid-operation, original encrypted file is untouched
+- ✅ **Atomic** - No partial state visible to concurrent readers
+- ✅ **Clean on failure** - Temp file removed if encryption fails
 
 **Chosen approach:** Protect the newest chain, allow cleanup of older chains
 - ✅ Always have at least one complete restore chain

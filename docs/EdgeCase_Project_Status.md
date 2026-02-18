@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** February 15, 2026  
+**Last Updated:** February 17, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### February 17, 2026
+
+**Code Quality & Security Hardening**
+- Extracted `_run_shutdown_backup()` in cli.py - eliminates duplicated backup logic across three shutdown paths (atexit, SIGINT/SIGTERM, session timeout). Single function, consistent behaviour, ~50 lines removed.
+- Added `_atomic_reencrypt()` in auth.py - password change no longer writes plaintext to original file path. Uses temp file + `os.replace()` for atomicity; original encrypted file untouched if anything fails.
+- 43 tests passing, no regressions.
 
 ### February 15, 2026
 
