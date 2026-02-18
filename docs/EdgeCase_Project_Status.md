@@ -81,7 +81,9 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 **Code Quality & Security Hardening**
 - Extracted `_run_shutdown_backup()` in cli.py - eliminates duplicated backup logic across three shutdown paths (atexit, SIGINT/SIGTERM, session timeout). Single function, consistent behaviour, ~50 lines removed.
 - Added `_atomic_reencrypt()` in auth.py - password change no longer writes plaintext to original file path. Uses temp file + `os.replace()` for atomicity; original encrypted file untouched if anything fails.
-- 43 tests passing, no regressions.
+- Fixed broken safety backup in password change flow: was calling `create_backup()` with incorrect keyword arguments (would TypeError on first use). Now correctly calls `create_pre_restore_backup()`.
+- Completed logout backup refactor: removed redundant `_run_auto_backup_check()` from auth.py, logout now uses shared `_run_shutdown_backup()`. All four shutdown paths unified.
+- 43 tests passing, no regressions. Password change flow verified working in production.
 
 ### February 15, 2026
 
