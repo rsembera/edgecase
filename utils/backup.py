@@ -317,7 +317,10 @@ def create_incremental_backup(backup_dir=None):
     deleted_files = [p for p in previous_hashes if p not in current_hashes]
     
     if not changed_files and not deleted_files:
-        # No changes
+        # No changes - update baseline anyway to prevent WAL checkpoint
+        # hash differences from appearing as false positives next time
+        manifest['last_full_hashes'] = current_hashes
+        save_manifest(manifest)
         return None
     
     filename = generate_backup_filename('incr')
