@@ -51,6 +51,7 @@ def _run_shutdown_backup(db, label="Shutdown"):
         db.checkpoint()
         frequency = db.get_setting('backup_frequency', 'daily')
         if backup.check_backup_needed(frequency):
+            print(f"[{label}] Checking backup status...")
             location = db.get_setting('backup_location', '')
             result = backup.create_backup(location if location else None)
             if result:
@@ -64,7 +65,7 @@ def _run_shutdown_backup(db, label="Shutdown"):
                     except Exception as cmd_error:
                         print(f"[{label}] Post-backup command error: {cmd_error}")
             else:
-                print(f"[{label}] No changes to backup")
+                print(f"[{label}] No changes since last backup")
             backup.record_backup_check()
     except Exception as e:
         print(f"[{label}] Backup warning: {e}")
