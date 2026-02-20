@@ -63,6 +63,8 @@ def _run_shutdown_backup(db, label="Shutdown"):
                         print(f"[{label}] Post-backup command completed")
                     except Exception as cmd_error:
                         print(f"[{label}] Post-backup command error: {cmd_error}")
+            else:
+                print(f"[{label}] No changes to backup")
             backup.record_backup_check()
     except Exception as e:
         print(f"[{label}] Backup warning: {e}")
