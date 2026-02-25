@@ -212,8 +212,12 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Expand most recent year/month on page load
+// Expand most recent year/month on page load and initialize card drag
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize card drag-and-drop
+    loadCardOrder('ledgerCardOrder', 'ledger-stats-container');
+    initCardDragDrop('ledgerCardOrder', 'ledger-stats-container');
+    
     // Find the first year header (most recent year)
     const firstYearHeader = document.querySelector('.year-header');
     if (firstYearHeader) {

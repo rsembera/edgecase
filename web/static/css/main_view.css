@@ -11,30 +11,7 @@ body * {
     font-size: inherit;
 }
 
-/* Stats cards - base styles in shared.css */
-/* Drag and drop additions */
-.stat-card {
-    cursor: move;
-    cursor: grab;
-}
-
-.stat-card:active {
-    cursor: grabbing;
-}
-
-.stat-card.dragging {
-    opacity: 0.5;
-}
-
-@media (pointer: coarse) {
-    .stat-card.dragging {
-        opacity: 1 !important;
-    }
-}
-
-.stat-card.drag-over {
-    border: 2px dashed #00aa88;
-}
+/* Stats cards - base styles and drag/drop in shared.css */
 
 /* Tutti-Frutti theme - colorful cards (unique to this theme) */
 body.tutti-frutti .stat-card[data-card-id="active-clients"] { background: #C8D8E0; }
