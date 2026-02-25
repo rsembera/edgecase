@@ -189,113 +189,6 @@ function syncClock() {
 }
 
 // ============================================================
-// STAT CARD DRAG AND DROP
-// ============================================================
-
-let draggedCard = null;
-let hasMoved = false;
-
-/**
- * Load saved card order from localStorage and reorder cards
- */
-function loadCardOrder() {
-    const savedOrder = localStorage.getItem('cardOrder');
-    if (!savedOrder) return;
-    
-    const orderArray = JSON.parse(savedOrder);
-    const container = document.getElementById('stats-container');
-    if (!container) return;
-    
-    orderArray.forEach(cardId => {
-        const card = container.querySelector(`[data-card-id="${cardId}"]`);
-        if (card) container.appendChild(card);
-    });
-}
-
-/**
- * Save current card order to localStorage
- */
-function saveCardOrder() {
-    const container = document.getElementById('stats-container');
-    if (!container) return;
-    
-    const cards = container.querySelectorAll('.stat-card[data-card-id]');
-    const order = Array.from(cards).map(card => card.dataset.cardId);
-    localStorage.setItem('cardOrder', JSON.stringify(order));
-}
-
-/**
- * Initialize drag and drop functionality for stat cards
- */
-function initCardDragDrop() {
-    const cards = document.querySelectorAll('.stat-card[draggable="true"]');
-    
-    // Disable dragging on touch devices
-    if ('ontouchstart' in window) {
-        cards.forEach(card => {
-            card.setAttribute('draggable', 'false');
-            card.style.cursor = 'default';
-            card.addEventListener('dragstart', e => e.preventDefault());
-        });
-        return;
-    }
-    
-    cards.forEach(card => {
-        // Prevent clicks during drag
-        card.addEventListener('click', function(e) {
-            if (hasMoved) {
-                e.preventDefault();
-                e.stopPropagation();
-                hasMoved = false;
-            }
-        }, true);
-        
-        card.addEventListener('dragstart', function(e) {
-            draggedCard = this;
-            hasMoved = false;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        });
-        
-        card.addEventListener('dragend', function() {
-            this.classList.remove('dragging');
-            cards.forEach(c => c.classList.remove('drag-over'));
-            saveCardOrder();
-            if (hasMoved) setTimeout(() => hasMoved = false, 100);
-        });
-        
-        card.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (this !== draggedCard) this.classList.add('drag-over');
-            return false;
-        });
-        
-        card.addEventListener('dragleave', function() {
-            this.classList.remove('drag-over');
-        });
-        
-        card.addEventListener('drop', function(e) {
-            e.stopPropagation();
-            
-            if (draggedCard !== this) {
-                hasMoved = true;
-                const container = draggedCard.parentNode;
-                const placeholder = document.createElement('div');
-                
-                container.insertBefore(placeholder, draggedCard);
-                container.insertBefore(draggedCard, this);
-                container.insertBefore(this, placeholder);
-                container.removeChild(placeholder);
-            }
-            
-            this.classList.remove('drag-over');
-            return false;
-        });
-    });
-}
-
-// ============================================================
 // CLIENT TYPE FILTER
 // ============================================================
 
@@ -642,8 +535,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadTimeFormat();
     syncClock();
     
-    loadCardOrder();
-    initCardDragDrop();
+    loadCardOrder('mainViewCardOrder', 'stats-container');
+    initCardDragDrop('mainViewCardOrder', 'stats-container');
     initFilterDropdown();
     initSearch();
     manageViewToggleForDevice();

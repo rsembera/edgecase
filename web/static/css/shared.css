@@ -1816,6 +1816,29 @@ tbody tr:hover {
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
 }
 
+/* Draggable stat cards */
+.stat-card[draggable="true"] {
+    cursor: grab;
+}
+
+.stat-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.stat-card.dragging {
+    opacity: 0.5;
+}
+
+@media (pointer: coarse) {
+    .stat-card.dragging {
+        opacity: 1 !important;
+    }
+}
+
+.stat-card.drag-over {
+    border: 2px dashed #00aa88;
+}
+
 .stat-number {
     font-size: 2rem;
     font-weight: 700;

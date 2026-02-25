@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/card_drag.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ledger.js') }}"></script>
 {% endblock %}
 
@@ -21,28 +22,28 @@
     </div>
     
     <!-- Stats Cards -->
-    <div class="stats-container">
-        <div class="stat-card" data-card-id="ytd-income">
+    <div class="stats-container" id="ledger-stats-container">
+        <div class="stat-card" draggable="true" data-card-id="ytd-income">
             <div class="stat-number text-income">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_income) }}</div>
             <div class="stat-label">YTD Income</div>
         </div>
-        <div class="stat-card" data-card-id="ytd-expenses">
+        <div class="stat-card" draggable="true" data-card-id="ytd-expenses">
             <div class="stat-number text-expense">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_expenses) }}</div>
             <div class="stat-label">YTD Expenses</div>
         </div>
-        <div class="stat-card" data-card-id="ytd-net">
+        <div class="stat-card" draggable="true" data-card-id="ytd-net">
             <div class="stat-number {% if ytd_net >= 0 %}text-income{% else %}text-expense{% endif %}">{{ currency|currency_symbol }}{{ "%.2f"|format(ytd_net) }}</div>
             <div class="stat-label">YTD Net ({{ current_year }})</div>
         </div>
-        <div class="stat-card" data-card-id="mtd-income">
+        <div class="stat-card" draggable="true" data-card-id="mtd-income">
             <div class="stat-number text-income">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_income) }}</div>
             <div class="stat-label">MTD Income</div>
         </div>
-        <div class="stat-card" data-card-id="mtd-expenses">
+        <div class="stat-card" draggable="true" data-card-id="mtd-expenses">
             <div class="stat-number text-expense">{{ currency|currency_symbol }}{{ "%.2f"|format(mtd_expenses) }}</div>
             <div class="stat-label">MTD Expenses</div>
         </div>
-        <div class="stat-card category-card" data-card-id="top-categories">
+        <div class="stat-card category-card" draggable="true" data-card-id="top-categories">
             <div class="stat-label category-label">Top Expenses (YTD)</div>
             {% if ytd_category_breakdown %}
                 {% for cat in ytd_category_breakdown[:3] %}
