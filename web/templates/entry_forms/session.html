@@ -11,13 +11,25 @@
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/session.js') }}"></script>
 <script>
-// Auto-size session notes textarea on load
+// Auto-size session notes textarea on load (Safari-compatible)
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.getElementById('content');
     if (textarea && textarea.value) {
-        textarea.style.height = 'auto';
-        const minHeight = 300;
-        textarea.style.height = Math.max(minHeight, textarea.scrollHeight + 4) + 'px';
+        function resizeTextarea() {
+            textarea.style.height = 'auto';
+            // Force browser to recalculate layout
+            textarea.offsetHeight;
+            const minHeight = 300;
+            const maxHeight = 600;
+            const scrollHeight = textarea.scrollHeight;
+            textarea.style.height = Math.max(minHeight, Math.min(scrollHeight + 4, maxHeight)) + 'px';
+            // Ensure scrollable if content exceeds max
+            textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+        }
+        
+        // Run immediately, then again after Safari settles
+        requestAnimationFrame(resizeTextarea);
+        setTimeout(resizeTextarea, 100);
     }
 });
 </script>

@@ -336,6 +336,7 @@ select, input, textarea, button {
     resize: vertical;
     font-family: var(--font-ui);
     box-sizing: border-box;
+    overflow: auto;
 }
 
 .form-group textarea:focus {

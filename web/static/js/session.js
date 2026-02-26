@@ -319,7 +319,14 @@ function autoResize() {
 }
 
 // Run on page load (for edit mode with existing content)
-autoResize();
+// Use requestAnimationFrame to ensure DOM is fully rendered (Safari fix)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        requestAnimationFrame(autoResize);
+    });
+} else {
+    requestAnimationFrame(autoResize);
+}
 
 // Run on input
 textarea.addEventListener('input', autoResize);
