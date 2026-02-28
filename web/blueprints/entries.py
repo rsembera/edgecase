@@ -274,9 +274,11 @@ def edit_profile(client_id):
                         old_base = float(old_base) if old_base else None
                     if new_base is not None and isinstance(new_base, str):
                         new_base = float(new_base) if new_base else None
-                    old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                    new_str = f"${new_base:.2f}" if new_base is not None else "None"
-                    changes.append(f"Session Fee Base: {old_str} → {new_str}")
+                    # Only log if there's an actual change (not None → None)
+                    if old_base is not None or new_base is not None:
+                        old_str = f"${old_base:.2f}" if old_base is not None else "None"
+                        new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                        changes.append(f"Session Fee Base: {old_str} → {new_str}")
                 
                 if old_profile.get('session_tax_rate') != profile_data.get('session_tax_rate'):
                     old_tax = old_profile.get('session_tax_rate')
@@ -286,9 +288,11 @@ def edit_profile(client_id):
                         old_tax = float(old_tax) if old_tax else None
                     if new_tax is not None and isinstance(new_tax, str):
                         new_tax = float(new_tax) if new_tax else None
-                    old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
-                    new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
-                    changes.append(f"Session Fee Tax: {old_str} → {new_str}")
+                    # Only log if there's an actual change (not None → None)
+                    if old_tax is not None or new_tax is not None:
+                        old_str = f"{old_tax:.2f}%" if old_tax is not None else "None"
+                        new_str = f"{new_tax:.2f}%" if new_tax is not None else "None"
+                        changes.append(f"Session Fee Tax: {old_str} → {new_str}")
                 
                 if old_profile.get('session_total') != profile_data.get('session_total'):
                     old_fee = old_profile.get('session_total')
@@ -298,9 +302,11 @@ def edit_profile(client_id):
                         old_fee = float(old_fee) if old_fee else None
                     if new_fee is not None and isinstance(new_fee, str):
                         new_fee = float(new_fee) if new_fee else None
-                    old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                    new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
-                    changes.append(f"Session Fee Total: {old_str} → {new_str}")
+                    # Only log if there's an actual change (not None → None)
+                    if old_fee is not None or new_fee is not None:
+                        old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
+                        new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                        changes.append(f"Session Fee Total: {old_str} → {new_str}")
                 
                 # Default session duration
                 if old_profile.get('default_session_duration') != profile_data.get('default_session_duration'):
@@ -311,9 +317,11 @@ def edit_profile(client_id):
                         old_dur = int(old_dur) if old_dur else None
                     if new_dur is not None and isinstance(new_dur, str):
                         new_dur = int(new_dur) if new_dur else None
-                    old_str = f"{old_dur} min" if old_dur is not None else "None"
-                    new_str = f"{new_dur} min" if new_dur is not None else "None"
-                    changes.append(f"Default Duration: {old_str} → {new_str}")
+                    # Only log if there's an actual change (not None → None)
+                    if old_dur is not None or new_dur is not None:
+                        old_str = f"{old_dur} min" if old_dur is not None else "None"
+                        new_str = f"{new_dur} min" if new_dur is not None else "None"
+                        changes.append(f"Default Duration: {old_str} → {new_str}")
                 
                 # Guardian addresses (smart word-level diff)
                 if old_profile.get('guardian1_address') != profile_data.get('guardian1_address'):
