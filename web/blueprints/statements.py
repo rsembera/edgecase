@@ -904,10 +904,10 @@ def send_applescript_email():
     email_from_escaped = escape_for_applescript(email_from)
     
     # Build AppleScript - use html content for consistent font rendering
+    # IMPORTANT: Set html content AFTER adding attachment, otherwise attachment clears body
     applescript = f'''
     tell application "Mail"
         set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", visible:true}}
-        set html content of newMessage to "{body_html_escaped}"
         
         tell newMessage
             make new to recipient at end of to recipients with properties {{address:"{recipient_escaped}"}}
@@ -916,6 +916,9 @@ def send_applescript_email():
                 make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
             end if
         end tell
+        
+        -- Set html content AFTER attachment to preserve body text
+        set html content of newMessage to "{body_html_escaped}"
         
         activate
     end tell
@@ -934,7 +937,6 @@ def send_applescript_email():
             end repeat
             
             set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", visible:true}}
-            set html content of newMessage to "{body_html_escaped}"
             
             if senderAccount is not null then
                 set sender of newMessage to "{email_from_escaped}"
@@ -947,6 +949,9 @@ def send_applescript_email():
                     make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
                 end if
             end tell
+            
+            -- Set html content AFTER attachment to preserve body text
+            set html content of newMessage to "{body_html_escaped}"
             
             activate
         end tell
