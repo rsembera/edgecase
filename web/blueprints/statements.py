@@ -879,35 +879,16 @@ def send_applescript_email():
             return ''
         return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '" & return & "')
     
-    # Convert plain text body to HTML with consistent font styling
-    def text_to_html(text):
-        if not text:
-            return ''
-        # Escape HTML special characters
-        html_escaped = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        # Wrap each paragraph in a styled div
-        paragraphs = html_escaped.split('\n')
-        styled_paragraphs = [f'<div style="font-family: Helvetica, Arial, sans-serif; font-size: 12px;">{p if p.strip() else "&nbsp;"}</div>' for p in paragraphs]
-        return ''.join(styled_paragraphs)
-    
-    def escape_html_for_applescript(s):
-        """Escape HTML content for embedding in AppleScript string."""
-        if not s:
-            return ''
-        return s.replace('\\', '\\\\').replace('"', '\\"')
-    
     subject_escaped = escape_for_applescript(subject)
-    body_html = text_to_html(body)
-    body_html_escaped = escape_html_for_applescript(body_html)
+    body_escaped = escape_for_applescript(body)
     recipient_escaped = escape_for_applescript(recipient)
     pdf_path_escaped = escape_for_applescript(pdf_path)
     email_from_escaped = escape_for_applescript(email_from)
     
-    # Build AppleScript - use html content for consistent font rendering
-    # IMPORTANT: Set html content AFTER adding attachment, otherwise attachment clears body
+    # Build AppleScript - use plain text content
     applescript = f'''
     tell application "Mail"
-        set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", visible:true}}
+        set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
         
         tell newMessage
             make new to recipient at end of to recipients with properties {{address:"{recipient_escaped}"}}
@@ -916,9 +897,6 @@ def send_applescript_email():
                 make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
             end if
         end tell
-        
-        -- Set html content AFTER attachment to preserve body text
-        set html content of newMessage to "{body_html_escaped}"
         
         activate
     end tell
@@ -936,7 +914,7 @@ def send_applescript_email():
                 end if
             end repeat
             
-            set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", visible:true}}
+            set newMessage to make new outgoing message with properties {{subject:"{subject_escaped}", content:"{body_escaped}", visible:true}}
             
             if senderAccount is not null then
                 set sender of newMessage to "{email_from_escaped}"
@@ -949,9 +927,6 @@ def send_applescript_email():
                     make new attachment with properties {{file name:POSIX file "{pdf_path_escaped}"}} at after last paragraph
                 end if
             end tell
-            
-            -- Set html content AFTER attachment to preserve body text
-            set html content of newMessage to "{body_html_escaped}"
             
             activate
         end tell
