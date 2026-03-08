@@ -415,12 +415,15 @@ function markSent(portionId) {
 }
 
 /**
- * Generate PDF only (no email) - opens in new window
+ * Generate PDF only (no email) - opens in new window or Preview
  * @param {number} portionId - Statement portion ID
  */
 function generateOnly(portionId) {
-    // Open window immediately to avoid popup blocker
-    const pdfWindow = window.open('about:blank', '_blank');
+    // Check if running in desktop mode
+    const isDesktop = window.pywebview && window.pywebview.api && window.pywebview.api.open_pdf;
+    
+    // In browser mode, open window immediately to avoid popup blocker
+    const pdfWindow = isDesktop ? null : window.open('about:blank', '_blank');
     
     fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
         method: 'POST',
@@ -429,15 +432,20 @@ function generateOnly(portionId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                pdfWindow.location.href = `/statements/view-pdf/${portionId}`;
+                const pdfUrl = `/statements/view-pdf/${portionId}`;
+                if (isDesktop) {
+                    window.pywebview.api.open_pdf(pdfUrl);
+                } else {
+                    pdfWindow.location.href = pdfUrl;
+                }
                 setTimeout(() => window.location.reload(), 500);
             } else {
-                pdfWindow.close();
+                if (pdfWindow) pdfWindow.close();
                 alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
-            pdfWindow.close();
+            if (pdfWindow) pdfWindow.close();
             console.error('Error generating statement:', error);
             alert('Error generating statement');
         });

@@ -163,8 +163,11 @@ document.getElementById('generate-btn').addEventListener('click', function() {
         return;
     }
     
-    // Open window immediately on user action (Safari popup blocker workaround)
-    const pdfWindow = window.open('about:blank', '_blank');
+    // Check if running in desktop mode
+    const isDesktop = window.pywebview && window.pywebview.api && window.pywebview.api.open_pdf;
+    
+    // In browser mode, open window immediately to avoid popup blocker
+    const pdfWindow = isDesktop ? null : window.open('about:blank', '_blank');
     
     // Get dates from hidden inputs
     const startDate = document.getElementById('start_date').value;
@@ -196,7 +199,11 @@ document.getElementById('generate-btn').addEventListener('click', function() {
     }
     
     const url = '{{ url_for("clients.session_report", client_id=client.id) }}?' + params.toString();
-    pdfWindow.location.href = url;
+    if (isDesktop) {
+        window.pywebview.api.open_pdf(url);
+    } else {
+        pdfWindow.location.href = url;
+    }
 });
 
 // Initialize pickers when ready

@@ -205,5 +205,5 @@ function generateReport() {
     
     const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}&attachments=${includeAttachments ? '1' : '0'}`;
     
-    window.open(url, '_blank');
+    openPDF(url);
 }

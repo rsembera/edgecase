@@ -124,10 +124,12 @@
                         <span class="attachment-size">({{ (attachment.filesize / 1024) | round(1) }} KB)</span>
                     </span>
                     <div class="attachment-actions">
-                        <a href="{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}" 
-                            target="_blank" class="btn-small">View</a>
-                        <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
-                           class="btn-small">Download</a>
+                        <a href="#" 
+                            onclick="openFile('{{ url_for('entries.view_attachment', attachment_id=attachment.id) }}'); return false;"
+                            class="btn-small">View</a>
+                        <a href="#" 
+                            onclick="downloadFile('{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}'); return false;"
+                            class="btn-small">Download</a>
                         <button type="button" class="btn-small btn-danger" 
                                 onclick="deleteAttachment({{ attachment.id }})">Delete</button>
                     </div>

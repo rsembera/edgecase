@@ -23,7 +23,8 @@
                 </div>
             </span>
             <div class="attachment-actions">
-                <a href="{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}" 
+                <a href="#" 
+                   onclick="downloadFile('{{ url_for('entries.download_attachment', attachment_id=attachment.id) }}'); return false;"
                    class="btn-small">
                     Download
                 </a>
