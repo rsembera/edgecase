@@ -1,6 +1,7 @@
 """
-EdgeCase Desktop - Native macOS app wrapper using PyWebView
+EdgeCase Desktop - Native desktop app wrapper using PyWebView
 Packages the Flask app as a standalone desktop application.
+Works on macOS and Linux.
 """
 
 import os
@@ -9,10 +10,30 @@ import threading
 import time
 import subprocess
 import tempfile
+import platform
 from pathlib import Path
 
 # Set desktop mode before importing app
 os.environ['EDGECASE_DESKTOP'] = '1'
+
+
+def get_data_dir():
+    """Get platform-appropriate data directory."""
+    if platform.system() == 'Darwin':
+        return Path.home() / 'Library' / 'Application Support' / 'EdgeCase'
+    else:
+        # Linux: use XDG_DATA_HOME or ~/.local/share
+        xdg_data = os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local' / 'share'))
+        return Path(xdg_data) / 'edgecase'
+
+
+def open_with_default_app(filepath):
+    """Open file with system default application."""
+    if platform.system() == 'Darwin':
+        subprocess.run(['open', str(filepath)], check=False)
+    else:
+        # Linux: use xdg-open
+        subprocess.run(['xdg-open', str(filepath)], check=False)
 
 
 def start_flask_server(port=8080):
@@ -46,7 +67,7 @@ class Api:
                 filename = self._get_filename(response, url)
                 temp_path = Path(tempfile.gettempdir()) / filename
                 temp_path.write_bytes(response.content)
-                subprocess.run(['open', str(temp_path)], check=False)
+                open_with_default_app(temp_path)
                 return True
         except Exception as e:
             print(f"File open error: {e}")
@@ -93,8 +114,9 @@ class Api:
         return filename
     
     def open_pdf(self, url):
-        """Download PDF and open in Preview (legacy method)."""
+        """Download PDF and open in default viewer (legacy method)."""
         return self.open_file(url)
+
 
 
 def run_desktop():
@@ -146,7 +168,7 @@ def run_desktop():
     # Start webview with persistent storage
     # private_mode=False enables persistent localStorage/cookies between sessions
     # storage_path ensures consistent storage location
-    storage_dir = str(Path.home() / 'Library' / 'Application Support' / 'EdgeCase' / 'webview')
+    storage_dir = str(get_data_dir() / 'webview')
     Path(storage_dir).mkdir(parents=True, exist_ok=True)
     webview.start(private_mode=False, storage_path=storage_dir)
     
