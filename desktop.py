@@ -141,7 +141,7 @@ def run_desktop():
         f'http://localhost:{PORT}',
         width=1280,
         height=800,
-        min_size=(800, 600),
+        min_size=(1100, 700),
         js_api=api
     )
     
