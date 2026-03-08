@@ -116,9 +116,14 @@ def add_security_headers(response):
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     # CSP: allow self for scripts/styles, inline for Jinja templates, data: for fonts
+    # In desktop mode, also allow unsafe-eval for pywebview JS injection
+    import os
+    script_src = "'self' 'unsafe-inline'"
+    if os.environ.get('EDGECASE_DESKTOP') == '1':
+        script_src += " 'unsafe-eval'"
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        f"script-src {script_src}; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data:; "
         "font-src 'self' data:; "

@@ -212,6 +212,6 @@ function generateExport() {
         params.append('end_day', dateRange.end_day);
     }
     
-    // Open PDF in new tab
-    window.open(`/client/${clientId}/export/pdf?${params.toString()}`, '_blank');
+    // Open PDF in new tab (or Preview in desktop mode)
+    openPDF(`/client/${clientId}/export/pdf?${params.toString()}`);
 }
