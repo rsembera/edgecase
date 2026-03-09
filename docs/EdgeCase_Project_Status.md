@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** February 17, 2026  
+**Last Updated:** March 9, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -76,6 +76,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## RECENT ACCOMPLISHMENTS
 
+### March 9, 2026
+
+**Simplified Email Options (Linux)**
+- Removed Thunderbird/Betterbird email integration
+- Linux now uses mailto: links only (same as fallback on all platforms)
+- Reduces complexity and packaging issues with desktop mode
+- Mac users retain Apple Mail integration with auto-attach PDF
+
 ### February 17, 2026
 
 **Code Quality & Security Hardening**
@@ -92,7 +100,6 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Salutation ("Dear Name,") was rendering in different font than body text when exported
 - Changed AppleScript email generation from plain text `content` to `html content`
 - All text now wrapped in styled divs with explicit Helvetica font family
-- Thunderbird/Betterbird path unchanged (uses plain text which renders consistently)
 
 ### February 5, 2026
 

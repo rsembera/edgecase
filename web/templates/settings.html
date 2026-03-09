@@ -718,14 +718,9 @@ details[open] .settings-section-header .arrow {
                 {% if platform == 'darwin' %}
                 <option value="applescript">Compose in Mail.app (Mac, attaches PDF)</option>
                 {% endif %}
-                {% if platform == 'linux' and not is_desktop %}
-                <option value="thunderbird">Compose in Thunderbird/Betterbird (Linux, attaches PDF)</option>
-                {% endif %}
             </select>
             {% if platform == 'darwin' %}
             <small class="helper-text">Mail.app method automatically attaches the PDF statement</small>
-            {% elif platform == 'linux' and not is_desktop %}
-            <small class="helper-text">Thunderbird/Betterbird method automatically attaches the PDF statement</small>
             {% endif %}
         </div>
         </div>  
