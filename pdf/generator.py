@@ -124,7 +124,7 @@ class StatementPDFGenerator:
             'website': self.db.get_setting('website', ''),
             'email': self.db.get_setting('email', ''),
             'payment_instructions': self.db.get_setting('payment_instructions', ''),
-            'include_attestation': self.db.get_setting('include_attestation', 'true') == 'true',
+            'include_attestation': self.db.get_setting('include_attestation', 'false') == 'true',
             'attestation_text': self.db.get_setting('attestation_text', 
                 'I attest that I have performed the services listed above.'),
             'currency': self.db.get_setting('currency', 'CAD'),
