@@ -11,6 +11,8 @@ import threading
 import platform
 import os
 
+from core.config import MODELS_DIR
+
 # Model will be loaded lazily
 _llm = None
 _llm_lock = threading.Lock()
@@ -19,7 +21,7 @@ _model_loaded = False
 # Default model configuration
 MODEL_REPO = "NousResearch/Hermes-3-Llama-3.1-8B-GGUF"
 MODEL_FILENAME = "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
-MODEL_DIR = Path(__file__).parent.parent / "models"
+MODEL_DIR = MODELS_DIR
 
 # Generation parameters (tuned for clinical notes - low temp for consistency)
 GENERATION_PARAMS = {
