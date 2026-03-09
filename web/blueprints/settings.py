@@ -34,7 +34,9 @@ def init_blueprint(database):
 @settings_bp.route('/settings')
 def settings_page():
     """Settings page."""
-    return render_template('settings.html')
+    import sys
+    platform = sys.platform  # 'darwin', 'linux', 'win32'
+    return render_template('settings.html', platform=platform)
 
 
 # ============================================================================
