@@ -962,10 +962,11 @@ def send_applescript_email():
 
 @statements_bp.route('/send-thunderbird-email', methods=['POST'])
 def send_thunderbird_email():
-    """Send email via Thunderbird command line."""
+    """Send email via Thunderbird/Betterbird command line."""
     
     import subprocess
     import shutil
+    from pathlib import Path
     
     data = request.get_json()
     recipient = data.get('recipient_email', '')
@@ -973,10 +974,21 @@ def send_thunderbird_email():
     body = data.get('body', '')
     pdf_path = data.get('pdf_path', '')
     
-    # Check if thunderbird is available
-    thunderbird_path = shutil.which('thunderbird')
-    if not thunderbird_path:
-        return jsonify({'success': False, 'error': 'Thunderbird not found. Please install Thunderbird or use mailto method.'})
+    # Check for Betterbird first (common Thunderbird fork), then Thunderbird
+    # Also check common user install locations
+    mail_binary = None
+    for candidate in [
+        shutil.which('betterbird'),
+        Path.home() / 'Applications' / 'betterbird' / 'betterbird',
+        shutil.which('thunderbird'),
+        '/usr/bin/thunderbird'
+    ]:
+        if candidate and Path(candidate).exists():
+            mail_binary = str(candidate)
+            break
+    
+    if not mail_binary:
+        return jsonify({'success': False, 'error': 'Thunderbird/Betterbird not found. Please install one or use mailto method.'})
     
     # Build the compose string for Thunderbird
     # Format: thunderbird -compose "to='email',subject='subject',body='body',attachment='file:///path'"
@@ -999,9 +1011,9 @@ def send_thunderbird_email():
     compose_string = ','.join(compose_parts)
     
     try:
-        # Launch Thunderbird in background (don't wait for it to close)
+        # Launch Thunderbird/Betterbird in background (don't wait for it to close)
         subprocess.Popen(
-            ['thunderbird', '-compose', compose_string],
+            [mail_binary, '-compose', compose_string],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
