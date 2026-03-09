@@ -35,10 +35,8 @@ def init_blueprint(database):
 def settings_page():
     """Settings page."""
     import sys
-    import os
     platform = sys.platform  # 'darwin', 'linux', 'win32'
-    is_desktop = os.environ.get('EDGECASE_DESKTOP') == '1'
-    return render_template('settings.html', platform=platform, is_desktop=is_desktop)
+    return render_template('settings.html', platform=platform)
 
 
 # ============================================================================
