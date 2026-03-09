@@ -34,6 +34,7 @@ build/
 packaging/*
 !packaging/icons/
 !packaging/icons/*
+!packaging/dmg_background.png
 
 # Local data (not for distribution)
 data/
