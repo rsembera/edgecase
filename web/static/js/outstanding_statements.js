@@ -460,16 +460,28 @@ function triggerMailtoEmail(data) {
     const body = encodeURIComponent(data.body + '\n\n[Please attach the downloaded PDF]');
     const mailto = `mailto:${data.recipient_email}?subject=${subject}&body=${body}`;
     
-    // Download PDF for manual attachment
-    const pdfLink = document.createElement('a');
-    pdfLink.href = `/statements/pdf/${data.portion_id}`;
-    pdfLink.download = '';
-    pdfLink.click();
+    // Check if running in desktop mode
+    const isDesktop = window.pywebview && window.pywebview.api && window.pywebview.api.open_external_url;
     
-    setTimeout(() => {
-        window.location.href = mailto;
-        setTimeout(() => window.location.reload(), 1000);
-    }, 300);
+    if (isDesktop) {
+        // Desktop mode: use Python API to download PDF and open mailto
+        window.pywebview.api.download_file(`/statements/pdf/${data.portion_id}`);
+        setTimeout(() => {
+            window.pywebview.api.open_external_url(mailto);
+            setTimeout(() => window.location.reload(), 1000);
+        }, 300);
+    } else {
+        // Browser mode: use standard link clicks
+        const pdfLink = document.createElement('a');
+        pdfLink.href = `/statements/pdf/${data.portion_id}`;
+        pdfLink.download = '';
+        pdfLink.click();
+        
+        setTimeout(() => {
+            window.location.href = mailto;
+            setTimeout(() => window.location.reload(), 1000);
+        }, 300);
+    }
 }
 
 /**

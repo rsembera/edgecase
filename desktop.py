@@ -116,6 +116,15 @@ class Api:
     def open_pdf(self, url):
         """Download PDF and open in default viewer (legacy method)."""
         return self.open_file(url)
+    
+    def open_external_url(self, url):
+        """Open any URL (including mailto:) with system default handler."""
+        try:
+            open_with_default_app(url)
+            return True
+        except Exception as e:
+            print(f"Error opening URL: {e}")
+            return False
 
 
 
