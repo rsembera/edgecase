@@ -151,3 +151,32 @@ sudo dpkg -r edgecase
 - Icons are tracked in git so they don't need to be regenerated each build
 - The venv includes PyGObject copied from the system (not pip-installable)
 - Application data is stored in `~/.local/share/edgecase/`
+
+---
+
+# macOS .dmg Packaging Assets
+
+The following assets are stored in `packaging/` for macOS DMG builds:
+
+```
+packaging/
+├── dmg_background.png        # DMG installer background with arrow
+└── icons/                    # Shared with Linux (three-bar logo)
+```
+
+## DMG Background
+
+The `dmg_background.png` shows "Drag to Applications to install" with a green arrow pointing from the app icon to the Applications folder alias.
+
+## macOS Build Process
+
+See `setup_app.py` for py2app configuration. The DMG is created manually using:
+
+1. Build the .app bundle with py2app
+2. Sign all binaries individually with Developer ID certificate
+3. Sign the app bundle
+4. Notarize with Apple
+5. Staple the notarization ticket
+6. Create DMG with background image
+
+The macOS app icon is at `assets/icon.icns`.
