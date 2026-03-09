@@ -31,7 +31,9 @@ env/
 **/*.egg-info/
 dist/
 build/
-packaging/
+packaging/*
+!packaging/icons/
+!packaging/icons/*
 
 # Local data (not for distribution)
 data/
