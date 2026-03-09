@@ -7,7 +7,7 @@ Testing guide for EdgeCase Equalizer desktop packages (.app for macOS, .deb for 
 ### macOS (.app)
 - [ ] Use testing data: `EDGECASE_DATA=/Users/rick/Applications/edgecase-testing`
 - [ ] Run: `"/Users/rick/Applications/edgecase/dist/EdgeCase Equalizer.app/Contents/MacOS/EdgeCase Equalizer"`
-- [ ] Testing DB password: `Alkahest131!`
+- [ ] Testing DB password:
 
 ### Linux (.deb)
 - [ ] Install: `sudo dpkg -i edgecase_1.0.0_amd64.deb`
