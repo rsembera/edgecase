@@ -4,7 +4,18 @@ Practice management software for independent therapists.
 
 Web-based for convenience, but single-user and local-only by design. Your data stays yours.
 
+**Website:** [edgecaseequalizer.ca](https://edgecaseequalizer.ca)
+
 **Status:** Production ready. In use as of January 2026.
+
+## Downloads
+
+Pre-built packages are available:
+
+- **macOS** (Apple Silicon): [EdgeCase-1.0.0.dmg](https://edgecaseequalizer.ca/downloads/EdgeCase-1.0.0.dmg)
+- **Linux** (Debian/Ubuntu x86_64): [edgecase_1.0.0_amd64.deb](https://edgecaseequalizer.ca/downloads/edgecase_1.0.0_amd64.deb)
+
+Or run from source (see below).
 
 ![Main View](docs/screenshots/main_view_detailed.png)
 
