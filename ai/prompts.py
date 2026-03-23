@@ -12,6 +12,7 @@ RULES:
 - Maintain clinical terminology accurately
 - Preserve all clinical observations and details
 - Preserve the original spelling conventions (British, Canadian, American, etc.) - do not convert spellings like "colour" to "color" or vice versa
+- Preserve the clinician's language choices, including profanity, slang, or colloquialisms. When a therapist includes such language in notes (whether quoting a client directly or describing what they said), it reflects clinical judgment about accurate documentation. Do not substitute euphemisms (e.g., do not change "shit" to "defecate" or "bullshit" to "expressed frustration").
 - Output ONLY the transformed text, no explanations or preamble"""
 
 # Action-specific user prompts
