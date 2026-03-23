@@ -69,15 +69,26 @@ EdgeCase Equalizer is designed as a **local-only, single-user** application for 
 
 ## PHIPA Compliance
 
-EdgeCase Equalizer is designed with Ontario's Personal Health Information Protection Act (PHIPA) in mind:
+EdgeCase Equalizer is designed to make compliance with Ontario's *Personal Health Information Protection Act* (PHIPA) straightforward for solo practitioners. Whether a given practice is PHIPA-compliant depends on how the software is used — just as compliance with paper-based or Word document records depends on how those are used. EdgeCase provides the technical infrastructure to support compliance; the practitioner is responsible for using it in a compliant way.
 
-- **Collection limitation:** Only collects information necessary for clinical practice
-- **Data sovereignty:** All data remains on the practitioner's own hardware
-- **Access control:** Single-user authentication with encrypted storage
-- **Retention:** Soft deletes support clinical record retention requirements
-- **Audit trail:** Edit history provides a record of changes to clinical notes
+**What EdgeCase provides:**
 
-Practitioners are responsible for their own PHIPA compliance practices, including informed consent, retention schedules, and breach notification procedures. EdgeCase provides the technical infrastructure to support these obligations.
+- **Data sovereignty:** All personal health information remains on the practitioner's own hardware. No cloud accounts, no third-party data processors, no cross-border transfers — this simplifies PHIPA obligations considerably.
+- **Encryption at rest:** SQLCipher (AES-256) encrypts the database; Fernet encryption protects file attachments. Encrypted data on a local machine provides stronger protection than unencrypted digital or paper records.
+- **Access control:** Single-user authentication with configurable idle timeout. Only the practitioner can access records.
+- **Immutable clinical records:** Session notes, communications, and other clinical entries are locked after creation. Changes are tracked with a full edit history showing exactly what was changed and when. Clinical records are retained throughout the active life of a client file and are never deleted during the retention period. When the retention period expires, records can be permanently removed, leaving only a minimal archive stub (name, file number, first and last contact dates). A separate redaction mechanism allows free-text content to be cleared from individual entries in the event of a privacy incident, while preserving the structural record.
+- **Record export:** Client records can be exported to PDF for access requests or transfers.
+- **Backup and recovery:** Full and incremental backups support data integrity and availability requirements.
+
+**What the practitioner is responsible for:**
+
+- Obtaining informed consent for collection and use of personal health information
+- Setting appropriate retention periods (Ontario regulations require a minimum of 10 years after last service for most records; longer for records involving minors)
+- Secure physical access to the device running EdgeCase
+- Breach identification and notification procedures
+- Secure destruction of backups when retention periods expire
+
+EdgeCase is not a multi-user system and does not include role-based access controls or audit logging of record views — consistent with the single-practitioner context it is designed for.
 
 ## Dependencies
 
