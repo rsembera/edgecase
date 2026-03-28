@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** March 9, 2026  
+**Last Updated:** March 28, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,20 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### March 28, 2026
+
+**Scheduler: Calendar App Launch Fix**
+- Fixed AppleScript calendar integration failing when Calendar.app not running
+- Added explicit `launch` command with delay before creating events
+- Prevents "Application isn't running" (-600) error
+
+### March 23, 2026
+
+**AI Scribe: Preserve Clinician Language**
+- Updated system prompt to preserve profanity, slang, and colloquialisms
+- Model was incorrectly substituting euphemisms (e.g., "shit" → "defecate")
+- Prompt now explicitly instructs model to respect therapist's word choices
 
 ### March 9, 2026
 
