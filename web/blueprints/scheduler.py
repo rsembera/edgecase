@@ -219,9 +219,11 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     elif repeat == 'monthly':
         recurrence_rule = 'FREQ=MONTHLY'
     
-    # Build the AppleScript
+    # Build the AppleScript - launch Calendar first to ensure it's running
     script = f'''
     tell application "Calendar"
+        launch
+        delay 0.5
         tell calendar "{calendar_name_escaped}"
             set newEvent to make new event with properties {{summary:"{file_number_escaped}", start date:date "{start_str}", end date:date "{end_str}", description:"{description}"'''
     
