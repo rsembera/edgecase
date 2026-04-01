@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-04-01
+- **Scheduler**: Fixed natural language date parsing to prioritize explicit dates over day-of-week names. Previously, "Thursday April 9" would be interpreted as "next Thursday" (ignoring the explicit date). Now explicit month+day patterns are checked first, with day-of-week as a fallback.
+
 ### 2026-03-28
 - **Scheduler**: Fixed AppleScript calendar integration failing when Calendar.app is not already running. The AppleScript now explicitly launches Calendar before attempting to create events, preventing the "Application isn't running" (-600) error.
 
