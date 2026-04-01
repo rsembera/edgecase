@@ -139,17 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return tomorrow;
         }
         
-        // Day names
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-        
-        for (let i = 0; i < days.length; i++) {
-            const pattern = new RegExp('\\b' + days[i] + '\\b|\\b' + dayAbbrevs[i] + '\\b', 'i');
-            if (pattern.test(text)) {
-                return getNextDayOfWeek(today, i);
-            }
-        }
-        
         // Month names mapping
         const months = {
             'jan': 0, 'january': 0,
@@ -166,7 +155,10 @@ document.addEventListener('DOMContentLoaded', function() {
             'dec': 11, 'december': 11
         };
         
-        // Pattern: Month Day (Nov 28)
+        // EXPLICIT DATES FIRST - check for month+day before day-of-week
+        // This ensures "Thursday April 9" uses April 9, not "next Thursday"
+        
+        // Pattern: Month Day (Nov 28, April 9)
         const monthDayPattern = /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})\b/i;
         const monthDayMatch = text.match(monthDayPattern);
         
@@ -191,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Pattern: Day Month (28 Nov)
+        // Pattern: Day Month (28 Nov, 9 April)
         const dayMonthPattern = /\b(\d{1,2})\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
         const dayMonthMatch = text.match(dayMonthPattern);
         
@@ -213,6 +205,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     result.setFullYear(result.getFullYear() + 1);
                 }
                 return result;
+            }
+        }
+        
+        // DAY-OF-WEEK FALLBACK - only if no explicit date found
+        // Handles "Thursday", "next Friday", etc.
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        
+        for (let i = 0; i < days.length; i++) {
+            const pattern = new RegExp('\\b' + days[i] + '\\b|\\b' + dayAbbrevs[i] + '\\b', 'i');
+            if (pattern.test(text)) {
+                return getNextDayOfWeek(today, i);
             }
         }
         
