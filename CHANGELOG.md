@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-04-10
+- **Security**: Added `Cache-Control: no-store` headers to attachment viewing and download endpoints. Prevents browsers from caching decrypted attachment content to disk. Decrypted attachments now exist only in memory during viewing/download.
+
 ### 2026-04-01
 - **Scheduler**: Fixed natural language date parsing to prioritize explicit dates over day-of-week names. Previously, "Thursday April 9" would be interpreted as "next Thursday" (ignoring the explicit date). Now explicit month+day patterns are checked first, with day-of-week as a fallback.
 
