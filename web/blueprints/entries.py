@@ -1765,11 +1765,15 @@ def download_attachment(attachment_id):
             decrypted = decrypt_file_to_bytes(filepath, db.password)
         except Exception as e:
             return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
-        return send_file(
+        response = send_file(
             BytesIO(decrypted),
             as_attachment=True,
             download_name=attachment['filename']
         )
+        # Prevent browser from caching decrypted content to disk
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        return response
     else:
         return send_file(filepath, 
                          as_attachment=True, 
@@ -1805,12 +1809,16 @@ def view_attachment(attachment_id):
         # Guess mimetype from filename
         import mimetypes
         mimetype = mimetypes.guess_type(attachment['filename'])[0] or 'application/octet-stream'
-        return send_file(
+        response = send_file(
             BytesIO(decrypted),
             as_attachment=False,
             download_name=attachment['filename'],
             mimetype=mimetype
         )
+        # Prevent browser from caching decrypted content to disk
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        return response
     else:
         return send_file(filepath, as_attachment=False)
 
