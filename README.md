@@ -33,9 +33,9 @@ Or run from source (see below).
 - Income and expense tracking
 - Calendar integration (.ics export, Apple Calendar)
 - Full backup/restore system
-- Immutable clinical records with full edit history and redaction support
+- Locked clinical records with full edit history and redaction support
 - Configurable retention periods with secure end-of-retention deletion
-- Designed to support PHIPA compliance for solo practitioners
+- Features intended to support PHIPA workflows (locked records, retention periods, audit trail)
 - Local AI assistant for session notes (optional)
 
 ## Requirements
