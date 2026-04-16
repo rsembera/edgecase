@@ -6,7 +6,7 @@ Web-based for convenience, but single-user and local-only by design. Your data s
 
 **Website:** [edgecaseequalizer.ca](https://edgecaseequalizer.ca)
 
-**Status:** Production ready. In use as of January 2026.
+**Status:** Stable. In daily use by the author since January 2026.
 
 ## Downloads
 
