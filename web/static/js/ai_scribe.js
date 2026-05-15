@@ -18,12 +18,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultHint = document.getElementById('result-hint');
     const btnKeep = document.getElementById('btn-keep');
     const btnRevert = document.getElementById('btn-revert');
+    const btnCancelGeneration = document.getElementById('btn-cancel-generation');
     const loadingBanner = document.getElementById('model-loading-banner');
     
     // State
     let isGenerating = false;
     let hasGeneratedContent = false;
     let currentAction = null;
+    let abortController = null;
     
     /**
      * Load the AI model if not already loaded
@@ -112,13 +114,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        statusDiv.classList.remove('hidden', 'status-error');
+        statusDiv.style.display = 'flex';
+        statusDiv.classList.remove('status-error');
         statusText.textContent = 'Generating...';
         resultHint.textContent = 'Streaming response...';
         btnKeep.disabled = true;
         btnRevert.disabled = true;
         
         try {
+            // Create AbortController so the user can cancel the stream
+            abortController = new AbortController();
+            
             // Make SSE request
             const response = await fetch('/api/ai/process', {
                 method: 'POST',
@@ -128,7 +134,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     action: action,
                     text: text
-                })
+                }),
+                signal: abortController.signal
             });
             
             // Check if response is SSE
@@ -183,9 +190,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
         } catch (error) {
-            console.error('Generation error:', error);
-            showError('Generation failed: ' + error.message);
-            onGenerationComplete(true);
+            if (error.name === 'AbortError') {
+                // User cancelled — not an error, just clean up quietly
+                console.log('Generation cancelled by user');
+                statusDiv.style.display = 'none';
+                resultHint.textContent = hasGeneratedContent
+                    ? 'Cancelled — partial result above'
+                    : 'Click an action to generate';
+                onGenerationComplete();
+            } else {
+                console.error('Generation error:', error);
+                showError('Generation failed: ' + error.message);
+                onGenerationComplete(true);
+            }
         }
     }
     
@@ -194,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function onGenerationComplete(hadError = false) {
         isGenerating = false;
+        abortController = null;
         
         // Re-enable buttons
         actionButtons.forEach(btn => {
@@ -202,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (!hadError) {
-            statusDiv.classList.add('hidden');
+            statusDiv.style.display = 'none';
             resultHint.textContent = 'Review and edit as needed';
         }
         
@@ -262,6 +280,16 @@ document.addEventListener('DOMContentLoaded', function() {
         resultHint.textContent = 'Click an action to generate';
     }
     
+    /**
+     * Cancel the in-flight generation request
+     */
+    function cancelGeneration() {
+        if (abortController && isGenerating) {
+            statusText.textContent = 'Cancelling...';
+            abortController.abort();
+        }
+    }
+    
     // Event Listeners
     actionButtons.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -274,6 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     btnKeep.addEventListener('click', saveContent);
     btnRevert.addEventListener('click', revertContent);
+    if (btnCancelGeneration) {
+        btnCancelGeneration.addEventListener('click', cancelGeneration);
+    }
     
     // Auto-load model on page load if downloaded but not loaded
     if (window.MODEL_DOWNLOADED && !window.MODEL_LOADED) {
