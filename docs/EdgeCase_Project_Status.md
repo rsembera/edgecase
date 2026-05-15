@@ -76,6 +76,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## RECENT ACCOMPLISHMENTS
 
+### May 15, 2026
+
+**AI Scribe: Cancel Button & Status Visibility Fix**
+- Added Cancel button inside the AI Scribe modal that aborts in-flight generation via `AbortController`
+- Resolves a hang where cancelling mid-stream (by navigating away) left the model locked, causing the next action to wait indefinitely
+- Fixed pre-existing bug where the "Generating..." spinner never appeared — JS was using `classList.remove('hidden')` against a div hidden with inline `style="display: none;"`
+- Renamed bottom "Cancel" link to "Back" with standard left-arrow styling to match the rest of the app
+
 ### March 28, 2026
 
 **Scheduler: Calendar App Launch Fix**
