@@ -8,6 +8,11 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-05-15
+- **AI Scribe**: Added Cancel button to abort in-flight generation. Uses `AbortController` to terminate the SSE stream cleanly, releasing the model so a new action can be started immediately. Previously, hitting the bottom "Cancel" link navigated away but left the generation running on the backend, causing subsequent requests to hang waiting for the model lock.
+- **AI Scribe**: Fixed pre-existing bug where the "Generating..." status indicator never appeared. The JS was using `classList.remove('hidden')` to show the status div, but the div was hidden via inline `style="display: none;"` and no `.hidden` CSS class exists. Switched to direct inline style manipulation.
+- **AI Scribe**: Renamed bottom "Cancel" link to "Back" with standard styling (left-arrow icon, plain `.btn` class) to match the Back button convention used throughout the rest of the app.
+
 ### 2026-04-10
 - **Security**: Added `Cache-Control: no-store` headers to attachment viewing and download endpoints. Prevents browsers from caching decrypted attachment content to disk. Decrypted attachments now exist only in memory during viewing/download.
 
