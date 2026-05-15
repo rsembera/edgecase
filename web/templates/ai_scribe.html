@@ -64,6 +64,9 @@
             <div id="generation-status" class="generation-status" style="display: none;">
                 <i data-lucide="loader" class="spinning"></i>
                 <span id="status-text">Generating...</span>
+                <button type="button" id="btn-cancel-generation" class="btn btn-secondary btn-sm" style="margin-left: 0.5rem;">
+                    <i data-lucide="x" class="icon-sm"></i> Cancel
+                </button>
             </div>
         </div>
 
@@ -81,8 +84,8 @@
 
     <!-- Bottom Actions -->
     <div class="bottom-actions">
-        <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}" class="btn btn-secondary">
-            Cancel
+        <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}" class="btn">
+            <i data-lucide="arrow-left" class="icon-sm"></i> Back
         </a>
         <div class="action-group">
             <button type="button" id="btn-revert" class="btn btn-secondary" disabled>
