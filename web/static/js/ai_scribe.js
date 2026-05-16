@@ -13,8 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalText = document.getElementById('original-text');
     const generatedText = document.getElementById('generated-text');
     const actionButtons = document.querySelectorAll('.action-btn');
-    const statusDiv = document.getElementById('generation-status');
-    const statusText = document.getElementById('status-text');
     const resultHint = document.getElementById('result-hint');
     const btnKeep = document.getElementById('btn-keep');
     const btnRevert = document.getElementById('btn-revert');
@@ -75,9 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Show error message
      */
     function showError(message) {
-        statusDiv.classList.remove('hidden');
-        statusDiv.classList.add('status-error');
-        statusText.textContent = message;
+        resultHint.textContent = message;
     }
     
     /**
@@ -114,9 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        statusDiv.style.display = 'flex';
-        statusDiv.classList.remove('status-error');
-        statusText.textContent = 'Generating...';
+        btnCancelGeneration.style.visibility = 'visible';
         resultHint.textContent = 'Streaming response...';
         btnKeep.disabled = true;
         btnRevert.disabled = true;
@@ -193,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (error.name === 'AbortError') {
                 // User cancelled — not an error, just clean up quietly
                 console.log('Generation cancelled by user');
-                statusDiv.style.display = 'none';
+                btnCancelGeneration.style.visibility = 'hidden';
                 resultHint.textContent = hasGeneratedContent
                     ? 'Cancelled — partial result above'
                     : 'Click an action to generate';
@@ -220,9 +214,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (!hadError) {
-            statusDiv.style.display = 'none';
             resultHint.textContent = 'Review and edit as needed';
         }
+        btnCancelGeneration.style.visibility = 'hidden';
         
         // Enable keep/revert if we have content
         if (hasGeneratedContent) {
@@ -285,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function cancelGeneration() {
         if (abortController && isGenerating) {
-            statusText.textContent = 'Cancelling...';
             abortController.abort();
         }
     }

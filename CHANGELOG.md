@@ -8,6 +8,10 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-05-16
+- **AI Scribe**: Refined Cancel button presentation. Removed the inline "Generating..." status indicator (which was causing column-width reflow) and replaced it with a dedicated Cancel button styled to match the action buttons, placed below them in the same column. Uses `visibility: hidden` to reserve layout space so action buttons no longer jump when Cancel appears or disappears.
+- **AI Scribe**: Converted the "Loading AI model..." banner from an inline element to a centered modal overlay with dimmed backdrop. Previously the banner pushed page content down when shown and let it snap back when hidden; the overlay is now `position: fixed` so it never affects layout. The overlay also better reflects the actual user state — the page is unusable until the model loads.
+
 ### 2026-05-15
 - **AI Scribe**: Added Cancel button to abort in-flight generation. Uses `AbortController` to terminate the SSE stream cleanly, releasing the model so a new action can be started immediately. Previously, hitting the bottom "Cancel" link navigated away but left the generation running on the backend, causing subsequent requests to hang waiting for the model lock.
 - **AI Scribe**: Fixed pre-existing bug where the "Generating..." status indicator never appeared. The JS was using `classList.remove('hidden')` to show the status div, but the div was hidden via inline `style="display: none;"` and no `.hidden` CSS class exists. Switched to direct inline style manipulation.
