@@ -26,9 +26,11 @@
         <span>AI model not downloaded. <a href="{{ url_for('settings.settings_page') }}#ai-scribe">Download in Settings</a></span>
     </div>
     {% elif not model_loaded %}
-    <div class="status-banner status-warning" id="model-loading-banner">
-        <i data-lucide="loader" class="spinning"></i>
-        <span>Loading AI model... This may take a moment.</span>
+    <div class="loading-overlay" id="model-loading-banner">
+        <div class="loading-overlay-content">
+            <i data-lucide="loader" class="spinning"></i>
+            <span>Loading AI model...<br><small>This may take a moment.</small></span>
+        </div>
     </div>
     {% endif %}
 
@@ -60,14 +62,10 @@
                 {% endfor %}
             </div>
             
-            <!-- Progress indicator -->
-            <div id="generation-status" class="generation-status" style="display: none;">
-                <i data-lucide="loader" class="spinning"></i>
-                <span id="status-text">Generating...</span>
-                <button type="button" id="btn-cancel-generation" class="btn btn-secondary btn-sm" style="margin-left: 0.5rem;">
-                    <i data-lucide="x" class="icon-sm"></i> Cancel
-                </button>
-            </div>
+            <button type="button" id="btn-cancel-generation" class="cancel-btn" style="visibility: hidden;">
+                <i data-lucide="x"></i>
+                <span>Cancel</span>
+            </button>
         </div>
 
         <!-- Right Column: Generated Text -->

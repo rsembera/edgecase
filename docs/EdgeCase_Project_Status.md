@@ -76,6 +76,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## RECENT ACCOMPLISHMENTS
 
+### May 16, 2026
+
+**AI Scribe: Layout Polish**
+- Removed the inline "Generating..." status indicator in favour of a Cancel button styled to match the action buttons
+- Cancel button uses `visibility: hidden` to reserve layout space, eliminating jumpiness when it appears/disappears
+- Converted the "Loading AI model..." banner from an inline element (which shifted page content) into a centered modal overlay with dimmed backdrop
+
 ### May 15, 2026
 
 **AI Scribe: Cancel Button & Status Visibility Fix**
