@@ -1975,7 +1975,9 @@ class Database:
                 SELECT MAX(created_at) FROM entries WHERE client_id = ?
             """, (client_id,))
             result = cursor.fetchone()
-            last_contact = result[0] if result and result[0] else client['created_at']
+            # Fallback aligned with get_clients_due_for_deletion: use modified_at
+            # (≈ when the file went cold) rather than created_at for entry-less clients
+            last_contact = result[0] if result and result[0] else client['modified_at']
             
             # Calculate retain_until (same logic as get_clients_due_for_deletion)
             retention_days = client.get('retention_days') or 0
