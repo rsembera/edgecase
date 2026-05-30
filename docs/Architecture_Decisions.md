@@ -1182,7 +1182,9 @@ last_contact      = MAX(created_at) from entries WHERE client_id = ?
 retain_until      = last_contact + (retention_days * 86400)
 ```
 
-For minors, `retain_until` is `max(standard_retain_until, 18th_birthday + retention_period)`.
+For minors, `retain_until` is `max(standard_retain_until, 18th_birthday + retention_period)`. A Feb 29 (leap-day) birthday has no Feb 29 in the +18 target year; the 18th-birthday is clamped to **Mar 1** (one day later than Feb 28) so the minor still receives the age-of-majority extension rather than silently falling back to the shorter standard retention.
+
+The calculation lives in a single helper, `Database._calculate_retain_until(...)`, used by both the deletion sweep and the single-client preview so the two cannot drift apart (they previously did — see the fallback note below).
 
 ### Why anchor on the last entry rather than the inactivation date?
 
