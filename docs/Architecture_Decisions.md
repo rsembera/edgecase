@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** February 17, 2026
+**Last Updated:** May 30, 2026
 
 ---
 
@@ -1169,6 +1169,41 @@ Redacted entries in exports show only:
 
 ---
 
+## RETENTION CLOCK ANCHORING
+
+### The Decision
+
+When a client is switched to **Inactive**, the retention countdown is anchored on the **date of the most recent Client File entry** (`MAX(entries.created_at)`), **not** the date the client was made Inactive.
+
+Switching to Inactive (`snapshot_retention_on_inactive`) only freezes the *number* of retention days from the client's former type onto the client record. It does **not** record a start date. The actual retain-until date is computed at check time:
+
+```
+last_contact      = MAX(created_at) from entries WHERE client_id = ?
+retain_until      = last_contact + (retention_days * 86400)
+```
+
+For minors, `retain_until` is `max(standard_retain_until, 18th_birthday + retention_period)`.
+
+### Why anchor on the last entry rather than the inactivation date?
+
+Consider the common edge case: you email a client, get no response, and close the file. The professionally relevant "last contact" is the email (logged as an entry), not the administrative act of flipping the status weeks later. Anchoring on the last entry matches when the file actually went cold.
+
+### Why entry `created_at` rather than a user-settable contact date?
+
+**Deliberate choice — do not "fix" this.**
+
+- **Fails safe.** In normal flow, an entry's `created_at` is at or after the real contact (you can't create an entry before the event). So writing a note after the fact can only push the clock *later*, never earlier. For a regulated health record, over-retaining is the safe direction; early destruction is the danger. A user-keyed date would break this guarantee and make the destruction clock manipulable.
+- **Audit-defensible.** "The clock runs from the system timestamp of the last entry" is automatic and tamper-resistant. A hand-keyed date adds a data-entry error surface to a compliance-critical calculation.
+- **Negligible cost.** `created_at` only diverges from true last-contact when a contact is written up well after it happened, and even then it errs long. For log-as-you-go workflows the two are effectively identical.
+
+### Entry-less client fallback
+
+If an Inactive client has zero entries, `MAX(created_at)` is null and the code falls back to `client['modified_at']` (≈ when the file went cold). Both the deletion sweep (`get_clients_due_for_deletion`) and the single-client preview use this same fallback — they were reconciled to agree (the preview previously used `created_at`).
+
+A `retention_days` value of `0` means **keep forever** and is skipped by the deletion sweep.
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: January 10, 2026*
+*Last Updated: May 30, 2026*
