@@ -1830,8 +1830,43 @@ class Database:
         
     # ============================================================
     # RETENTION SYSTEM FUNCTIONS
-    # Add these methods to the Database class in database.py
     # ============================================================
+
+    @staticmethod
+    def _calculate_retain_until(last_contact, retention_days, is_minor, dob_str):
+        """
+        Compute the epoch timestamp at which an Inactive client's file may be
+        destroyed. Single source of truth for both the deletion sweep
+        (get_clients_due_for_deletion) and the single-client preview, so the
+        two can never drift apart.
+
+        Anchored on last_contact (most recent entry's created_at). For minors,
+        retention runs to the LATER of (last_contact + period) and
+        (18th birthday + period). See Architecture_Decisions.md:
+        RETENTION CLOCK ANCHORING.
+        """
+        from datetime import datetime
+
+        retention_seconds = (retention_days or 0) * 24 * 60 * 60
+        standard_retain_until = last_contact + retention_seconds
+
+        if is_minor and dob_str:
+            try:
+                dob = datetime.strptime(dob_str, '%Y-%m-%d')
+                try:
+                    eighteenth_birthday = dob.replace(year=dob.year + 18)
+                except ValueError:
+                    # Feb 29 birthday: no Feb 29 in the target year. Clamp to
+                    # Mar 1 (one day later than Feb 28) so a leap-day minor
+                    # still gets the age-of-majority extension. Falling through
+                    # to standard retention would be the unsafe, shorter direction.
+                    eighteenth_birthday = dob.replace(year=dob.year + 18, month=3, day=1)
+                after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
+                return max(standard_retain_until, after_majority)
+            except (ValueError, TypeError):
+                return standard_retain_until
+
+        return standard_retain_until
 
     def get_clients_due_for_deletion(self):
         """
@@ -1887,21 +1922,10 @@ class Database:
             is_minor = profile[0] if profile else 0
             dob_str = profile[1] if profile else None
             
-            # Calculate retain_until
-            retention_seconds = retention_days * 24 * 60 * 60
-            standard_retain_until = last_contact + retention_seconds
-            
-            # For minors, also calculate based on 18th birthday
-            if is_minor and dob_str:
-                try:
-                    dob = datetime.strptime(dob_str, '%Y-%m-%d')
-                    eighteenth_birthday = dob.replace(year=dob.year + 18)
-                    after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
-                    retain_until = max(standard_retain_until, after_majority)
-                except (ValueError, TypeError):
-                    retain_until = standard_retain_until
-            else:
-                retain_until = standard_retain_until
+            # Calculate retain_until (see _calculate_retain_until)
+            retain_until = self._calculate_retain_until(
+                last_contact, retention_days, is_minor, dob_str
+            )
             
             # Check if retention period has expired
             if today >= retain_until:
@@ -1979,21 +2003,11 @@ class Database:
             # (≈ when the file went cold) rather than created_at for entry-less clients
             last_contact = result[0] if result and result[0] else client['modified_at']
             
-            # Calculate retain_until (same logic as get_clients_due_for_deletion)
+            # Calculate retain_until (see _calculate_retain_until)
             retention_days = client.get('retention_days') or 0
-            retention_seconds = retention_days * 24 * 60 * 60
-            standard_retain_until = last_contact + retention_seconds
-            
-            if is_minor and dob_str:
-                try:
-                    dob = datetime.strptime(dob_str, '%Y-%m-%d')
-                    eighteenth_birthday = dob.replace(year=dob.year + 18)
-                    after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
-                    retain_until = max(standard_retain_until, after_majority)
-                except (ValueError, TypeError):
-                    retain_until = standard_retain_until
-            else:
-                retain_until = standard_retain_until
+            retain_until = self._calculate_retain_until(
+                last_contact, retention_days, is_minor, dob_str
+            )
             
             # Build full name
             full_name = client['first_name']
