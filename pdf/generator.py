@@ -16,6 +16,18 @@ from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path
 from io import BytesIO
+from xml.sax.saxutils import escape as _xml_escape
+
+
+def esc(value):
+    """XML-escape user-entered content for safe use in Paragraph markup.
+
+    ReportLab parses Paragraph text as mini-XML, so a bare '&', '<', or '>'
+    in a name, address, or description would crash doc.build().
+    """
+    if value is None:
+        return ''
+    return _xml_escape(str(value))
 
 
 class StatementPDFGenerator:
@@ -172,8 +184,9 @@ class StatementPDFGenerator:
                 # This is an email - use regular (non-italic) font
                 formatted_parts.append(f'</i><font face="Helvetica">{part}</font><i>')
             else:
-                formatted_parts.append(part)
-        
+                # Escape user text (emails match a safe charset already)
+                formatted_parts.append(esc(part))
+
         # Wrap the whole thing in italic tags for Paragraph
         return '<i>' + ''.join(formatted_parts) + '</i>'
     
@@ -255,16 +268,16 @@ class StatementPDFGenerator:
         if settings['credentials']:
             name_line += f", {settings['credentials']}"
         if name_line:
-            info_parts.append(Paragraph(name_line, self.styles['TherapistName']))
+            info_parts.append(Paragraph(esc(name_line), self.styles['TherapistName']))
         
         # Registration info
         if settings['registration_info']:
-            info_parts.append(Paragraph(settings['registration_info'], self.styles['HeaderInfo']))
+            info_parts.append(Paragraph(esc(settings['registration_info']), self.styles['HeaderInfo']))
         
         # Address - preserve line breaks
         if settings['address']:
-            # Replace newlines with <br/> for ReportLab
-            address_html = settings['address'].replace('\n', '<br/>')
+            # Escape first, then replace newlines with <br/> for ReportLab
+            address_html = esc(settings['address']).replace('\n', '<br/>')
             info_parts.append(Paragraph(address_html, self.styles['HeaderInfo']))
         
         # Phone and website on same line
@@ -274,7 +287,7 @@ class StatementPDFGenerator:
         if settings['website']:
             contact_line.append(settings['website'])
         if contact_line:
-            info_parts.append(Paragraph(' | '.join(contact_line), self.styles['HeaderInfo']))
+            info_parts.append(Paragraph(esc(' | '.join(contact_line)), self.styles['HeaderInfo']))
         
         # Create the header layout
         if logo_path:
@@ -317,13 +330,13 @@ class StatementPDFGenerator:
         elements = []
         
         if bill_to_info['name']:
-            elements.append(Paragraph(bill_to_info['name'], self.styles['BillToName']))
+            elements.append(Paragraph(esc(bill_to_info['name']), self.styles['BillToName']))
         
         if bill_to_info['address']:
             # Split address by newlines if present
             for line in bill_to_info['address'].split('\n'):
                 if line.strip():
-                    elements.append(Paragraph(line.strip(), self.styles['BillToAddress']))
+                    elements.append(Paragraph(esc(line.strip()), self.styles['BillToAddress']))
         
         elements.append(Spacer(1, 0.3*inch))
         return elements
@@ -511,7 +524,7 @@ class StatementPDFGenerator:
         
         # Attestation text
         if settings['include_attestation'] and settings['attestation_text']:
-            elements.append(Paragraph(settings['attestation_text'], self.styles['Attestation']))
+            elements.append(Paragraph(esc(settings['attestation_text']), self.styles['Attestation']))
         
         elements.append(Spacer(1, 0.3*inch))
         
@@ -841,10 +854,10 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     
     # Client info (bill-to section)
     client_name = f"{client['first_name']} {client.get('middle_name') or ''} {client['last_name']}".replace('  ', ' ')
-    story.append(Paragraph(f"<b>{client_name}</b>", generator.styles['Normal']))
-    
+    story.append(Paragraph(f"<b>{esc(client_name)}</b>", generator.styles['Normal']))
+
     if profile and profile.get('address'):
-        address_html = profile['address'].replace('\n', '<br/>')
+        address_html = esc(profile['address']).replace('\n', '<br/>')
         story.append(Paragraph(address_html, generator.styles['Normal']))
     
     story.append(Spacer(1, 0.2*inch))
@@ -994,7 +1007,7 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     
     # Attestation
     if settings['include_attestation'] and settings['attestation_text']:
-        story.append(Paragraph(settings['attestation_text'], generator.styles['Attestation']))
+        story.append(Paragraph(esc(settings['attestation_text']), generator.styles['Attestation']))
     
     story.append(Spacer(1, 0.3*inch))
     
