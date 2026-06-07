@@ -79,7 +79,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ### June 7, 2026 (second batch)
 
 **Code Review Remediation — Completion Pass**
-- Money arithmetic migrated to Decimal end-to-end (`core/money.py`, `core/billing.py`): exact-cent payment status (no epsilon fudge), per-line guardian splits that sum exactly, pro-rata tax reversal on refunds, 20 new non-tautological money tests (83 total)
+- Money arithmetic migrated to Decimal end-to-end (`core/money.py`, `core/billing.py`): exact-cent payment status (no epsilon fudge), per-line guardian splits that sum exactly, pro-rata tax reversal on refunds, 20 new non-tautological money tests (63 total)
 - Master password no longer passes through the session cookie during password change
 - Client deletion is transaction-safe (files deleted only after commit; related rows cleaned up); link-group writes roll back on error
 - Backup system: broken incremental chains detected and refused, encrypted-DB integrity check after zipping, WAL handling, safety backups all visible
