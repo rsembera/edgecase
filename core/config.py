@@ -148,3 +148,17 @@ def is_development_mode():
 def get_data_root():
     """Return the current data root path."""
     return str(DATA_ROOT)
+
+
+def resolve_attachment_path(filepath):
+    """Resolve a stored attachment path against DATA_ROOT.
+
+    Attachment records in the database store paths relative to DATA_ROOT
+    (see web/utils.py save_uploaded_files). Bare relative paths only work
+    when CWD == DATA_ROOT, which is true in dev mode but not in installed
+    or desktop mode. Always pass attachment filepaths through this helper
+    before opening them.
+    """
+    if os.path.isabs(filepath):
+        return filepath
+    return str(DATA_ROOT / filepath)

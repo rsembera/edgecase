@@ -24,7 +24,7 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from xml.sax.saxutils import escape as _xml_escape
 
 from core.encryption import decrypt_file_to_bytes
-from core.config import get_assets_path, DATA_ROOT
+from core.config import get_assets_path, DATA_ROOT, resolve_attachment_path
 
 
 def esc(value):
@@ -36,18 +36,6 @@ def esc(value):
     if value is None:
         return ''
     return _xml_escape(str(value))
-
-
-def resolve_attachment_path(filepath):
-    """Resolve a stored attachment path against DATA_ROOT.
-
-    Attachment records store paths relative to DATA_ROOT (see
-    web/utils.py save_uploaded_files). Mirrors
-    web.blueprints.entries.resolve_attachment_path.
-    """
-    if os.path.isabs(filepath):
-        return filepath
-    return str(DATA_ROOT / filepath)
 
 
 def get_styles():

@@ -76,6 +76,13 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## RECENT ACCOMPLISHMENTS
 
+### June 7, 2026 (follow-up)
+
+**Ledger Report Receipt-Dropping Fix**
+- Caught while reviewing the Cowork batch: `pdf/ledger_report.py` had the same path-resolution bug as C1/C2 — `att['filepath']` resolved against process CWD instead of DATA_ROOT, causing receipts to silently disappear from ledger reports in desktop/installed mode
+- Promoted `resolve_attachment_path()` to `core/config.py` so both PDF modules share one implementation
+- 43 tests still pass
+
 ### June 7, 2026
 
 **Code Review Remediation — First Batch (CODE_REVIEW.md)**
