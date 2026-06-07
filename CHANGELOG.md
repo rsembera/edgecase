@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-07 (later)
+- **Ledger reports — silent receipt-dropping fix**: `pdf/ledger_report.py` was resolving `att['filepath']` against the process working directory rather than DATA_ROOT (same root cause as C1/C2). In dev mode CWD happened to equal DATA_ROOT so the bug never surfaced; in desktop/installed mode receipts were silently skipped. Promoted `resolve_attachment_path()` to `core/config.py` as a single source of truth, imported by both `client_export.py` and `ledger_report.py`.
+
 <!-- TODO (CODE_REVIEW.md M2): tools/audit_orphans.py exists to audit
      orphaned rows against the schema's declared FOREIGN KEYs. Enabling
      PRAGMA foreign_keys=ON in core/database.py:connect() is pending review

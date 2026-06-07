@@ -15,6 +15,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 from xml.sax.saxutils import escape as _xml_escape
 from core.encryption import decrypt_file_to_bytes
+from core.config import resolve_attachment_path
 
 
 def esc(value):
@@ -474,7 +475,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
                 for att in atts:
                     filename = att['filename']  # Original filename for display
                     filename_lower = filename.lower()
-                    filepath = att['filepath']  # Actual path on disk (may be encrypted .enc file)
+                    filepath = resolve_attachment_path(att['filepath'])  # Resolve against DATA_ROOT
                     att_desc = att.get('description') or filename
                     
                     if filename_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
