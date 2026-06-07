@@ -644,6 +644,14 @@ def complete_restore():
         target_db = DATA_DIR / 'edgecase.db'
         if target_db.exists():
             target_db.unlink()
+        # Remove stale WAL/SHM sidecars from the previous database.
+        # If they survive (e.g. after a crash, when no clean-exit
+        # checkpoint ran), SQLite may replay old WAL frames into the
+        # freshly restored file and corrupt it.
+        for suffix in ('-wal', '-shm'):
+            sidecar = DATA_DIR / f'edgecase.db{suffix}'
+            if sidecar.exists():
+                sidecar.unlink()
         shutil.copy2(staged_db, target_db)
     
     # Replace attachments
