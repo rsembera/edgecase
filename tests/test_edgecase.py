@@ -930,6 +930,202 @@ class TestEncryption:
 
 
 # ============================================================================
+# MONEY ARITHMETIC (CODE_REVIEW.md M1 / L11)
+# ============================================================================
+# These tests exercise the REAL production code in core.money and
+# core.billing (used by web/blueprints/statements.py) — unlike the older
+# fee tests, they do not re-implement the formulas they verify.
+
+from decimal import Decimal
+
+from core.money import dec, quantize_cents, to_cents, money_float
+from core.billing import (
+    entry_fee, entry_tax, compute_statement_totals,
+    split_guardian_amounts, apply_payment, prorata_tax,
+)
+
+
+def _session(fee, base_fee):
+    return {'class': 'session', 'fee': fee, 'base_fee': base_fee}
+
+
+def _item(fee, base_price, g1=None, g2=None):
+    e = {'class': 'item', 'fee': fee, 'base_price': base_price}
+    if g1 is not None:
+        e['guardian1_amount'] = g1
+        e['guardian2_amount'] = g2
+    return e
+
+
+class TestMoneyPrimitives:
+    """core.money: quantization, cents, storage round-trip."""
+
+    def test_dec_handles_db_and_form_values(self):
+        assert dec(None) == Decimal('0')
+        assert dec('') == Decimal('0')
+        assert dec(113.0) == Decimal('113')
+        assert dec('33.33') == Decimal('33.33')
+
+    def test_quantize_rounds_half_up(self):
+        assert quantize_cents('1.005') == Decimal('1.01')
+        assert quantize_cents('1.004') == Decimal('1.00')
+
+    def test_storage_round_trip_is_exact_cents(self):
+        # Every value stored via money_float recovers exact cents
+        for raw in ('0.01', '33.33', '99.99', '12345.67', '0.10'):
+            stored = money_float(raw)          # float in the REAL column
+            assert to_cents(stored) == to_cents(raw)
+
+    def test_float_accumulation_bug_does_not_survive(self):
+        # 10 × $0.10 in floats is 0.9999999999999999; in our pipeline
+        # it's exactly $1.00
+        total = sum((quantize_cents('0.10') for _ in range(10)), dec(0))
+        assert to_cents(total) == 100
+
+
+class TestStatementTotals:
+    """compute_statement_totals against entry fee/tax fallbacks."""
+
+    def test_totals_and_tax(self):
+        entries = [
+            _session(113.0, 100.0),     # $13 tax
+            _session(56.50, 50.0),      # $6.50 tax
+            _item(22.60, 20.0),         # $2.60 tax
+        ]
+        total, tax = compute_statement_totals(entries)
+        assert total == Decimal('192.10')
+        assert tax == Decimal('22.10')
+
+    def test_legacy_fallbacks_and_negative_tax_clamp(self):
+        # absence with no fee falls back to base_fee; fee < base clamps tax to 0
+        entries = [
+            {'class': 'absence', 'fee': None, 'base_fee': 75.0},
+            _session(90.0, 100.0),      # discounted below base: no negative tax
+        ]
+        total, tax = compute_statement_totals(entries)
+        assert total == Decimal('165.00')
+        assert tax == Decimal('0.00')
+
+
+class TestGuardianSplitRounding:
+    """split_guardian_amounts: the odd-cent cases that matter for billing."""
+
+    def test_single_guardian_pays_full_total(self):
+        # Percent is ignored without a second guardian (H3)
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 60,
+                   'has_guardian2': 0, 'guardian2_name': None}
+        entries = [_session(113.0, 100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = split_guardian_amounts(entries, profile, total)
+        assert portions == [(1, Decimal('113.00'))]
+
+    def test_two_guardian_odd_cent_remainder_goes_to_g2(self):
+        # $33.33 at 50%: G1 gets 16.67 (half-up), G2 the exact remainder
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(33.33, 33.33)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert portions[1] == Decimal('16.67')
+        assert portions[2] == Decimal('16.66')
+        assert portions[1] + portions[2] == total
+
+    def test_portions_always_sum_to_total_across_many_lines(self):
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 33,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(33.33, 30.0), _session(77.77, 70.0),
+                   _session(101.01, 90.0), _item(0.05, 0.05)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert portions[1] + portions[2] == total
+
+    def test_explicit_item_amounts_honored(self):
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [
+            _item(100.0, 100.0, g1=70.0, g2=30.0),  # explicit split
+            _session(50.0, 50.0),                    # percentage split
+        ]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert portions[1] == Decimal('70.00') + Decimal('25.00')
+        assert portions[2] == Decimal('30.00') + Decimal('25.00')
+        assert portions[1] + portions[2] == total
+
+    def test_hundred_percent_g1_leaves_no_g2_portion(self):
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 100,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(113.0, 100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = split_guardian_amounts(entries, profile, total)
+        assert portions == [(1, Decimal('113.00'))]
+
+
+class TestPaymentApplication:
+    """apply_payment: exact-cent status decisions, no epsilon fudge."""
+
+    def test_exact_payment_is_paid(self):
+        paid, owing, status = apply_payment(113.0, 0, 113.0)
+        assert status == 'paid'
+        assert to_cents(owing) == 0
+
+    def test_one_cent_short_is_partial_not_paid(self):
+        # The old `<= 0.01` float fudge wrongly marked this 'paid'
+        paid, owing, status = apply_payment(100.0, 0, 99.99)
+        assert status == 'partial'
+        assert owing == Decimal('0.01')
+
+    def test_partial_payments_accumulate_to_exactly_paid(self):
+        due = 100.30
+        paid = 0
+        for amount, expected in ((33.43, 'partial'), (33.43, 'partial'),
+                                 (33.44, 'paid')):
+            paid, owing, status = apply_payment(due, paid, amount)
+            assert status == expected
+        assert to_cents(owing) == 0
+
+    def test_ten_dimes_pay_a_dollar(self):
+        # Classic float-accumulation failure case
+        due = 1.00
+        paid = 0
+        for i in range(10):
+            paid, owing, status = apply_payment(due, paid, 0.10)
+        assert status == 'paid'
+        assert to_cents(owing) == 0
+
+    def test_overpayment_is_paid(self):
+        _, owing, status = apply_payment(100.0, 0, 120.0)
+        assert status == 'paid'
+        assert owing == Decimal('-20.00')
+
+
+class TestProrataTaxAndRefunds:
+    """prorata_tax for payments and refund reversal (L11)."""
+
+    def test_full_payment_collects_full_tax(self):
+        assert prorata_tax(113.0, 13.0, 113.0) == Decimal('13.00')
+
+    def test_partial_payment_collects_proportional_tax(self):
+        # Half the statement -> half the tax
+        assert prorata_tax(56.50, 13.0, 113.0) == Decimal('6.50')
+
+    def test_refund_reverses_tax_proportionally(self):
+        # L11: a full refund must reverse exactly what was collected
+        collected = prorata_tax(113.0, 13.0, 113.0)
+        reversed_tax = prorata_tax(abs(-113.0), 13.0, 113.0)
+        assert reversed_tax == collected == Decimal('13.00')
+
+    def test_no_tax_statement_yields_zero(self):
+        assert prorata_tax(100.0, 0, 100.0) == Decimal('0.00')
+        assert prorata_tax(100.0, 13.0, 0) == Decimal('0.00')
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 

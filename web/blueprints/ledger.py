@@ -14,6 +14,7 @@ import shutil
 import time
 from core.database import Database
 from core.config import ATTACHMENTS_DIR, ASSETS_DIR
+from core.money import money_float
 import tempfile
 from pathlib import Path
 
@@ -170,8 +171,8 @@ def create_income():
             'ledger_type': 'income',
             'ledger_date': ledger_date_timestamp,
             'source': source,
-            'total_amount': float(request.form.get('total_amount', 0)),
-            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'total_amount': money_float(request.form.get('total_amount', 0) or 0),
+            'tax_amount': money_float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }
@@ -225,8 +226,8 @@ def edit_income(entry_id):
         income_data = {
             'ledger_date': ledger_date_timestamp,
             'source': source,
-            'total_amount': float(request.form.get('total_amount', 0)),
-            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'total_amount': money_float(request.form.get('total_amount', 0) or 0),
+            'tax_amount': money_float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }
@@ -325,8 +326,8 @@ def create_expense():
             'ledger_date': ledger_date_timestamp,
             'payee_id': payee_id,
             'category_id': category_id,
-            'total_amount': float(request.form.get('total_amount', 0)),
-            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'total_amount': money_float(request.form.get('total_amount', 0) or 0),
+            'tax_amount': money_float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }
@@ -397,8 +398,8 @@ def edit_expense(entry_id):
             'ledger_date': ledger_date_timestamp,
             'payee_id': payee_id,
             'category_id': category_id,
-            'total_amount': float(request.form.get('total_amount', 0)),
-            'tax_amount': float(request.form.get('tax_amount') or 0),
+            'total_amount': money_float(request.form.get('total_amount', 0) or 0),
+            'tax_amount': money_float(request.form.get('tax_amount') or 0),
             'description': request.form.get('description', ''),
             'content': request.form.get('content', '')
         }

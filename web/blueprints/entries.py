@@ -18,6 +18,7 @@ from io import BytesIO
 
 from core.database import Database
 from core.config import DATA_ROOT, ATTACHMENTS_DIR, ASSETS_DIR
+from core.money import money_float
 
 
 def safe_float(value, default=None):
@@ -27,6 +28,21 @@ def safe_float(value, default=None):
     try:
         return float(value)
     except (ValueError, TypeError):
+        return default
+
+
+def safe_money(value, default=None):
+    """Safely convert a form value to a cent-quantized float for storage.
+
+    Like safe_float, but for monetary amounts: the value is quantized to
+    cents via Decimal (core.money) so stored fees are always exact cent
+    quantities (CODE_REVIEW.md M1).
+    """
+    if not value:
+        return default
+    try:
+        return money_float(value)
+    except (ValueError, TypeError, ArithmeticError):
         return default
 
 
@@ -127,9 +143,9 @@ def edit_profile(client_id):
             'meeting_link': request.form.get('meeting_link', ''),
             
             # Session fee fields
-            'session_base': safe_float(request.form.get('session_base')),
+            'session_base': safe_money(request.form.get('session_base')),
             'session_tax_rate': safe_float(request.form.get('session_tax_rate')),
-            'session_total': safe_float(request.form.get('session_total')),
+            'session_total': safe_money(request.form.get('session_total')),
             'default_session_duration': safe_int(request.form.get('default_session_duration')),
 
             # Guardian/Billing fields
@@ -469,9 +485,9 @@ def create_session(client_id):
             'session_date': session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': safe_int(request.form.get('duration')),
-            'base_fee': safe_float(request.form.get('base_fee')),
+            'base_fee': safe_money(request.form.get('base_fee')),
             'tax_rate': safe_float(request.form.get('tax_rate')),
-            'fee': safe_float(request.form.get('fee')),
+            'fee': safe_money(request.form.get('fee')),
             'is_consultation': is_consultation,
             'is_pro_bono': is_pro_bono,
             
@@ -650,9 +666,9 @@ def edit_session(client_id, entry_id):
             'session_date': old_session.get('session_date') if is_billed else session_date_timestamp,
             'session_time': request.form.get('session_time') or None,
             'duration': old_session.get('duration') if is_billed else safe_int(request.form.get('duration')),
-            'base_fee': old_session.get('base_fee') if is_billed else safe_float(request.form.get('base_fee')),
+            'base_fee': old_session.get('base_fee') if is_billed else safe_money(request.form.get('base_fee')),
             'tax_rate': old_session.get('tax_rate') if is_billed else safe_float(request.form.get('tax_rate')),
-            'fee': old_session.get('fee') if is_billed else safe_float(request.form.get('fee')),
+            'fee': old_session.get('fee') if is_billed else safe_money(request.form.get('fee')),
             'is_consultation': is_consultation,
             'is_pro_bono': is_pro_bono,
             'modified_at': int(time.time()),
@@ -1151,9 +1167,9 @@ def create_absence(client_id):
             'format': request.form.get('format', ''),
             'absence_date': absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_fee': safe_float(request.form.get('base_fee'), 0),
+            'base_fee': safe_money(request.form.get('base_fee'), 0),
             'tax_rate': safe_float(request.form.get('tax_rate'), 0),
-            'fee': safe_float(request.form.get('fee'), 0),
+            'fee': safe_money(request.form.get('fee'), 0),
             'content': request.form.get('content', '')
         }
         
@@ -1251,9 +1267,9 @@ def edit_absence(client_id, entry_id):
             'format': old_absence.get('format') if is_billed else request.form.get('format', ''),
             'absence_date': old_absence.get('absence_date') if is_billed else absence_date_timestamp,
             'absence_time': request.form.get('absence_time', ''),
-            'base_fee': old_absence.get('base_fee') if is_billed else safe_float(request.form.get('base_fee'), 0),
+            'base_fee': old_absence.get('base_fee') if is_billed else safe_money(request.form.get('base_fee'), 0),
             'tax_rate': old_absence.get('tax_rate') if is_billed else safe_float(request.form.get('tax_rate'), 0),
-            'fee': old_absence.get('fee') if is_billed else safe_float(request.form.get('fee'), 0),
+            'fee': old_absence.get('fee') if is_billed else safe_money(request.form.get('fee'), 0),
             'content': request.form.get('content', '')
         }
         
@@ -1419,8 +1435,8 @@ def create_item(client_id):
         g2_amount = request.form.get('guardian2_amount')
         
         # Parse guardian amounts - check for empty strings
-        g1_parsed = float(g1_amount) if g1_amount and g1_amount.strip() else None
-        g2_parsed = float(g2_amount) if g2_amount and g2_amount.strip() else None
+        g1_parsed = money_float(g1_amount) if g1_amount and g1_amount.strip() else None
+        g2_parsed = money_float(g2_amount) if g2_amount and g2_amount.strip() else None
         
         item_data = {
             'client_id': client_id,
@@ -1431,9 +1447,9 @@ def create_item(client_id):
             'description': request.form['description'],
             'item_date': item_date_timestamp,
             'item_time': request.form.get('item_time') or None,
-            'base_price': safe_float(request.form.get('base_price'), 0),
+            'base_price': safe_money(request.form.get('base_price'), 0),
             'tax_rate': safe_float(request.form.get('tax_rate'), 0),
-            'fee': safe_float(request.form.get('fee'), 0),
+            'fee': safe_money(request.form.get('fee'), 0),
 
             'guardian1_amount': g1_parsed,
             'guardian2_amount': g2_parsed,
@@ -1504,7 +1520,7 @@ def edit_item(client_id, entry_id):
             'description': request.form['description'],
             'item_date': old_item.get('item_date') if is_billed else item_date_timestamp,
             'item_time': request.form.get('item_time', ''),
-            'base_price': old_item.get('base_price') if is_billed else safe_float(request.form.get('base_price')),
+            'base_price': old_item.get('base_price') if is_billed else safe_money(request.form.get('base_price')),
             'tax_rate': old_item.get('tax_rate') if is_billed else safe_float(request.form.get('tax_rate'), 0),
             'fee': old_item.get('fee') if is_billed else safe_float(request.form.get('fee'), 0),
             'guardian1_amount': old_item.get('guardian1_amount') if is_billed else safe_float(g1_amount),
