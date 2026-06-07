@@ -104,16 +104,15 @@ def backup_now():
     from utils import backup
     import subprocess
     
-    # Checkpoint WAL to ensure all changes are in main database file
-    db.checkpoint()
-    
     location = db.get_setting('backup_location', '')
     if not location:
         location = None  # Use default
-    
+
     try:
-        # Use create_backup() which auto-decides full vs incremental
-        result = backup.create_backup(location)
+        # Use create_backup() which auto-decides full vs incremental.
+        # Passing db lets it checkpoint the WAL itself and run
+        # PRAGMA integrity_check on the zipped database copy.
+        result = backup.create_backup(location, db=db)
         
         if result is None:
             return jsonify({
@@ -180,7 +179,7 @@ def prepare_restore():
         return jsonify({'success': False, 'error': 'No restore point specified'}), 400
     
     try:
-        staging_path = backup.prepare_restore(restore_point)
+        staging_path = backup.prepare_restore(restore_point, db=db)
         return jsonify({
             'success': True,
             'message': 'Restore prepared. Close EdgeCase and reopen to complete.',

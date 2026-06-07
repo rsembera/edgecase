@@ -261,6 +261,9 @@ async function loadRestorePoints() {
         );
         
         for (const point of allPoints) {
+            // Broken points (chain has a missing backup file) are shown in
+            // the list with an explanation but cannot be restored from
+            if (point.broken) continue;
             restoreOptions.push(buildRestoreOption(point));
         }
         
@@ -331,13 +334,21 @@ function renderFullBackup(point, newerFullExists) {
  */
 function renderIncrementalBackup(point, isLast, laterCount) {
     const connectorClass = isLast ? 'connector-last' : 'connector-mid';
-    
+
+    // A broken point sits after a gap in its chain (a backup file is
+    // missing) and cannot be restored from — render it disabled with a note
+    const brokenStyle = point.broken ? ' style="opacity: 0.5;"' : '';
+    const brokenNote = point.broken
+        ? `<span class="backup-broken-note" style="color: var(--danger, #c0392b); font-size: 0.85em;" title="Missing backup file: ${escapeHtml(point.missing_file || 'unknown')}">Not restorable &mdash; missing ${escapeHtml(point.missing_file || 'a backup file')}</span>`
+        : '';
+
     return `
-            <div class="backup-item backup-incremental" data-id="${point.id}" data-type="incremental">
+            <div class="backup-item backup-incremental" data-id="${point.id}" data-type="incremental"${brokenStyle}>
                 <div class="backup-connector ${connectorClass}"></div>
                 <div class="backup-item-info">
                     <span class="backup-type-badge badge-incr">Incr</span>
                     <span class="backup-item-name">${escapeHtml(point.display_name)}</span>
+                    ${brokenNote}
                 </div>
             </div>
     `;
