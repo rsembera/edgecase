@@ -165,7 +165,7 @@ function displayPreview(data) {
         data.categories.forEach(cat => {
             html += `
                 <div class="category-row">
-                    <span class="category-name">${cat.name}</span>
+                    <span class="category-name">${escapeHtml(cat.name)}</span>
                     <span class="category-amount">${formatCurrency(cat.total)}</span>
                 </div>
             `;

@@ -283,7 +283,7 @@ function findUnbilled() {
                 html += `
                         </div>
                         <div class="generate-actions">
-                            <button class="btn" onclick="generateStatements()">Generate Statements</button>
+                            <button class="btn" onclick="generateStatements(this)">Generate Statements</button>
                         </div>
                     </div>
                 `;
@@ -318,20 +318,22 @@ function toggleSelectAll() {
 
 /**
  * Generate statements for selected clients
+ * @param {HTMLButtonElement} [btnEl] - Trigger button (passed via onclick="...(this)")
  */
-function generateStatements() {
+function generateStatements(btnEl) {
+    const btn = btnEl || resolveEventButton();
     const checkboxes = document.querySelectorAll('.client-checkbox:checked');
     const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-    
+
     if (clientIds.length === 0) {
         showSuccessModal('Please select at least one client', 'No Selection');
         return;
     }
-    
+
     const startDate = getDateFromDropdowns('start');
     const endDate = getDateFromDropdowns('end');
-    
-    fetch('/statements/generate', {
+
+    withButtonDisabled(btn, () => fetch('/statements/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -365,7 +367,7 @@ function generateStatements() {
     .catch(error => {
         console.error('Error generating statements:', error);
         alert('Error generating statements');
-    });
+    }), 'Generating...');
 }
 
 // ============================================================
@@ -377,7 +379,8 @@ function generateStatements() {
  * @param {number} portionId - Statement portion ID
  */
 function markSent(portionId) {
-    fetch(`/statements/mark-sent/${portionId}`, {
+    const btn = resolveEventButton();
+    withButtonDisabled(btn, () => fetch(`/statements/mark-sent/${portionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     })
@@ -385,7 +388,7 @@ function markSent(portionId) {
         .then(data => {
             if (data.success) {
                 data.portion_id = portionId;
-                
+
                 if (data.email_method === 'applescript') {
                     triggerAppleScriptEmail(data);
                 } else {
@@ -398,7 +401,7 @@ function markSent(portionId) {
         .catch(error => {
             console.error('Error marking sent:', error);
             alert('Error marking statement as sent');
-        });
+        }));
 }
 
 /**
@@ -406,13 +409,15 @@ function markSent(portionId) {
  * @param {number} portionId - Statement portion ID
  */
 function generateOnly(portionId) {
+    const btn = resolveEventButton();
+
     // Check if running in desktop mode
     const isDesktop = window.pywebview && window.pywebview.api && window.pywebview.api.open_pdf;
-    
+
     // In browser mode, open window immediately to avoid popup blocker
     const pdfWindow = isDesktop ? null : window.open('about:blank', '_blank');
-    
-    fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
+
+    withButtonDisabled(btn, () => fetch(`/statements/mark-sent/${portionId}?skip_email=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     })
@@ -435,7 +440,7 @@ function generateOnly(portionId) {
             if (pdfWindow) pdfWindow.close();
             console.error('Error generating statement:', error);
             alert('Error generating statement');
-        });
+        }));
 }
 
 /**
@@ -534,21 +539,22 @@ function hidePaymentModal() {
  * Submit the payment
  */
 function confirmPayment() {
+    const btn = resolveEventButton();
     const amountInput = document.getElementById('payment-amount');
     const amount = parseFloat(amountInput.value);
-    
+
     if (isNaN(amount) || amount <= 0) {
         showSuccessModal('Please enter a valid positive amount', 'Invalid Amount');
         return;
     }
-    
+
     const maxAmount = parseFloat(amountInput.dataset.max);
     if (amount > maxAmount) {
         showSuccessModal(`Amount cannot exceed $${maxAmount.toFixed(2)}`, 'Invalid Amount');
         return;
     }
-    
-    fetch('/statements/mark-paid', {
+
+    withButtonDisabled(btn, () => fetch('/statements/mark-paid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -569,7 +575,7 @@ function confirmPayment() {
     .catch(error => {
         console.error('Error recording payment:', error);
         alert('Error recording payment');
-    });
+    }), 'Saving...');
 }
 
 // ============================================================
@@ -637,26 +643,27 @@ function toggleWriteOffNote() {
  * Submit the write-off
  */
 function confirmWriteOff() {
+    const btn = resolveEventButton();
     const reason = document.getElementById('writeoff-reason').value;
     const note = document.getElementById('writeoff-note').value.trim();
     const errorBox = document.getElementById('writeoff-error');
-    
+
     // Clear previous error
     errorBox.style.display = 'none';
-    
+
     if (!reason) {
         errorBox.textContent = 'Please select a reason';
         errorBox.style.display = 'block';
         return;
     }
-    
+
     if (reason === 'other' && !note) {
         errorBox.textContent = 'Please provide an explanation';
         errorBox.style.display = 'block';
         return;
     }
-    
-    fetch('/statements/write-off', {
+
+    withButtonDisabled(btn, () => fetch('/statements/write-off', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -678,7 +685,7 @@ function confirmWriteOff() {
     .catch(error => {
         console.error('Error writing off statement:', error);
         alert('Error writing off statement');
-    });
+    }), 'Saving...');
 }
 
 // ============================================================
