@@ -42,7 +42,15 @@ class Database:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.password = password
         self._local = threading.local()  # Thread-local storage for connections
+        # FK enforcement is decided after startup checks (False until then
+        # so connections opened during init don't enforce prematurely)
+        self._enforce_foreign_keys = False
         self._initialize_schema()
+        self._migrate_typed_empty_strings()
+        self._enforce_foreign_keys = self._check_foreign_key_integrity()
+        if self._enforce_foreign_keys:
+            # Apply to the connection this thread already opened during init
+            self.connect().execute('PRAGMA foreign_keys = ON')
         # Restrict database file permissions to owner only
         if self.db_path.exists():
             os.chmod(self.db_path, 0o600)
@@ -63,14 +71,74 @@ class Database:
             self._local.conn.execute('PRAGMA journal_mode=WAL')
 
             # Enforce the schema's FOREIGN KEY constraints (off by default
-            # in SQLite, must be set per connection). Enabled 2026-06-07
-            # after tools/audit_orphans.py verified the production DB has
-            # zero orphaned rows and PRAGMA foreign_key_check was clean
-            # (CODE_REVIEW.md M2). All delete paths were audited to remove
-            # child rows first (ledger deletes, link groups,
-            # archive_and_delete_client).
-            self._local.conn.execute('PRAGMA foreign_keys = ON')
+            # in SQLite, must be set per connection; CODE_REVIEW.md M2).
+            # Conditional because EdgeCase is distributed: enforcement is
+            # only enabled when this database passed the startup
+            # foreign_key_check (see _check_foreign_key_integrity) — a
+            # legacy database with pre-existing orphans keeps working,
+            # with a warning pointing at tools/audit_orphans.py. All
+            # delete paths were audited to remove child rows first.
+            if self._enforce_foreign_keys:
+                self._local.conn.execute('PRAGMA foreign_keys = ON')
         return self._local.conn
+
+    def _check_foreign_key_integrity(self) -> bool:
+        """Decide whether FOREIGN KEY enforcement can be enabled.
+
+        Runs PRAGMA foreign_key_check once at startup. A clean database
+        gets enforcement; a database with pre-existing orphans (possible
+        on installs that predate the 2026-06 integrity work) runs without
+        enforcement and logs a warning so the user can clean up with
+        tools/audit_orphans.py — after which enforcement turns on
+        automatically at the next launch.
+        """
+        try:
+            cursor = self.connect().cursor()
+            cursor.execute("PRAGMA foreign_key_check")
+            violations = cursor.fetchall()
+        except Exception as e:
+            print(f"Warning: foreign_key_check failed ({e}); "
+                  "FK enforcement disabled for this run")
+            return False
+        if violations:
+            print(f"WARNING: {len(violations)} foreign-key violation(s) found "
+                  "in this database. Foreign-key enforcement is disabled for "
+                  "this run. Run 'python tools/audit_orphans.py' to inspect "
+                  "and clean up; enforcement enables automatically once clean.")
+            return False
+        return True
+
+    def _migrate_typed_empty_strings(self):
+        """Idempotent startup migration: rewrite legacy '' values in typed
+        entry columns to NULL.
+
+        Versions before the H5 fix coerced None to '' on insert, leaving
+        TEXT empty strings in REAL/INTEGER columns — breaking range
+        filters, ORDER BY, and IS NULL checks (e.g. the redaction lock's
+        statement_id test). New writes are clean; this sweeps up what
+        older versions left behind, on every install rather than only
+        where tools/audit_typed_columns.py --fix was run by hand.
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(entries)")
+        existing = {row[1] for row in cursor.fetchall()}
+        fixed = 0
+        try:
+            # Column names come from the frozenset constant, not user input
+            for col in sorted(self.TYPED_ENTRY_COLUMNS & existing):
+                cursor.execute(f"UPDATE entries SET {col} = NULL WHERE {col} = ''")
+                fixed += cursor.rowcount
+            # Always commit: even no-op UPDATEs open an implicit
+            # transaction, and PRAGMA foreign_keys (set right after this
+            # in __init__) is silently ignored inside one.
+            conn.commit()
+            if fixed:
+                print(f"Migration: rewrote {fixed} legacy empty-string "
+                      f"value(s) to NULL in typed entry columns")
+        except Exception:
+            conn.rollback()
+            raise
     
     def close(self):
         """Close database connection for current thread."""
