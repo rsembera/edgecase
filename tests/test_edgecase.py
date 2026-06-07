@@ -1169,6 +1169,124 @@ class TestForeignKeyEnforcement:
 
 
 # ============================================================================
+# BACKUP / RESTORE ROUND TRIP (review "Testing assessment" + H1)
+# ============================================================================
+# Exercises the REAL utils.backup functions end-to-end against an isolated
+# temp data root (module path constants are monkeypatched, so the
+# production data root is never touched).
+
+class TestBackupRestoreRoundTrip:
+
+    @pytest.fixture
+    def backup_env(self, tmp_path, monkeypatch):
+        """Point utils.backup's module-level paths at an isolated root."""
+        import utils.backup as backup_mod
+        root = tmp_path / 'dataroot'
+        data_dir = root / 'data'
+        attachments = root / 'attachments'
+        data_dir.mkdir(parents=True)
+        attachments.mkdir(parents=True)
+        monkeypatch.setattr(backup_mod, 'DATA_ROOT', root)
+        monkeypatch.setattr(backup_mod, 'DATA_DIR', data_dir)
+        monkeypatch.setattr(backup_mod, 'ATTACHMENTS_DIR', attachments)
+        monkeypatch.setattr(backup_mod, 'ASSETS_DIR', root / 'assets')
+        monkeypatch.setattr(backup_mod, 'BACKUPS_DIR', root / 'backups')
+        monkeypatch.setattr(backup_mod, 'MANIFEST_FILE', root / 'backups' / 'manifest.json')
+        monkeypatch.setattr(backup_mod, 'RESTORE_STAGING_DIR', root / '.restore_staging')
+        return backup_mod, root
+
+    def _make_db(self, root, password='roundtrip-pw'):
+        return Database(str(root / 'data' / 'edgecase.db'), password=password)
+
+    def test_full_backup_restore_round_trip(self, backup_env):
+        backup_mod, root = backup_env
+        data_dir = root / 'data'
+
+        # --- original state ---
+        db = self._make_db(root)
+        db.set_setting('practice_name', 'Original Practice')
+        client_id = db.add_client({'file_number': 'RT-1', 'first_name': 'Round',
+                                   'last_name': 'Trip', 'type_id': 1})
+        att_dir = root / 'attachments' / str(client_id) / '1'
+        att_dir.mkdir(parents=True)
+        (att_dir / 'note.enc').write_bytes(b'original-attachment-bytes')
+
+        result = backup_mod.create_backup(db=db)
+        assert result and result.get('type') == 'full'
+
+        # --- mutate everything after the backup ---
+        db.set_setting('practice_name', 'Mutated Practice')
+        db.add_client({'file_number': 'RT-2', 'first_name': 'Post',
+                       'last_name': 'Backup', 'type_id': 1})
+        (att_dir / 'note.enc').write_bytes(b'corrupted')
+
+        # --- restore the full backup ---
+        points = backup_mod.get_restore_points()
+        full_point = next(p for p in points if p['type'] == 'full')
+        backup_mod.prepare_restore(full_point['id'], db=db)
+        db.close()
+
+        # H1: stale sidecars from the pre-restore database must not
+        # survive into the restored one
+        (data_dir / 'edgecase.db-wal').write_bytes(b'stale wal')
+        (data_dir / 'edgecase.db-shm').write_bytes(b'stale shm')
+
+        info = backup_mod.complete_restore()
+        assert info is not None
+        # The stale sidecars must be gone. A WAL may legitimately exist
+        # afterwards if one was part of the backup itself (H7 includes it),
+        # but it must never be the stale pre-restore one.
+        wal = data_dir / 'edgecase.db-wal'
+        assert (not wal.exists()) or wal.read_bytes() != b'stale wal'
+        assert not (data_dir / 'edgecase.db-shm').exists()
+
+        # --- assert data equality with the original state ---
+        db2 = self._make_db(root)
+        assert db2.get_setting('practice_name') == 'Original Practice'
+        clients = {c['file_number'] for c in db2.get_all_clients()}
+        assert 'RT-1' in clients
+        assert 'RT-2' not in clients  # post-backup client rolled back
+        assert (att_dir / 'note.enc').read_bytes() == b'original-attachment-bytes'
+        db2.close()
+
+    def test_incremental_chain_round_trip(self, backup_env):
+        backup_mod, root = backup_env
+
+        # State A -> full backup
+        db = self._make_db(root)
+        db.set_setting('practice_name', 'State A')
+        att_dir = root / 'attachments' / 'ledger' / '1'
+        att_dir.mkdir(parents=True)
+        (att_dir / 'receipt.enc').write_bytes(b'receipt-A')
+        (att_dir / 'doomed.enc').write_bytes(b'to-be-deleted')
+        assert backup_mod.create_backup(db=db)['type'] == 'full'
+
+        # State B: change setting + attachment, delete a file -> incremental
+        db.set_setting('practice_name', 'State B')
+        (att_dir / 'receipt.enc').write_bytes(b'receipt-B')
+        (att_dir / 'doomed.enc').unlink()
+        incr = backup_mod.create_backup(db=db)
+        assert incr and incr['type'] == 'incremental'
+
+        # State C: further mutation, NOT backed up
+        db.set_setting('practice_name', 'State C')
+
+        # Restore the incremental point -> expect State B exactly
+        points = backup_mod.get_restore_points()
+        incr_point = next(p for p in points if p['type'] == 'incremental')
+        backup_mod.prepare_restore(incr_point['id'], db=db)
+        db.close()
+        assert backup_mod.complete_restore() is not None
+
+        db2 = self._make_db(root)
+        assert db2.get_setting('practice_name') == 'State B'
+        assert (att_dir / 'receipt.enc').read_bytes() == b'receipt-B'
+        # File deleted before the incremental must not resurrect
+        assert not (att_dir / 'doomed.enc').exists()
+        db2.close()
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 
