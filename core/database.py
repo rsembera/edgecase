@@ -363,9 +363,29 @@ class Database:
             FOREIGN KEY (client_id) REFERENCES clients(id)
         )
         """)
-        
+
+        # Indexes for the most common query patterns (CODE_REVIEW.md M3).
+        # IF NOT EXISTS makes this idempotent, so running at every startup
+        # also migrates existing databases.
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_entries_client_class
+            ON entries(client_id, class)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_entries_ledger
+            ON entries(ledger_type, ledger_date)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_attachments_entry
+            ON attachments(entry_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_statement_portions_client_status
+            ON statement_portions(client_id, status)
+        """)
+
         conn.commit()
-        
+
         # Create default client types if they don't exist
         self._create_default_types()
 
