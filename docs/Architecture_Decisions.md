@@ -1246,6 +1246,36 @@ catch regressions).
 
 ---
 
+## DELIBERATELY DEFERRED REVIEW ITEMS (L1, L13, M5)
+
+**Date:** June 7, 2026 — these CODE_REVIEW.md items are deferred by
+decision, not oversight.
+
+**L1 — data-root detection:** In development mode (plain folder, not a
+.app bundle) all data lives inside the app folder. The current
+production install runs exactly this way — `data/edgecase.db` IS the
+live database in the app folder. Changing `_is_installed_mode()` or the
+data-root fallback would silently re-point the app at an empty data
+root and the user would conclude their records are gone. Any migration
+to a platform data dir must be an explicit, user-initiated move with
+the `EDGECASE_DATA` override as the escape hatch. Do not "fix" this
+casually.
+
+**L13 — naive local-time date storage:** Date-only values are stored as
+local-midnight epoch seconds. Migrating to date strings or UTC-noon
+would require rewriting every stored timestamp in a production
+encrypted DB plus every BETWEEN/boundary comparison. The exposure is an
+hour's skew at DST transitions for a single-user app in one timezone —
+not worth the migration risk now. Revisit if multi-timezone use ever
+matters.
+
+**M5 — home-page N+1:** The dashboard recomputes per-client stats with
+several queries per client. With the M3 indexes this is acceptable at
+current scale; the fix (aggregate SQL) is performance-only and can be
+done in a dedicated pass with timing measurements.
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
 *Last Updated: June 7, 2026*
