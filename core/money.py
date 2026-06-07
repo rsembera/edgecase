@@ -45,3 +45,43 @@ def to_cents(value) -> int:
 def money_float(value) -> float:
     """Quantize to cents and return a float for REAL-column storage."""
     return float(quantize_cents(value))
+
+
+# ---------------------------------------------------------------------------
+# Currency display helpers (CODE_REVIEW.md M13)
+#
+# Single source of truth for the currency-code → symbol table and the
+# symbol+amount display format, previously triplicated across the PDF
+# modules (pdf/generator.py, pdf/ledger_report.py, pdf/client_export.py).
+# The historical copies differed in spacing/thousands behavior, so both
+# are parameterized to preserve each PDF's existing appearance.
+# ---------------------------------------------------------------------------
+
+CURRENCY_SYMBOLS = {
+    'CAD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£',
+    'AUD': '$', 'NZD': '$', 'JPY': '¥', 'CNY': '¥',
+    'INR': '₹', 'MXN': '$', 'BRL': 'R$', 'CHF': 'CHF'
+}
+
+
+def get_currency_symbol(currency_code) -> str:
+    """Convert a currency code to its display symbol (default '$')."""
+    return CURRENCY_SYMBOLS.get(currency_code, '$')
+
+
+def format_currency(amount, currency_code, thousands=True, space=False) -> str:
+    """Format an amount with its currency symbol. None is treated as 0.
+
+    Args:
+        amount: numeric amount (None → 0)
+        currency_code: e.g. 'CAD'; unknown codes fall back to '$'
+        thousands: include thousands separators (1,234.56)
+        space: put a space between symbol and amount ('$ 1,234.56')
+    """
+    symbol = get_currency_symbol(currency_code)
+    if amount is None:
+        amount = 0
+    sep = ' ' if space else ''
+    if thousands:
+        return f"{symbol}{sep}{amount:,.2f}"
+    return f"{symbol}{sep}{amount:.2f}"

@@ -17,7 +17,6 @@ Tests use a temporary in-memory database - no risk to production data.
 """
 
 import pytest
-import sqlite3
 import time
 import tempfile
 import os

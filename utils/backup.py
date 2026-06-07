@@ -1118,12 +1118,10 @@ def check_backup_needed(frequency='daily'):
     if not all_backups:
         return True
     
-    if frequency == 'startup':
-        return True  # Legacy value, treat as session
-    
-    if frequency == 'session':
-        return True  # Always backup on logout
-    
+    if frequency in ('startup', 'session'):
+        # Always backup on logout ('startup' is the legacy value for 'session')
+        return True
+
     now = datetime.now()
     today = now.date()
     
@@ -1264,10 +1262,3 @@ def detect_cloud_folders():
         })
     
     return cloud_folders
-
-
-def get_backup_location():
-    """Get current backup location from settings or default."""
-    # This will be called from routes with db access
-    # For now, return default
-    return str(BACKUPS_DIR)

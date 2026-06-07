@@ -12,7 +12,7 @@ import sqlcipher3 as sqlite3
 import time
 import os
 import shutil
-from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
+from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files, get_link_group_fees
 from core.encryption import decrypt_file_to_bytes
 from io import BytesIO
 
@@ -569,29 +569,12 @@ def create_session(client_id):
             'duration': 50
         }
         
-    link_group_fees = {}
-    
+    link_group_fees = get_link_group_fees(db, client_id, include_duration=True)
+
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format, lg.session_duration
-        FROM client_links cl
-        JOIN link_groups lg ON cl.group_id = lg.id
-        WHERE cl.client_id_1 = ?
-    """, (client_id,))
 
-    for row in cursor.fetchall():
-        format_type = row['format']
-        if format_type:
-            link_group_fees[format_type] = {
-                'base': row['member_base_fee'] or 0,
-                'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0,
-                'duration': row['session_duration'] or 50
-            }
-    
     cursor.execute("""
         SELECT service FROM entries
         WHERE client_id = ? AND class = 'session' AND service IS NOT NULL
@@ -879,31 +862,8 @@ def edit_session(client_id, entry_id):
         }
     
     # 3. Link Groups (by format)
-    link_group_fees = {}
-    
-    # Get all link groups this client is in
-    conn = db.connect()
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format, lg.session_duration
-        FROM client_links cl
-        JOIN link_groups lg ON cl.group_id = lg.id
-        WHERE cl.client_id_1 = ?
-    """, (client_id,))
+    link_group_fees = get_link_group_fees(db, client_id, include_duration=True)
 
-    for row in cursor.fetchall():
-        format_type = row['format']
-        if format_type:  # Only if format is set
-            link_group_fees[format_type] = {
-                'base': row['member_base_fee'] or 0,
-                'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0,
-                'duration': row['session_duration'] or 50
-            }
-    
-    
     # Check if entry is locked
     is_locked = db.is_entry_locked(entry_id)
     
@@ -1206,27 +1166,8 @@ def create_absence(client_id):
         }
     
     # Get link group fees
-    link_group_fees = {}
-    conn = db.connect()
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
-        FROM client_links cl
-        JOIN link_groups lg ON cl.group_id = lg.id
-        WHERE cl.client_id_1 = ?
-    """, (client_id,))
+    link_group_fees = get_link_group_fees(db, client_id)
 
-    for row in cursor.fetchall():
-        format_type = row['format']
-        if format_type:
-            link_group_fees[format_type] = {
-                'base': row['member_base_fee'] or 0,
-                'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0
-            }
-    
     return render_template('entry_forms/absence.html',
                          client=client,
                          client_type=client_type,
@@ -1387,27 +1328,8 @@ def edit_absence(client_id, entry_id):
         }
     
     # Get link group fees
-    link_group_fees = {}
-    conn = db.connect()
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format
-        FROM client_links cl
-        JOIN link_groups lg ON cl.group_id = lg.id
-        WHERE cl.client_id_1 = ?
-    """, (client_id,))
+    link_group_fees = get_link_group_fees(db, client_id)
 
-    for row in cursor.fetchall():
-        format_type = row['format']
-        if format_type:
-            link_group_fees[format_type] = {
-                'base': row['member_base_fee'] or 0,
-                'tax': row['member_tax_rate'] or 0,
-                'total': row['member_total_fee'] or 0
-            }
-    
     return render_template('entry_forms/absence.html',
                         client=client,
                         client_type=client_type,
@@ -1817,38 +1739,68 @@ def download_attachment(attachment_id):
                          download_name=attachment['filename'])
 
 
+# Attachment types that may safely render inline in the browser
+# (CODE_REVIEW.md L17). Anything else — notably text/html, svg, xml — is
+# forced to download (Content-Disposition: attachment) because the app's
+# CSP allows 'unsafe-inline', so an inline-rendered HTML upload would
+# execute scripts in-origin. Keyed by the file extension stored in the
+# attachment record, not by guess_type alone, and the mimetype served for
+# inline types is pinned here rather than guessed.
+_INLINE_SAFE_MIMETYPES = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+}
+
+
 @entries_bp.route('/attachment/<int:attachment_id>/view')
 def view_attachment(attachment_id):
-    """View an attachment file in browser."""
+    """View an attachment file in browser.
+
+    Inline rendering is only allowed for a safe allowlist of types
+    (images, PDF, plain text); everything else is served as a download.
+    """
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    
+
     cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
     attachment = cursor.fetchone()
-    
+
     if not attachment:
         return "Attachment not found", 404
-    
+
     # Resolve filepath (handles both absolute and relative paths)
     filepath = resolve_attachment_path(attachment['filepath'])
-    
+
     # Check file exists
     if not os.path.exists(filepath):
         return "Attachment file is missing from disk", 404
-    
+
+    # Decide inline vs. download from the stored filename's extension (L17)
+    ext = os.path.splitext(attachment['filename'] or '')[1].lower()
+    inline_mimetype = _INLINE_SAFE_MIMETYPES.get(ext)
+    serve_inline = inline_mimetype is not None
+
     # Decrypt file if database is encrypted
     if db.password:
         try:
             decrypted = decrypt_file_to_bytes(filepath, db.password)
         except Exception as e:
             return f"Cannot read attachment: file may be corrupted ({type(e).__name__})", 500
-        # Guess mimetype from filename
-        import mimetypes
-        mimetype = mimetypes.guess_type(attachment['filename'])[0] or 'application/octet-stream'
+        if serve_inline:
+            mimetype = inline_mimetype
+        else:
+            # Download-only: never let the browser render it in-origin
+            import mimetypes
+            mimetype = mimetypes.guess_type(attachment['filename'])[0] or 'application/octet-stream'
         response = send_file(
             BytesIO(decrypted),
-            as_attachment=False,
+            as_attachment=not serve_inline,
             download_name=attachment['filename'],
             mimetype=mimetype
         )
@@ -1857,7 +1809,12 @@ def view_attachment(attachment_id):
         response.headers['Pragma'] = 'no-cache'
         return response
     else:
-        return send_file(filepath, as_attachment=False)
+        if serve_inline:
+            return send_file(filepath, as_attachment=False,
+                             download_name=attachment['filename'],
+                             mimetype=inline_mimetype)
+        return send_file(filepath, as_attachment=True,
+                         download_name=attachment['filename'])
 
 
 @entries_bp.route('/attachment/<int:attachment_id>/delete', methods=['POST'])

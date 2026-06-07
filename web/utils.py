@@ -11,9 +11,52 @@ import time
 import difflib
 import calendar
 import uuid
+import sqlcipher3
 from markupsafe import escape
 from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
+
+
+def get_link_group_fees(db, client_id, include_duration=False):
+    """Get per-format fee overrides from the link groups a client belongs to.
+
+    Returns a dict keyed by link-group format, e.g.
+    {'Couple': {'base': .., 'tax': .., 'total': ..[, 'duration': ..]}}.
+    Groups without a format are skipped. Shared by the session/absence
+    create and edit routes (CODE_REVIEW.md M13).
+
+    Args:
+        db: Database instance
+        client_id: client whose link groups to look up
+        include_duration: also include the group's session duration
+            (defaulting to 50) — used by session forms but not absences.
+    """
+    link_group_fees = {}
+
+    conn = db.connect()
+    conn.row_factory = sqlcipher3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT cl.group_id, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee, lg.format, lg.session_duration
+        FROM client_links cl
+        JOIN link_groups lg ON cl.group_id = lg.id
+        WHERE cl.client_id_1 = ?
+    """, (client_id,))
+
+    for row in cursor.fetchall():
+        format_type = row['format']
+        if format_type:  # Only if format is set
+            fees = {
+                'base': row['member_base_fee'] or 0,
+                'tax': row['member_tax_rate'] or 0,
+                'total': row['member_total_fee'] or 0
+            }
+            if include_duration:
+                fees['duration'] = row['session_duration'] or 50
+            link_group_fees[format_type] = fees
+
+    return link_group_fees
 
 
 def parse_date_from_form(form_data, year_key='year', month_key='month', day_key='day', date_key='date'):
