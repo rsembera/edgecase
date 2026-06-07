@@ -377,7 +377,8 @@
                            class="phone-input guardian-phone">
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" id="guardian1-percent-field"
+                     style="display: {% if profile and profile.has_guardian2 %}block{% else %}none{% endif %};">
                     <label for="guardian1_amount">Pays (%)</label>
                     <input type="number" id="guardian1_amount" name="guardian1_amount"
                            step="1" min="0" max="100"
