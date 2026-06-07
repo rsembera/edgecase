@@ -8,6 +8,11 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-07 (continued)
+- **H3 — Single-guardian billing clarified**: For a minor with only one guardian, `guardian1_pays_percent` was computed but ignored (statements billed the full total). Hid/disabled the "Pays (%)" field in the profile form when there's no second guardian — the percent is only meaningful when there's a G2 to share the bill. Billing logic now matches the displayed intent.
+- **H5 — Stop coercing `None` → `''` in entry writes**: `add_entry` previously stored empty strings in INTEGER/REAL columns, breaking range filters, ORDER BY, and `IS NULL` checks (notably the redaction lock's `if statement_id is not None`). Now preserves `None`, and additionally coerces `''` → `None` for the new `TYPED_ENTRY_COLUMNS` set when stray empty strings come in from form posts. Same coercion applied to `update_entry`. Added `tools/audit_typed_columns.py` to find/optionally fix any pre-existing `''` values in typed columns on the real DB.
+- **M11 — DB-layer lock enforcement**: `update_entry` now raises `EntryLockedError` if the target entry is locked unless the caller passes `allow_locked=True`. All existing callers updated: user-edit routes already check the lock and log to edit history (now opt in explicitly); `renumber_sessions` opts in as a system invariant; AI Scribe save opts in (edit history for AI Scribe is a known follow-up). Future callers can no longer silently update locked clinical entries.
+
 ### 2026-06-07 (later)
 - **Ledger reports — silent receipt-dropping fix**: `pdf/ledger_report.py` was resolving `att['filepath']` against the process working directory rather than DATA_ROOT (same root cause as C1/C2). In dev mode CWD happened to equal DATA_ROOT so the bug never surfaced; in desktop/installed mode receipts were silently skipped. Promoted `resolve_attachment_path()` to `core/config.py` as a single source of truth, imported by both `client_export.py` and `ledger_report.py`.
 

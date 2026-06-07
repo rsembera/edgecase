@@ -12,6 +12,17 @@ import time
 import threading
 from datetime import datetime, timedelta
 
+
+class EntryLockedError(Exception):
+    """Raised when update_entry is called on a locked entry without
+    `allow_locked=True`. Locked clinical entries are immutable by design;
+    edits to them must go through the route layer's lock-check + edit
+    history flow, which then opts in via `allow_locked=True`.
+    See CODE_REVIEW.md M11.
+    """
+    pass
+
+
 class Database:
     """
     Database interface for EdgeCase.
@@ -1412,10 +1423,27 @@ class Database:
         
         return [dict(row) for row in rows]
     
-    def update_entry(self, entry_id: int, entry_data: Dict[str, Any]) -> bool:
-        """Update entry (adds to edit history if locked)."""
+    def update_entry(self, entry_id: int, entry_data: Dict[str, Any],
+                     allow_locked: bool = False) -> bool:
+        """Update entry. Callers are responsible for edit-history logging.
+
+        Raises EntryLockedError if the target entry is locked unless
+        `allow_locked=True`. Pass `allow_locked=True` after you've checked
+        the lock state at the route layer and recorded the change to
+        edit_history (or in legitimate system-invariant operations such
+        as renumber_sessions). See CODE_REVIEW.md M11.
+        """
         conn = self.connect()
         cursor = conn.cursor()
+
+        if not allow_locked:
+            cursor.execute("SELECT locked FROM entries WHERE id = ?", (entry_id,))
+            row = cursor.fetchone()
+            if row and row[0]:
+                raise EntryLockedError(
+                    f"Entry {entry_id} is locked; pass allow_locked=True "
+                    f"after handling edit-history logging at the route layer."
+                )
 
         # Build UPDATE statement dynamically
         set_clauses = []
