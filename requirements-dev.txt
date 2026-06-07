@@ -1,0 +1,7 @@
+# EdgeCase Equalizer — development/test requirements.
+# Matches the [dev] extra in pyproject.toml.
+#
+# Usage: pip install -r requirements-dev.txt
+
+-r requirements.txt
+pytest==9.0.2

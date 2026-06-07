@@ -15,7 +15,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 from xml.sax.saxutils import escape as _xml_escape
 from core.encryption import decrypt_file_to_bytes
-from core.money import dec, quantize_cents
+from core.money import dec, quantize_cents, format_currency
 from core.config import resolve_attachment_path
 
 
@@ -30,22 +30,13 @@ def esc(value):
     return _xml_escape(str(value))
 
 
-def _get_currency_symbol(currency_code):
-    """Convert currency code to symbol."""
-    symbols = {
-        'CAD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£',
-        'AUD': '$', 'NZD': '$', 'JPY': '¥', 'CNY': '¥',
-        'INR': '₹', 'MXN': '$', 'BRL': 'R$', 'CHF': 'CHF'
-    }
-    return symbols.get(currency_code, '$')
-
-
 def _format_currency(amount, currency_code):
-    """Format amount with currency symbol."""
-    symbol = _get_currency_symbol(currency_code)
-    if amount is None:
-        amount = 0
-    return f"{symbol} {amount:,.2f}"
+    """Format amount with currency symbol, e.g. '$ 1,234.56'.
+
+    Delegates to core.money; this report historically puts a space
+    between the symbol and the amount, so space=True preserves that.
+    """
+    return format_currency(amount, currency_code, space=True)
 
 
 def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True,

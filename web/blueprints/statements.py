@@ -34,6 +34,38 @@ def init_blueprint(database):
     db = database
 
 
+def _get_or_create_category(cursor, name, now):
+    """Get the id of an expense category by name, creating it if missing.
+
+    Shared by the refund and write-off paths (CODE_REVIEW.md M13).
+    """
+    cursor.execute("SELECT id FROM expense_categories WHERE name = ?", (name,))
+    cat_row = cursor.fetchone()
+    if cat_row:
+        return cat_row[0]
+    cursor.execute("""
+        INSERT INTO expense_categories (name, created_at)
+        VALUES (?, ?)
+    """, (name, now))
+    return cursor.lastrowid
+
+
+def _get_or_create_payee(cursor, name, now):
+    """Get the id of a payee by name, creating it if missing.
+
+    Shared by the refund and write-off paths (CODE_REVIEW.md M13).
+    """
+    cursor.execute("SELECT id FROM payees WHERE name = ?", (name,))
+    payee_row = cursor.fetchone()
+    if payee_row:
+        return payee_row[0]
+    cursor.execute("""
+        INSERT INTO payees (name, created_at)
+        VALUES (?, ?)
+    """, (name, now))
+    return cursor.lastrowid
+
+
 def _private_pdf_dir() -> Path:
     """Create a private (0700, randomized name) temp dir for a generated PDF.
 
@@ -667,29 +699,11 @@ def mark_paid():
                                  portion.get('statement_total'))
         
         # Get or create "Client Refund" category
-        cursor.execute("SELECT id FROM expense_categories WHERE name = 'Client Refund'")
-        cat_row = cursor.fetchone()
-        if cat_row:
-            category_id = cat_row[0]
-        else:
-            cursor.execute("""
-                INSERT INTO expense_categories (name, created_at)
-                VALUES ('Client Refund', ?)
-            """, (now,))
-            category_id = cursor.lastrowid
-        
+        category_id = _get_or_create_category(cursor, 'Client Refund', now)
+
         # Get or create payee with file number
-        cursor.execute("SELECT id FROM payees WHERE name = ?", (portion['file_number'],))
-        payee_row = cursor.fetchone()
-        if payee_row:
-            payee_id = payee_row[0]
-        else:
-            cursor.execute("""
-                INSERT INTO payees (name, created_at)
-                VALUES (?, ?)
-            """, (portion['file_number'], now))
-            payee_id = cursor.lastrowid
-        
+        payee_id = _get_or_create_payee(cursor, portion['file_number'], now)
+
         description = "Client Refund"
         if portion['guardian_number']:
             description += f" (Guardian {portion['guardian_number']})"
@@ -1030,31 +1044,11 @@ def write_off_statement():
     # If uncollectible, create Bad Debt expense entry
     if reason == 'uncollectible':
         # Check if "Bad Debt" category exists, create if not
-        cursor.execute("SELECT id FROM expense_categories WHERE name = 'Bad Debt'")
-        cat_row = cursor.fetchone()
-        
-        if cat_row:
-            category_id = cat_row[0]
-        else:
-            cursor.execute("""
-                INSERT INTO expense_categories (name, created_at)
-                VALUES ('Bad Debt', ?)
-            """, (now,))
-            category_id = cursor.lastrowid
-        
+        category_id = _get_or_create_category(cursor, 'Bad Debt', now)
+
         # Check if payee with file number exists, create if not
-        cursor.execute("SELECT id FROM payees WHERE name = ?", (portion['file_number'],))
-        payee_row = cursor.fetchone()
-        
-        if payee_row:
-            payee_id = payee_row[0]
-        else:
-            cursor.execute("""
-                INSERT INTO payees (name, created_at)
-                VALUES (?, ?)
-            """, (portion['file_number'], now))
-            payee_id = cursor.lastrowid
-        
+        payee_id = _get_or_create_payee(cursor, portion['file_number'], now)
+
         # Create expense entry
         expense_description = "Uncollectible"
         expense_content = f"Written off statement for {client_name}"

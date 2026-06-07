@@ -693,15 +693,6 @@
         const meta = document.querySelector('meta[name="csrf-token"]');
         return meta ? meta.getAttribute('content') : '';
     };
-    
-    // Helper for fetch with CSRF - use for all POST/PUT/DELETE requests
-    window.fetchWithCSRF = function(url, options = {}) {
-        options.headers = options.headers || {};
-        if (!options.headers['X-CSRFToken']) {
-            options.headers['X-CSRFToken'] = window.getCSRFToken();
-        }
-        return fetch(url, options);
-    };
     </script>
 </body>
 </html>

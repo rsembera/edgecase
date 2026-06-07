@@ -25,6 +25,7 @@ from xml.sax.saxutils import escape as _xml_escape
 
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path, DATA_ROOT, resolve_attachment_path
+from core.money import get_currency_symbol
 
 
 def esc(value):
@@ -179,23 +180,6 @@ def format_date(timestamp):
         return datetime.fromtimestamp(timestamp).strftime('%B %d, %Y')
     except:
         return "N/A"
-
-
-def get_currency_symbol(currency_code):
-    """Convert currency code to symbol."""
-    symbols = {
-        'CAD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£',
-        'AUD': '$', 'NZD': '$', 'JPY': '¥', 'CNY': '¥',
-        'INR': '₹', 'MXN': '$', 'BRL': 'R$', 'CHF': 'CHF'
-    }
-    return symbols.get(currency_code, '$')
-
-
-def format_currency(amount, currency_symbol='$'):
-    """Format amount as currency."""
-    if amount is None:
-        return f"{currency_symbol}0.00"
-    return f"{currency_symbol}{amount:.2f}"
 
 
 def format_edit_history(edit_history_json, styles):
@@ -456,86 +440,6 @@ def build_session_entry(entry, client, styles, signature_path=None, db=None):
     return elements
 
 
-def build_communication_entry(entry, client, styles, db=None):
-    """Build PDF elements for a Communication entry."""
-    elements = []
-    
-    # Handle redacted entries with minimal metadata
-    if entry.get('is_redacted'):
-        return build_redacted_entry(entry, client, styles, 'Communication', 'comm_date')
-    
-    title = entry.get('description', 'Communication')
-    elements.append(Paragraph(f"Communication: {esc(title)}", styles['EntryTitle']))
-    
-    client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
-    elements.append(Spacer(1, 12))
-    
-    # Description
-    if entry.get('description'):
-        elements.append(Paragraph(f"<b>Description:</b> {esc(entry['description'])}", styles['FieldValue']))
-        elements.append(Spacer(1, 8))
-    
-    date_str = format_date(entry.get('comm_date'))
-    time_str = entry.get('comm_time') or "—"
-    
-    recipient_map = {
-        'to_client': 'To Client',
-        'from_client': 'From Client',
-        'internal_note': 'Internal Note'
-    }
-    recipient = recipient_map.get(entry.get('comm_recipient'), entry.get('comm_recipient', '—'))
-    
-    comm_type = (entry.get('comm_type') or '—').title()
-    
-    info_data = [[
-        Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']),
-        Paragraph(f'<b>Time:</b> {esc(time_str)}', styles['FieldValue']),
-    ], [
-        Paragraph(f'<b>Recipient:</b> {esc(recipient)}', styles['FieldValue']),
-        Paragraph(f'<b>Type:</b> {esc(comm_type)}', styles['FieldValue']),
-    ]]
-    
-    info_table = Table(info_data, colWidths=[3.3*inch, 3.3*inch])
-    info_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 12))
-    
-    if entry.get('content'):
-        elements.append(Paragraph("Content", styles['SectionHeading']))
-        elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
-        elements.append(Spacer(1, 6))
-        content_paragraphs = markdown_to_paragraphs(entry.get('content', ''), styles)
-        elements.extend(content_paragraphs)
-    
-    # Attachments
-    if db:
-        attachments = db.get_attachments(entry['id'])
-        if attachments:
-            elements.append(Spacer(1, 12))
-            elements.append(Paragraph("Attachments", styles['SectionHeading']))
-            elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
-            elements.append(Spacer(1, 6))
-            elements.append(Paragraph("<i>(Attachments listed below are included in the client file)</i>", styles['FieldValue']))
-            elements.append(Spacer(1, 4))
-            for att in attachments:
-                att_text = f"• {att['filename']}"
-                if att.get('description') and att['description'] != att['filename']:
-                    att_text += f" — {att['description']}"
-                elements.append(Paragraph(att_text, styles['FieldValue']))
-    
-    if entry.get('edit_history'):
-        elements.append(Spacer(1, 12))
-        elements.append(Paragraph("Edit History", styles['SectionHeading']))
-        history_elements = format_edit_history(entry.get('edit_history'), styles)
-        elements.extend(history_elements)
-    
-    return elements
-
-
 def build_absence_entry(entry, client, styles, currency_symbol='$'):
     """Build PDF elements for an Absence entry."""
     elements = []
@@ -626,44 +530,6 @@ def build_item_entry(entry, client, styles, currency_symbol='$'):
         elements.append(Spacer(1, 6))
         content_paragraphs = markdown_to_paragraphs(entry.get('content', ''), styles)
         elements.extend(content_paragraphs)
-    
-    if entry.get('edit_history'):
-        elements.append(Spacer(1, 12))
-        elements.append(Paragraph("Edit History", styles['SectionHeading']))
-        history_elements = format_edit_history(entry.get('edit_history'), styles)
-        elements.extend(history_elements)
-    
-    return elements
-
-def build_upload_entry(entry, client, styles, attachments):
-    """Build PDF elements for an Upload entry."""
-    elements = []
-    
-    title = entry.get('description', 'Upload')
-    elements.append(Paragraph(f"Upload: {esc(title)}", styles['EntryTitle']))
-    
-    client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
-    elements.append(Spacer(1, 12))
-    
-    date_str = format_date(entry.get('upload_date'))
-    elements.append(Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']))
-    elements.append(Spacer(1, 12))
-    
-    if entry.get('content'):
-        elements.append(Paragraph("Notes", styles['SectionHeading']))
-        elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
-        elements.append(Spacer(1, 6))
-        content_paragraphs = markdown_to_paragraphs(entry.get('content', ''), styles)
-        elements.extend(content_paragraphs)
-        elements.append(Spacer(1, 12))
-    
-    if attachments:
-        elements.append(Paragraph("Attachments", styles['SectionHeading']))
-        for att in attachments:
-            att_text = f"• {att.get('description') or att.get('filename', 'Unknown file')}"
-            elements.append(Paragraph(att_text, styles['FieldValue']))
-        elements.append(Paragraph("<i>(Attachments follow on subsequent pages)</i>", styles['EditHistory']))
     
     if entry.get('edit_history'):
         elements.append(Spacer(1, 12))

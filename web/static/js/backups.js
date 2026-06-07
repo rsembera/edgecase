@@ -209,15 +209,6 @@ async function loadRestorePoints() {
             return bDate.localeCompare(aDate);
         });
         
-        // Collect all full backup dates for comparison
-        const allFullBackups = [];
-        for (const chainId of sortedChainIds) {
-            const chain = chains[chainId];
-            if (chain.full) {
-                allFullBackups.push(chain.full);
-            }
-        }
-        
         for (const chainId of sortedChainIds) {
             const chain = chains[chainId];
             
@@ -229,11 +220,7 @@ async function loadRestorePoints() {
             
             // Full backup (chain header)
             if (chain.full) {
-                // Check if a newer full backup exists
-                const newerFullExists = allFullBackups.some(
-                    fb => fb.created_at > chain.full.created_at
-                );
-                html += renderFullBackup(chain.full, newerFullExists);
+                html += renderFullBackup(chain.full);
                 
                 // Incremental backups (indented under full)
                 if (chain.incrementals && chain.incrementals.length > 0) {
@@ -307,9 +294,8 @@ function groupByChain(points) {
 /**
  * Render a full backup item (chain header)
  * @param {Object} point - The full backup point
- * @param {boolean} newerFullExists - Whether a newer full backup exists (unused, kept for compatibility)
  */
-function renderFullBackup(point, newerFullExists) {
+function renderFullBackup(point) {
     const dependentText = point.dependent_count > 0 
         ? `<span class="dependent-count">${point.dependent_count} dependent</span>` 
         : '';
