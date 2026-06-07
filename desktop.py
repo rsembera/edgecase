@@ -8,6 +8,8 @@ import os
 import sys
 import threading
 import time
+import socket
+import shutil
 import subprocess
 import tempfile
 import platform
@@ -15,6 +17,37 @@ from pathlib import Path
 
 # Set desktop mode before importing app
 os.environ['EDGECASE_DESKTOP'] = '1'
+
+# Per-run private directory for files opened in external viewers (set up
+# lazily by _get_viewer_dir).
+_viewer_dir = None
+
+
+def _get_viewer_dir():
+    """Get (creating on first use) the private temp dir for opened files.
+
+    Files handed to an external viewer (Preview, etc.) contain decrypted
+    PHI, so they must not live in the shared, world-readable system temp
+    dir. They also must outlive the open_file call — the viewer reads the
+    file lazily and may keep it open — so we can't delete them right after
+    launching the viewer. Tradeoff: files persist for this run inside a
+    0700 per-user directory and are deleted on the NEXT launch, by wiping
+    and recreating the fixed parent directory below.
+    """
+    global _viewer_dir
+    if _viewer_dir is not None:
+        return _viewer_dir
+
+    # Fixed per-user parent dir: wiped and recreated at each launch so
+    # files from previous runs are cleaned up best-effort.
+    parent = Path(tempfile.gettempdir()) / f'edgecase-viewer-{os.getuid()}'
+    shutil.rmtree(parent, ignore_errors=True)
+    parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(parent, 0o700)  # enforce mode even if rmtree partially failed
+
+    # Per-run subdirectory with a randomized name (mkdtemp creates it 0700)
+    _viewer_dir = Path(tempfile.mkdtemp(prefix='edgecase-', dir=parent))
+    return _viewer_dir
 
 
 def get_data_dir():
@@ -34,6 +67,64 @@ def open_with_default_app(filepath):
     else:
         # Linux: use xdg-open
         subprocess.run(['xdg-open', str(filepath)], check=False)
+
+
+def _is_edgecase_responding(port, timeout=2.0):
+    """Check whether an EdgeCase server is already answering on this port."""
+    import json
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+            f'http://127.0.0.1:{port}/api/heartbeat', timeout=timeout
+        ) as resp:
+            return resp.status == 200 and json.loads(resp.read().decode()).get('ok') is True
+    except Exception:
+        return False
+
+
+def _pick_port(preferred=8080):
+    """Pick a port for the local server.
+
+    Tries the preferred port first; if it's taken by another EdgeCase
+    instance, exits with a clear message instead of opening a dead page.
+    If it's taken by something else, falls back to an ephemeral port.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', preferred))
+        return preferred
+    except OSError:
+        pass
+
+    # Preferred port is busy — is it us?
+    if _is_edgecase_responding(preferred):
+        print(
+            "EdgeCase is already running. Close the existing window "
+            "before starting it again.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Something else owns the port; let the OS hand us a free one.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('127.0.0.1', 0))
+        return s.getsockname()[1]
+
+
+def _wait_for_server(port, timeout=15.0):
+    """Poll the server until it responds (or the timeout elapses)."""
+    import urllib.request
+    deadline = time.monotonic() + timeout
+    url = f'http://127.0.0.1:{port}/api/heartbeat'
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=1) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.2)
+    return False
 
 
 def start_flask_server(port=8080):
@@ -65,8 +156,14 @@ class Api:
             
             if response.status_code == 200:
                 filename = self._get_filename(response, url)
-                temp_path = Path(tempfile.gettempdir()) / filename
+                # Randomized subdir (0700) inside the private viewer dir;
+                # keeps the user-visible filename while making the full
+                # path unpredictable. Cleaned up on next app launch — see
+                # _get_viewer_dir for why we don't delete immediately.
+                file_dir = Path(tempfile.mkdtemp(dir=_get_viewer_dir()))
+                temp_path = file_dir / filename
                 temp_path.write_bytes(response.content)
+                os.chmod(temp_path, 0o600)
                 open_with_default_app(temp_path)
                 return True
         except Exception as e:
@@ -132,9 +229,15 @@ def run_desktop():
     """Main entry point for desktop app."""
     import webview
     
-    PORT = 8080
+    # Prefer 8080; fall back to an ephemeral port if it's taken, and bail
+    # out early if another EdgeCase instance already owns it.
+    PORT = _pick_port(8080)
     api = Api(PORT)
-    
+
+    # Clean up viewer temp files from previous runs and set up this run's
+    # private directory (see _get_viewer_dir).
+    _get_viewer_dir()
+
     # Start Flask in background thread
     server_thread = threading.Thread(
         target=start_flask_server,
@@ -142,8 +245,17 @@ def run_desktop():
         daemon=True
     )
     server_thread.start()
-    time.sleep(1.5)
-    
+
+    # Wait until the server actually responds before loading the webview.
+    if not _wait_for_server(PORT, timeout=15.0):
+        print(
+            f"EdgeCase failed to start: the local server on port {PORT} "
+            "did not respond within 15 seconds.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
     # Create window
     window = webview.create_window(
         'EdgeCase Equalizer',

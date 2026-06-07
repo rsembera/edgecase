@@ -34,8 +34,25 @@ def _get_salt() -> bytes:
     return salt
 
 
+# Cache of derived Fernet instances, keyed by password. PBKDF2 at 480k
+# iterations is deliberately slow (~0.5s), and re-deriving it for every
+# encrypt/decrypt call adds that cost to each file operation. Single-user
+# app: at most two passwords are ever live at once (old + new during a
+# password change), so the cache is capped at 2 entries and stale entries
+# are dropped when a new password is cached.
+_fernet_cache: dict = {}
+
+
 def _get_fernet(password: str) -> Fernet:
-    """Derive encryption key from password and return Fernet instance."""
+    """Derive encryption key from password and return Fernet instance.
+
+    The derived Fernet is cached in module memory so the expensive KDF
+    runs once per password instead of once per file operation.
+    """
+    cached = _fernet_cache.get(password)
+    if cached is not None:
+        return cached
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -43,7 +60,14 @@ def _get_fernet(password: str) -> Fernet:
         iterations=480000,
     )
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
-    return Fernet(key)
+    fernet = Fernet(key)
+
+    # Keep at most 2 entries (old + new during a password change);
+    # clear stale entries before caching a new password.
+    if len(_fernet_cache) >= 2:
+        _fernet_cache.clear()
+    _fernet_cache[password] = fernet
+    return fernet
 
 
 def encrypt_file(filepath: str, password: str) -> None:

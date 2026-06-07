@@ -13,7 +13,10 @@ import os
 
 from core.config import MODELS_DIR
 
-# Model will be loaded lazily
+# Model will be loaded lazily.
+# _llm_lock serializes ALL access to _llm (load, unload, delete, and the
+# full duration of a streaming generation) — llama_cpp is not safe for
+# concurrent use, and an unload racing a stream can segfault.
 _llm = None
 _llm_lock = threading.Lock()
 _model_loaded = False
@@ -211,10 +214,11 @@ def download_model(progress_callback=None) -> bool:
 def delete_model() -> bool:
     """Delete the downloaded model file."""
     global _llm, _model_loaded
-    
-    # Unload first if loaded
-    if _model_loaded:
-        unload_model()
+
+    # Always unload first; unload_model acquires _llm_lock, so this blocks
+    # until any in-flight generation finishes rather than freeing the model
+    # mid-stream.
+    unload_model()
     
     model_path = get_model_path()
     if model_path.exists():
@@ -294,44 +298,55 @@ def generate(prompt: str, system_prompt: str = None, max_tokens: int = None) -> 
     
     Yields:
         Generated tokens as they're produced
+
+    Holds _llm_lock for the entire stream: llama_cpp is not safe for
+    concurrent calls, and unload_model/delete_model take the same lock, so
+    the model cannot be freed mid-generation. Generation is long but this
+    is a single-user app — blocking a concurrent load/unload is correct.
+    The lock is acquired inside the generator body (which only runs once
+    the SSE consumer starts iterating) and released in a finally, so a
+    client disconnect (GeneratorExit) also releases it.
     """
     global _llm
-    
-    if not _model_loaded or _llm is None:
-        raise RuntimeError("Model not loaded. Call load_model() first.")
-    
+
     if max_tokens is None:
         max_tokens = GENERATION_PARAMS['max_tokens']
-    
+
     # Build messages array for chat completion
     messages = []
-    
+
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
-    
+
     messages.append({"role": "user", "content": prompt})
-    
-    try:
-        # Use create_chat_completion for proper ChatML formatting
-        stream = _llm.create_chat_completion(
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=GENERATION_PARAMS['temperature'],
-            top_p=GENERATION_PARAMS['top_p'],
-            top_k=GENERATION_PARAMS['top_k'],
-            repeat_penalty=GENERATION_PARAMS['repeat_penalty'],
-            stop=STOP_TOKENS,
-            stream=True,
-        )
-        
-        for chunk in stream:
-            if chunk and "choices" in chunk and len(chunk["choices"]) > 0:
-                delta = chunk["choices"][0].get("delta", {})
-                if "content" in delta:
-                    token = delta["content"]
-                    if token:
-                        yield token
-                
-    except Exception as e:
-        print(f"[AI Scribe] Generation error: {e}")
-        raise
+
+    with _llm_lock:
+        # Re-check under the lock: an unload may have won the race between
+        # the caller's is_model_loaded() check and iteration starting.
+        if not _model_loaded or _llm is None:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        try:
+            # Use create_chat_completion for proper ChatML formatting
+            stream = _llm.create_chat_completion(
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=GENERATION_PARAMS['temperature'],
+                top_p=GENERATION_PARAMS['top_p'],
+                top_k=GENERATION_PARAMS['top_k'],
+                repeat_penalty=GENERATION_PARAMS['repeat_penalty'],
+                stop=STOP_TOKENS,
+                stream=True,
+            )
+
+            for chunk in stream:
+                if chunk and "choices" in chunk and len(chunk["choices"]) > 0:
+                    delta = chunk["choices"][0].get("delta", {})
+                    if "content" in delta:
+                        token = delta["content"]
+                        if token:
+                            yield token
+
+        except Exception as e:
+            print(f"[AI Scribe] Generation error: {e}")
+            raise
