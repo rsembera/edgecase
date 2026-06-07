@@ -53,7 +53,7 @@ def _run_shutdown_backup(db, label="Shutdown"):
         if backup.check_backup_needed(frequency):
             print(f"[{label}] Checking backup status...")
             location = db.get_setting('backup_location', '')
-            result = backup.create_backup(location if location else None)
+            result = backup.create_backup(location if location else None, db=db)
             if result:
                 print(f"[{label}] Backup completed: {result['filename']}")
                 post_cmd = db.get_setting('post_backup_command', '')

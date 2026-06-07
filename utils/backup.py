@@ -37,6 +37,37 @@ def get_file_hash(filepath):
     return sha256.hexdigest()
 
 
+def resolve_backup_dir(backup):
+    """Resolve the directory a manifest backup entry lives in.
+
+    Single source of truth for the fallback: entries without a recorded
+    'backup_dir' (legacy manifests) always resolve to BACKUPS_DIR — the
+    default location those entries were written to. Never fall back to a
+    *current* custom location: looking legacy entries up in the wrong
+    folder removes them from the manifest while orphaning the real zip
+    (with PHI) on disk (CODE_REVIEW L3).
+    """
+    return Path(backup.get('backup_dir') or BACKUPS_DIR)
+
+
+def _checkpoint_db(db):
+    """Best-effort WAL checkpoint before zipping the database.
+
+    backup.py cannot open the SQLCipher-encrypted database itself (it has
+    no password), so callers pass their live Database handle and we call
+    its checkpoint(). When no handle is provided we proceed without a
+    checkpoint; any leftover edgecase.db-wal is then included in the
+    backup instead (see get_all_backup_files), so committed data is not
+    silently lost.
+    """
+    if db is None:
+        return
+    try:
+        db.checkpoint()
+    except Exception as e:
+        print(f"Warning: WAL checkpoint before backup failed: {e}")
+
+
 def get_all_backup_files():
     """
     Get list of all files that should be backed up.
@@ -48,7 +79,15 @@ def get_all_backup_files():
     db_path = DATA_DIR / 'edgecase.db'
     if db_path.exists():
         files['data/edgecase.db'] = db_path
-    
+
+    # WAL sidecar: after a checkpoint this normally doesn't exist, but if
+    # it does (no db handle available, checkpoint failed or returned busy)
+    # it holds committed data not yet merged into edgecase.db — back it up
+    # so the restored database isn't missing recent writes (CODE_REVIEW H7).
+    wal_path = DATA_DIR / 'edgecase.db-wal'
+    if wal_path.exists():
+        files['data/edgecase.db-wal'] = wal_path
+
     # Security files (salt and secret key - essential for decryption)
     salt_path = DATA_DIR / '.salt'
     if salt_path.exists():
@@ -182,18 +221,20 @@ def validate_backup_location(backup_dir):
         return False, f"Cannot access backup location: {e}"
 
 
-def create_backup(backup_dir=None):
+def create_backup(backup_dir=None, db=None):
     """
     Create a backup, automatically deciding between full and incremental.
-    
+
     Decision logic:
     - No previous backups → full
     - Last full backup > 7 days old → full
     - Otherwise → incremental (only changed files)
-    
+
     Args:
         backup_dir: Optional custom backup directory (for cloud folders)
-    
+        db: Optional live Database handle, used to checkpoint the WAL
+            before zipping and to integrity-check the zipped database
+
     Returns:
         dict with backup info, or None if no changes (for incremental)
     """
@@ -218,18 +259,19 @@ def create_backup(backup_dir=None):
             need_full = True  # No full backup exists
     
     if need_full:
-        return create_full_backup(backup_dir)
+        return create_full_backup(backup_dir, db=db)
     else:
-        return create_incremental_backup(backup_dir)
+        return create_incremental_backup(backup_dir, db=db)
 
 
-def create_full_backup(backup_dir=None):
+def create_full_backup(backup_dir=None, db=None):
     """
     Create a full backup of all data.
-    
+
     Args:
         backup_dir: Optional custom backup directory (for cloud folders)
-    
+        db: Optional live Database handle (WAL checkpoint + DB verification)
+
     Returns:
         dict with backup info or raises exception
     """
@@ -245,7 +287,10 @@ def create_full_backup(backup_dir=None):
     
     filename = generate_backup_filename('full')
     backup_path = backup_dir / filename
-    
+
+    # Flush WAL into the main database file before snapshotting it
+    _checkpoint_db(db)
+
     files = get_all_backup_files()
     if not files:
         raise ValueError("No files to backup")
@@ -266,10 +311,10 @@ def create_full_backup(backup_dir=None):
         if backup_path.exists():
             backup_path.unlink()
         raise ValueError(f"Failed to create backup: {e}")
-    
-    # Verify backup
-    verify_backup(backup_path)
-    
+
+    # Verify backup (zip CRCs + DB integrity_check when db provided)
+    verify_backup(backup_path, db=db)
+
     # Update manifest
     manifest = load_manifest()
     chain_id = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -293,32 +338,36 @@ def create_full_backup(backup_dir=None):
     return backup_info
 
 
-def create_incremental_backup(backup_dir=None):
+def create_incremental_backup(backup_dir=None, db=None):
     """
     Create an incremental backup (only changed files since last backup).
-    
+
     Args:
         backup_dir: Optional custom backup directory
-    
+        db: Optional live Database handle (WAL checkpoint + DB verification)
+
     Returns:
         dict with backup info, or None if no changes
     """
     manifest = load_manifest()
-    
+
     if not manifest['last_full_hashes']:
         # No previous backup, need full backup first
-        return create_full_backup(backup_dir)
-    
+        return create_full_backup(backup_dir, db=db)
+
     if backup_dir is None:
         backup_dir = BACKUPS_DIR
     else:
         backup_dir = Path(backup_dir)
-    
+
     # Validate location before starting
     valid, error = validate_backup_location(backup_dir)
     if not valid:
         raise ValueError(error)
-    
+
+    # Flush WAL into the main database file before hashing/snapshotting
+    _checkpoint_db(db)
+
     # Get current state
     current_hashes = get_file_hashes()
     previous_hashes = manifest['last_full_hashes']
@@ -362,10 +411,10 @@ def create_incremental_backup(backup_dir=None):
         if backup_path.exists():
             backup_path.unlink()
         raise ValueError(f"Failed to create backup: {e}")
-    
-    # Verify backup
-    verify_backup(backup_path)
-    
+
+    # Verify backup (zip CRCs + DB integrity_check when db provided)
+    verify_backup(backup_path, db=db)
+
     # Update manifest
     backup_info = {
         'filename': filename,
@@ -387,10 +436,18 @@ def create_incremental_backup(backup_dir=None):
     return backup_info
 
 
-def verify_backup(backup_path):
+def verify_backup(backup_path, db=None):
     """
-    Verify backup zip integrity.
-    Raises exception if corrupted.
+    Verify backup zip integrity. Raises ValueError (and deletes the
+    partial backup) if verification fails.
+
+    Always checks zip CRCs. When a live Database handle is provided, also
+    extracts the zipped edgecase.db to a temp dir and runs SQLCipher's
+    PRAGMA integrity_check on it using db.password — zip CRCs only prove
+    the zip matches what was written, not that the database copy is sane;
+    a torn copy of a live DB passes CRC but fails only at restore time
+    (CODE_REVIEW H7). Without a db handle we cannot decrypt the copy, so
+    CRC checking is the fallback.
     """
     try:
         with zipfile.ZipFile(backup_path, 'r') as zf:
@@ -403,6 +460,65 @@ def verify_backup(backup_path):
         os.remove(backup_path)
         raise ValueError("Backup file is corrupted")
 
+    if db is not None:
+        _verify_zipped_database(backup_path, db)
+
+
+def _verify_zipped_database(backup_path, db):
+    """Run PRAGMA integrity_check on the database copy inside a backup zip.
+
+    Deletes the backup and raises ValueError if the copy is unreadable or
+    fails the integrity check. No-op if the zip contains no database
+    (e.g. an incremental with only attachment changes).
+    """
+    import tempfile
+
+    db_arcname = 'data/edgecase.db'
+    wal_arcname = 'data/edgecase.db-wal'
+
+    with zipfile.ZipFile(backup_path, 'r') as zf:
+        names = zf.namelist()
+        if db_arcname not in names:
+            return  # No database in this backup; nothing to check
+
+        tmp_dir = tempfile.mkdtemp(prefix='edgecase_backup_verify_')
+        try:
+            extracted_db = zf.extract(db_arcname, tmp_dir)
+            if wal_arcname in names:
+                # Extract the WAL alongside so SQLite verifies the
+                # database with its pending frames replayed
+                zf.extract(wal_arcname, tmp_dir)
+
+            result = None
+            error = None
+            try:
+                import sqlcipher3
+                conn = sqlcipher3.connect(str(extracted_db), timeout=10.0)
+                try:
+                    if db.password:
+                        # Same escaping as core.database.Database.connect
+                        escaped = db.password.replace("'", "''")
+                        conn.execute(f"PRAGMA key = '{escaped}'")
+                    row = conn.execute('PRAGMA integrity_check').fetchone()
+                    result = row[0] if row else None
+                finally:
+                    conn.close()
+            except Exception as e:
+                error = str(e)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    if error is not None or result is None or str(result).lower() != 'ok':
+        # Torn/corrupt database copy — remove the bad backup and fail loudly
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
+        detail = error if error is not None else (result or 'no result')
+        raise ValueError(
+            f"Backup verification failed: backed-up database failed "
+            f"integrity check ({detail}). The backup was discarded — "
+            f"please try again."
+        )
+
 
 def list_backups():
     """
@@ -414,8 +530,7 @@ def list_backups():
     
     for backup in manifest['backups']:
         # Check if file still exists
-        backup_dir = Path(backup.get('backup_dir', BACKUPS_DIR))
-        backup_path = backup_dir / backup['filename']
+        backup_path = resolve_backup_dir(backup) / backup['filename']
         
         if backup_path.exists():
             backups.append({
@@ -453,59 +568,72 @@ def get_restore_points():
     for backup in backups:
         chain_id = backup['chain_id']
         if chain_id not in chains:
-            chains[chain_id] = {'full': None, 'incrementals': [], 'pre_restore': None}
-        
+            chains[chain_id] = {'full': None, 'incrementals': [], 'pre_restore': []}
+
         if backup['type'] == 'full':
             chains[chain_id]['full'] = backup
         elif backup['type'] == 'pre_restore':
-            chains[chain_id]['pre_restore'] = backup
+            # Collect ALL safety backups — they share chain_id
+            # 'pre_restore', and a single slot would hide every safety
+            # backup but the last one (CODE_REVIEW L2)
+            chains[chain_id]['pre_restore'].append(backup)
         else:
             chains[chain_id]['incrementals'].append(backup)
-    
+
     # Build restore points
     restore_points = []
-    
+
     for chain_id, chain in chains.items():
-        # Handle pre_restore backups (standalone, not part of a chain)
-        if chain_id == 'pre_restore' and chain.get('pre_restore'):
-            backup = chain['pre_restore']
-            backup_path = Path(backup.get('backup_dir', BACKUPS_DIR)) / backup['filename']
-            if backup_path.exists():
-                # Format date with time
-                created = datetime.fromisoformat(backup['created_at'])
-                display_time = created.strftime('%b %d, %Y at %I:%M %p').replace(' 0', ' ')
-                
-                restore_points.append({
-                    'id': f"pre_restore_{backup['filename']}",
-                    'filename': backup['filename'],
-                    'display_name': f"{display_time} (Safety backup)",
-                    'created_at': backup['created_at'],
-                    'type': 'pre_restore',
-                    'is_safety': True,
-                    'chain_id': 'pre_restore',
-                    'dependent_count': 0,
-                    'files_needed': [str(backup_path)]
-                })
+        # Handle pre_restore backups (standalone, not part of a chain).
+        # Each safety backup is its own restore point; give each a unique
+        # chain_id so the UI's chain grouping renders every one of them.
+        if chain_id == 'pre_restore':
+            for backup in chain['pre_restore']:
+                backup_path = resolve_backup_dir(backup) / backup['filename']
+                if backup_path.exists():
+                    # Format date with time
+                    created = datetime.fromisoformat(backup['created_at'])
+                    display_time = created.strftime('%b %d, %Y at %I:%M %p').replace(' 0', ' ')
+
+                    restore_points.append({
+                        'id': f"pre_restore_{backup['filename']}",
+                        'filename': backup['filename'],
+                        'display_name': f"{display_time} (Safety backup)",
+                        'created_at': backup['created_at'],
+                        'type': 'pre_restore',
+                        'is_safety': True,
+                        'chain_id': f"pre_restore_{backup['filename']}",
+                        'dependent_count': 0,
+                        'files_needed': [str(backup_path)]
+                    })
             continue
-        
+
         if not chain['full']:
             continue  # Skip orphaned incrementals
-        
+
         # Sort incrementals by date
         chain['incrementals'].sort(key=lambda x: x['created_at'])
-        
+
         # Count dependents for this chain's full backup
         dependent_count = len(chain['incrementals'])
-        
+
         # Full backup as restore point
         full_backup = chain['full']
-        backup_path = Path(full_backup.get('backup_dir', BACKUPS_DIR)) / full_backup['filename']
-        
+        backup_path = resolve_backup_dir(full_backup) / full_backup['filename']
+
+        # Track the first gap in the chain. A missing zip anywhere in the
+        # chain breaks every LATER restore point: prepare_restore would
+        # silently apply an incomplete sequence and any file whose only
+        # copy lived in the missing zip gets restored from an older
+        # version (CODE_REVIEW H4). Points after the gap are flagged
+        # 'broken' instead of being offered as restorable.
+        missing_file = None if backup_path.exists() else full_backup['filename']
+
         if backup_path.exists():
             # Format date with time
             created = datetime.fromisoformat(full_backup['created_at'])
             display_time = created.strftime('%b %d, %Y at %I:%M %p').replace(' 0', ' ')
-            
+
             restore_points.append({
                 'id': f"{chain_id}_full",
                 'filename': full_backup['filename'],
@@ -517,50 +645,79 @@ def get_restore_points():
                 'dependent_count': dependent_count,
                 'files_needed': [str(backup_path)]
             })
-        
+
         # Each incremental in the chain is also a restore point
         files_needed = [str(backup_path)]
         for i, incr in enumerate(chain['incrementals']):
-            incr_path = Path(incr.get('backup_dir', BACKUPS_DIR)) / incr['filename']
-            if incr_path.exists():
+            incr_path = resolve_backup_dir(incr) / incr['filename']
+
+            if not incr_path.exists():
+                # Gap in the chain: this zip is gone, so it can't be a
+                # restore point itself, and everything after it is broken
+                if missing_file is None:
+                    missing_file = incr['filename']
+                continue
+
+            # Format date with time
+            created = datetime.fromisoformat(incr['created_at'])
+            display_time = created.strftime('%b %d, %Y at %I:%M %p').replace(' 0', ' ')
+
+            point = {
+                'id': f"{chain_id}_incr_{i}",
+                'filename': incr['filename'],
+                'display_name': display_time,
+                'created_at': incr['created_at'],
+                'type': 'incremental',
+                'is_safety': False,
+                'chain_id': chain_id,
+                'dependent_count': 0,
+            }
+
+            if missing_file is not None:
+                # On a broken chain: surface it so the UI can explain why
+                # it's unavailable, but expose no files to restore from
+                point['broken'] = True
+                point['missing_file'] = missing_file
+                point['files_needed'] = []
+            else:
                 files_needed = files_needed + [str(incr_path)]
-                
-                # Format date with time
-                created = datetime.fromisoformat(incr['created_at'])
-                display_time = created.strftime('%b %d, %Y at %I:%M %p').replace(' 0', ' ')
-                
-                restore_points.append({
-                    'id': f"{chain_id}_incr_{i}",
-                    'filename': incr['filename'],
-                    'display_name': display_time,
-                    'created_at': incr['created_at'],
-                    'type': 'incremental',
-                    'is_safety': False,
-                    'chain_id': chain_id,
-                    'dependent_count': 0,
-                    'files_needed': files_needed.copy()
-                })
+                point['files_needed'] = files_needed.copy()
+
+            restore_points.append(point)
     
     # Sort by date, newest first
     restore_points.sort(key=lambda x: x['created_at'], reverse=True)
     return restore_points
 
 
-def prepare_restore(restore_point_id):
+def prepare_restore(restore_point_id, db=None):
     """
     Prepare for restore by extracting to staging folder.
     Does NOT replace production files yet.
-    
+
+    Args:
+        restore_point_id: ID of the restore point to prepare
+        db: Optional live Database handle, passed to the safety backup
+
     Returns path to staging folder.
     """
     restore_points = get_restore_points()
     point = next((p for p in restore_points if p['id'] == restore_point_id), None)
-    
+
     if not point:
         raise ValueError(f"Restore point not found: {restore_point_id}")
-    
+
+    if point.get('broken'):
+        # Defense in depth: the UI shouldn't offer broken points, but
+        # never restore from a chain with a missing link (CODE_REVIEW H4)
+        raise ValueError(
+            f"Cannot restore this backup: its chain is missing "
+            f"'{point.get('missing_file', 'a backup file')}'. "
+            f"Choose an earlier restore point."
+        )
+
     # Create pre-restore backup first (safety net)
-    create_pre_restore_backup()
+    create_pre_restore_backup(db=db)
     
     # Clear any existing staging
     if RESTORE_STAGING_DIR.exists():
@@ -602,22 +759,29 @@ def prepare_restore(restore_point_id):
     return str(RESTORE_STAGING_DIR)
 
 
-def create_pre_restore_backup():
-    """Create a backup of current state before restore (safety net)."""
+def create_pre_restore_backup(db=None):
+    """Create a backup of current state before restore (safety net).
+
+    Args:
+        db: Optional live Database handle (WAL checkpoint + DB verification)
+    """
     ensure_backup_dir()
-    
+
     filename = f"pre_restore_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.zip"
     backup_path = BACKUPS_DIR / filename
-    
+
+    # Flush WAL into the main database file before snapshotting it
+    _checkpoint_db(db)
+
     files = get_all_backup_files()
     if not files:
         return None  # Nothing to back up
-    
+
     with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for rel_path, abs_path in files.items():
             zf.write(abs_path, rel_path)
-    
-    verify_backup(backup_path)
+
+    verify_backup(backup_path, db=db)
     
     # Add to manifest
     manifest = load_manifest()
@@ -671,6 +835,12 @@ def complete_restore():
             if sidecar.exists():
                 sidecar.unlink()
         shutil.copy2(staged_db, target_db)
+        # If the backup captured a WAL sidecar (taken without a
+        # checkpoint), restore it alongside the database so SQLite
+        # replays its committed frames instead of losing them
+        staged_wal = RESTORE_STAGING_DIR / 'data' / 'edgecase.db-wal'
+        if staged_wal.exists():
+            shutil.copy2(staged_wal, DATA_DIR / 'edgecase.db-wal')
     
     # Replace attachments
     staged_attachments = RESTORE_STAGING_DIR / 'attachments'
@@ -733,7 +903,7 @@ def delete_backup(backup_filename):
     if not backup:
         raise ValueError("Backup not found")
     
-    backup_path = Path(backup.get('backup_dir', BACKUPS_DIR)) / backup_filename
+    backup_path = resolve_backup_dir(backup) / backup_filename
     
     warnings = []
     
@@ -762,7 +932,7 @@ def delete_backup(backup_filename):
             
             # Newer full exists - cascade delete the incrementals
             for incr in incrementals_in_chain:
-                incr_path = Path(incr.get('backup_dir', BACKUPS_DIR)) / incr['filename']
+                incr_path = resolve_backup_dir(incr) / incr['filename']
                 if incr_path.exists():
                     incr_path.unlink()
                 manifest['backups'].remove(incr)
@@ -813,7 +983,11 @@ def cleanup_old_backups(retention, custom_location=None):
     
     Args:
         retention: The retention period setting
-        custom_location: Optional custom backup directory
+        custom_location: Unused (kept for call-site compatibility). Each
+            backup's directory comes from its own manifest entry via
+            resolve_backup_dir(); falling back to a custom location for
+            legacy entries deleted manifest records while orphaning the
+            actual zips in BACKUPS_DIR (CODE_REVIEW L3).
     """
     if retention == 'forever':
         return
@@ -829,8 +1003,7 @@ def cleanup_old_backups(retention, custom_location=None):
         return
     
     manifest = load_manifest()
-    backup_dir = Path(custom_location) if custom_location else BACKUPS_DIR
-    
+
     cutoff_date = (datetime.now() - timedelta(days=retention_days)).isoformat()
     
     # Group backups by chain
@@ -879,15 +1052,15 @@ def cleanup_old_backups(retention, custom_location=None):
         
         # Delete all incrementals first
         for incr in chain['incrementals']:
-            incr_path = Path(incr.get('backup_dir', backup_dir)) / incr['filename']
+            incr_path = resolve_backup_dir(incr) / incr['filename']
             if incr_path.exists():
                 incr_path.unlink()
             if incr in manifest['backups']:
                 manifest['backups'].remove(incr)
-        
+
         # Delete the full backup
         if chain['full']:
-            full_path = Path(chain['full'].get('backup_dir', backup_dir)) / chain['full']['filename']
+            full_path = resolve_backup_dir(chain['full']) / chain['full']['filename']
             if full_path.exists():
                 full_path.unlink()
             if chain['full'] in manifest['backups']:
@@ -901,7 +1074,7 @@ def cleanup_old_backups(retention, custom_location=None):
     safety_deleted = 0
     for backup in safety_backups:
         if backup['created_at'] < cutoff_date:
-            backup_path = Path(backup.get('backup_dir', backup_dir)) / backup['filename']
+            backup_path = resolve_backup_dir(backup) / backup['filename']
             if backup_path.exists():
                 backup_path.unlink()
             if backup in manifest['backups']:
