@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** March 28, 2026  
+**Last Updated:** June 7, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,18 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### June 7, 2026
+
+**Code Review Remediation — First Batch (CODE_REVIEW.md)**
+- Fixed client-file PDF exports silently dropping all attachments (wrong on-disk path + missing decryption) — exports now include images inline and merge PDF attachments correctly
+- Fixed PDF generation crashing on `&`, `<`, or `>` in any user-entered field (names, addresses, descriptions, payment instructions) — all user content now XML-escaped before ReportLab markup
+- Restore now removes stale WAL/SHM sidecar files before replacing the database, eliminating a post-crash corruption risk
+- `encrypt_file()` and the backup manifest now use atomic write-temp-then-replace, so a crash mid-write can't destroy an attachment or reset the backup catalog
+- Added database indexes for the most common query patterns (auto-migrates existing databases at startup)
+- Added `tools/audit_orphans.py` to audit foreign-key orphans ahead of a future `PRAGMA foreign_keys=ON` flip (deliberately deferred)
+- Consolidated duplicated frontend utilities (escapeHtml ×4, autoResize ×6, three-way fee calc ×6, color palette) into new `shared_utils.js`; deleted dead `color_palette.js`
+- All 43 automated tests passing; PDF fixes verified end-to-end with hostile test data
 
 ### May 16, 2026
 

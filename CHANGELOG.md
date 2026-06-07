@@ -13,6 +13,17 @@ Format: Each entry includes date, version (if applicable), and description.
      PRAGMA foreign_keys=ON in core/database.py:connect() is pending review
      of the audit results against the real database. -->
 
+### 2026-06-07
+- **Code review remediation batch** (first pass from CODE_REVIEW.md; one commit per item):
+  - **C1+C2 — PDF export attachments fixed**: Client-file exports were silently dropping every attachment — paths were rebuilt from the original filename instead of the stored UUID `.enc` path, and images were embedded without decryption. Exports now resolve `attachments.filepath` against the data root and decrypt before embedding; merged PDF attachments show their original filename on the header page.
+  - **H1 — Restore safety**: `complete_restore()` now removes stale `edgecase.db-wal`/`-shm` sidecar files before copying the restored database, preventing SQLite from replaying old WAL frames into the restored file after a crash.
+  - **M2 — FK orphan audit (audit only)**: Added `tools/audit_orphans.py`, a read-only script reporting rows that violate the schema's declared (but unenforced) FOREIGN KEYs, plus a `PRAGMA foreign_key_check` cross-check. The `foreign_keys=ON` flip is deliberately deferred pending audit results (see TODO above).
+  - **M3 — Indexes**: Added `entries(client_id, class)`, `entries(ledger_type, ledger_date)`, `attachments(entry_id)`, and `statement_portions(client_id, status)` via `CREATE INDEX IF NOT EXISTS` in schema init — existing databases migrate automatically at startup.
+  - **M12 — Atomic writes**: `encrypt_file()` and `save_manifest()` now write to a temp file and `os.replace()` instead of truncating in place; a crash mid-write can no longer destroy an attachment or corrupt the backup manifest.
+  - **M14 — PDF crash on special characters fixed**: User-entered text (names, addresses, descriptions, payment instructions, attestation, attachment descriptions) is now XML-escaped before interpolation into ReportLab Paragraph markup. Previously a single `&`, `<`, or `>` in any field crashed statement/export/report generation.
+  - **L10 — Shared JS utilities**: New `web/static/js/shared_utils.js` (loaded in `base.html`) consolidates `escapeHtml` (4 copies), textarea auto-resize (6 copies), the three-way fee calculation (6 copies), and the color palette; deleted dead `color_palette.js`. Page-level function names kept as thin delegates, so no template/handler changes.
+  - All 43 automated tests pass; PDF fixes verified end-to-end against a test database (encrypted image + PDF attachments render in exports; statements/exports/reports generate with `&`, `<`, `>` in every user field).
+
 ### 2026-05-16
 - **AI Scribe**: Refined Cancel button presentation. Removed the inline "Generating..." status indicator (which was causing column-width reflow) and replaced it with a dedicated Cancel button styled to match the action buttons, placed below them in the same column. Uses `visibility: hidden` to reserve layout space so action buttons no longer jump when Cancel appears or disappears.
 - **AI Scribe**: Converted the "Loading AI model..." banner from an inline element to a centered modal overlay with dimmed backdrop. Previously the banner pushed page content down when shown and let it snap back when hidden; the overlay is now `position: fixed` so it never affects layout. The overlay also better reflects the actual user state — the page is unusable until the model loads.
