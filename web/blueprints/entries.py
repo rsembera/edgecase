@@ -632,7 +632,8 @@ def edit_session(client_id, entry_id):
     # Get existing session entry
     session_entry = db.get_entry(entry_id)
     
-    if not session_entry or session_entry['class'] != 'session':
+    # Verify entry belongs to this client (CODE_REVIEW M6)
+    if not session_entry or session_entry['class'] != 'session' or session_entry['client_id'] != client_id:
         return "Session not found", 404
     
     # Redirect to redacted view if this entry has been redacted
@@ -985,7 +986,8 @@ def edit_communication(client_id, entry_id):
     client_type = db.get_client_type(client['type_id'])
     communication = db.get_entry(entry_id)
     
-    if not communication or communication['class'] != 'communication':
+    # Verify entry belongs to this client (CODE_REVIEW M6)
+    if not communication or communication['class'] != 'communication' or communication['client_id'] != client_id:
         return "Communication not found", 404
     
     # Redirect to redacted view if this entry has been redacted
@@ -1157,7 +1159,11 @@ def create_absence(client_id):
         absence_date_str = request.form.get('date')
         absence_date_timestamp = None
         if absence_date_str:
-            date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            try:
+                date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            except ValueError:
+                # Malformed date should be a validation error, not a 500 (CODE_REVIEW L12)
+                return "Invalid date: please enter the absence date as YYYY-MM-DD.", 400
             absence_date_timestamp = int(date_obj.timestamp())
         
         absence_data = {
@@ -1239,7 +1245,8 @@ def edit_absence(client_id, entry_id):
     client_type = db.get_client_type(client['type_id'])
     absence = db.get_entry(entry_id)
     
-    if not absence or absence['class'] != 'absence':
+    # Verify entry belongs to this client (CODE_REVIEW M6)
+    if not absence or absence['class'] != 'absence' or absence['client_id'] != client_id:
         return "Absence not found", 404
     
     # Redirect to redacted view if this entry has been redacted
@@ -1258,7 +1265,11 @@ def edit_absence(client_id, entry_id):
         absence_date_str = request.form.get('date')
         absence_date_timestamp = None
         if absence_date_str:
-            date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            try:
+                date_obj = datetime.strptime(absence_date_str, '%Y-%m-%d')
+            except ValueError:
+                # Malformed date should be a validation error, not a 500 (CODE_REVIEW L12)
+                return "Invalid date: please enter the absence date as YYYY-MM-DD.", 400
             absence_date_timestamp = int(date_obj.timestamp())
         
         # Prepare updated absence data - preserve billing fields if billed
@@ -1428,7 +1439,11 @@ def create_item(client_id):
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
         if item_date_str:
-            item_date_timestamp = int(datetime.strptime(item_date_str, '%Y-%m-%d').timestamp())
+            try:
+                item_date_timestamp = int(datetime.strptime(item_date_str, '%Y-%m-%d').timestamp())
+            except ValueError:
+                # Malformed date should be a validation error, not a 500 (CODE_REVIEW L12)
+                return "Invalid date: please enter the item date as YYYY-MM-DD.", 400
         
         # Parse guardian amounts if provided
         g1_amount = request.form.get('guardian1_amount')
@@ -1489,7 +1504,8 @@ def edit_item(client_id, entry_id):
     profile = db.get_profile_entry(client_id)
     item = db.get_entry(entry_id)
     
-    if not item or item['class'] != 'item':
+    # Verify entry belongs to this client (CODE_REVIEW M6)
+    if not item or item['class'] != 'item' or item['client_id'] != client_id:
         return "Item not found", 404
     
     # Redirect to redacted view if this entry has been redacted
@@ -1508,7 +1524,11 @@ def edit_item(client_id, entry_id):
         item_date_str = request.form.get('item_date')
         item_date_timestamp = None
         if item_date_str:
-            date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
+            try:
+                date_obj = datetime.strptime(item_date_str, '%Y-%m-%d')
+            except ValueError:
+                # Malformed date should be a validation error, not a 500 (CODE_REVIEW L12)
+                return "Invalid date: please enter the item date as YYYY-MM-DD.", 400
             item_date_timestamp = int(date_obj.timestamp())
         
         # Parse guardian amounts if provided
@@ -1694,7 +1714,8 @@ def edit_upload(client_id, entry_id):
     client_type = db.get_client_type(client['type_id'])
     upload = db.get_entry(entry_id)
     
-    if not upload or upload['class'] != 'upload':
+    # Verify entry belongs to this client (CODE_REVIEW M6)
+    if not upload or upload['class'] != 'upload' or upload['client_id'] != client_id:
         return "Upload not found", 404
     
     if request.method == 'POST':

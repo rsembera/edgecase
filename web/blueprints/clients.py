@@ -347,11 +347,25 @@ def add_client():
         
         elif format_type == 'date-initials':
             date_str = datetime.now().strftime('%Y%m%d')
-            
-            first = request.form['first_name'][0].upper()
-            middle = request.form.get('middle_name', '')
+
+            # Guard against empty names: [0] on an empty string raises
+            # IndexError and surfaced as a raw 500 (CODE_REVIEW L12).
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            if not first_name or not last_name:
+                all_types = db.get_all_client_types()
+                return render_template('add_client.html',
+                                     all_types=all_types,
+                                     file_number_preview='',
+                                     file_number_readonly=True,
+                                     file_number_format=format_type,
+                                     error="First and last name are required to generate the file number.",
+                                     form_data=request.form)
+
+            first = first_name[0].upper()
+            middle = request.form.get('middle_name', '').strip()
             middle = middle[0].upper() if middle else ''
-            last = request.form['last_name'][0].upper()
+            last = last_name[0].upper()
             
             initials = first + middle + last
             base_file_number = f"{date_str}-{initials}"

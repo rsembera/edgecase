@@ -11,6 +11,7 @@ import time
 import difflib
 import calendar
 import uuid
+from markupsafe import escape
 from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
 
@@ -92,6 +93,14 @@ def generate_content_diff(old_content, new_content, max_length=500):
     # Normalize whitespace and line endings
     old_content = ' '.join(old_content.split())
     new_content = ' '.join(new_content.split())
+
+    # HTML-escape user content BEFORE any <del>/<strong> wrapping below
+    # (CODE_REVIEW M17). The diff output is rendered with |safe in the
+    # edit-history templates, so unescaped note text containing markup
+    # would corrupt the display or execute in-origin. Plain text escapes
+    # to itself; only the diff tags generated here remain real HTML.
+    old_content = str(escape(old_content))
+    new_content = str(escape(new_content))
     
     if not old_content:
         # Everything is new
