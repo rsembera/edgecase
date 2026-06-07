@@ -381,8 +381,9 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
         session_duration: sessionDuration,
         member_fees: memberFees
     };
-    
-    fetch(window.location.href, {
+
+    const submitBtn = document.getElementById('submit-btn');
+    withButtonDisabled(submitBtn, () => fetch(window.location.href, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -401,7 +402,7 @@ document.getElementById('link-group-form').addEventListener('submit', function(e
     .catch(error => {
         console.error('Error:', error);
         showErrorModal(error.message);
-    });
+    }), 'Saving...');
 });
 
 /**

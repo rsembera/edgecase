@@ -13,12 +13,26 @@
 
 const PICKER_CONFIG = {
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    monthsFull: ['January', 'February', 'March', 'April', 'May', 'June', 
+    monthsFull: ['January', 'February', 'March', 'April', 'May', 'June',
                  'July', 'August', 'September', 'October', 'November', 'December'],
     daysOfWeek: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
     yearRangeStart: 2020,
     yearRangeEnd: 2030
 };
+
+// ============================================================
+// SHARED OUTSIDE-CLICK HANDLER
+// ============================================================
+// A single document-level listener closes any open picker dropdown.
+// Previously each DatePicker/TimePicker instance registered its own
+// permanent document listener that was never removed, leaking handlers
+// on pages that re-create pickers (CODE_REVIEW.md L8). Clicks inside a
+// picker call stopPropagation(), so this never fires for them — exact
+// same behavior as the old per-instance listeners.
+document.addEventListener('click', () => {
+    document.querySelectorAll('.picker-dropdown.show')
+        .forEach(d => d.classList.remove('show'));
+});
 
 // ============================================================
 // DATE PICKER CLASS
@@ -334,9 +348,8 @@ class DatePicker {
                 this.options.onSelect(this.selectedDate);
             }
         });
-        
-        // Close on outside click
-        document.addEventListener('click', () => this.close());
+        // Outside clicks are handled by the single shared document
+        // listener at the top of this file (no per-instance listener).
     }
     
     /**
@@ -398,7 +411,19 @@ class DatePicker {
     close() {
         this.dropdown.classList.remove('show');
     }
-    
+
+    /**
+     * Tear down the picker. All element listeners live on nodes inside
+     * the container, so clearing it releases them; no document-level
+     * listeners are owned by the instance.
+     */
+    destroy() {
+        this.container.innerHTML = '';
+        this.display = null;
+        this.displayValue = null;
+        this.dropdown = null;
+    }
+
     /**
      * Get the selected date
      * @returns {Date|null}
@@ -712,8 +737,8 @@ class TimePicker {
                 this.options.onSelect(this.formatTime());
             }
         });
-        
-        document.addEventListener('click', () => this.close());
+        // Outside clicks are handled by the single shared document
+        // listener at the top of this file (no per-instance listener).
     }
     
     handleAction(action) {
@@ -747,7 +772,19 @@ class TimePicker {
     close() {
         this.dropdown.classList.remove('show');
     }
-    
+
+    /**
+     * Tear down the picker. All element listeners live on nodes inside
+     * the container, so clearing it releases them; no document-level
+     * listeners are owned by the instance.
+     */
+    destroy() {
+        this.container.innerHTML = '';
+        this.display = null;
+        this.displayValue = null;
+        this.dropdown = null;
+    }
+
     /**
      * Get the formatted time string
      * @returns {string}

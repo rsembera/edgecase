@@ -411,7 +411,10 @@ function showRetentionModal(clients) {
  * Close the retention modal
  */
 function closeRetentionModal() {
-    document.getElementById('retention-modal').style.display = 'none';
+    // Symmetric with showRetentionModal's classList.add('active') — an
+    // inline style.display would override the .active class and prevent
+    // the modal from reopening (CODE_REVIEW.md L9).
+    document.getElementById('retention-modal').classList.remove('active');
 }
 
 /**

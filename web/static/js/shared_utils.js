@@ -24,6 +24,54 @@ function escapeHtml(text) {
 }
 
 // ============================================================
+// DOUBLE-SUBMIT PROTECTION
+// ============================================================
+
+/**
+ * Resolve the button that triggered the currently-dispatching event.
+ * Works inside functions invoked from inline onclick="..." handlers
+ * without changing the template markup.
+ * @returns {HTMLButtonElement|null}
+ */
+function resolveEventButton() {
+    const evt = window.event;
+    if (evt && evt.target && typeof evt.target.closest === 'function') {
+        return evt.target.closest('button');
+    }
+    return null;
+}
+
+/**
+ * Disable a button while an async operation is pending, then restore it.
+ * Mirrors the disable + spinner + restore pattern used by backups.js /
+ * settings.js (see CODE_REVIEW.md L6 — double-submit protection).
+ *
+ * @param {HTMLButtonElement|null} btn - Trigger button (null-safe: just runs fn)
+ * @param {Function} asyncFn - Function returning a Promise (the fetch chain)
+ * @param {string} [pendingText] - Optional label shown with a spinner while
+ *     pending; omit for icon-only buttons (they are just disabled).
+ * @returns {Promise} Resolves with asyncFn's result
+ */
+async function withButtonDisabled(btn, asyncFn, pendingText) {
+    if (!btn) return asyncFn();
+    if (btn.disabled) return; // Already pending — swallow duplicate click
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    if (pendingText) {
+        btn.innerHTML = '<i data-lucide="loader" class="icon-sm icon-inline btn-spinner"></i> '
+            + escapeHtml(pendingText);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+    try {
+        return await asyncFn();
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        if (pendingText && typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+// ============================================================
 // TEXTAREA AUTO-RESIZE
 // ============================================================
 
