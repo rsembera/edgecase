@@ -84,7 +84,7 @@ def renumber_sessions(client_id):
             db.update_entry(sess['id'], {
                 'session_number': i,
                 'description': f"Session {i}"
-            })
+            }, allow_locked=True)  # System invariant; not user-initiated.
 
 
 # ============================================================================
@@ -373,7 +373,7 @@ def edit_profile(client_id):
                     change_desc = "; ".join(changes)
                     db.add_to_edit_history(profile['id'], change_desc)
             
-            db.update_entry(profile['id'], profile_data)
+            db.update_entry(profile['id'], profile_data, allow_locked=True)
         else:
             # Create new profile
             entry_id = db.add_entry(profile_data)
@@ -793,7 +793,7 @@ def edit_session(client_id, entry_id):
                     db.add_to_edit_history(entry_id, change_desc)
             
         # Save updated session
-        db.update_entry(entry_id, session_data)
+        db.update_entry(entry_id, session_data, allow_locked=True)
         
         # Renumber sessions in case consultation status changed
         renumber_sessions(client_id)
@@ -1061,7 +1061,7 @@ def edit_communication(client_id, entry_id):
             db.add_to_edit_history(entry_id, f"Added files: {file_list}")
         
         # Update the existing communication
-        db.update_entry(entry_id, comm_data)
+        db.update_entry(entry_id, comm_data, allow_locked=True)
         
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -1330,7 +1330,7 @@ def edit_absence(client_id, entry_id):
                 db.add_to_edit_history(entry_id, change_desc)
         
         # Save updated absence
-        db.update_entry(entry_id, absence_data)
+        db.update_entry(entry_id, absence_data, allow_locked=True)
         
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -1585,7 +1585,7 @@ def edit_item(client_id, entry_id):
                 db.add_to_edit_history(entry_id, change_desc)
         
         # Save updated item
-        db.update_entry(entry_id, item_data)
+        db.update_entry(entry_id, item_data, allow_locked=True)
         
         # Handle file uploads
         files = request.files.getlist('files[]')
@@ -1705,7 +1705,7 @@ def edit_upload(client_id, entry_id):
             changes.append(f"Added files: {', '.join(added_files)}")
             db.add_to_edit_history(entry_id, "; ".join(changes))
 
-        db.update_entry(entry_id, upload_data)
+        db.update_entry(entry_id, upload_data, allow_locked=True)
 
         return redirect(url_for('clients.client_file', client_id=client_id))
     

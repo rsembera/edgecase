@@ -76,6 +76,14 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## RECENT ACCOMPLISHMENTS
 
+### June 7, 2026 (afternoon — H3, H5, M11)
+
+**Three High-tier fixes from CODE_REVIEW.md**
+- **H3**: Single-guardian minor billing inconsistency resolved by clarifying the UI — the "Pays (%)" field is now hidden when there's no second guardian, and the billing-side comment makes the intended behaviour explicit
+- **H5**: Stopped coercing `None` → `''` in entry writes; added `TYPED_ENTRY_COLUMNS` set and `''` → `None` coercion for numeric/date/boolean columns in both `add_entry` and `update_entry`; added `tools/audit_typed_columns.py` to find and optionally fix any pre-existing `''` pollution in the live database
+- **M11**: `update_entry` now raises `EntryLockedError` on locked entries unless the caller passes `allow_locked=True`; all existing callers updated explicitly so future code can no longer silently mutate locked clinical entries
+- 43 tests still passing
+
 ### June 7, 2026 (follow-up)
 
 **Ledger Report Receipt-Dropping Fix**

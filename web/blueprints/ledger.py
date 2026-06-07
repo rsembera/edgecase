@@ -235,7 +235,7 @@ def edit_income(entry_id):
         descriptions = request.form.getlist('file_descriptions[]')
         save_uploaded_files(files, descriptions, entry_id, db)
         
-        db.update_entry(entry_id, income_data)
+        db.update_entry(entry_id, income_data, allow_locked=True)
         
         return redirect(url_for('ledger.ledger'))
     
@@ -407,7 +407,7 @@ def edit_expense(entry_id):
         descriptions = request.form.getlist('file_descriptions[]')
         save_uploaded_files(files, descriptions, entry_id, db)
         
-        db.update_entry(entry_id, expense_data)
+        db.update_entry(entry_id, expense_data, allow_locked=True)
         
         return redirect(url_for('ledger.ledger'))
     

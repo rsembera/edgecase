@@ -291,9 +291,11 @@ def scribe_save(entry_id):
     if not entry:
         return jsonify({'error': 'Entry not found'}), 404
     
-    # Update the content (this will also update edit history)
+    # Update the content. allow_locked because AI Scribe edits sessions that
+    # may already be locked; note that edit history is NOT logged here — see
+    # CODE_REVIEW.md M11 follow-up.
     try:
-        _db.update_entry(entry_id, {'content': new_content})
+        _db.update_entry(entry_id, {'content': new_content}, allow_locked=True)
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
