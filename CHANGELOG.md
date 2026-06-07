@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-07 (third batch)
+- **M2 complete — foreign key enforcement enabled**: `tools/audit_orphans.py` run against the production database came back clean (zero orphans across all 10 declared FK relationships; `PRAGMA foreign_key_check` clean), so `PRAGMA foreign_keys = ON` is now set on every connection. All delete paths verified child-first (ledger entry deletes, link groups, client archive/delete). Three new tests assert enforcement is live (orphan inserts and parent-deletes-with-children rejected); 66 tests total. Note: `tools/audit_typed_columns.py` found 9 legacy empty-string values in non-FK typed columns (pre-H5 data) — run it with `--fix` to rewrite them to NULL; they don't affect FK enforcement.
+
 ### 2026-06-07 (continued)
 - **H3 — Single-guardian billing clarified**: For a minor with only one guardian, `guardian1_pays_percent` was computed but ignored (statements billed the full total). Hid/disabled the "Pays (%)" field in the profile form when there's no second guardian — the percent is only meaningful when there's a G2 to share the bill. Billing logic now matches the displayed intent.
 - **H5 — Stop coercing `None` → `''` in entry writes**: `add_entry` previously stored empty strings in INTEGER/REAL columns, breaking range filters, ORDER BY, and `IS NULL` checks (notably the redaction lock's `if statement_id is not None`). Now preserves `None`, and additionally coerces `''` → `None` for the new `TYPED_ENTRY_COLUMNS` set when stray empty strings come in from form posts. Same coercion applied to `update_entry`. Added `tools/audit_typed_columns.py` to find/optionally fix any pre-existing `''` values in typed columns on the real DB.
@@ -15,11 +18,6 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ### 2026-06-07 (later)
 - **Ledger reports — silent receipt-dropping fix**: `pdf/ledger_report.py` was resolving `att['filepath']` against the process working directory rather than DATA_ROOT (same root cause as C1/C2). In dev mode CWD happened to equal DATA_ROOT so the bug never surfaced; in desktop/installed mode receipts were silently skipped. Promoted `resolve_attachment_path()` to `core/config.py` as a single source of truth, imported by both `client_export.py` and `ledger_report.py`.
-
-<!-- TODO (CODE_REVIEW.md M2): tools/audit_orphans.py exists to audit
-     orphaned rows against the schema's declared FOREIGN KEYs. Enabling
-     PRAGMA foreign_keys=ON in core/database.py:connect() is pending review
-     of the audit results against the real database. -->
 
 ### 2026-06-07 (second batch)
 - **Code review remediation — completion pass** (everything remaining in CODE_REVIEW.md except the M2 PRAGMA flip, pending the orphan-audit results, and three documented deferrals):

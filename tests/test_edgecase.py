@@ -1125,6 +1125,50 @@ class TestProrataTaxAndRefunds:
 
 
 # ============================================================================
+# FOREIGN KEY ENFORCEMENT (CODE_REVIEW.md M2)
+# ============================================================================
+
+class TestForeignKeyEnforcement:
+    """PRAGMA foreign_keys=ON is set per connection (enabled after the
+    production-DB orphan audit came back clean)."""
+
+    def test_pragma_is_on(self, db):
+        cursor = db.connect().cursor()
+        cursor.execute("PRAGMA foreign_keys")
+        assert cursor.fetchone()[0] == 1
+
+    def test_orphan_insert_is_rejected(self, db):
+        import sqlcipher3
+        conn = db.connect()
+        cursor = conn.cursor()
+        with pytest.raises(sqlcipher3.IntegrityError):
+            cursor.execute(
+                "INSERT INTO attachments (entry_id, filename, filepath, uploaded_at) "
+                "VALUES (99999, 'x.enc', 'attachments/x.enc', 0)")
+        conn.rollback()
+
+    def test_parent_delete_with_children_is_rejected(self, db):
+        import sqlcipher3, time as _time
+        conn = db.connect()
+        cursor = conn.cursor()
+        now = int(_time.time())
+        cursor.execute("SELECT id FROM client_types LIMIT 1")
+        type_id = cursor.fetchone()[0]
+        cursor.execute(
+            "INSERT INTO clients (file_number, first_name, last_name, type_id, "
+            "session_offset, created_at, modified_at) VALUES ('FK-1', 'A', 'B', ?, 0, ?, ?)",
+            (type_id, now, now))
+        client_id = cursor.lastrowid
+        cursor.execute(
+            "INSERT INTO entries (client_id, class, created_at, modified_at) "
+            "VALUES (?, 'session', ?, ?)", (client_id, now, now))
+        conn.commit()
+        with pytest.raises(sqlcipher3.IntegrityError):
+            cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+        conn.rollback()
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 
