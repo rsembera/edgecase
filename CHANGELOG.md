@@ -8,6 +8,11 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+<!-- TODO (CODE_REVIEW.md M2): tools/audit_orphans.py exists to audit
+     orphaned rows against the schema's declared FOREIGN KEYs. Enabling
+     PRAGMA foreign_keys=ON in core/database.py:connect() is pending review
+     of the audit results against the real database. -->
+
 ### 2026-05-16
 - **AI Scribe**: Refined Cancel button presentation. Removed the inline "Generating..." status indicator (which was causing column-width reflow) and replaced it with a dedicated Cancel button styled to match the action buttons, placed below them in the same column. Uses `visibility: hidden` to reserve layout space so action buttons no longer jump when Cancel appears or disappears.
 - **AI Scribe**: Converted the "Loading AI model..." banner from an inline element to a centered modal overlay with dimmed backdrop. Previously the banner pushed page content down when shown and let it snap back when hidden; the overlay is now `position: fixed` so it never affects layout. The overlay also better reflects the actual user state — the page is unusable until the model loads.
