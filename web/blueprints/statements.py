@@ -414,7 +414,10 @@ def generate_statements():
                         ) VALUES (?, ?, 2, ?, 0, 'ready', ?)
                     """, (statement_id, client_id, g2_amount, now))
             else:
-                # Single guardian pays full amount
+                # Single guardian: G1 pays the full statement amount. The
+                # `guardian1_pays_percent` field is only meaningful when a
+                # second guardian exists to share the bill — the profile UI
+                # hides the field in that case. See CODE_REVIEW.md H3.
                 cursor.execute("""
                     INSERT INTO statement_portions (
                         statement_entry_id, client_id, guardian_number,

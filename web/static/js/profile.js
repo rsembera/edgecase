@@ -242,6 +242,13 @@ if (hasGuardian2) {
     hasGuardian2.addEventListener('change', function() {
         guardian2Fields.style.display = this.checked ? 'block' : 'none';
         
+        // The "Pays (%)" field is only meaningful when there are two guardians.
+        // Hide it (and the meaningless splittable percent) when G2 is off.
+        const g1PercentField = document.getElementById('guardian1-percent-field');
+        if (g1PercentField) {
+            g1PercentField.style.display = this.checked ? 'block' : 'none';
+        }
+        
         // Disable all guardian 2 inputs when hidden
         const guardian2Inputs = guardian2Fields.querySelectorAll('input, textarea');
         guardian2Inputs.forEach(input => {
