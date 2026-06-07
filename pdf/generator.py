@@ -15,6 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path
+from core.money import dec, quantize_cents
 from io import BytesIO
 from xml.sax.saxutils import escape as _xml_escape
 
@@ -350,12 +351,13 @@ class StatementPDFGenerator:
             guardian_number: 1 or 2 if billing a guardian, None for client
             profile: Profile entry (needed for guardian percentage)
         """
-        # Get guardian percentage if applicable
-        guardian_percent = None
-        if guardian_number == 1 and profile:
-            guardian_percent = profile.get('guardian1_pays_percent', 100) or 100
-        elif guardian_number == 2 and profile:
-            guardian_percent = profile.get('guardian2_pays_percent', 0) or 0
+        # Guardian split setup. Percentage splitting only applies when a
+        # second guardian exists — a sole guardian pays the full amount
+        # (matches core.billing.split_guardian_amounts; CODE_REVIEW.md H3).
+        has_g2 = bool(profile and profile.get('has_guardian2')
+                      and profile.get('guardian2_name'))
+        split_percentages = bool(guardian_number and profile and has_g2)
+        g1_percent = dec(profile.get('guardian1_pays_percent', 100) or 100) if profile else dec(100)
         
         # First pass: check if any entries have tax and build line items
         has_tax = False
@@ -392,28 +394,37 @@ class StatementPDFGenerator:
             else:
                 continue
             
+            # All line-item arithmetic in Decimal (CODE_REVIEW.md M1)
+            fee = quantize_cents(fee)
+            base = quantize_cents(base)
+            tax_rate = dec(tax_rate)
+
             # Apply guardian split if applicable
-            if guardian_number and guardian_percent is not None:
-                if entry_class == 'item' and entry.get('guardian1_amount') is not None:
-                    # Use explicit amount for this guardian
-                    if guardian_number == 1:
-                        fee = entry.get('guardian1_amount', 0) or 0
-                    else:
-                        fee = entry.get('guardian2_amount', 0) or 0
-                    # Recalculate base from fee using tax_rate
-                    if tax_rate > 0:
-                        base = round(fee / (1 + tax_rate / 100), 2)
-                    else:
-                        base = fee
+            if guardian_number and entry_class == 'item' and entry.get('guardian1_amount') is not None:
+                # Use explicit amount for this guardian
+                if guardian_number == 1:
+                    fee = quantize_cents(entry.get('guardian1_amount') or 0)
                 else:
-                    # Apply percentage split to both base and fee
-                    base = round(base * guardian_percent / 100, 2)
-                    fee = round(fee * guardian_percent / 100, 2)
-            
+                    fee = quantize_cents(entry.get('guardian2_amount') or 0)
+                # Recalculate base from fee using tax_rate
+                if tax_rate > 0:
+                    base = quantize_cents(fee / (1 + tax_rate / 100))
+                else:
+                    base = fee
+            elif split_percentages:
+                # Per-line percentage split; guardian 2 gets the exact
+                # remainder so G1 + G2 always equals the full line (and
+                # the statement totals match the portion amounts computed
+                # by core.billing.split_guardian_amounts).
+                g1_fee = min(quantize_cents(fee * g1_percent / 100), fee)
+                g1_base = min(quantize_cents(base * g1_percent / 100), base)
+                if guardian_number == 1:
+                    fee, base = g1_fee, g1_base
+                else:
+                    fee, base = fee - g1_fee, base - g1_base
+
             # Calculate tax amount
-            tax_amount = round(fee - base, 2)
-            if tax_amount < 0:
-                tax_amount = 0
+            tax_amount = max(dec(0), quantize_cents(fee - base))
             
             if tax_rate > 0 or tax_amount > 0:
                 has_tax = True
@@ -933,10 +944,12 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         
         date_str = datetime.fromtimestamp(entry_date).strftime('%Y-%m-%d') if entry_date else ''
         duration_str = f"{duration} mins." if duration else ''
-        
-        # Calculate tax
-        tax_amount = fee - base_fee if fee > base_fee else 0
-        
+
+        # Decimal money arithmetic (CODE_REVIEW.md M1)
+        fee = quantize_cents(fee)
+        base_fee = quantize_cents(base_fee)
+        tax_amount = fee - base_fee if fee > base_fee else dec(0)
+
         total_base += base_fee
         total_tax += tax_amount
         total_fees += fee

@@ -15,6 +15,11 @@ from pdf.generator import generate_statement_pdf
 
 from core.database import Database
 from core.config import ASSETS_DIR, ATTACHMENTS_DIR
+from core.money import dec, quantize_cents, to_cents, money_float
+from core.billing import (
+    compute_statement_totals, split_guardian_amounts,
+    apply_payment, prorata_tax,
+)
 
 # Initialize blueprint
 statements_bp = Blueprint('statements', __name__)
@@ -83,7 +88,8 @@ def outstanding_statements():
             portion['payer_label'] = None
         
         # Calculate amount owing
-        portion['amount_owing'] = portion['amount_due'] - portion['amount_paid']
+        portion['amount_owing'] = money_float(
+            dec(portion['amount_due']) - dec(portion['amount_paid']))
         
         # Format dates
         if portion['statement_date']:
@@ -304,35 +310,8 @@ def generate_statements():
         entry_cols = [col[0] for col in cursor.description]
         entries = [dict(zip(entry_cols, row)) for row in entry_rows]
         
-        # Calculate total and total tax
-        total = 0
-        total_tax = 0
-        for e in entries:
-            # Get fee (entries should have fee set, but handle old data)
-            fee = e['fee']
-            if not fee:
-                if e['class'] == 'item':
-                    fee = e.get('base_price') or 0
-                elif e['class'] == 'absence':
-                    fee = e.get('base_fee') or 0
-                else:
-                    fee = 0
-            total += fee
-            
-            # Calculate tax for this entry
-            if e['class'] == 'session':
-                # Session: tax = fee - base_fee
-                entry_tax = fee - (e['base_fee'] or 0)
-            elif e['class'] == 'absence':
-                # Absence: tax = fee - base_fee (new) or base_price (old)
-                base = e.get('base_fee') or e.get('base_price') or 0
-                entry_tax = fee - base
-            elif e['class'] == 'item':
-                # Item: tax = fee - base_price
-                entry_tax = fee - (e['base_price'] or 0)
-            else:
-                entry_tax = 0
-            total_tax += max(0, entry_tax)  # Don't allow negative tax
+        # Calculate total and total tax (Decimal arithmetic — see core/billing.py)
+        total, total_tax = compute_statement_totals(entries)
         
         # Generate statement number: YYYYMMDD-FileNumber
         statement_number = f"{datetime.now().strftime('%Y%m%d')}-{client['file_number']}"
@@ -350,7 +329,8 @@ def generate_statements():
                 client_id, class, created_at, modified_at,
                 description, statement_total, statement_tax_total
             ) VALUES (?, 'statement', ?, ?, ?, ?, ?)
-        """, (client_id, now, now, description, total, total_tax))
+        """, (client_id, now, now, description,
+              money_float(total), money_float(total_tax)))
         
         statement_id = cursor.lastrowid
         
@@ -364,66 +344,18 @@ def generate_statements():
         # Create statement portions
         # Check if minor with guardian billing
         if profile and profile.get('is_minor') and profile.get('guardian1_name'):
-            # For items with explicit guardian amounts, use those
-            # For other entries, calculate using profile percentages
-            g1_explicit = 0
-            g2_explicit = 0
-            percentage_total = 0
-            
-            for e in entries:
-                fee = e['fee'] or e['base_price'] or 0
-                if e['class'] == 'item' and e.get('guardian1_amount') is not None:
-                    # Item with explicit guardian amounts
-                    g1_explicit += e['guardian1_amount'] or 0
-                    g2_explicit += e['guardian2_amount'] or 0
-                else:
-                    # Session, absence, or item without explicit amounts - use percentage
-                    percentage_total += fee
-            
-            # Calculate percentage-based amounts
-            g1_percent = profile.get('guardian1_pays_percent', 100) or 100
-            g1_from_percent = round(percentage_total * g1_percent / 100, 2)
-            
-            # Sanity check: g1 can't exceed percentage_total
-            g1_from_percent = min(g1_from_percent, percentage_total)
-            
-            # Total guardian amounts
-            g1_amount = round(g1_explicit + g1_from_percent, 2)
-            
-            # Check for guardian 2
-            if profile.get('has_guardian2') and profile.get('guardian2_name'):
-                # G2 gets remainder of percentage_total plus explicit g2
-                g2_from_percent = round(percentage_total - g1_from_percent, 2)
-                g2_amount = round(g2_explicit + g2_from_percent, 2)
-                
-                # Sanity check: g2 can't go negative
-                g2_amount = max(0, g2_amount)
-                
+            # Guardian split logic lives in core/billing.py:
+            # explicit per-item amounts honored; percentage pool split with
+            # the exact remainder to guardian 2; single guardian (H3) pays
+            # the full statement amount.
+            for guardian_number, amount in split_guardian_amounts(entries, profile, total):
                 cursor.execute("""
                     INSERT INTO statement_portions (
                         statement_entry_id, client_id, guardian_number,
                         amount_due, amount_paid, status, created_at
-                    ) VALUES (?, ?, 1, ?, 0, 'ready', ?)
-                """, (statement_id, client_id, g1_amount, now))
-                
-                if g2_amount > 0:
-                    cursor.execute("""
-                        INSERT INTO statement_portions (
-                            statement_entry_id, client_id, guardian_number,
-                            amount_due, amount_paid, status, created_at
-                        ) VALUES (?, ?, 2, ?, 0, 'ready', ?)
-                    """, (statement_id, client_id, g2_amount, now))
-            else:
-                # Single guardian: G1 pays the full statement amount. The
-                # `guardian1_pays_percent` field is only meaningful when a
-                # second guardian exists to share the bill — the profile UI
-                # hides the field in that case. See CODE_REVIEW.md H3.
-                cursor.execute("""
-                    INSERT INTO statement_portions (
-                        statement_entry_id, client_id, guardian_number,
-                        amount_due, amount_paid, status, created_at
-                    ) VALUES (?, ?, 1, ?, 0, 'ready', ?)
-                """, (statement_id, client_id, total, now))
+                    ) VALUES (?, ?, ?, ?, 0, 'ready', ?)
+                """, (statement_id, client_id, guardian_number,
+                      money_float(amount), now))
         else:
             # Single portion for client
             cursor.execute("""
@@ -431,12 +363,12 @@ def generate_statements():
                     statement_entry_id, client_id, guardian_number,
                     amount_due, amount_paid, status, created_at
                 ) VALUES (?, ?, NULL, ?, 0, 'ready', ?)
-            """, (statement_id, client_id, total, now))
-        
+            """, (statement_id, client_id, money_float(total), now))
+
         generated.append({
             'client_id': client_id,
             'statement_id': statement_id,
-            'total': total
+            'total': money_float(total)
         })
     
     try:
@@ -445,12 +377,16 @@ def generate_statements():
         conn.rollback()
         return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
     
-    # Count total portions created
-    cursor.execute("""
-        SELECT COUNT(*) FROM statement_portions 
-        WHERE statement_entry_id IN ({})
-    """.format(','.join('?' * len(generated))), [g['statement_id'] for g in generated])
-    portion_count = cursor.fetchone()[0] if generated else 0
+    # Count total portions created (M9: guard the empty case — an
+    # `IN ()` query raises OperationalError before reaching the ternary)
+    if generated:
+        cursor.execute("""
+            SELECT COUNT(*) FROM statement_portions
+            WHERE statement_entry_id IN ({})
+        """.format(','.join('?' * len(generated))), [g['statement_id'] for g in generated])
+        portion_count = cursor.fetchone()[0]
+    else:
+        portion_count = 0
     
     return jsonify({
         'success': True,
@@ -655,36 +591,28 @@ def mark_paid():
     portion = dict(zip(columns, row))
     
     now = int(time.time())
-    payment_amount = float(payment_amount)
-    
-    # Update portion
-    new_amount_paid = portion['amount_paid'] + payment_amount
-    amount_owing = portion['amount_due'] - new_amount_paid
-    
-    if amount_owing <= 0.01:  # Account for floating point
-        new_status = 'paid'
-    else:
-        new_status = 'partial'
-    
+    payment_amount = quantize_cents(payment_amount)
+
+    # Update portion — exact Decimal arithmetic; status is 'paid' when
+    # the owing balance is zero cents (the old `<= 0.01` float fudge is
+    # no longer needed; see core/billing.py and CODE_REVIEW.md M1)
+    new_amount_paid, amount_owing, new_status = apply_payment(
+        portion['amount_due'], portion['amount_paid'], payment_amount)
+
     cursor.execute("""
         UPDATE statement_portions
         SET amount_paid = ?, status = ?
         WHERE id = ?
-    """, (new_amount_paid, new_status, portion_id))
+    """, (money_float(new_amount_paid), new_status, portion_id))
     
     # Create ledger entry - Income for positive, Expense for negative (refunds)
     if payment_amount >= 0:
         # Normal payment - create Income entry
-        # Calculate proportional tax for this payment
-        statement_total = portion.get('statement_total') or 0
-        statement_tax = portion.get('statement_tax_total') or 0
-        
-        if statement_total > 0 and statement_tax > 0:
-            # Pro-rata tax: payment × (total_tax / total_amount)
-            tax_collected = round(payment_amount * (statement_tax / statement_total), 2)
-        else:
-            tax_collected = 0
-        
+        # Pro-rata tax for this payment (Decimal; see core/billing.py)
+        tax_collected = prorata_tax(payment_amount,
+                                    portion.get('statement_tax_total'),
+                                    portion.get('statement_total'))
+
         description = "Client Payment"
         if portion['guardian_number']:
             description += f" (Guardian {portion['guardian_number']})"
@@ -704,13 +632,21 @@ def mark_paid():
             notes if notes else None,
             now,
             source,
-            payment_amount,
-            tax_collected,
+            money_float(payment_amount),
+            money_float(tax_collected),
             portion['statement_entry_id']
         ))
     else:
         # Refund - create Expense entry with positive amount
         refund_amount = abs(payment_amount)
+
+        # L11: reverse tax proportionally on refunds. The original payment
+        # recorded pro-rata tax collected; the refund must record the same
+        # proportion as tax paid back, or net tax-collected figures are
+        # overstated after refunds.
+        refund_tax = prorata_tax(refund_amount,
+                                 portion.get('statement_tax_total'),
+                                 portion.get('statement_total'))
         
         # Get or create "Client Refund" category
         cursor.execute("SELECT id FROM expense_categories WHERE name = 'Client Refund'")
@@ -745,7 +681,7 @@ def mark_paid():
                 client_id, class, ledger_type, created_at, modified_at,
                 description, content, ledger_date, category_id, payee_id,
                 total_amount, tax_amount, statement_id
-            ) VALUES (?, 'expense', 'expense', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+            ) VALUES (?, 'expense', 'expense', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             None,
             now,
@@ -755,16 +691,17 @@ def mark_paid():
             now,
             category_id,
             payee_id,
-            refund_amount,
+            money_float(refund_amount),
+            money_float(refund_tax),
             portion['statement_entry_id']
         ))
-    
+
     conn.commit()
-    
+
     return jsonify({
         'success': True,
         'new_status': new_status,
-        'amount_owing': amount_owing
+        'amount_owing': money_float(amount_owing)
     })
 
 @statements_bp.route('/pdf/<int:portion_id>')
@@ -1035,7 +972,8 @@ def write_off_statement():
     comm_description = f"Statement Written Off - {reason_label}"
     
     # Build content for Communication entry
-    amount_owing = portion['amount_due'] - portion['amount_paid']
+    amount_owing = quantize_cents(
+        dec(portion['amount_due']) - dec(portion['amount_paid']))
     content_parts = [
         f"**Statement:** {portion['statement_description']}",
         f"**Amount Written Off:** ${amount_owing:.2f}",
@@ -1118,7 +1056,7 @@ def write_off_statement():
             now,
             category_id,
             payee_id,
-            amount_owing,
+            money_float(amount_owing),
             portion['statement_entry_id']
         ))
     

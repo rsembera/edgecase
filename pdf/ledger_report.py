@@ -15,6 +15,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 from xml.sax.saxutils import escape as _xml_escape
 from core.encryption import decrypt_file_to_bytes
+from core.money import dec, quantize_cents
 from core.config import resolve_attachment_path
 
 
@@ -112,11 +113,12 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     category_totals = cursor.fetchall()
     
     
-    # Calculate totals (indices shifted by 1 due to id column)
-    total_income = sum(e[2] for e in income_entries) if income_entries else 0
-    total_expenses = sum(e[2] for e in expense_entries) if expense_entries else 0
-    tax_collected = sum((e[5] or 0) for e in income_entries) if income_entries else 0
-    tax_paid = sum((e[6] or 0) for e in expense_entries) if expense_entries else 0
+    # Calculate totals in Decimal (indices shifted by 1 due to id column)
+    # — float accumulation drifts on tax-filing reports (CODE_REVIEW.md M1)
+    total_income = sum((quantize_cents(e[2]) for e in income_entries), dec(0))
+    total_expenses = sum((quantize_cents(e[2]) for e in expense_entries), dec(0))
+    tax_collected = sum((quantize_cents(e[5] or 0) for e in income_entries), dec(0))
+    tax_paid = sum((quantize_cents(e[6] or 0) for e in expense_entries), dec(0))
     
     # Create document
     doc = SimpleDocTemplate(

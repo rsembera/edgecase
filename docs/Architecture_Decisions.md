@@ -1206,6 +1206,46 @@ A `retention_days` value of `0` means **keep forever** and is skipped by the del
 
 ---
 
+## MONEY ARITHMETIC (Decimal at computation, REAL storage)
+
+**Date:** June 7, 2026
+**Context:** CODE_REVIEW.md M1 — all money was binary-float arithmetic.
+Pro-rata tax splits, guardian splits, and accumulated `amount_paid`
+drifted, and payment status needed a `<= 0.01` epsilon fudge.
+
+**Decision:** All monetary arithmetic goes through `core/money.py`
+(decimal.Decimal, quantized to cents, ROUND_HALF_UP) and the billing
+calculations live as pure functions in `core/billing.py`. Storage stays
+SQLite REAL dollars, but every stored value passes through
+`money_float()` so it is an exact cent quantity; comparisons use integer
+cents (`to_cents()`), never float epsilons.
+
+**Why not integer-cents storage?** It would require migrating every REAL
+column in a production encrypted database, plus rewriting every SQL
+comparison and the JS frontend's dollar values — high risk for no
+correctness gain. A cent-quantized REAL is recovered exactly by
+`round(x * 100)` (error per value < 2^-40 and never accumulated, because
+accumulation happens in Decimal).
+
+**Guardian splits are per line item:** guardian 1's share of each line is
+quantized, guardian 2 gets the exact remainder of that line. So G1 + G2
+always equals the line fee, the itemized statement PDFs sum to exactly
+the portion amounts, and odd cents go to guardian 2 by construction.
+(Previously portions were split at pool level and PDFs at line level —
+they could disagree by a cent.)
+
+**Refund tax (L11):** refunds record pro-rata tax reversal
+(`prorata_tax`) on the expense entry instead of hard-coded 0, so net
+tax-collected figures stay correct after refunds.
+
+**Tests:** `tests/test_edgecase.py` TestMoneyPrimitives /
+TestStatementTotals / TestGuardianSplitRounding / TestPaymentApplication
+/ TestProrataTaxAndRefunds exercise the real `core.billing` functions
+(the older fee tests re-implemented formulas in the test and could not
+catch regressions).
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: May 30, 2026*
+*Last Updated: June 7, 2026*

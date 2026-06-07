@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import sqlcipher3 as sqlite3
 
 from core.database import Database
+from core.money import quantize_cents
 
 # Initialize blueprint
 clients_bp = Blueprint('clients', __name__)
@@ -193,15 +194,15 @@ def index():
             if entry.get('class') == 'session' and not entry.get('is_consultation'):
                 entry_date = entry.get('session_date', 0)
                 if entry_date >= month_start:
-                    billable_this_month += entry.get('fee', 0) or 0
+                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
             elif entry.get('class') == 'item':
                 entry_date = entry.get('item_date', 0)
                 if entry_date >= month_start:
-                    billable_this_month += entry.get('fee', 0) or 0
+                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
             elif entry.get('class') == 'absence':
                 entry_date = entry.get('absence_date', 0)
                 if entry_date >= month_start:
-                    billable_this_month += entry.get('fee', 0) or 0
+                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
                     
     # Get current date and time
     current_date = now.strftime('%B %d, %Y')
