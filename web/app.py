@@ -87,14 +87,18 @@ def csrf_protect_forms():
     """Apply CSRF protection to form submissions, not JSON/fetch APIs."""
     if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
         content_type = request.content_type or ''
-        # Skip CSRF for JSON API requests (protected by same-origin policy)
+        # Skip CSRF for JSON API requests only. JSON is not a CORS "simple"
+        # content type, so a cross-origin JSON POST requires a preflight that
+        # same-origin policy blocks — the exemption is safe.
         if 'application/json' in content_type:
             return
-        # Skip CSRF for multipart/form-data from fetch (also same-origin protected)
-        # These are file uploads via JavaScript fetch(), not traditional form submissions
-        if 'multipart/form-data' in content_type:
-            return
-        # For traditional HTML form submissions, validate CSRF
+        # NOTE: multipart/form-data is deliberately NOT exempt (CODE_REVIEW M4).
+        # Multipart IS a CORS "simple" type — a plain cross-origin <form> can
+        # submit it with no preflight — so file-upload routes must carry a
+        # token. All multipart submissions (templates with
+        # enctype="multipart/form-data" and JS FormData uploads in
+        # settings.js) include a csrf_token field.
+        # For form submissions (urlencoded and multipart), validate CSRF
         csrf.protect()
 
 # Session cookie configuration (explicit settings for cross-browser compatibility)
@@ -134,6 +138,30 @@ def add_security_headers(response):
 
 # Database will be set after login
 app.config['db'] = None
+
+@app.teardown_appcontext
+def close_db_connection(exception=None):
+    """Close the request thread's DB connection under the dev server (CODE_REVIEW M16).
+
+    Database.connect() keeps one SQLCipher connection per thread
+    (threading.local), and Database.close() closes only the calling
+    thread's connection. Two serving modes:
+
+    - waitress (production: web/cli.py, desktop.py) uses a fixed thread
+      pool, so connections are bounded and reused across requests. Closing
+      per request there would re-run SQLCipher's expensive key derivation
+      (~480k PBKDF2 iterations) on every request — so we leave pooling alone.
+    - werkzeug dev server (web/cli.py --dev runs app.run(debug=True)) spawns
+      a NEW thread per request, so each request's connection would leak until
+      thread GC. Close it here; the KDF cost per request is acceptable in dev.
+    """
+    if app.debug:
+        db = app.config.get('db')
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass  # never let teardown mask the real response/error
 
 # Store restore result for display (if any)
 if _restore_result and 'error' not in _restore_result:
@@ -192,7 +220,16 @@ def timestamp_to_date(timestamp):
 
 @app.template_filter('close_tags')
 def close_tags(html_string):
-    """Ensure all HTML tags are properly closed to prevent DOM poisoning."""
+    """Ensure all HTML tags are properly closed to prevent DOM poisoning.
+
+    Templates emit edit-history descriptions as
+    `{{ ... | close_tags | safe }}`. The only real HTML allowed in that
+    string is the <del>/<strong> diff markup produced by
+    web.utils.generate_content_diff, which HTML-escapes user content
+    before adding those tags (CODE_REVIEW M17) — so counting the literal
+    generated tags here is safe: user-typed "<strong>" arrives as
+    "&lt;strong&gt;" and is not counted or rendered as a tag.
+    """
     if not html_string:
         return html_string
     

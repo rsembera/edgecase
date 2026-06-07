@@ -60,10 +60,14 @@ LOCKOUT_SECONDS = 300  # 5 minutes
 
 
 def _get_client_ip():
-    """Get client IP address, handling proxies."""
-    # Check X-Forwarded-For header (for reverse proxy setups)
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    """Get the client IP address for login rate-limiting.
+
+    Uses request.remote_addr directly. This deployment has no reverse
+    proxy (waitress/werkzeug listen directly), so X-Forwarded-For is
+    client-supplied and must not be trusted: honoring it would let an
+    attacker rotate the header to bypass the 5-attempt lockout
+    (CODE_REVIEW M8).
+    """
     return request.remote_addr or '127.0.0.1'
 
 
@@ -284,8 +288,9 @@ def change_password_progress():
             try:
                 from utils.backup import create_pre_restore_backup
                 
-                # create_pre_restore_backup() always does a full backup of current state
-                backup_path = create_pre_restore_backup()
+                # create_pre_restore_backup() always does a full backup of
+                # current state; db enables checkpoint + integrity check
+                backup_path = create_pre_restore_backup(db=db)
                 if backup_path:
                     import os
                     backup_filename = os.path.basename(backup_path)
