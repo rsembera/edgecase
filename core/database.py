@@ -61,6 +61,15 @@ class Database:
             
             # Enable WAL mode for better concurrent access
             self._local.conn.execute('PRAGMA journal_mode=WAL')
+
+            # Enforce the schema's FOREIGN KEY constraints (off by default
+            # in SQLite, must be set per connection). Enabled 2026-06-07
+            # after tools/audit_orphans.py verified the production DB has
+            # zero orphaned rows and PRAGMA foreign_key_check was clean
+            # (CODE_REVIEW.md M2). All delete paths were audited to remove
+            # child rows first (ledger deletes, link groups,
+            # archive_and_delete_client).
+            self._local.conn.execute('PRAGMA foreign_keys = ON')
         return self._local.conn
     
     def close(self):
