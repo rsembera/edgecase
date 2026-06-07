@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from pathlib import Path
 from datetime import datetime, timedelta
 import calendar
+import shutil
 import time
 import tempfile
 from flask import send_file
@@ -31,6 +32,19 @@ def init_blueprint(database):
     """Initialize blueprint with database instance"""
     global db
     db = database
+
+
+def _private_pdf_dir() -> Path:
+    """Create a private (0700, randomized name) temp dir for a generated PDF.
+
+    Statement PDFs contain PHI, so they must not be written to the shared
+    system temp dir under predictable names. mkdtemp gives an
+    unguessable, owner-only directory; the user-facing filename
+    (Statement_<file#>_<date>.pdf) is kept for the file inside it and for
+    send_file's download_name. Callers are responsible for cleanup
+    (shutil.rmtree of the returned dir).
+    """
+    return Path(tempfile.mkdtemp(prefix='edgecase-'))
 
 
 @statements_bp.route('/')
@@ -401,8 +415,7 @@ def mark_sent(portion_id):
     """Mark a statement portion as sent - generates PDF, creates Communication entry, triggers email."""
     
     import subprocess
-    import shutil
-    
+
     # Check if we should skip email (generate-only mode)
     skip_email = request.args.get('skip_email') == '1'
     
@@ -463,15 +476,17 @@ def mark_sent(portion_id):
     email_subject = f"Statement for {billing_period}"
     email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}".strip()
     
-    # Generate PDF to temp location
-    temp_dir = tempfile.gettempdir()
+    # Generate PDF to a private temp dir (0700, randomized path). When the
+    # email path is used, the path is handed to the frontend for the
+    # AppleScript attach step, which deletes it afterwards.
     date_str = datetime.now().strftime('%Y%m%d')
     pdf_filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
-    temp_pdf_path = Path(temp_dir) / pdf_filename
-    
+    temp_pdf_path = _private_pdf_dir() / pdf_filename
+
     try:
         generate_statement_pdf(db, portion_id, str(temp_pdf_path), str(ASSETS_DIR))
     except Exception as e:
+        shutil.rmtree(temp_pdf_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
     
     # Create Communication entry - description varies based on skip_email
@@ -542,6 +557,9 @@ def mark_sent(portion_id):
     
     # Return different response based on skip_email
     if skip_email:
+        # No email step needs the temp PDF (it was copied to attachments),
+        # so clean it up now.
+        shutil.rmtree(temp_pdf_path.parent, ignore_errors=True)
         return jsonify({
             'success': True,
             'skip_email': True
@@ -707,9 +725,7 @@ def mark_paid():
 @statements_bp.route('/pdf/<int:portion_id>')
 def download_statement_pdf(portion_id):
     """Generate and download a PDF statement for a portion."""
-    
-    temp_dir = tempfile.gettempdir()
-    
+
     conn = db.connect()
     cursor = conn.cursor()
     cursor.execute("""
@@ -728,20 +744,18 @@ def download_statement_pdf(portion_id):
     
     date_str = datetime.now().strftime('%Y%m%d')
     filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
-    output_path = Path(temp_dir) / filename
-    
+    # Private (0700, randomized) temp dir; the browser still sees
+    # `filename` via send_file's download_name.
+    output_path = _private_pdf_dir() / filename
+
     try:
         generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
-        
+
         @after_this_request
         def cleanup(response):
-            try:
-                if output_path.exists():
-                    output_path.unlink()
-            except OSError:
-                pass
+            shutil.rmtree(output_path.parent, ignore_errors=True)
             return response
-        
+
         return send_file(
             output_path,
             mimetype='application/pdf',
@@ -749,15 +763,14 @@ def download_statement_pdf(portion_id):
             download_name=filename
         )
     except Exception as e:
+        shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @statements_bp.route('/view-pdf/<int:portion_id>')
 def view_statement_pdf(portion_id):
     """Generate and view a PDF statement in browser."""
-    
-    temp_dir = tempfile.gettempdir()
-    
+
     conn = db.connect()
     cursor = conn.cursor()
     cursor.execute("""
@@ -776,20 +789,18 @@ def view_statement_pdf(portion_id):
     
     date_str = datetime.now().strftime('%Y%m%d')
     filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
-    output_path = Path(temp_dir) / filename
-    
+    # Private (0700, randomized) temp dir; the browser still sees
+    # `filename` via send_file's download_name.
+    output_path = _private_pdf_dir() / filename
+
     try:
         generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
-        
+
         @after_this_request
         def cleanup(response):
-            try:
-                if output_path.exists():
-                    output_path.unlink()
-            except OSError:
-                pass
+            shutil.rmtree(output_path.parent, ignore_errors=True)
             return response
-        
+
         return send_file(
             output_path,
             mimetype='application/pdf',
@@ -797,6 +808,7 @@ def view_statement_pdf(portion_id):
             download_name=filename
         )
     except Exception as e:
+        shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @statements_bp.route('/send-applescript-email', methods=['POST'])
@@ -880,12 +892,20 @@ def send_applescript_email():
             timeout=10
         )
         
-        # Clean up temp PDF after AppleScript has attached it
+        # Clean up temp PDF after AppleScript has attached it. Only ever
+        # delete paths under the system temp dir (the path comes from the
+        # client); PDFs now live in a private edgecase- mkdtemp dir, so
+        # remove that whole dir, not just the file.
         if pdf_path:
             try:
-                pdf_path_obj = Path(pdf_path)
-                if pdf_path_obj.exists() and str(tempfile.gettempdir()) in str(pdf_path_obj):
-                    pdf_path_obj.unlink()
+                pdf_path_obj = Path(pdf_path).resolve()
+                tmp_root = Path(tempfile.gettempdir()).resolve()
+                if pdf_path_obj.exists() and tmp_root in pdf_path_obj.parents:
+                    parent = pdf_path_obj.parent
+                    if parent != tmp_root and parent.name.startswith('edgecase-'):
+                        shutil.rmtree(parent, ignore_errors=True)
+                    else:
+                        pdf_path_obj.unlink()
             except OSError:
                 pass  # Non-critical, OS will eventually clean temp
         
