@@ -21,8 +21,21 @@ from reportlab.platypus import (
     PageBreak, Image, HRFlowable
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from xml.sax.saxutils import escape as _xml_escape
+
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path, DATA_ROOT
+
+
+def esc(value):
+    """XML-escape user-entered content for safe use in Paragraph markup.
+
+    ReportLab parses Paragraph text as mini-XML, so a bare '&', '<', or '>'
+    in a name, address, or description would crash doc.build().
+    """
+    if value is None:
+        return ''
+    return _xml_escape(str(value))
 
 
 def resolve_attachment_path(filepath):
@@ -266,7 +279,7 @@ def build_redacted_entry(entry, client, styles, entry_type, entry_date_field):
     
     # Client info line
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     # Metadata table: Entry Type, Entry Date, Created
@@ -299,7 +312,7 @@ def build_redacted_entry(entry, client, styles, entry_type, entry_date_field):
     # Use table for consistent left alignment with metadata above
     redaction_data = [
         [Paragraph(f'<b>Redacted On:</b> {redacted_date}', styles['FieldValue'])],
-        [Paragraph(f'<b>Reason:</b> {reason}', styles['FieldValue'])],
+        [Paragraph(f'<b>Reason:</b> {esc(reason)}', styles['FieldValue'])],
     ]
     
     redaction_table = Table(redaction_data, colWidths=[6.6*inch])
@@ -329,11 +342,11 @@ def build_session_entry(entry, client, styles, signature_path=None, db=None):
     elif entry.get('is_pro_bono'):
         title = f"{title} (Pro Bono)"
     
-    elements.append(Paragraph(title, styles['EntryTitle']))
+    elements.append(Paragraph(esc(title), styles['EntryTitle']))
     
     # Client info line
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     # Basic info table
@@ -381,9 +394,9 @@ def build_session_entry(entry, client, styles, signature_path=None, db=None):
         elements.append(Paragraph("Clinical Assessment", styles['SectionHeading']))
         
         assessment_data = [[
-            Paragraph(f'<b>Mood:</b> {(mood or "Not assessed").title()}', styles['FieldValue']),
-            Paragraph(f'<b>Affect:</b> {(affect or "Not assessed").title()}', styles['FieldValue']),
-            Paragraph(f'<b>Risk:</b> {(risk or "Not assessed").replace("_", " ").title()}', styles['FieldValue']),
+            Paragraph(f'<b>Mood:</b> {esc((mood or "Not assessed").title())}', styles['FieldValue']),
+            Paragraph(f'<b>Affect:</b> {esc((affect or "Not assessed").title())}', styles['FieldValue']),
+            Paragraph(f'<b>Risk:</b> {esc((risk or "Not assessed").replace("_", " ").title())}', styles['FieldValue']),
         ]]
         
         assessment_table = Table(assessment_data, colWidths=[2.2*inch, 2.2*inch, 2.2*inch])
@@ -464,15 +477,15 @@ def build_communication_entry(entry, client, styles, db=None):
         return build_redacted_entry(entry, client, styles, 'Communication', 'comm_date')
     
     title = entry.get('description', 'Communication')
-    elements.append(Paragraph(f"Communication: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Communication: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     # Description
     if entry.get('description'):
-        elements.append(Paragraph(f"<b>Description:</b> {entry['description']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Description:</b> {esc(entry['description'])}", styles['FieldValue']))
         elements.append(Spacer(1, 8))
     
     date_str = format_date(entry.get('comm_date'))
@@ -489,10 +502,10 @@ def build_communication_entry(entry, client, styles, db=None):
     
     info_data = [[
         Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']),
-        Paragraph(f'<b>Time:</b> {time_str}', styles['FieldValue']),
+        Paragraph(f'<b>Time:</b> {esc(time_str)}', styles['FieldValue']),
     ], [
-        Paragraph(f'<b>Recipient:</b> {recipient}', styles['FieldValue']),
-        Paragraph(f'<b>Type:</b> {comm_type}', styles['FieldValue']),
+        Paragraph(f'<b>Recipient:</b> {esc(recipient)}', styles['FieldValue']),
+        Paragraph(f'<b>Type:</b> {esc(comm_type)}', styles['FieldValue']),
     ]]
     
     info_table = Table(info_data, colWidths=[3.3*inch, 3.3*inch])
@@ -544,17 +557,17 @@ def build_absence_entry(entry, client, styles, currency_symbol='$'):
         return build_redacted_entry(entry, client, styles, 'Absence', 'absence_date')
     
     title = entry.get('description', 'Absence')
-    elements.append(Paragraph(f"Absence: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Absence: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     date_str = format_date(entry.get('absence_date'))
     time_str = entry.get('absence_time') or "—"
     
     elements.append(Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']))
-    elements.append(Paragraph(f'<b>Time:</b> {time_str}', styles['FieldValue']))
+    elements.append(Paragraph(f'<b>Time:</b> {esc(time_str)}', styles['FieldValue']))
     
     # Fee fields (if present)
     base_fee = entry.get('base_fee')
@@ -596,10 +609,10 @@ def build_item_entry(entry, client, styles, currency_symbol='$'):
         return build_redacted_entry(entry, client, styles, 'Item', 'item_date')
     
     title = entry.get('description', 'Item')
-    elements.append(Paragraph(f"Item: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Item: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     date_str = format_date(entry.get('item_date'))
@@ -639,10 +652,10 @@ def build_upload_entry(entry, client, styles, attachments):
     elements = []
     
     title = entry.get('description', 'Upload')
-    elements.append(Paragraph(f"Upload: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Upload: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     date_str = format_date(entry.get('upload_date'))
@@ -680,8 +693,8 @@ def build_profile_entry(entry, client, styles):
     elements.append(Paragraph("Client Profile", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"<b>{client_name}</b>", styles['FieldValue']))
-    elements.append(Paragraph(f"File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"<b>{esc(client_name)}</b>", styles['FieldValue']))
+    elements.append(Paragraph(f"File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 16))
     
     # Contact Information
@@ -690,7 +703,7 @@ def build_profile_entry(entry, client, styles):
     elements.append(Spacer(1, 8))
     
     if entry.get('email'):
-        elements.append(Paragraph(f"<b>Email:</b> {entry['email']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Email:</b> {esc(entry['email'])}", styles['FieldValue']))
     
     phones = []
     if entry.get('phone'):
@@ -700,18 +713,18 @@ def build_profile_entry(entry, client, styles):
     if entry.get('work_phone'):
         phones.append(f"Work: {entry['work_phone']}")
     if phones:
-        elements.append(Paragraph(f"<b>Phone:</b> {', '.join(phones)}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Phone:</b> {esc(', '.join(phones))}", styles['FieldValue']))
     
     if entry.get('address'):
         # Replace newlines with " / " for single-line display
         address = entry['address'].replace('\n', ' / ').replace('\r', '')
-        elements.append(Paragraph(f"<b>Address:</b> {address}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Address:</b> {esc(address)}", styles['FieldValue']))
     
     if entry.get('date_of_birth'):
-        elements.append(Paragraph(f"<b>Date of Birth:</b> {entry['date_of_birth']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Date of Birth:</b> {esc(entry['date_of_birth'])}", styles['FieldValue']))
         
     if entry.get('content'):
-        elements.append(Paragraph(f"<b>Gender:</b> {entry['content']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Gender:</b> {esc(entry['content'])}", styles['FieldValue']))
     
     if entry.get('preferred_contact'):
         pref_map = {
@@ -722,10 +735,10 @@ def build_profile_entry(entry, client, styles):
             'text': 'Text'
         }
         pref = pref_map.get(entry['preferred_contact'], entry['preferred_contact'])
-        elements.append(Paragraph(f"<b>Preferred Contact:</b> {pref}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Preferred Contact:</b> {esc(pref)}", styles['FieldValue']))
     
     if entry.get('ok_to_leave_message'):
-        elements.append(Paragraph(f"<b>OK to Leave Message:</b> {entry['ok_to_leave_message'].title()}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>OK to Leave Message:</b> {esc(entry['ok_to_leave_message'].title())}", styles['FieldValue']))
     
     elements.append(Spacer(1, 12))
     
@@ -735,11 +748,11 @@ def build_profile_entry(entry, client, styles):
         elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
         elements.append(Spacer(1, 8))
         
-        elements.append(Paragraph(f"<b>Name:</b> {entry['emergency_contact_name']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Name:</b> {esc(entry['emergency_contact_name'])}", styles['FieldValue']))
         if entry.get('emergency_contact_relationship'):
-            elements.append(Paragraph(f"<b>Relationship:</b> {entry['emergency_contact_relationship']}", styles['FieldValue']))
+            elements.append(Paragraph(f"<b>Relationship:</b> {esc(entry['emergency_contact_relationship'])}", styles['FieldValue']))
         if entry.get('emergency_contact_phone'):
-            elements.append(Paragraph(f"<b>Phone:</b> {entry['emergency_contact_phone']}", styles['FieldValue']))
+            elements.append(Paragraph(f"<b>Phone:</b> {esc(entry['emergency_contact_phone'])}", styles['FieldValue']))
         
         elements.append(Spacer(1, 12))
     
@@ -750,25 +763,25 @@ def build_profile_entry(entry, client, styles):
         elements.append(Spacer(1, 8))
         
         if entry.get('guardian1_name'):
-            elements.append(Paragraph(f"<b>Guardian 1:</b> {entry['guardian1_name']}", styles['FieldValue']))
+            elements.append(Paragraph(f"<b>Guardian 1:</b> {esc(entry['guardian1_name'])}", styles['FieldValue']))
             if entry.get('guardian1_email'):
-                elements.append(Paragraph(f"  Email: {entry['guardian1_email']}", styles['FieldValue']))
+                elements.append(Paragraph(f"  Email: {esc(entry['guardian1_email'])}", styles['FieldValue']))
             if entry.get('guardian1_phone'):
-                elements.append(Paragraph(f"  Phone: {entry['guardian1_phone']}", styles['FieldValue']))
+                elements.append(Paragraph(f"  Phone: {esc(entry['guardian1_phone'])}", styles['FieldValue']))
         
         if entry.get('has_guardian2') and entry.get('guardian2_name'):
             elements.append(Spacer(1, 6))
-            elements.append(Paragraph(f"<b>Guardian 2:</b> {entry['guardian2_name']}", styles['FieldValue']))
+            elements.append(Paragraph(f"<b>Guardian 2:</b> {esc(entry['guardian2_name'])}", styles['FieldValue']))
             if entry.get('guardian2_email'):
-                elements.append(Paragraph(f"  Email: {entry['guardian2_email']}", styles['FieldValue']))
+                elements.append(Paragraph(f"  Email: {esc(entry['guardian2_email'])}", styles['FieldValue']))
             if entry.get('guardian2_phone'):
-                elements.append(Paragraph(f"  Phone: {entry['guardian2_phone']}", styles['FieldValue']))
+                elements.append(Paragraph(f"  Phone: {esc(entry['guardian2_phone'])}", styles['FieldValue']))
         
         elements.append(Spacer(1, 12))
     
     # Referral and additional info
     if entry.get('referral_source'):
-        elements.append(Paragraph(f"<b>Referral Source:</b> {entry['referral_source']}", styles['FieldValue']))
+        elements.append(Paragraph(f"<b>Referral Source:</b> {esc(entry['referral_source'])}", styles['FieldValue']))
     
     if entry.get('additional_info'):
         elements.append(Spacer(1, 8))
@@ -797,10 +810,10 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
         return build_redacted_entry(entry, client, styles, 'Communication', 'comm_date'), []
     
     title = entry.get('description', 'Communication')
-    elements.append(Paragraph(f"Communication: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Communication: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     date_str = format_date(entry.get('comm_date'))
@@ -817,10 +830,10 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
     
     info_data = [[
         Paragraph(f'<b>Date:</b> {date_str}', styles['FieldValue']),
-        Paragraph(f'<b>Time:</b> {time_str}', styles['FieldValue']),
+        Paragraph(f'<b>Time:</b> {esc(time_str)}', styles['FieldValue']),
     ], [
-        Paragraph(f'<b>Recipient:</b> {recipient}', styles['FieldValue']),
-        Paragraph(f'<b>Type:</b> {comm_type}', styles['FieldValue']),
+        Paragraph(f'<b>Recipient:</b> {esc(recipient)}', styles['FieldValue']),
+        Paragraph(f'<b>Type:</b> {esc(comm_type)}', styles['FieldValue']),
     ]]
     
     info_table = Table(info_data, colWidths=[3.3*inch, 3.3*inch])
@@ -859,7 +872,7 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
                     # Embed image inline
                     if os.path.exists(filepath):
                         try:
-                            elements.append(Paragraph(f"<b>{att_desc}</b>", styles['FieldValue']))
+                            elements.append(Paragraph(f"<b>{esc(att_desc)}</b>", styles['FieldValue']))
                             elements.append(Spacer(1, 4))
                             # Decrypt if needed (attachments are encrypted at rest)
                             if db.password:
@@ -884,18 +897,18 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
                             elements.append(img)
                             elements.append(Spacer(1, 8))
                         except Exception as e:
-                            elements.append(Paragraph(f"• {att_desc} <i>(could not embed image)</i>", styles['FieldValue']))
+                            elements.append(Paragraph(f"• {esc(att_desc)} <i>(could not embed image)</i>", styles['FieldValue']))
                     else:
-                        elements.append(Paragraph(f"• {att_desc} <i>(file not found)</i>", styles['FieldValue']))
+                        elements.append(Paragraph(f"• {esc(att_desc)} <i>(file not found)</i>", styles['FieldValue']))
                         
                 elif filename.endswith('.pdf'):
                     # Add to PDF attachments list for appending at end
-                    elements.append(Paragraph(f"• {att_desc} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
+                    elements.append(Paragraph(f"• {esc(att_desc)} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
                     entry_date = format_date(entry.get('comm_date'))
                     pdf_attachments.append(('Communication', title, entry_date, filepath, att['filename']))
                 else:
                     # Other file types - just list them
-                    elements.append(Paragraph(f"• {att_desc}", styles['FieldValue']))
+                    elements.append(Paragraph(f"• {esc(att_desc)}", styles['FieldValue']))
     
     if entry.get('edit_history'):
         elements.append(Spacer(1, 12))
@@ -912,10 +925,10 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
     pdf_attachments = []
     
     title = entry.get('description', 'Upload')
-    elements.append(Paragraph(f"Upload: {title}", styles['EntryTitle']))
+    elements.append(Paragraph(f"Upload: {esc(title)}", styles['EntryTitle']))
     
     client_name = f"{client['first_name']} {client.get('middle_name', '') or ''} {client['last_name']}".replace('  ', ' ')
-    elements.append(Paragraph(f"{client_name} · File #{client['file_number']}", styles['ClientHeader']))
+    elements.append(Paragraph(f"{esc(client_name)} · File #{esc(client['file_number'])}", styles['ClientHeader']))
     elements.append(Spacer(1, 12))
     
     date_str = format_date(entry.get('upload_date'))
@@ -950,7 +963,7 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
                     # Embed image inline
                     if os.path.exists(filepath):
                         try:
-                            elements.append(Paragraph(f"<b>{att_desc}</b>", styles['FieldValue']))
+                            elements.append(Paragraph(f"<b>{esc(att_desc)}</b>", styles['FieldValue']))
                             elements.append(Spacer(1, 4))
                             # Decrypt if needed (attachments are encrypted at rest)
                             if db.password:
@@ -975,18 +988,18 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
                             elements.append(img)
                             elements.append(Spacer(1, 8))
                         except Exception as e:
-                            elements.append(Paragraph(f"• {att_desc} <i>(could not embed image)</i>", styles['FieldValue']))
+                            elements.append(Paragraph(f"• {esc(att_desc)} <i>(could not embed image)</i>", styles['FieldValue']))
                     else:
-                        elements.append(Paragraph(f"• {att_desc} <i>(file not found)</i>", styles['FieldValue']))
+                        elements.append(Paragraph(f"• {esc(att_desc)} <i>(file not found)</i>", styles['FieldValue']))
                         
                 elif filename.endswith('.pdf'):
                     # Add to PDF attachments list for appending at end
-                    elements.append(Paragraph(f"• {att_desc} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
+                    elements.append(Paragraph(f"• {esc(att_desc)} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
                     entry_date = format_date(entry.get('upload_date'))
                     pdf_attachments.append(('Upload', title, entry_date, filepath, att['filename']))
                 else:
                     # Other file types - just list them
-                    elements.append(Paragraph(f"• {att_desc}", styles['FieldValue']))
+                    elements.append(Paragraph(f"• {esc(att_desc)}", styles['FieldValue']))
     
     if entry.get('edit_history'):
         elements.append(Spacer(1, 12))
@@ -1187,11 +1200,11 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
                 header_elements = [
                     Paragraph("Attachment", styles['EntryTitle']),
                     Spacer(1, 12),
-                    Paragraph(f"<b>{att_entry_type}:</b> {att_title}", styles['FieldValue']),
+                    Paragraph(f"<b>{esc(att_entry_type)}:</b> {esc(att_title)}", styles['FieldValue']),
                     Spacer(1, 6),
                     Paragraph(f"<b>Date:</b> {att_date}", styles['FieldValue']),
                     Spacer(1, 24),
-                    Paragraph(f"<i>Original filename: {att_original_name}</i>", styles['FieldValue']),
+                    Paragraph(f"<i>Original filename: {esc(att_original_name)}</i>", styles['FieldValue']),
                 ]
                 header_doc.build(header_elements)
                 header_buffer.seek(0)

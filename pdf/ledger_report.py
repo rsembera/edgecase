@@ -13,7 +13,19 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether, PageBreak, Image, HRFlowable
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
+from xml.sax.saxutils import escape as _xml_escape
 from core.encryption import decrypt_file_to_bytes
+
+
+def esc(value):
+    """XML-escape user-entered content for safe use in Paragraph markup.
+
+    ReportLab parses Paragraph text as mini-XML, so a bare '&', '<', or '>'
+    in a name or description would crash doc.build().
+    """
+    if value is None:
+        return ''
+    return _xml_escape(str(value))
 
 
 def _get_currency_symbol(currency_code):
@@ -148,7 +160,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     story = []
     
     # Title
-    story.append(Paragraph(practice_name.upper(), title_style))
+    story.append(Paragraph(esc(practice_name.upper()), title_style))
     
     # Format date range for display
     start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
@@ -454,7 +466,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             
             for entry_type, entry_id, date_str, desc, atts in attachment_info:
                 # Entry header
-                story.append(Paragraph(f"{entry_type}: {desc}", appendix_heading_style))
+                story.append(Paragraph(f"{esc(entry_type)}: {esc(desc)}", appendix_heading_style))
                 story.append(Paragraph(f"Date: {date_str}", appendix_text_style))
                 story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
                 story.append(Spacer(1, 8))
@@ -492,23 +504,23 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
                                     img.drawHeight = img.imageHeight
                                 img.hAlign = 'LEFT'
                                 
-                                story.append(Paragraph(f"<b>{att_desc}</b>", appendix_text_style))
+                                story.append(Paragraph(f"<b>{esc(att_desc)}</b>", appendix_text_style))
                                 story.append(Spacer(1, 4))
                                 story.append(img)
                                 story.append(Spacer(1, 12))
                             except Exception as e:
-                                story.append(Paragraph(f"• {att_desc} <i>(could not embed image: {str(e)})</i>", appendix_text_style))
+                                story.append(Paragraph(f"• {esc(att_desc)} <i>(could not embed image: {esc(str(e))})</i>", appendix_text_style))
                         else:
-                            story.append(Paragraph(f"• {att_desc} <i>(file not found)</i>", appendix_text_style))
+                            story.append(Paragraph(f"• {esc(att_desc)} <i>(file not found)</i>", appendix_text_style))
                     
                     elif filename_lower.endswith('.pdf'):
                         # Queue PDF for merging at end
-                        story.append(Paragraph(f"• {att_desc} <i>(PDF follows)</i>", appendix_text_style))
+                        story.append(Paragraph(f"• {esc(att_desc)} <i>(PDF follows)</i>", appendix_text_style))
                         pdf_attachments.append((entry_type, desc, date_str, filepath, att_desc))
                     
                     else:
                         # Other file types - just note them
-                        story.append(Paragraph(f"• {att_desc} <i>(file type not rendered: {filename})</i>", appendix_text_style))
+                        story.append(Paragraph(f"• {esc(att_desc)} <i>(file type not rendered: {esc(filename)})</i>", appendix_text_style))
                 
                 story.append(Spacer(1, 8))
     
