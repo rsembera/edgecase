@@ -258,7 +258,13 @@ def scribe_page(entry_id):
     # Only works with session entries
     if entry.get('class') != 'session':
         return "AI Scribe only works with session entries", 400
-    
+
+    # AI Scribe is deliberately only available for unlocked drafts — the
+    # session form hides the Scribe button once an entry is locked. Enforce
+    # that here too, so a stale tab/bookmark can't reach a locked entry.
+    if _db.is_entry_locked(entry_id):
+        return "AI Scribe is not available for locked sessions", 403
+
     # Get client info for display
     client = _db.get_client(entry.get('client_id'))
     
@@ -291,11 +297,16 @@ def scribe_save(entry_id):
     if not entry:
         return jsonify({'error': 'Entry not found'}), 404
     
-    # Update the content. allow_locked because AI Scribe edits sessions that
-    # may already be locked; note that edit history is NOT logged here — see
-    # CODE_REVIEW.md M11 follow-up.
+    # AI Scribe only operates on unlocked drafts (the session form hides
+    # the Scribe button once locked; scribe_page also refuses locked
+    # entries). Enforce it here as well so a direct POST can't silently
+    # modify a locked clinical record — locked-entry edits must go through
+    # the session edit form, which logs to edit history (M11).
+    if _db.is_entry_locked(entry_id):
+        return jsonify({'error': 'AI Scribe is not available for locked sessions'}), 403
+
     try:
-        _db.update_entry(entry_id, {'content': new_content}, allow_locked=True)
+        _db.update_entry(entry_id, {'content': new_content})
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -8,6 +8,10 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-07 (fourth batch)
+- **AI Scribe lock enforcement (closes the M11 follow-up)**: AI Scribe is by design only available for unlocked drafts (the session form hides the button once locked), but the server routes never checked — a stale tab or direct URL could silently modify a locked clinical record with no edit history. `scribe_page` and `scribe_save` now refuse locked entries (403), and `scribe_save` no longer passes `allow_locked=True`, so the M11 DB-layer guard backs the route check. Locked-entry edits must go through the session edit form, which logs to edit history.
+- **Backup→restore round-trip tests** (the review's "Testing assessment" recommendation): two end-to-end tests against an isolated temp data root exercise the real backup module — full backup → mutate DB + attachments → restore (asserts original data back, post-backup changes rolled back, stale WAL/SHM sidecars from H1 not carried over), and a full→incremental chain restore (asserts the incremental state restores exactly, including a file deletion that must not resurrect). Backup tests no longer count zero; 68 tests total.
+
 ### 2026-06-07 (third batch)
 - **M2 complete — foreign key enforcement enabled**: `tools/audit_orphans.py` run against the production database came back clean (zero orphans across all 10 declared FK relationships; `PRAGMA foreign_key_check` clean), so `PRAGMA foreign_keys = ON` is now set on every connection. All delete paths verified child-first (ledger entry deletes, link groups, client archive/delete). Three new tests assert enforcement is live (orphan inserts and parent-deletes-with-children rejected); 66 tests total. Note: `tools/audit_typed_columns.py` found 9 legacy empty-string values in non-FK typed columns (pre-H5 data) — run it with `--fix` to rewrite them to NULL; they don't affect FK enforcement.
 
