@@ -111,10 +111,28 @@ def load_manifest():
 
 
 def save_manifest(manifest):
-    """Save backup manifest to disk."""
+    """Save backup manifest to disk.
+
+    Writes to a temp file and atomically replaces the manifest
+    (os.replace), so a crash mid-write can't corrupt it — a corrupt
+    manifest would silently reset the entire backup catalog
+    (see load_manifest's fallback).
+    """
     ensure_backup_dir()
-    with open(MANIFEST_FILE, 'w') as f:
-        json.dump(manifest, f, indent=2)
+    tmp_path = f'{MANIFEST_FILE}.tmp'
+    try:
+        with open(tmp_path, 'w') as f:
+            json.dump(manifest, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, MANIFEST_FILE)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
 
 
 def generate_backup_filename(backup_type):

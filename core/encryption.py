@@ -47,16 +47,34 @@ def _get_fernet(password: str) -> Fernet:
 
 
 def encrypt_file(filepath: str, password: str) -> None:
-    """Encrypt a file in place."""
+    """Encrypt a file in place.
+
+    Writes to a temp file in the same directory and atomically replaces
+    the original (os.replace), so a crash mid-write can never leave a
+    truncated file with the plaintext already destroyed.
+    """
     fernet = _get_fernet(password)
-    
+
     with open(filepath, 'rb') as f:
         data = f.read()
-    
+
     encrypted = fernet.encrypt(data)
-    
-    with open(filepath, 'wb') as f:
-        f.write(encrypted)
+
+    tmp_path = f'{filepath}.tmp'
+    try:
+        with open(tmp_path, 'wb') as f:
+            f.write(encrypted)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, filepath)
+    except Exception:
+        # Don't leave a partial temp file behind
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
 
 
 def decrypt_file_to_bytes(filepath: str, password: str) -> bytes:
