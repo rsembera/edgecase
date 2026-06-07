@@ -670,6 +670,32 @@ class Database:
         'modified_at'
     })
 
+    # Columns where '' is semantically wrong — they're INTEGER or REAL in the
+    # schema, so SQLite stores '' as TEXT, which sorts above all numbers,
+    # breaks BETWEEN/range filters and ORDER BY, and causes IS NULL checks to
+    # silently fail (e.g. `if statement_id is not None` returns True for ''
+    # entries). add_entry coerces '' → None for these so SQLite stores NULL.
+    # See CODE_REVIEW.md H5.
+    TYPED_ENTRY_COLUMNS = frozenset({
+        # Integer date/time columns
+        'session_date', 'comm_date', 'absence_date', 'item_date',
+        'upload_date', 'ledger_date', 'date_sent', 'date_paid',
+        'locked_at', 'redacted_at', 'date_of_birth',
+        # Other integer columns
+        'session_number', 'duration', 'default_session_duration',
+        'payee_id', 'category_id', 'statement_id',
+        'guardian1_pays_percent', 'guardian2_pays_percent',
+        # Boolean (stored as INTEGER) columns
+        'is_minor', 'has_guardian2', 'is_consultation', 'is_pro_bono',
+        'is_void', 'locked', 'is_redacted',
+        # Real (money/percentage) columns
+        'base_fee', 'tax_rate', 'fee', 'base_price',
+        'base_amount', 'tax_amount', 'total_amount',
+        'statement_total', 'statement_tax_total',
+        'session_base', 'session_tax_rate', 'session_total',
+        'guardian1_amount', 'guardian2_amount',
+    })
+
     def update_client(self, client_id: int, client_data: Dict[str, Any]) -> bool:
         """Update client."""
         conn = self.connect()
@@ -1320,10 +1346,14 @@ class Database:
         for field in optional_fields:
             if field in entry_data:
                 fields.append(field)
-                # Convert empty strings to empty strings (not None)
                 value = entry_data[field]
-                if value is None:
-                    value = ''
+                # Preserve None so SQLite stores NULL (was: coerced None → '',
+                # which produced TEXT '' in INTEGER/REAL columns and broke range
+                # filters, ORDER BY, and `IS NULL` checks downstream).
+                # For TYPED_ENTRY_COLUMNS, also coerce '' → None so a stray
+                # empty string from a form post can't pollute a typed column.
+                if value == '' and field in self.TYPED_ENTRY_COLUMNS:
+                    value = None
                 values.append(value)
         
         placeholders = ', '.join(['?' for _ in values])
@@ -1396,6 +1426,9 @@ class Database:
                 # Validate column name against whitelist
                 if key not in self.ALLOWED_ENTRY_COLUMNS:
                     raise ValueError(f"Invalid column name: {key}")
+                # Coerce '' → None for typed columns (see TYPED_ENTRY_COLUMNS comment).
+                if value == '' and key in self.TYPED_ENTRY_COLUMNS:
+                    value = None
                 set_clauses.append(f"{key} = ?")
                 values.append(value)
         
