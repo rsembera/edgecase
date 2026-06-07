@@ -1169,6 +1169,82 @@ class TestForeignKeyEnforcement:
 
 
 # ============================================================================
+# LEGACY-DATABASE STARTUP MIGRATIONS (distribution support)
+# ============================================================================
+# EdgeCase ships as source/.deb/.dmg — other installs never ran the manual
+# orphan audit or typed-columns --fix, so startup must handle legacy data.
+
+class TestLegacyDatabaseMigrations:
+
+    def _raw_insert(self, db_path, sql, params=()):
+        """Insert into a closed DB with FK enforcement OFF (legacy writer)."""
+        import sqlcipher3
+        conn = sqlcipher3.connect(db_path)
+        conn.execute(sql, params)
+        conn.commit()
+        conn.close()
+
+    def test_orphaned_db_disables_enforcement_but_still_works(self, tmp_path):
+        db_path = str(tmp_path / 'legacy.db')
+        db = Database(db_path)  # creates clean schema, enforcement on
+        assert db._enforce_foreign_keys is True
+        db.close()
+
+        # Simulate a legacy install: orphan row written with FK off
+        self._raw_insert(
+            db_path,
+            "INSERT INTO attachments (entry_id, filename, filepath, uploaded_at) "
+            "VALUES (99999, 'x.enc', 'attachments/x.enc', 0)")
+
+        # Reopen: enforcement must be skipped, app must keep working
+        db2 = Database(db_path)
+        assert db2._enforce_foreign_keys is False
+        cursor = db2.connect().cursor()
+        cursor.execute("PRAGMA foreign_keys")
+        assert cursor.fetchone()[0] == 0
+        # Normal operations still function
+        client_id = db2.add_client({'file_number': 'LEG-1', 'first_name': 'A',
+                                    'last_name': 'B', 'type_id': 1})
+        assert client_id
+        db2.close()
+
+        # Clean up the orphan -> enforcement returns at next launch
+        import sqlcipher3
+        conn = sqlcipher3.connect(db_path)
+        conn.execute("DELETE FROM attachments WHERE entry_id = 99999")
+        conn.commit()
+        conn.close()
+        db3 = Database(db_path)
+        assert db3._enforce_foreign_keys is True
+        db3.close()
+
+    def test_typed_empty_strings_migrated_on_open(self, tmp_path):
+        db_path = str(tmp_path / 'legacy2.db')
+        db = Database(db_path)
+        client_id = db.add_client({'file_number': 'LEG-2', 'first_name': 'A',
+                                   'last_name': 'B', 'type_id': 1})
+        db.close()
+
+        # Legacy '' values in typed columns (pre-H5 writes)
+        self._raw_insert(
+            db_path,
+            "INSERT INTO entries (client_id, class, created_at, modified_at, "
+            "fee, session_date, statement_id) VALUES (?, 'session', 1, 1, '', '', '')",
+            (client_id,))
+
+        db2 = Database(db_path)  # startup migration runs here
+        cursor = db2.connect().cursor()
+        cursor.execute(
+            "SELECT fee, session_date, statement_id FROM entries "
+            "WHERE client_id = ? AND class = 'session'", (client_id,))
+        fee, session_date, statement_id = cursor.fetchone()
+        assert fee is None
+        assert session_date is None
+        assert statement_id is None
+        db2.close()
+
+
+# ============================================================================
 # BACKUP / RESTORE ROUND TRIP (review "Testing assessment" + H1)
 # ============================================================================
 # Exercises the REAL utils.backup functions end-to-end against an isolated
