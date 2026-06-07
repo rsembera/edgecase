@@ -9,21 +9,9 @@ const textarea = document.getElementById('content');
 const maxHeight = 400;
 
 if (textarea) {
-    /**
-     * Auto-resize textarea to fit content up to maxHeight
-     */
-    function autoResize() {
-        textarea.style.height = 'auto';
-        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-        textarea.style.height = newHeight + 'px';
-        
-        if (textarea.scrollHeight > maxHeight) {
-            textarea.style.overflowY = 'scroll';
-        } else {
-            textarea.style.overflowY = 'hidden';
-        }
-    }
-    
+    // Auto-resize (delegates to shared_utils.js)
+    const autoResize = () => autoResizeTextarea(textarea, maxHeight);
+
     autoResize();
     textarea.addEventListener('input', autoResize);
 }

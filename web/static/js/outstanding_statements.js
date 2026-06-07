@@ -6,18 +6,7 @@
 // ============================================================
 // UTILITIES
 // ============================================================
-
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Raw text
- * @returns {string} HTML-escaped text
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml() now lives in shared_utils.js
 
 // ============================================================
 // STATE

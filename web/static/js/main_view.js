@@ -6,26 +6,7 @@
 // ============================================================
 // COLOR PALETTE
 // ============================================================
-
-const COLOR_PALETTE = {
-    green:  { name: 'Green',  bg: '#D1F0E8', badge: '#00AA88', text: '#1F2937' },
-    blue:   { name: 'Blue',   bg: '#DBEAFE', badge: '#3B82F6', text: '#1F2937' },
-    purple: { name: 'Purple', bg: '#E9D5FF', badge: '#A855F7', text: '#1F2937' },
-    pink:   { name: 'Pink',   bg: '#FCE7F3', badge: '#EC4899', text: '#1F2937' },
-    yellow: { name: 'Yellow', bg: '#FEF3C7', badge: '#F59E0B', text: '#1F2937' },
-    orange: { name: 'Orange', bg: '#FFEDD5', badge: '#F97316', text: '#1F2937' },
-    teal:   { name: 'Teal',   bg: '#CCFBF1', badge: '#14B8A6', text: '#1F2937' },
-    gray:   { name: 'Gray',   bg: '#F3F4F6', badge: '#6B7280', text: '#1F2937' }
-};
-
-/**
- * Get color scheme for a given color key
- * @param {string} colorKey - Key from COLOR_PALETTE
- * @returns {Object} Color scheme with bg, badge, and text colors
- */
-function getColors(colorKey) {
-    return COLOR_PALETTE[colorKey] || COLOR_PALETTE.green;
-}
+// COLOR_PALETTE and getColors() now live in shared_utils.js
 
 /**
  * Apply color scheme to all client cards based on their data-color attribute
@@ -509,18 +490,7 @@ function confirmDeletion() {
 // ============================================================
 // UTILITIES
 // ============================================================
-
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Raw text
- * @returns {string} HTML-escaped text
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml() now lives in shared_utils.js
 
 // ============================================================
 // INITIALIZATION

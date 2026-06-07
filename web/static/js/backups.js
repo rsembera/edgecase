@@ -743,16 +743,7 @@ function selectCurrentFolder() {
     closeFolderPicker();
 }
 
-/**
- * Escape HTML special characters
- * @param {string} str - String to escape
- * @returns {string} - Escaped string
- */
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+// escapeHtml() now lives in shared_utils.js
 
 /**
  * Escape string for use in JavaScript onclick handler

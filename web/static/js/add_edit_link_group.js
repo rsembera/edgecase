@@ -4,17 +4,7 @@
  * member selection, per-member fee configuration, and format conflict validation.
  */
 
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Raw text
- * @returns {string} HTML-escaped text
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml() now lives in shared_utils.js
 
 // Get all clients data from hidden div
 const allClientsData = JSON.parse(document.getElementById('all-clients-data').textContent);
@@ -340,26 +330,13 @@ function formatToTwoDecimals(input) {
 function calculateFee(clientId, changedField) {
     const row = document.querySelector(`.member-fee-row[data-client-id="${clientId}"]`);
     if (!row) return;
-    
-    const baseInput = row.querySelector('.base-fee');
-    const taxInput = row.querySelector('.tax-rate');
-    const totalInput = row.querySelector('.total-fee');
-    
-    const base = parseFloat(baseInput.value) || 0;
-    const taxRate = parseFloat(taxInput.value) || 0;
-    const total = parseFloat(totalInput.value) || 0;
-    
-    if (changedField === 'base' || changedField === 'tax') {
-        const calculatedTotal = base * (1 + taxRate / 100);
-        totalInput.value = calculatedTotal.toFixed(2);
-    } else if (changedField === 'total') {
-        if (taxRate > 0) {
-            const calculatedBase = total / (1 + taxRate / 100);
-            baseInput.value = calculatedBase.toFixed(2);
-        } else {
-            baseInput.value = total.toFixed(2);
-        }
-    }
+
+    calculateThreeWayFee(
+        row.querySelector('.base-fee'),
+        row.querySelector('.tax-rate'),
+        row.querySelector('.total-fee'),
+        changedField
+    );
 }
 
 // Form submission
