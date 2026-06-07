@@ -280,7 +280,11 @@
         applyTheme();
     </script>
     
-<!-- Choices.js for styled dropdowns -->
+<!-- Shared utilities (escapeHtml, autoResizeTextarea, calculateThreeWayFee, color palette)
+         Must load before page-specific scripts -->
+    <script src="{{ url_for('static', filename='js/shared_utils.js') }}"></script>
+
+    <!-- Choices.js for styled dropdowns -->
     <script src="{{ url_for('static', filename='js/choices.min.js') }}"></script>
     
     <!-- Desktop PDF handler (for PyWebView) -->

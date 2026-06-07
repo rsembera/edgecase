@@ -9,25 +9,12 @@
  * @param {string} changedField - Which field was changed: 'base', 'tax', or 'total'
  */
 function calculateAbsenceFee(changedField) {
-    const baseInput = document.getElementById('base_fee');
-    const taxInput = document.getElementById('tax_rate');
-    const totalInput = document.getElementById('fee');
-    
-    const base = parseFloat(baseInput.value) || 0;
-    const taxRate = parseFloat(taxInput.value) || 0;
-    const total = parseFloat(totalInput.value) || 0;
-    
-    if (changedField === 'base' || changedField === 'tax') {
-        const calculatedTotal = base * (1 + taxRate / 100);
-        totalInput.value = calculatedTotal.toFixed(2);
-    } else if (changedField === 'total') {
-        if (taxRate > 0) {
-            const calculatedBase = total / (1 + taxRate / 100);
-            baseInput.value = calculatedBase.toFixed(2);
-        } else {
-            baseInput.value = total.toFixed(2);
-        }
-    }
+    calculateThreeWayFee(
+        document.getElementById('base_fee'),
+        document.getElementById('tax_rate'),
+        document.getElementById('fee'),
+        changedField
+    );
 }
 
 /**
@@ -47,18 +34,10 @@ const maxHeight = 600;
 
 /**
  * Auto-resize textarea to fit content up to maxHeight
+ * (delegates to shared_utils.js)
  */
 function autoResize() {
-    if (!contentTextarea) return;
-    contentTextarea.style.height = 'auto';
-    const newHeight = Math.min(contentTextarea.scrollHeight, maxHeight);
-    contentTextarea.style.height = newHeight + 'px';
-    
-    if (contentTextarea.scrollHeight > maxHeight) {
-        contentTextarea.style.overflowY = 'scroll';
-    } else {
-        contentTextarea.style.overflowY = 'hidden';
-    }
+    autoResizeTextarea(contentTextarea, maxHeight);
 }
 
 // Run on page load (for edit mode with existing content)

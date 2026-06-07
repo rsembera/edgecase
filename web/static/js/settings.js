@@ -627,25 +627,12 @@ function validatePhone(phoneValue) {
  * @param {string} changedField - Which field was changed ('base', 'tax', or 'total')
  */
 function calculateConsultationFee(changedField) {
-    const baseInput = document.getElementById('consultation-base');
-    const taxInput = document.getElementById('consultation-tax');
-    const totalInput = document.getElementById('consultation-total');
-    
-    const base = parseFloat(baseInput.value) || 0;
-    const taxRate = parseFloat(taxInput.value) || 0;
-    const total = parseFloat(totalInput.value) || 0;
-    
-    if (changedField === 'base' || changedField === 'tax') {
-        const calculatedTotal = base * (1 + taxRate / 100);
-        totalInput.value = calculatedTotal.toFixed(2);
-    } else if (changedField === 'total') {
-        if (taxRate > 0) {
-            const calculatedBase = total / (1 + taxRate / 100);
-            baseInput.value = calculatedBase.toFixed(2);
-        } else {
-            baseInput.value = total.toFixed(2);
-        }
-    }
+    calculateThreeWayFee(
+        document.getElementById('consultation-base'),
+        document.getElementById('consultation-tax'),
+        document.getElementById('consultation-total'),
+        changedField
+    );
 }
 
 /**

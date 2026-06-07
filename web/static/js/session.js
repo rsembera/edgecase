@@ -110,24 +110,7 @@ function updateFeesForFormat(format) {
  * @param {string} changedField - Which field was changed: 'base', 'tax', or 'total'
  */
 function calculateSessionFee(changedField) {
-    const base = parseFloat(baseFeeInput.value) || 0;
-    const taxRate = parseFloat(taxRateInput.value) || 0;
-    const total = parseFloat(totalFeeInput.value) || 0;
-    
-    if (changedField === 'base' || changedField === 'tax') {
-        // Calculate total from base + tax
-        const calculatedTotal = base * (1 + taxRate / 100);
-        totalFeeInput.value = calculatedTotal.toFixed(2);
-    } else if (changedField === 'total') {
-        // Calculate base from total - tax
-        if (taxRate > 0) {
-            const calculatedBase = total / (1 + taxRate / 100);
-            baseFeeInput.value = calculatedBase.toFixed(2);
-        } else {
-            // If no tax, total = base
-            baseFeeInput.value = total.toFixed(2);
-        }
-    }
+    calculateThreeWayFee(baseFeeInput, taxRateInput, totalFeeInput, changedField);
 }
 
 // Add listeners for manual fee editing
@@ -301,21 +284,10 @@ const maxHeight = 600; // About 30-35 lines
 
 /**
  * Auto-resize textarea to fit content up to maxHeight
+ * (delegates to shared_utils.js)
  */
 function autoResize() {
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
-    
-    // Set new height, but don't exceed maxHeight
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = newHeight + 'px';
-    
-    // Add scrollbar if content exceeds maxHeight
-    if (textarea.scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'scroll';
-    } else {
-        textarea.style.overflowY = 'hidden';
-    }
+    autoResizeTextarea(textarea, maxHeight);
 }
 
 // Run on page load (for edit mode with existing content)

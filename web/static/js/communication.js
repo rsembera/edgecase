@@ -10,17 +10,10 @@ const maxHeight = 600; // About 30-35 lines
 
 /**
  * Auto-resize textarea to fit content up to maxHeight
+ * (delegates to shared_utils.js)
  */
 function autoResize() {
-    textarea.style.height = 'auto';
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = newHeight + 'px';
-    
-    if (textarea.scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'scroll';
-    } else {
-        textarea.style.overflowY = 'hidden';
-    }
+    autoResizeTextarea(textarea, maxHeight);
 }
 
 /**

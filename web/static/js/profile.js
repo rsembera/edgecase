@@ -120,18 +120,9 @@ let lastEditedFee = null;
  * Updates total from base+tax, or base from total-tax
  */
 function calculateOverrideFee() {
-    const base = parseFloat(sessionBase.value) || 0;
-    const rate = parseFloat(sessionTax.value) || 0;
-    const total = parseFloat(sessionTotal.value) || 0;
-    
-    if (lastEditedFee === 'base' || lastEditedFee === 'tax') {
-        const calculatedTotal = base * (1 + rate / 100);
-        sessionTotal.value = calculatedTotal.toFixed(2);
-        updateGuardianFeeDisplay(calculatedTotal);
-    } else if (lastEditedFee === 'total') {
-        const calculatedBase = total / (1 + rate / 100);
-        sessionBase.value = calculatedBase.toFixed(2);
-        updateGuardianFeeDisplay(total);
+    const result = calculateThreeWayFee(sessionBase, sessionTax, sessionTotal, lastEditedFee);
+    if (result !== null) {
+        updateGuardianFeeDisplay(result);
     }
 }
 
@@ -466,21 +457,10 @@ const maxHeight = 600; // About 30-35 lines
 
 /**
  * Auto-resize textarea to fit content up to maxHeight
+ * (delegates to shared_utils.js)
  */
 function autoResize() {
-    // Reset height to auto to get the correct scrollHeight
-    additionalInfoTextarea.style.height = 'auto';
-    
-    // Set new height, but don't exceed maxHeight
-    const newHeight = Math.min(additionalInfoTextarea.scrollHeight, maxHeight);
-    additionalInfoTextarea.style.height = newHeight + 'px';
-    
-    // Add scrollbar if content exceeds maxHeight
-    if (additionalInfoTextarea.scrollHeight > maxHeight) {
-        additionalInfoTextarea.style.overflowY = 'scroll';
-    } else {
-        additionalInfoTextarea.style.overflowY = 'hidden';
-    }
+    autoResizeTextarea(additionalInfoTextarea, maxHeight);
 }
 
 // Run on page load (for edit mode with existing content)
