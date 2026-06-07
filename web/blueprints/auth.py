@@ -6,12 +6,48 @@ Handles login/logout and database encryption
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash, make_response, Response
 from pathlib import Path
 from functools import wraps
+import secrets
 import time
 import json
 import os
 import tempfile
 
 auth_bp = Blueprint('auth', __name__)
+
+# ============================================================================
+# PASSWORD-CHANGE HANDOFF (server-side, never the session cookie)
+# ============================================================================
+# The change-password POST verifies the current password, then the SSE
+# progress route performs the re-encryption. The passwords are handed
+# between the two requests via this in-process dict keyed by a random
+# single-use token — NOT via the Flask session, which is signed but not
+# encrypted and would serialize the master password into the cookie
+# (CODE_REVIEW.md H2). Single-user app: at most one entry at a time.
+
+_password_change_handoff = {}
+_HANDOFF_TTL_SECONDS = 300  # token expires after 5 minutes
+
+
+def _store_password_handoff(current_password, new_password):
+    """Store passwords server-side; returns a single-use token."""
+    _password_change_handoff.clear()  # never keep stale credentials
+    token = secrets.token_urlsafe(32)
+    _password_change_handoff[token] = {
+        'current': current_password,
+        'new': new_password,
+        'created': time.time(),
+    }
+    return token
+
+
+def _pop_password_handoff(token):
+    """Retrieve and delete the handoff entry. Returns (current, new) or None."""
+    entry = _password_change_handoff.pop(token, None) if token else None
+    if not entry:
+        return None
+    if time.time() - entry['created'] > _HANDOFF_TTL_SECONDS:
+        return None
+    return entry['current'], entry['new']
 
 # ============================================================================
 # LOGIN RATE LIMITING
@@ -207,13 +243,13 @@ def change_password():
         if not db.verify_password(current_password):
             return render_template('change_password.html', error="Current password is incorrect")
         
-        # Store passwords in session for SSE route to use
-        session['password_change_current'] = current_password
-        session['password_change_new'] = new_password
-        session.modified = True
-        
+        # Hand the passwords to the SSE route via a server-side,
+        # single-use token — never the session cookie (CODE_REVIEW.md H2)
+        change_token = _store_password_handoff(current_password, new_password)
+
         # Render template with trigger to start SSE
-        return render_template('change_password.html', start_change=True)
+        return render_template('change_password.html', start_change=True,
+                               change_token=change_token)
     
     return render_template('change_password.html')
 
@@ -222,15 +258,12 @@ def change_password():
 @login_required
 def change_password_progress():
     """SSE endpoint for password change progress."""
-    # Get passwords from session BEFORE entering generator (request context issue)
-    current_password = session.get('password_change_current')
-    new_password = session.get('password_change_new')
+    # Get passwords from the server-side handoff BEFORE entering the
+    # generator (request context issue). The token is single-use and
+    # expires after 5 minutes; the passwords never touch the cookie.
+    handoff = _pop_password_handoff(request.args.get('token'))
+    current_password, new_password = handoff if handoff else (None, None)
     db = current_app.config.get('db')
-    
-    # Clear passwords from session immediately after retrieval (security)
-    session.pop('password_change_current', None)
-    session.pop('password_change_new', None)
-    session.modified = True
     
     def generate():
         if not current_password or not new_password:
