@@ -22,7 +22,20 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from core.encryption import decrypt_file_to_bytes
-from core.config import get_assets_path, get_attachments_path
+from core.config import get_assets_path, DATA_ROOT
+
+
+def resolve_attachment_path(filepath):
+    """Resolve a stored attachment path against DATA_ROOT.
+
+    Attachment records store paths relative to DATA_ROOT (see
+    web/utils.py save_uploaded_files). Mirrors
+    web.blueprints.entries.resolve_attachment_path.
+    """
+    if os.path.isabs(filepath):
+        return filepath
+    return str(DATA_ROOT / filepath)
+
 
 def get_styles():
     """Create custom paragraph styles for the export."""
@@ -836,8 +849,9 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
             
             for att in attachments:
                 filename = att['filename'].lower()
-                filepath = os.path.join(get_attachments_path(), 
-                                       str(client['id']), str(entry['id']), att['filename'])
+                # Attachments are stored as UUID-named .enc files; the real
+                # location is in att['filepath'] (relative to DATA_ROOT)
+                filepath = resolve_attachment_path(att['filepath'])
                 
                 att_desc = att.get('description') or att['filename']
                 
@@ -847,7 +861,11 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
                         try:
                             elements.append(Paragraph(f"<b>{att_desc}</b>", styles['FieldValue']))
                             elements.append(Spacer(1, 4))
-                            img = Image(filepath)
+                            # Decrypt if needed (attachments are encrypted at rest)
+                            if db.password:
+                                img = Image(BytesIO(decrypt_file_to_bytes(filepath, db.password)))
+                            else:
+                                img = Image(filepath)
                             # Scale to fit page width (max 6.5 inches) while maintaining aspect ratio
                             max_width = 6.5 * inch
                             max_height = 8 * inch
@@ -874,7 +892,7 @@ def build_communication_entry_with_attachments(entry, client, styles, db):
                     # Add to PDF attachments list for appending at end
                     elements.append(Paragraph(f"• {att_desc} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
                     entry_date = format_date(entry.get('comm_date'))
-                    pdf_attachments.append(('Communication', title, entry_date, filepath))
+                    pdf_attachments.append(('Communication', title, entry_date, filepath, att['filename']))
                 else:
                     # Other file types - just list them
                     elements.append(Paragraph(f"• {att_desc}", styles['FieldValue']))
@@ -922,8 +940,9 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
             
             for att in attachments:
                 filename = att['filename'].lower()
-                filepath = os.path.join(get_attachments_path(), 
-                                       str(client['id']), str(entry['id']), att['filename'])
+                # Attachments are stored as UUID-named .enc files; the real
+                # location is in att['filepath'] (relative to DATA_ROOT)
+                filepath = resolve_attachment_path(att['filepath'])
                 
                 att_desc = att.get('description') or att['filename']
                 
@@ -933,7 +952,11 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
                         try:
                             elements.append(Paragraph(f"<b>{att_desc}</b>", styles['FieldValue']))
                             elements.append(Spacer(1, 4))
-                            img = Image(filepath)
+                            # Decrypt if needed (attachments are encrypted at rest)
+                            if db.password:
+                                img = Image(BytesIO(decrypt_file_to_bytes(filepath, db.password)))
+                            else:
+                                img = Image(filepath)
                             # Scale to fit page width while maintaining aspect ratio
                             max_width = 6.5 * inch
                             max_height = 8 * inch
@@ -960,7 +983,7 @@ def build_upload_entry_with_attachments(entry, client, styles, db):
                     # Add to PDF attachments list for appending at end
                     elements.append(Paragraph(f"• {att_desc} <i>(PDF attached at end of document)</i>", styles['FieldValue']))
                     entry_date = format_date(entry.get('upload_date'))
-                    pdf_attachments.append(('Upload', title, entry_date, filepath))
+                    pdf_attachments.append(('Upload', title, entry_date, filepath, att['filename']))
                 else:
                     # Other file types - just list them
                     elements.append(Paragraph(f"• {att_desc}", styles['FieldValue']))
@@ -1148,7 +1171,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
         pdf_writer.add_page(page)
     
     # Add each PDF attachment with a header page
-    for att_entry_type, att_title, att_date, att_filepath in pdf_attachments:
+    for att_entry_type, att_title, att_date, att_filepath, att_original_name in pdf_attachments:
         if os.path.exists(att_filepath):
             try:
                 # Create header page for this attachment
@@ -1168,7 +1191,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
                     Spacer(1, 6),
                     Paragraph(f"<b>Date:</b> {att_date}", styles['FieldValue']),
                     Spacer(1, 24),
-                    Paragraph(f"<i>Original filename: {os.path.basename(att_filepath)}</i>", styles['FieldValue']),
+                    Paragraph(f"<i>Original filename: {att_original_name}</i>", styles['FieldValue']),
                 ]
                 header_doc.build(header_elements)
                 header_buffer.seek(0)
