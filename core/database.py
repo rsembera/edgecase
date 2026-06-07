@@ -76,20 +76,40 @@ class Database:
     
     def verify_password(self, password):
         """Verify if the given password can decrypt the database.
-        
+
         Opens a fresh connection to test the password rather than
         comparing against the in-memory password string.
+
+        Returns bool. The test connection is always closed (try/finally),
+        and failure causes are distinguished in the log: an
+        OperationalError (file missing/unreadable/locked) is not the same
+        as a DatabaseError (wrong key / not decryptable / corrupt).
+        See CODE_REVIEW.md L18.
         """
+        test_conn = None
         try:
-            import sqlcipher3 as test_sqlite3
-            test_conn = test_sqlite3.connect(str(self.db_path), timeout=5.0)
+            test_conn = sqlite3.connect(str(self.db_path), timeout=5.0)
             escaped = password.replace("'", "''")
             test_conn.execute(f"PRAGMA key = '{escaped}'")
             test_conn.execute("SELECT count(*) FROM client_types")
-            test_conn.close()
             return True
-        except Exception:
+        except sqlite3.OperationalError as e:
+            # File missing, unreadable, or locked — not proof of a bad password
+            print(f"verify_password: database not accessible: {e}")
             return False
+        except sqlite3.DatabaseError as e:
+            # Wrong key (file won't decrypt) or corrupt database
+            print(f"verify_password: wrong password or corrupt database: {e}")
+            return False
+        except Exception as e:
+            print(f"verify_password: unexpected error: {e}")
+            return False
+        finally:
+            if test_conn is not None:
+                try:
+                    test_conn.close()
+                except Exception:
+                    pass
     
     def _initialize_schema(self):
         """Create tables if they don't exist."""
@@ -440,27 +460,32 @@ class Database:
             }
         ]
         
-        for type_data in default_types:
-            cursor.execute("""
-                INSERT INTO client_types (
-                    name, color, color_name, bubble_color,
-                    retention_period, is_system, is_system_locked,
-                    created_at, modified_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                type_data['name'],
-                type_data['color'],
-                type_data['color_name'],
-                type_data['bubble_color'],
-                type_data['retention_period'],
-                type_data['is_system'],
-                type_data['is_system_locked'],
-                now,
-                now
-            ))
-        
-        conn.commit()
+        # Multi-statement write: roll back on any failure (CODE_REVIEW.md H8)
+        try:
+            for type_data in default_types:
+                cursor.execute("""
+                    INSERT INTO client_types (
+                        name, color, color_name, bubble_color,
+                        retention_period, is_system, is_system_locked,
+                        created_at, modified_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    type_data['name'],
+                    type_data['color'],
+                    type_data['color_name'],
+                    type_data['bubble_color'],
+                    type_data['retention_period'],
+                    type_data['is_system'],
+                    type_data['is_system_locked'],
+                    now,
+                    now
+                ))
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         print("Created 2 default client types (Active, Inactive)")
     
     # ===== CLIENT TYPE OPERATIONS =====
@@ -520,12 +545,31 @@ class Database:
         return [dict(row) for row in rows]
 
     def update_client_type(self, type_id: int, type_data: Dict[str, Any]) -> bool:
-        """Update client type."""
+        """Update client type.
+
+        Refuses to rename a system type (is_system or is_system_locked set):
+        the retention sweep identifies the Inactive workflow type by these
+        flags, and renaming it must not be possible at the DB layer. Returns
+        False in that case, matching how delete_client_type guards deletion.
+        See CODE_REVIEW.md M10.
+        """
         conn = self.connect()
         cursor = conn.cursor()
-        
+
+        # Guard: never rename a system type
+        cursor.execute(
+            "SELECT name, is_system, is_system_locked FROM client_types WHERE id = ?",
+            (type_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return False
+        current_name, is_system, is_system_locked = row
+        if (is_system or is_system_locked) and type_data['name'] != current_name:
+            return False
+
         now = int(time.time())
-        
+
         cursor.execute("""
             UPDATE client_types
             SET name = ?, color = ?, color_name = ?, bubble_color = ?,
@@ -745,20 +789,28 @@ class Database:
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
+        # Escape LIKE wildcards (% and _) and the escape character itself so
+        # a search for e.g. '100%' matches literally instead of acting as a
+        # wildcard (CODE_REVIEW.md L14).
+        escaped_term = (search_term
+                        .replace('\\', '\\\\')
+                        .replace('%', '\\%')
+                        .replace('_', '\\_'))
+
         # Search in client table and profile entries
         cursor.execute("""
             SELECT DISTINCT c.* FROM clients c
             LEFT JOIN entries e ON c.id = e.client_id AND e.class = 'profile'
             WHERE c.is_deleted = 0 AND (
-                c.file_number LIKE ? OR
-                c.first_name LIKE ? OR
-                c.last_name LIKE ? OR
-                e.email LIKE ? OR
-                e.phone LIKE ?
+                c.file_number LIKE ? ESCAPE '\\' OR
+                c.first_name LIKE ? ESCAPE '\\' OR
+                c.last_name LIKE ? ESCAPE '\\' OR
+                e.email LIKE ? ESCAPE '\\' OR
+                e.phone LIKE ? ESCAPE '\\'
             )
             ORDER BY c.file_number
-        """, (f'%{search_term}%',) * 5)
+        """, (f'%{escaped_term}%',) * 5)
         
         rows = cursor.fetchall()
         
@@ -1048,30 +1100,37 @@ class Database:
         if conflict:
             raise ValueError(f"{conflict[2]} {conflict[3]} is already in a {format} link group. A client can only belong to one link group of each type.")
         
-        # Create link group with format and duration
-        cursor.execute("""
-            INSERT INTO link_groups (format, session_duration, created_at)
-            VALUES (?, ?, ?)
-        """, (format, session_duration, now))
-        
-        group_id = cursor.lastrowid
-        
-        # Create a row for each member (self-referential)
-        for client_id in client_ids:
-            # Get fees for this member
-            fees = member_fees.get(str(client_id), {})  # JSON keys are strings
-            base_fee = fees.get('base_fee', 0)
-            tax_rate = fees.get('tax_rate', 0)
-            total_fee = fees.get('total_fee', 0)
-            
+        # Multi-statement write: roll back on any failure so a partial group
+        # can't be committed later by unrelated code on this thread-local
+        # connection (CODE_REVIEW.md H8).
+        try:
+            # Create link group with format and duration
             cursor.execute("""
-                INSERT INTO client_links 
-                (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
-        
-        conn.commit()
-        
+                INSERT INTO link_groups (format, session_duration, created_at)
+                VALUES (?, ?, ?)
+            """, (format, session_duration, now))
+
+            group_id = cursor.lastrowid
+
+            # Create a row for each member (self-referential)
+            for client_id in client_ids:
+                # Get fees for this member
+                fees = member_fees.get(str(client_id), {})  # JSON keys are strings
+                base_fee = fees.get('base_fee', 0)
+                tax_rate = fees.get('tax_rate', 0)
+                total_fee = fees.get('total_fee', 0)
+
+                cursor.execute("""
+                    INSERT INTO client_links
+                    (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
         return group_id
 
     def get_link_group(self, group_id: int) -> Optional[Dict[str, Any]]:
@@ -1095,32 +1154,19 @@ class Database:
             return None
         
         group = dict(group_row)
-        
-        # Get all members with their fees
+
+        # Get all members (client details + fees) in one JOIN query
+        # (CODE_REVIEW.md L5: was one query per member)
         cursor.execute("""
-            SELECT client_id_1 as client_id, member_base_fee, member_tax_rate, member_total_fee
-            FROM client_links
-            WHERE group_id = ?
+            SELECT c.*, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee
+            FROM client_links cl
+            JOIN clients c ON c.id = cl.client_id_1
+            WHERE cl.group_id = ?
+            ORDER BY cl.id
         """, (group_id,))
-        
-        members = []
-        for row in cursor.fetchall():
-            client_id = row['client_id']
-            
-            # Get client details
-            cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
-            client_row = cursor.fetchone()
-            
-            if client_row:
-                member = dict(client_row)
-                # Add fee info
-                member['member_base_fee'] = row['member_base_fee']
-                member['member_tax_rate'] = row['member_tax_rate']
-                member['member_total_fee'] = row['member_total_fee']
-                members.append(member)
-        
-        group['members'] = members
-        
+
+        group['members'] = [dict(row) for row in cursor.fetchall()]
+
         return group
     
     def get_all_link_groups(self) -> List[Dict[str, Any]]:
@@ -1134,39 +1180,28 @@ class Database:
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM link_groups ORDER BY created_at DESC")
-        group_rows = cursor.fetchall()
-        
-        groups = []
-        for group_row in group_rows:
-            group = dict(group_row)
-            group_id = group['id']
-            
-            # Get all members with their fees
-            cursor.execute("""
-                SELECT client_id_1 as client_id, member_base_fee, member_tax_rate, member_total_fee
-                FROM client_links
-                WHERE group_id = ?
-            """, (group_id,))
-            
-            members = []
-            for row in cursor.fetchall():
-                client_id = row['client_id']
-                
-                # Get client details
-                cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
-                client_row = cursor.fetchone()
-                
-                if client_row:
-                    member = dict(client_row)
-                    # Add fee info
-                    member['member_base_fee'] = row['member_base_fee']
-                    member['member_tax_rate'] = row['member_tax_rate']
-                    member['member_total_fee'] = row['member_total_fee']
-                    members.append(member)
-            
-            group['members'] = members
-            groups.append(group)
-        
+        groups = [dict(row) for row in cursor.fetchall()]
+
+        # Fetch all members (client details + fees) for all groups in one
+        # JOIN query and bucket by group (CODE_REVIEW.md L5: was 1 + N×M
+        # queries — one per group plus one per member)
+        cursor.execute("""
+            SELECT c.*, cl.member_base_fee, cl.member_tax_rate, cl.member_total_fee,
+                   cl.group_id AS link_group_id
+            FROM client_links cl
+            JOIN clients c ON c.id = cl.client_id_1
+            ORDER BY cl.id
+        """)
+
+        members_by_group = {}
+        for row in cursor.fetchall():
+            member = dict(row)
+            link_group_id = member.pop('link_group_id')
+            members_by_group.setdefault(link_group_id, []).append(member)
+
+        for group in groups:
+            group['members'] = members_by_group.get(group['id'], [])
+
         return groups
     
     def get_linked_clients(self, client_id: int) -> List[Dict[str, Any]]:
@@ -1262,31 +1297,38 @@ class Database:
         if conflict:
             raise ValueError(f"{conflict[2]} {conflict[3]} is already in a {format} link group. A client can only belong to one link group of each type.")
         
-        # Update link group format and duration
-        cursor.execute("""
-            UPDATE link_groups
-            SET format = ?, session_duration = ?
-            WHERE id = ?
-        """, (format, session_duration, group_id))
-        
-        # Delete existing links for this group
-        cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
-        
-        # Recreate links with new client list and fees
-        for client_id in client_ids:
-            fees = member_fees.get(str(client_id), {})
-            base_fee = fees.get('base_fee', 0)
-            tax_rate = fees.get('tax_rate', 0)
-            total_fee = fees.get('total_fee', 0)
-            
+        # Multi-statement write: roll back on any failure so half-applied
+        # changes (e.g. links deleted but not recreated) can't be committed
+        # later by unrelated code (CODE_REVIEW.md H8).
+        try:
+            # Update link group format and duration
             cursor.execute("""
-                INSERT INTO client_links 
-                (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
-        
-        conn.commit()
-        
+                UPDATE link_groups
+                SET format = ?, session_duration = ?
+                WHERE id = ?
+            """, (format, session_duration, group_id))
+
+            # Delete existing links for this group
+            cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+
+            # Recreate links with new client list and fees
+            for client_id in client_ids:
+                fees = member_fees.get(str(client_id), {})
+                base_fee = fees.get('base_fee', 0)
+                tax_rate = fees.get('tax_rate', 0)
+                total_fee = fees.get('total_fee', 0)
+
+                cursor.execute("""
+                    INSERT INTO client_links
+                    (client_id_1, client_id_2, group_id, member_base_fee, member_tax_rate, member_total_fee, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (client_id, client_id, group_id, base_fee, tax_rate, total_fee, now))
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
         return True
     
     def delete_link_group(self, group_id: int) -> bool:
@@ -1300,15 +1342,20 @@ class Database:
         """
         conn = self.connect()
         cursor = conn.cursor()
-        
-        # Delete all member links
-        cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
-        
-        # Delete the group itself
-        cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
-        
-        conn.commit()
-        
+
+        # Multi-statement write: roll back on any failure (CODE_REVIEW.md H8)
+        try:
+            # Delete all member links
+            cursor.execute("DELETE FROM client_links WHERE group_id = ?", (group_id,))
+
+            # Delete the group itself
+            cursor.execute("DELETE FROM link_groups WHERE id = ?", (group_id,))
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
         return True
     
     # ===== ENTRY OPERATIONS =====
@@ -1539,7 +1586,6 @@ class Database:
 
     def get_payee(self, payee_id: int) -> dict:
         """Get a single payee by ID."""
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1551,7 +1597,6 @@ class Database:
 
     def get_all_payees(self) -> list:
         """Get all payees ordered by name."""
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1614,7 +1659,6 @@ class Database:
 
     def get_expense_category(self, category_id: int) -> dict:
         """Get a single expense category by ID."""
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1626,7 +1670,6 @@ class Database:
 
     def get_all_expense_categories(self) -> list:
         """Get all expense categories ordered by name."""
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1638,7 +1681,6 @@ class Database:
 
     def get_expense_category_by_name(self, name: str) -> dict:
         """Get an expense category by name (case-insensitive)."""
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1757,7 +1799,6 @@ class Database:
         Returns:
             List of ledger entries sorted by date (newest first), then created_at
         """
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1812,7 +1853,6 @@ class Database:
         Returns:
             List of ledger entries in date range
         """
-        import sqlcipher3 as sqlite3
         conn = self.connect()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -1959,65 +1999,67 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
         
-        # Get all Inactive clients with retention_days set
+        # Get all Inactive clients with retention_days set.
+        # Match on is_system_locked (the flag that uniquely identifies the
+        # seeded Inactive workflow type — see _create_default_types) rather
+        # than the literal name, so a rename can never silently disable the
+        # retention sweep (CODE_REVIEW.md M10).
+        # Entry date aggregates and profile fields are pulled in via scalar
+        # subqueries so the whole sweep is one round trip instead of three
+        # extra queries per client (CODE_REVIEW.md L5).
         cursor.execute("""
-            SELECT c.*, ct.name as type_name
+            SELECT c.*, ct.name as type_name,
+                   (SELECT MAX(created_at) FROM entries
+                    WHERE client_id = c.id) AS entry_last_contact,
+                   (SELECT MIN(created_at) FROM entries
+                    WHERE client_id = c.id) AS entry_first_contact,
+                   (SELECT is_minor FROM entries
+                    WHERE client_id = c.id AND class = 'profile'
+                    LIMIT 1) AS profile_is_minor,
+                   (SELECT date_of_birth FROM entries
+                    WHERE client_id = c.id AND class = 'profile'
+                    LIMIT 1) AS profile_dob,
+                   (SELECT 1 FROM entries
+                    WHERE client_id = c.id AND class = 'profile'
+                    LIMIT 1) AS has_profile
             FROM clients c
             JOIN client_types ct ON c.type_id = ct.id
-            WHERE ct.name = 'Inactive' 
+            WHERE ct.is_system_locked = 1
             AND c.retention_days IS NOT NULL
             AND c.is_deleted = 0
         """)
-        
+
         columns = [description[0] for description in cursor.description]
         inactive_clients = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        
+
         clients_due = []
         today = int(time.time())
-        
+
         for client in inactive_clients:
             client_id = client['id']
             retention_days = client['retention_days']
-            
+
             # 0 retention_days means "keep forever" - skip these
             if retention_days == 0:
                 continue
-            
-            # Get last contact date (most recent entry, or fall back to modified_at)
-            cursor.execute("""
-                SELECT MAX(created_at) as last_contact
-                FROM entries
-                WHERE client_id = ?
-            """, (client_id,))
-            result = cursor.fetchone()
-            last_contact = result[0] if result and result[0] else client['modified_at']
-            
-            # Get profile to check for minor status
-            cursor.execute("""
-                SELECT is_minor, date_of_birth
-                FROM entries
-                WHERE client_id = ? AND class = 'profile'
-            """, (client_id,))
-            profile = cursor.fetchone()
-            
-            is_minor = profile[0] if profile else 0
-            dob_str = profile[1] if profile else None
-            
+
+            # Last contact date (most recent entry, or fall back to modified_at)
+            last_contact = client['entry_last_contact'] if client['entry_last_contact'] else client['modified_at']
+
+            # Profile fields for minor status (0/None when no profile exists,
+            # matching the previous per-client query's fallback)
+            is_minor = client['profile_is_minor'] if client['has_profile'] else 0
+            dob_str = client['profile_dob'] if client['has_profile'] else None
+
             # Calculate retain_until (see _calculate_retain_until)
             retain_until = self._calculate_retain_until(
                 last_contact, retention_days, is_minor, dob_str
             )
-            
+
             # Check if retention period has expired
             if today >= retain_until:
-                # Get first contact (profile created_at or earliest entry)
-                cursor.execute("""
-                    SELECT MIN(created_at) as first_contact
-                    FROM entries
-                    WHERE client_id = ?
-                """, (client_id,))
-                result = cursor.fetchone()
-                first_contact = result[0] if result and result[0] else client['created_at']
+                # First contact (earliest entry, or fall back to created_at)
+                first_contact = client['entry_first_contact'] if client['entry_first_contact'] else client['created_at']
                 
                 # Build full name
                 full_name = client['first_name']
@@ -2041,14 +2083,18 @@ class Database:
         """
         Archive client info and delete all their data.
         Returns True on success, False on failure.
+
+        All database deletes happen in one transaction; attachment files
+        are removed from disk only AFTER the commit succeeds, so a failed
+        DELETE can never roll back the DB while the files are already gone
+        (CODE_REVIEW.md H6). File-deletion failures after the commit are
+        logged but do not fail the operation.
         """
-        import os
         import shutil
-        from datetime import datetime
-        
+
         conn = self.connect()
         cursor = conn.cursor()
-        
+
         try:
             # Get client data
             cursor.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
@@ -2110,34 +2156,58 @@ class Database:
                 int(time.time())
             ))
             
-            # Get all entry IDs for this client (for attachment cleanup)
+            # Get all entry IDs for this client (for attachment/link cleanup)
             cursor.execute("SELECT id FROM entries WHERE client_id = ?", (client_id,))
             entry_ids = [row[0] for row in cursor.fetchall()]
-            
-            # Delete attachment files from disk
-            from core.config import ATTACHMENTS_DIR
-            client_attachments_dir = ATTACHMENTS_DIR / str(client_id)
-            if os.path.exists(client_attachments_dir):
-                shutil.rmtree(client_attachments_dir)
-            
-            # Delete attachments from database
+
             if entry_ids:
                 placeholders = ','.join('?' * len(entry_ids))
+
+                # Delete attachments from database
                 cursor.execute(f"DELETE FROM attachments WHERE entry_id IN ({placeholders})", entry_ids)
-            
+
+                # Delete entry links referencing this client's entries (either side)
+                cursor.execute(
+                    f"DELETE FROM entry_links WHERE entry_id_1 IN ({placeholders}) "
+                    f"OR entry_id_2 IN ({placeholders})",
+                    entry_ids + entry_ids
+                )
+
+            # Delete statement portions (orphans would permanently inflate
+            # count_pending_invoices)
+            cursor.execute("DELETE FROM statement_portions WHERE client_id = ?", (client_id,))
+
+            # Delete client link rows (either side)
+            cursor.execute(
+                "DELETE FROM client_links WHERE client_id_1 = ? OR client_id_2 = ?",
+                (client_id, client_id)
+            )
+
             # Delete all entries
             cursor.execute("DELETE FROM entries WHERE client_id = ?", (client_id,))
-            
+
             # Delete client record
             cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
-            
+
             conn.commit()
-            return True
-            
+
         except Exception as e:
             conn.rollback()
             print(f"Error archiving client {client_id}: {e}")
             return False
+
+        # Delete attachment files from disk only AFTER the commit succeeded.
+        # A failure here leaves the DB consistent; leftover files are logged
+        # so they can be removed manually.
+        try:
+            from core.config import ATTACHMENTS_DIR
+            client_attachments_dir = ATTACHMENTS_DIR / str(client_id)
+            if os.path.exists(client_attachments_dir):
+                shutil.rmtree(client_attachments_dir)
+        except Exception as e:
+            print(f"Warning: failed to delete attachment files for client {client_id}: {e}")
+
+        return True
 
     def get_deleted_clients(self):
         """Get all archived client records."""
