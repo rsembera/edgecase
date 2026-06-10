@@ -436,3 +436,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+// ---------------------------------------------------------------------------
+// Locked-entry review: "Save Changes" stays disabled until the form actually
+// differs from what was loaded.
+//
+// Implementation note: the date/time pickers (pickers.js) write input values
+// programmatically and dispatch NO input/change events, so event listeners
+// alone would miss picker edits. Instead we snapshot the serialized form
+// state at load and re-compare on interaction. Symmetric by construction:
+// editing a field and then restoring its original value re-disables the
+// button. The backend has its own guard (entries.edit_session makes a
+// no-change save of a locked entry a true no-op), so this is UX, not
+// integrity.
+// ---------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', function() {
+    const saveBtn = document.getElementById('save-changes-btn');
+    if (!saveBtn) return;  // Only present on locked-entry edit forms
+    const form = saveBtn.closest('form');
+    if (!form) return;
+
+    const serialize = () => new URLSearchParams(new FormData(form)).toString();
+    const baseline = serialize();
+
+    const refresh = () => {
+        const dirty = serialize() !== baseline;
+        saveBtn.disabled = !dirty;
+        saveBtn.textContent = dirty ? 'Save Changes' : 'No Changes';
+    };
+
+    form.addEventListener('input', refresh);
+    form.addEventListener('change', refresh);
+    // Catches picker writes: their click handlers set values before this
+    // document-level listener runs in the bubble phase.
+    document.addEventListener('click', refresh);
+});

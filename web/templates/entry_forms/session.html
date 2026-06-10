@@ -287,8 +287,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Save Session (Hard Right) -->
             {% if is_edit %}
                 {% if is_locked %}
-                    <!-- Locked entry - only "Save Changes" -->
-                    <button type="submit" class="btn">Save Changes</button>
+                    <!-- Locked entry — Save activates once the form is edited (session.js) -->
+                    <button type="submit" class="btn" id="save-changes-btn" disabled>No Changes</button>
                 {% else %}
                     <!-- Unlocked draft - "Save Draft" + "Save & Lock" -->
                     <div class="save-buttons">
