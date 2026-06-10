@@ -16,6 +16,7 @@ from ai.assistant import (
     MODEL_REPO,
     MODEL_FILENAME,
     MODEL_DIR,
+    MODEL_SHA256,
 )
 
 from ai.prompts import (
@@ -46,4 +47,5 @@ __all__ = [
     'MODEL_REPO',
     'MODEL_FILENAME',
     'MODEL_DIR',
+    'MODEL_SHA256',
 ]

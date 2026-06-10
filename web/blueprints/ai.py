@@ -95,11 +95,18 @@ def ai_download():
                 downloaded = 0
                 last_update = 0
                 chunk_size = 1024 * 1024  # 1MB chunks
-                
+
+                # Hash incrementally while streaming so verification adds
+                # no second pass over the ~5GB file.
+                import hashlib
+                from ai import MODEL_SHA256
+                hasher = hashlib.sha256()
+
                 with open(temp_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=chunk_size):
                         if chunk:
                             f.write(chunk)
+                            hasher.update(chunk)
                             downloaded += len(chunk)
                             
                             # Send progress update every ~10MB
@@ -111,11 +118,23 @@ def ai_download():
                                 }
                                 yield f"data: {json.dumps(progress_data)}\n\n"
                                 last_update = downloaded
-                
+
+                # Verify against the pinned official hash before accepting.
+                # A mismatch means corruption in transit or a tampered file
+                # — either way it must never be loaded into memory.
+                yield f"data: {json.dumps({'status': 'verifying', 'message': 'Verifying download integrity...'})}\n\n"
+                if hasher.hexdigest() != MODEL_SHA256:
+                    temp_path.unlink(missing_ok=True)
+                    raise RuntimeError(
+                        "Downloaded model failed SHA-256 verification and "
+                        "was deleted. The file was corrupted in transit or "
+                        "does not match the official release — try again."
+                    )
+
                 # Move temp file to final location
                 temp_path.rename(model_path)
                 
-                yield f"data: {json.dumps({'status': 'complete', 'message': 'Download complete!'})}\n\n"
+                yield f"data: {json.dumps({'status': 'complete', 'message': 'Download complete and verified!'})}\n\n"
                 
             except Exception as e:
                 # Clean up temp file on error
@@ -286,7 +305,9 @@ def scribe_save(entry_id):
     if not _db:
         return jsonify({'error': 'Not logged in'}), 401
     
-    data = request.json
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'No JSON data'}), 400
     new_content = data.get('content', '').strip()
     
     if not new_content:

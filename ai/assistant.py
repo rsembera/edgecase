@@ -25,6 +25,11 @@ _model_loaded = False
 MODEL_REPO = "NousResearch/Hermes-3-Llama-3.1-8B-GGUF"
 MODEL_FILENAME = "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
 MODEL_DIR = MODELS_DIR
+# SHA-256 of the official Q4_K_M file. Verified two ways on 2026-06-09:
+# HuggingFace's LFS metadata for the repo, and an independent hash of a
+# locally downloaded copy. Downloads that don't match are deleted —
+# protects every install against a tampered or corrupted model file.
+MODEL_SHA256 = "d4403ce5a6e930f4c2509456388c20d633a15ff08dd52ef3b142ff1810ec3553"
 
 # Generation parameters (tuned for clinical notes - low temp for consistency)
 GENERATION_PARAMS = {
@@ -185,6 +190,20 @@ def check_system_capability() -> tuple[bool, str]:
     return True, config['platform_info']
 
 
+def verify_model_file(path) -> bool:
+    """SHA-256 integrity check of a model file against MODEL_SHA256.
+
+    Used by both download paths (assistant.download_model and the
+    blueprint's streaming download) before a downloaded file is accepted.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            h.update(chunk)
+    return h.hexdigest() == MODEL_SHA256
+
+
 def download_model(progress_callback=None) -> bool:
     """
     Download the model from Hugging Face.
@@ -204,7 +223,17 @@ def download_model(progress_callback=None) -> bool:
             local_dir=MODEL_DIR,
             local_dir_use_symlinks=False,
         )
-        print(f"[AI Scribe] Download complete")
+        # Verify against the pinned hash before accepting the file
+        model_path = MODEL_DIR / MODEL_FILENAME
+        print(f"[AI Scribe] Verifying download integrity...")
+        if not verify_model_file(model_path):
+            model_path.unlink(missing_ok=True)
+            raise RuntimeError(
+                "Downloaded model failed SHA-256 verification and was "
+                "deleted. The file was corrupted in transit or does not "
+                "match the official release — try again."
+            )
+        print(f"[AI Scribe] Download complete and verified")
         return True
     except Exception as e:
         print(f"[AI Scribe] Download failed: {e}")
