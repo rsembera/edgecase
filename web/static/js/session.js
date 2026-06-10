@@ -456,7 +456,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // entries (entries.edit_session), so the button state is UX, not integrity.
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form[method="post"]');
+    // Select the entry form BY ID: edit-mode pages contain a second POST
+    // form (the redact button component, which renders before this one),
+    // so form[method="post"] or forms[0] would bind the wrong form and
+    // silently disable dirty detection on exactly the pages that need it.
+    const form = document.getElementById('session-entry-form');
     if (!form) return;
 
     const saveBtn = document.getElementById('save-changes-btn');  // locked mode only
@@ -465,8 +469,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDirty = () => serialize() !== baseline;
 
     // Set when leaving is legitimate: a save in progress, or the user has
-    // already confirmed a navigation — prevents the beforeunload dialog
-    // from double-prompting after our own confirm().
+    // confirmed a navigation via the modal — prevents the beforeunload
+    // dialog from double-prompting.
     let leavingDeliberately = false;
 
     const refreshSaveButton = () => {
@@ -484,21 +488,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     form.addEventListener('submit', () => { leavingDeliberately = true; });
 
-    // In-page navigation (Cancel/Back, Prev, Next): specific message,
-    // chance to stay.
-    document.querySelectorAll('.entry-form-actions a.btn').forEach((link) => {
-        link.addEventListener('click', (e) => {
-            if (!isDirty()) return;
-            if (confirm('You have unsaved changes. Leave without saving?')) {
-                leavingDeliberately = true;
-            } else {
-                e.preventDefault();
-            }
-        });
-    });
+    // In-page navigation (Cancel/Back, Prev, Next): custom modal with the
+    // destination remembered until the user decides.
+    const modal = document.getElementById('unsaved-changes-modal');
+    const stayBtn = document.getElementById('unsaved-stay-btn');
+    const leaveBtn = document.getElementById('unsaved-leave-btn');
+    let pendingHref = null;
 
-    // Everything else (tab close, reload, address bar): browser-native
-    // generic warning.
+    if (modal && stayBtn && leaveBtn) {
+        document.querySelectorAll('.entry-form-actions a.btn').forEach((link) => {
+            link.addEventListener('click', (e) => {
+                if (!isDirty()) return;
+                e.preventDefault();
+                pendingHref = link.href;
+                modal.style.display = 'flex';
+            });
+        });
+
+        stayBtn.addEventListener('click', () => {
+            pendingHref = null;
+            modal.style.display = 'none';
+        });
+
+        leaveBtn.addEventListener('click', () => {
+            if (!pendingHref) return;
+            leavingDeliberately = true;
+            modal.style.display = 'none';
+            window.location.assign(pendingHref);
+        });
+    }
+
+    // Everything else (tab close, reload, address bar): the browser allows
+    // only its own native warning here — custom UI is not possible.
     window.addEventListener('beforeunload', (e) => {
         if (!leavingDeliberately && isDirty()) {
             e.preventDefault();
