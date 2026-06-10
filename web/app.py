@@ -77,6 +77,72 @@ from flask_wtf.csrf import CSRFProtect
 app = Flask(__name__)
 app.config['SECRET_KEY'] = _get_secret_key()
 
+
+# ============================================================================
+# HOST HEADER VALIDATION (DNS rebinding protection)
+#
+# EdgeCase binds to localhost, but localhost binding alone does not stop
+# DNS rebinding: a malicious page in the user's own browser can point its
+# domain at 127.0.0.1 and then issue requests that the browser treats as
+# same-origin — bypassing both same-origin policy and the CSRF JSON
+# exemption below, whose safety argument assumes cross-origin requests
+# stay cross-origin. Rebound requests arrive with the attacker's domain in
+# the Host header, so rejecting unexpected Hosts kills the technique for
+# every endpoint, including the login page.
+#
+# Allowed by default: localhost, 127.0.0.1, ::1 (any port).
+# In LAN mode (EDGECASE_LAN=1): additionally private-range and
+# Tailscale CGNAT (100.64/10) IP literals — covers "iPad on home Wi-Fi"
+# and Tailscale-IP access without admitting public DNS names.
+# EDGECASE_ALLOWED_HOSTS (comma-separated) covers anything else, e.g. a
+# Tailscale MagicDNS hostname.
+# ============================================================================
+
+_LOCAL_HOSTNAMES = {'localhost', '127.0.0.1', '::1'}
+
+
+def _host_is_allowed(host: str) -> bool:
+    """Return True if the request's Host header is an expected local host."""
+    import ipaddress
+    if not host:
+        return False
+    # Strip the port: '[::1]:8080' → '::1', 'localhost:8080' → 'localhost'
+    if host.startswith('['):
+        hostname = host.partition(']')[0].lstrip('[')
+    else:
+        hostname = host.rsplit(':', 1)[0] if ':' in host else host
+    hostname = hostname.lower().rstrip('.')
+
+    if hostname in _LOCAL_HOSTNAMES:
+        return True
+
+    extra = os.environ.get('EDGECASE_ALLOWED_HOSTS', '')
+    if hostname in {h.strip().lower() for h in extra.split(',') if h.strip()}:
+        return True
+
+    if os.environ.get('EDGECASE_LAN') == '1':
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            return False  # LAN mode admits IP literals, not DNS names
+        return (ip.is_private or ip.is_loopback
+                or ip in ipaddress.ip_network('100.64.0.0/10'))
+
+    return False
+
+
+@app.before_request
+def validate_host_header():
+    """Reject requests whose Host header is not a recognized local host.
+
+    Runs before everything else (including the login page and static
+    files) — a DNS-rebound request must never reach any handler.
+    """
+    if not _host_is_allowed(request.host):
+        return ('Invalid Host header. EdgeCase only accepts requests '
+                'addressed to localhost (or configured LAN hosts).'), 403
+
+
 # CSRF Protection - protects form submissions
 # JSON API requests are exempt (protected by same-origin policy)
 csrf = CSRFProtect(app)
@@ -288,6 +354,16 @@ def require_login():
     if not db:
         if is_api_request():
             return jsonify({'success': False, 'error': 'session_expired', 'message': 'Please log in again'}), 401
+        return redirect(url_for('auth.login'))
+
+    # The unlocked database is app-global, so it cannot by itself prove
+    # *this* client logged in — without this check, any cookieless request
+    # (another device in LAN mode, or any local process) gets full access
+    # the moment anyone is logged in anywhere. Require the session marker
+    # set by auth.login so the cookie is the actual per-client credential.
+    if not session.get('authenticated'):
+        if is_api_request():
+            return jsonify({'success': False, 'error': 'not_authenticated', 'message': 'Please log in'}), 401
         return redirect(url_for('auth.login'))
     
     # Get session timeout from database (default 30 minutes)

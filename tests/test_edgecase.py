@@ -1363,6 +1363,91 @@ class TestBackupRestoreRoundTrip:
 
 
 # ============================================================================
+# REQUEST-LAYER SECURITY (Host validation + per-client session auth)
+#
+# These are the first tests that exercise the Flask app itself rather than
+# the database layer. They cover the 2026-06-09 fixes:
+# - Host-header validation (DNS rebinding protection): requests not
+#   addressed to a recognized local host are rejected before any handler.
+# - Per-client session authentication: an unlocked database is app-global
+#   and must not by itself grant access — each client needs the session
+#   marker set by auth.login.
+# ============================================================================
+
+class TestRequestSecurity:
+    """Host-header validation and session authentication enforcement."""
+
+    @pytest.fixture
+    def flask_app(self, db):
+        """The real Flask app with the test database installed as 'unlocked'."""
+        from web.app import app
+        prev_db = app.config.get('db')
+        app.config['db'] = db
+        app.config['TESTING'] = True
+        yield app
+        app.config['db'] = prev_db
+
+    def test_rebound_host_rejected(self, flask_app):
+        """A request with a foreign Host header (DNS rebinding) gets 403."""
+        client = flask_app.test_client()
+        resp = client.get('/', headers={'Host': 'attacker.example.com'})
+        assert resp.status_code == 403
+
+    def test_rebound_host_rejected_even_for_login(self, flask_app):
+        """Host validation runs for ALL endpoints, including the login page."""
+        client = flask_app.test_client()
+        resp = client.get('/login', headers={'Host': 'attacker.example.com'})
+        assert resp.status_code == 403
+
+    def test_localhost_hosts_allowed(self, flask_app):
+        """localhost and 127.0.0.1 (any port) pass Host validation."""
+        client = flask_app.test_client()
+        for host in ('localhost:8080', '127.0.0.1:8080', 'localhost'):
+            resp = client.get('/login', headers={'Host': host})
+            assert resp.status_code == 200, f"Host {host!r} should be allowed"
+
+    def test_lan_mode_host_rules(self, flask_app, monkeypatch):
+        """LAN mode admits private-range IP literals but never DNS names."""
+        from web.app import _host_is_allowed
+        monkeypatch.setenv('EDGECASE_LAN', '1')
+        assert _host_is_allowed('192.168.1.50:8080')
+        assert _host_is_allowed('10.0.0.7:8080')
+        assert _host_is_allowed('100.99.1.2:8080')  # Tailscale CGNAT range
+        assert not _host_is_allowed('attacker.example.com:8080')
+        assert not _host_is_allowed('8.8.8.8:8080')  # public IP literal
+        monkeypatch.delenv('EDGECASE_LAN')
+        # Outside LAN mode, private IPs are NOT accepted
+        assert not _host_is_allowed('192.168.1.50:8080')
+
+    def test_cookieless_request_rejected_while_unlocked(self, flask_app):
+        """An unlocked database must not grant access to a client with no
+        authenticated session — the pre-fix behavior let any cookieless
+        request straight through."""
+        client = flask_app.test_client()
+        resp = client.get('/', headers={'Host': 'localhost:8080'})
+        # Browser request -> redirected to login, never the home page
+        assert resp.status_code in (301, 302)
+        assert '/login' in resp.headers.get('Location', '')
+
+    def test_cookieless_api_request_gets_401(self, flask_app):
+        """API requests without an authenticated session get JSON 401."""
+        client = flask_app.test_client()
+        resp = client.get('/api/restore-message',
+                          headers={'Host': 'localhost:8080'})
+        assert resp.status_code == 401
+
+    def test_authenticated_session_passes(self, flask_app):
+        """A session carrying the auth.login marker is accepted."""
+        client = flask_app.test_client()
+        with client.session_transaction() as sess:
+            sess['authenticated'] = True
+            sess['last_activity'] = time.time()
+        resp = client.get('/api/restore-message',
+                          headers={'Host': 'localhost:8080'})
+        assert resp.status_code == 200
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 

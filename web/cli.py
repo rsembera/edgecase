@@ -205,6 +205,17 @@ def run():
     # Bind to localhost only by default (security: don't expose to network)
     # Use --lan flag or EDGECASE_LAN=1 for access from other devices (e.g. iPad)
     lan_mode = '--lan' in sys.argv or os.environ.get('EDGECASE_LAN') == '1'
+    if lan_mode:
+        # Canonical signal for the rest of the app (web/app.py reads this
+        # to widen Host-header validation to private-range IP literals)
+        os.environ['EDGECASE_LAN'] = '1'
+        print("\n" + "!" * 60)
+        print("WARNING: LAN mode serves over unencrypted HTTP.")
+        print("Your master password and client data cross the network in")
+        print("plaintext — only use LAN mode on a network you fully trust.")
+        print("For remote access, prefer keeping the default localhost")
+        print("binding and connecting through Tailscale or an SSH tunnel.")
+        print("!" * 60)
     bind_host = '0.0.0.0' if lan_mode else '127.0.0.1'
     
     # Check for --dev flag for development mode with auto-reload
