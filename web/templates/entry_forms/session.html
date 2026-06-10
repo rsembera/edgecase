@@ -264,8 +264,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- Navigation and Action Buttons -->
         <div class="entry-form-actions">
-            <!-- Cancel (Hard Left) -->
-            <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
+            <!-- Cancel/Back (Hard Left) — "Back" when reviewing a locked entry, "Cancel" when there's work to abandon -->
+            <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">{% if is_edit and is_locked %}Back{% else %}Cancel{% endif %}</a>
             
             <!-- Previous/Next (Center) - only in edit mode -->
             {% if is_edit %}

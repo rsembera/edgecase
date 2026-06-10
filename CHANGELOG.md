@@ -9,6 +9,8 @@ Format: Each entry includes date, version (if applicable), and description.
 ## [Unreleased]
 
 ### 2026-06-10 (locked-entry audit coherence)
+- **Unsaved-changes protection on the session form (all modes)**: there was previously no guard at all — navigating away from a half-written session note via Cancel, Prev/Next, tab close, or reload lost it silently. Dirty state (same snapshot comparison as below) now gates navigation: in-page links ask "You have unsaved changes. Leave without saving?", everything else gets the browser-native beforeunload warning. Saving never prompts, and confirming a link doesn't double-prompt.
+- **Cancel relabelled "Back" on locked entries**: when reviewing a locked session there's nothing to cancel; the label now reflects that. New entries and drafts keep "Cancel".
 - **No-change saves of locked sessions are now true no-ops**: clicking "Save Changes" on a locked session with no edits previously wrote nothing to the amendment history (already correctly guarded) but still bumped `modified_at` — leaving the record asserting a modification the amendment trail doesn't show. The route now returns without writing when the change set is empty.
 - **"Save Changes" on locked sessions is disabled until the form is edited**: the button reads "No Changes" and activates when the form state actually differs from what was loaded (snapshot comparison in `session.js`, since the date/time pickers write values without firing events; restoring a field to its original value re-disables it). UI polish on top of the backend guard, not a substitute for it.
 
