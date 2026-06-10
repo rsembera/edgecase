@@ -4,6 +4,49 @@ This document tracks architectural improvements and refactoring ideas that aren'
 
 ---
 
+## Stronger First-Run Password Policy
+
+**Priority:** Medium (highest-value security item for *distributed* installs)  
+**Effort:** Small (under an hour)  
+**Status:** Documented, not scheduled — good candidate to ride along with the next .deb/.dmg rebuild
+
+### Rationale
+
+All of EdgeCase's encryption (SQLCipher database, Fernet attachments) derives its keys from the master password. The KDFs in use (PBKDF2, 256k–480k iterations) are sound, but no KDF rescues a weak password: the current 8-character minimum allows passwords that fall to a GPU cracking rig regardless of derivation function. Password entropy dominates every other crypto parameter in this system. This costs nothing at runtime, requires no migration, and protects the users least likely to read security documentation.
+
+### Proposed change
+
+On the first-run (database creation) screen only:
+- Raise the minimum to 12 characters, and/or
+- Suggest a generated passphrase (e.g. four random words) with a one-line explanation that this password is the encryption key for all client data and cannot be recovered if lost.
+
+Existing installs are unaffected (the check only runs at database creation).
+
+---
+
+## Argon2id for Attachment Encryption
+
+**Priority:** Low  
+**Effort:** Medium (3-4 hours including migration testing)  
+**Status:** Documented, not scheduled
+
+### Rationale
+
+Attachment keys are currently derived with PBKDF2-HMAC-SHA256 (480k iterations). PBKDF2 is compute-hard but memory-light, so it parallelizes well on GPUs; Argon2id is memory-hard and neutralizes that advantage. OWASP lists Argon2id as the preferred KDF. The practical gain is real only against weak/medium passwords — against a strong generated password both are computationally hopeless — so the password-policy item above delivers more protection for far less risk. The `cryptography` dependency already includes Argon2id support (since v44), so no new dependency is needed.
+
+### Proposed approach (when/if done)
+
+1. Version the encrypted file format: new files get a 1-byte format prefix (e.g. `0x02`) before the Fernet token; absence of the prefix = legacy PBKDF2 file.
+2. `decrypt_file_to_bytes()` dispatches on the prefix — both formats remain readable forever.
+3. Lazy migration: re-encrypt each attachment with Argon2id the next time it is decrypted for any reason (view/export/backup verification), or via an explicit one-shot migration in Settings.
+4. Cache the Argon2id-derived Fernet exactly as the PBKDF2 one is cached today (`_fernet_cache`).
+
+### Explicitly out of scope
+
+The SQLCipher database KDF stays PBKDF2: that is what SQLCipher implements internally. Replacing it would mean deriving raw keys outside SQLCipher (`PRAGMA key = "x'...'"`), moving key-derivation correctness from a battle-tested library into application code — contrary to this codebase's "no homegrown crypto" principle. Not worth it.
+
+---
+
 ## Backup System: External State File
 
 **Priority:** Low  
