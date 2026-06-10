@@ -791,6 +791,13 @@ def edit_session(client_id, entry_id):
                 if changes:
                     change_desc = "; ".join(changes)
                     db.add_to_edit_history(entry_id, change_desc)
+                else:
+                    # No-change save on a locked entry: make it a true no-op.
+                    # Writing would bump modified_at past the last amendment,
+                    # asserting an edit the amendment trail doesn't show.
+                    # (The form disables Save until dirty; this guards stale
+                    # tabs and double-submits at the data layer.)
+                    return redirect(url_for('clients.client_file', client_id=client_id))
             
         # Save updated session
         db.update_entry(entry_id, session_data, allow_locked=True)

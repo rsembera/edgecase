@@ -112,3 +112,13 @@ textarea[name="content"] {
 .hidden-data {
     display: none;
 }
+
+
+/* Locked-entry review: Save disabled until the form is edited (session.js) */
+button.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+button.btn:disabled:hover {
+    opacity: 0.5;
+}

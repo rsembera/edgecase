@@ -8,6 +8,10 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-10 (locked-entry audit coherence)
+- **No-change saves of locked sessions are now true no-ops**: clicking "Save Changes" on a locked session with no edits previously wrote nothing to the amendment history (already correctly guarded) but still bumped `modified_at` — leaving the record asserting a modification the amendment trail doesn't show. The route now returns without writing when the change set is empty.
+- **"Save Changes" on locked sessions is disabled until the form is edited**: the button reads "No Changes" and activates when the form state actually differs from what was loaded (snapshot comparison in `session.js`, since the date/time pickers write values without firing events; restoring a field to its original value re-disables it). UI polish on top of the backend guard, not a substitute for it.
+
 ### 2026-06-09 (request-layer security)
 - **Per-client session authentication enforced**: `require_login` previously gated only on the app-global unlocked database — `session['authenticated']` was set at login but never checked, so any cookieless request (another device in LAN mode, or any local process) had full access the moment anyone was logged in anywhere. The session marker is now required; each browser/device must present the master password to get its own session. Login already re-verifies the password by opening the database with it, so no change was needed there.
 - **Host-header validation (DNS rebinding protection)**: localhost binding alone doesn't stop a malicious web page from rebinding its domain to 127.0.0.1 and making what the browser then treats as same-origin requests — which also bypassed the CSRF JSON exemption's safety rationale. A new first-in-line `before_request` rejects (403) any request whose Host isn't localhost/127.0.0.1/::1; LAN mode (`EDGECASE_LAN=1`) additionally admits private-range and Tailscale CGNAT (100.64/10) IP literals but never DNS names; `EDGECASE_ALLOWED_HOSTS` (comma-separated) covers e.g. Tailscale MagicDNS hostnames. Applies to every endpoint including login and static files.
