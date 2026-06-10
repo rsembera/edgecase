@@ -439,36 +439,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // ---------------------------------------------------------------------------
-// Locked-entry review: "Save Changes" stays disabled until the form actually
-// differs from what was loaded.
+// Form dirty-tracking — two consumers:
+//
+// 1. Locked-entry review: "Save Changes" stays disabled (labelled "No
+//    Changes") until the form actually differs from what was loaded.
+// 2. All modes: unsaved-changes protection. Navigating away from a dirty
+//    form — Cancel/Back, Prev/Next, tab close, reload — asks first.
+//    Session notes are the most expensive thing in the app to lose.
 //
 // Implementation note: the date/time pickers (pickers.js) write input values
 // programmatically and dispatch NO input/change events, so event listeners
 // alone would miss picker edits. Instead we snapshot the serialized form
-// state at load and re-compare on interaction. Symmetric by construction:
-// editing a field and then restoring its original value re-disables the
-// button. The backend has its own guard (entries.edit_session makes a
-// no-change save of a locked entry a true no-op), so this is UX, not
-// integrity.
+// state at load and re-compare on demand. Symmetric by construction:
+// editing a field and then restoring its original value reads as clean.
+// The backend has its own no-op guard for no-change saves of locked
+// entries (entries.edit_session), so the button state is UX, not integrity.
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
-    const saveBtn = document.getElementById('save-changes-btn');
-    if (!saveBtn) return;  // Only present on locked-entry edit forms
-    const form = saveBtn.closest('form');
+    const form = document.querySelector('form[method="post"]');
     if (!form) return;
 
+    const saveBtn = document.getElementById('save-changes-btn');  // locked mode only
     const serialize = () => new URLSearchParams(new FormData(form)).toString();
     const baseline = serialize();
+    const isDirty = () => serialize() !== baseline;
 
-    const refresh = () => {
-        const dirty = serialize() !== baseline;
+    // Set when leaving is legitimate: a save in progress, or the user has
+    // already confirmed a navigation — prevents the beforeunload dialog
+    // from double-prompting after our own confirm().
+    let leavingDeliberately = false;
+
+    const refreshSaveButton = () => {
+        if (!saveBtn) return;
+        const dirty = isDirty();
         saveBtn.disabled = !dirty;
         saveBtn.textContent = dirty ? 'Save Changes' : 'No Changes';
     };
 
-    form.addEventListener('input', refresh);
-    form.addEventListener('change', refresh);
+    form.addEventListener('input', refreshSaveButton);
+    form.addEventListener('change', refreshSaveButton);
     // Catches picker writes: their click handlers set values before this
     // document-level listener runs in the bubble phase.
-    document.addEventListener('click', refresh);
+    document.addEventListener('click', refreshSaveButton);
+
+    form.addEventListener('submit', () => { leavingDeliberately = true; });
+
+    // In-page navigation (Cancel/Back, Prev, Next): specific message,
+    // chance to stay.
+    document.querySelectorAll('.entry-form-actions a.btn').forEach((link) => {
+        link.addEventListener('click', (e) => {
+            if (!isDirty()) return;
+            if (confirm('You have unsaved changes. Leave without saving?')) {
+                leavingDeliberately = true;
+            } else {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Everything else (tab close, reload, address bar): browser-native
+    // generic warning.
+    window.addEventListener('beforeunload', (e) => {
+        if (!leavingDeliberately && isDirty()) {
+            e.preventDefault();
+            e.returnValue = '';  // required for the dialog in some browsers
+        }
+    });
 });
