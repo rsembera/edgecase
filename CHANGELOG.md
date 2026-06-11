@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-11 (silent validation failures made visible)
+- **A blocked save now says why.** The session form's required selects are hidden by Choices.js; when one is invalid, the browser refuses to submit but cannot focus the hidden control to show its validation bubble — verified in headless Chromium to produce no bubble and no console output. The save button simply appeared dead. Submit-button clicks are now intercepted: an invalid form gets native validation bubbles when every invalid field is visible, or an in-app "Missing Required Information" modal naming the fields when any is hidden. Investigated after a report of "Save Changes needs two clicks" on a locked session — that exact symptom could not be reproduced with synthetic data (first click saves correctly in both jsdom and real Chromium on a valid form), so whatever field is invalid on the affected page will now identify itself instead of failing silently.
+
 ### 2026-06-11 (tab-close warning restored)
 - **Native unsaved-changes warning on tab close/reload is back.** Deferred from 2026-06-10 once its three misfire causes were identified and fixed (form bound by id; baseline re-sync after async picker init; capture-phase guard preempting the disconnect handler). The guard prompts only when the form is genuinely dirty, and is disarmed on an un-prevented form submit and on the modal's Leave Without Saving — so it never stacks with the modal and never fires on a deliberate leave. Verified in the jsdom harness (real rendered page including base.html's inline scripts) across six scenarios: natural picker re-baseline, no false-dirty on untouched forms, prompt on dirty unload, modal-without-navigation on dirty in-app clicks, persistence after Stay Here, and silence after Leave.
 
