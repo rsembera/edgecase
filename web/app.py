@@ -77,6 +77,18 @@ from flask_wtf.csrf import CSRFProtect
 app = Flask(__name__)
 app.config['SECRET_KEY'] = _get_secret_key()
 
+# Static asset cache-busting: a per-process version appended to asset URLs
+# (?v=...) so browsers fetch fresh CSS/JS after every server restart.
+# Safari in particular reuses its in-memory copy of subresources within a
+# session even when the server supports conditional revalidation, which
+# makes "is it fixed or is it cached?" a real failure mode after updates.
+app.config['STATIC_VERSION'] = str(int(time.time()))
+
+
+@app.context_processor
+def inject_static_version():
+    return {'static_v': app.config['STATIC_VERSION']}
+
 
 # ============================================================================
 # HOST HEADER VALIDATION (DNS rebinding protection)
