@@ -468,10 +468,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const baseline = serialize();
     const isDirty = () => serialize() !== baseline;
 
-    // Set when leaving is legitimate: a save in progress, or the user has
-    // confirmed a navigation via the modal — prevents the beforeunload
-    // dialog from double-prompting.
-    let leavingDeliberately = false;
+    // Suppression must be structural, not conditional: Safari has been
+    // seen showing its native dialog despite an in-handler flag check, so
+    // before any deliberate navigation we REMOVE the listener — a handler
+    // that no longer exists cannot prompt.
+    const onBeforeUnload = (e) => {
+        if (isDirty()) {
+            e.preventDefault();
+            e.returnValue = '';  // required for the dialog in some browsers
+        }
+    };
+    const disarmUnloadGuard = () => {
+        window.removeEventListener('beforeunload', onBeforeUnload);
+    };
 
     const refreshSaveButton = () => {
         if (!saveBtn) return;
@@ -486,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // document-level listener runs in the bubble phase.
     document.addEventListener('click', refreshSaveButton);
 
-    form.addEventListener('submit', () => { leavingDeliberately = true; });
+    form.addEventListener('submit', disarmUnloadGuard);
 
     // In-page navigation (Cancel/Back, Prev, Next): custom modal with the
     // destination remembered until the user decides.
@@ -512,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         leaveBtn.addEventListener('click', () => {
             if (!pendingHref) return;
-            leavingDeliberately = true;
+            disarmUnloadGuard();
             modal.style.display = 'none';
             window.location.assign(pendingHref);
         });
@@ -520,10 +529,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Everything else (tab close, reload, address bar): the browser allows
     // only its own native warning here — custom UI is not possible.
-    window.addEventListener('beforeunload', (e) => {
-        if (!leavingDeliberately && isDirty()) {
-            e.preventDefault();
-            e.returnValue = '';  // required for the dialog in some browsers
-        }
-    });
+    window.addEventListener('beforeunload', onBeforeUnload);
 });
