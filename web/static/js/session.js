@@ -365,6 +365,12 @@ async function initSessionPickers() {
             timeInput.value = timePicker.getTime();
         }
     }
+
+    // Picker init is async (awaits the time-format setting) and writes
+    // form values (default time above) AFTER the dirty-tracking baseline
+    // is captured at DOMContentLoaded. Announce completion so the guard
+    // can re-baseline; otherwise the form reads as dirty from page load.
+    document.dispatchEvent(new Event('pickers:ready'));
 }
 
 // Initialize pickers when DOM is ready
@@ -465,8 +471,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const saveBtn = document.getElementById('save-changes-btn');  // locked mode only
     const serialize = () => new URLSearchParams(new FormData(form)).toString();
-    const baseline = serialize();
+    let baseline = serialize();
     const isDirty = () => serialize() !== baseline;
+
+    // Re-baseline when async picker init finishes: it writes form values
+    // (e.g. a default time) AFTER the snapshot above, which otherwise
+    // leaves the form permanently "dirty" from page load — prompting on
+    // every reload/close with no user edit. If the user has already
+    // edited, their dirty state wins and we skip the re-baseline.
+    let userEdited = false;
+    document.addEventListener('pickers:ready', () => {
+        if (!userEdited) {
+            baseline = serialize();
+            refreshSaveButton();
+        }
+    });
 
     // Suppression must be structural, not conditional: Safari has been
     // seen showing its native dialog despite an in-handler flag check, so
@@ -489,8 +508,9 @@ document.addEventListener('DOMContentLoaded', function() {
         saveBtn.textContent = dirty ? 'Save Changes' : 'No Changes';
     };
 
-    form.addEventListener('input', refreshSaveButton);
-    form.addEventListener('change', refreshSaveButton);
+    const markUserEdited = () => { userEdited = true; refreshSaveButton(); };
+    form.addEventListener('input', markUserEdited);
+    form.addEventListener('change', markUserEdited);
     // Catches picker writes: their click handlers set values before this
     // document-level listener runs in the bubble phase.
     document.addEventListener('click', refreshSaveButton);
