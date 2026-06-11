@@ -487,20 +487,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Suppression must be structural, not conditional: Safari has been
-    // seen showing its native dialog despite an in-handler flag check, so
-    // before any deliberate navigation we REMOVE the listener — a handler
-    // that no longer exists cannot prompt.
-    const onBeforeUnload = (e) => {
-        if (isDirty()) {
-            e.preventDefault();
-            e.returnValue = '';  // required for the dialog in some browsers
-        }
-    };
-    const disarmUnloadGuard = () => {
-        window.removeEventListener('beforeunload', onBeforeUnload);
-    };
-
     const refreshSaveButton = () => {
         if (!saveBtn) return;
         const dirty = isDirty();
@@ -515,10 +501,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // document-level listener runs in the bubble phase.
     document.addEventListener('click', refreshSaveButton);
 
-    form.addEventListener('submit', disarmUnloadGuard);
-
     // In-page navigation (Cancel/Back, Prev, Next): custom modal with the
     // destination remembered until the user decides.
+    //
+    // NOTE: deliberately NO window beforeunload guard. A native
+    // leave-page warning on tab close/reload kept misfiring across
+    // browsers (see Session log 2026-06-10) and is not worth the UX
+    // risk; the modal covers the in-app navigation paths where notes
+    // actually get lost.
     const modal = document.getElementById('unsaved-changes-modal');
     const stayBtn = document.getElementById('unsaved-stay-btn');
     const leaveBtn = document.getElementById('unsaved-leave-btn');
@@ -541,13 +531,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         leaveBtn.addEventListener('click', () => {
             if (!pendingHref) return;
-            disarmUnloadGuard();
             modal.style.display = 'none';
             window.location.assign(pendingHref);
         });
     }
 
-    // Everything else (tab close, reload, address bar): the browser allows
-    // only its own native warning here — custom UI is not possible.
-    window.addEventListener('beforeunload', onBeforeUnload);
 });
