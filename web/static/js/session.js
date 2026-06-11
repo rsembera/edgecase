@@ -501,6 +501,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // document-level listener runs in the bubble phase.
     document.addEventListener('click', refreshSaveButton);
 
+    // Tab close / reload / browser back / address bar: the browser's
+    // native warning — the only UI browsers permit at beforeunload.
+    // Reintroduced 2026-06-11 now that its three historical misfire
+    // causes are fixed: the form is bound by id (not the redact form),
+    // the baseline re-syncs after async picker init (no false-dirty
+    // from page load), and the capture-phase guard below stops the
+    // disconnect handler from navigating on dirty in-app clicks (so
+    // this can never stack with the modal). Deliberate leaves disarm
+    // it: an un-prevented form submit (nothing preventDefaults the
+    // submit event or calls form.submit() programmatically — audited
+    // 2026-06-11) and the modal's Leave Without Saving.
+    const onBeforeUnload = (e) => {
+        if (isDirty()) {
+            e.preventDefault();
+            e.returnValue = '';  // some browsers require this for the dialog
+        }
+    };
+    const disarmUnloadGuard = () => window.removeEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    form.addEventListener('submit', disarmUnloadGuard);
+
     // In-page navigation (Cancel/Back, Prev, Next): custom modal with the
     // destination remembered until the user decides.
     //
@@ -542,6 +563,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         leaveBtn.addEventListener('click', () => {
             if (!pendingHref) return;
+            disarmUnloadGuard();
             modal.style.display = 'none';
             window.location.assign(pendingHref);
         });
