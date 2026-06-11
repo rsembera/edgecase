@@ -445,6 +445,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // ---------------------------------------------------------------------------
+// Visible validation for silent submit blocks.
+// The session form has required selects that Choices.js hides; when one is
+// invalid, the browser blocks submission WITHOUT firing the submit event
+// and — because it cannot focus a hidden control — often without any
+// visible feedback (verified in headless Chromium: no bubble, not even a
+// console message). The save button simply appears dead. Intercept
+// submit-button clicks: if the form is invalid, surface it — native
+// bubbles when every invalid control is visible, an in-app modal naming
+// the fields when any is hidden.
+// ---------------------------------------------------------------------------
+function showFormValidationModal(fieldLabels) {
+    let modal = document.getElementById('form-validation-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'form-validation-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>Missing Required Information</h3>
+                <p id="form-validation-fields"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn"
+                        onclick="document.getElementById('form-validation-modal').classList.remove('visible')">OK</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    document.getElementById('form-validation-fields').textContent =
+        'Please complete: ' + fieldLabels.join(', ') + '.';
+    modal.classList.add('visible');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('session-entry-form');
+    if (!form) return;
+
+    const labelFor = (el) => {
+        const lab = el.id && document.querySelector(`label[for="${el.id}"]`);
+        return (lab && lab.textContent.trim()) || el.name || el.id || 'A required field';
+    };
+
+    form.querySelectorAll('button[type="submit"]').forEach((btn) => {
+        if (btn.name === 'ai_scribe') return;  // scribe has its own validation
+        btn.addEventListener('click', (e) => {
+            if (form.checkValidity()) return;
+            const bad = Array.from(form.querySelectorAll(':invalid'));
+            e.preventDefault();
+            if (bad.every((el) => el.offsetParent !== null)) {
+                form.reportValidity();  // all visible: native bubbles work
+                return;
+            }
+            showFormValidationModal(bad.map(labelFor));
+        });
+    });
+});
+
+
+// ---------------------------------------------------------------------------
 // Form dirty-tracking — two consumers:
 //
 // 1. Locked-entry review: "Save Changes" stays disabled (labelled "No
