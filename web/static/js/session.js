@@ -504,25 +504,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // In-page navigation (Cancel/Back, Prev, Next): custom modal with the
     // destination remembered until the user decides.
     //
+    // CRITICAL PHASE NOTE: the base layout registers a capture-phase click
+    // handler on document that intercepts ALL same-origin link clicks
+    // (server-liveness check), preventDefault()s them itself, and then
+    // navigates PROGRAMMATICALLY via window.location.href. A bubble-phase
+    // listener therefore cannot stop those navigations — preventDefault
+    // is useless against a script-driven location change. This guard
+    // listens on WINDOW in the capture phase (which fires before document
+    // capture) and stops propagation when it intervenes, so the liveness
+    // handler never starts. Clean (non-dirty) clicks pass through to the
+    // normal liveness-checked navigation untouched.
+    //
     // NOTE: deliberately NO window beforeunload guard. A native
-    // leave-page warning on tab close/reload kept misfiring across
-    // browsers (see Session log 2026-06-10) and is not worth the UX
-    // risk; the modal covers the in-app navigation paths where notes
-    // actually get lost.
+    // leave-page warning kept misfiring (see CHANGELOG 2026-06-10 — the
+    // real trigger was this same liveness handler navigating despite the
+    // modal); the modal covers the in-app paths where notes get lost.
     const modal = document.getElementById('unsaved-changes-modal');
     const stayBtn = document.getElementById('unsaved-stay-btn');
     const leaveBtn = document.getElementById('unsaved-leave-btn');
     let pendingHref = null;
 
     if (modal && stayBtn && leaveBtn) {
-        document.querySelectorAll('.entry-form-actions a.btn').forEach((link) => {
-            link.addEventListener('click', (e) => {
-                if (!isDirty()) return;
-                e.preventDefault();
-                pendingHref = link.href;
-                modal.style.display = 'flex';
-            });
-        });
+        window.addEventListener('click', (e) => {
+            const t = e.target;
+            const link = t && t.closest ? t.closest('.entry-form-actions a.btn') : null;
+            if (!link || !isDirty()) return;
+            e.preventDefault();
+            e.stopPropagation();  // keeps the liveness handler from navigating
+            pendingHref = link.href;
+            modal.style.display = 'flex';
+        }, true);
 
         stayBtn.addEventListener('click', () => {
             pendingHref = null;
