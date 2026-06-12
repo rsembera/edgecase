@@ -337,3 +337,45 @@
         justify-content: flex-end;
     }
 }
+
+/* Change-review overlay (Show Changes): mirrors the textarea's box so the
+   swap is visually seamless. Deletions struck red, insertions green. */
+.diff-view {
+    width: 100%;
+    min-height: 450px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 0.75rem;
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--color-text);
+    background: var(--color-background-secondary);
+    box-sizing: border-box;
+}
+
+.diff-view del {
+    background: #FEE2E2;
+    color: #B91C1C;
+    text-decoration: line-through;
+    border-radius: 0.2rem;
+    padding: 0 0.15rem;
+}
+
+.diff-view strong {
+    background: #D1FAE5;
+    color: #065F46;
+    font-weight: 600;
+    border-radius: 0.2rem;
+    padding: 0 0.15rem;
+}
+
+/* Visibility utility: .btn rules set display with !important, which beats
+   inline styles — so hiding the Show Changes button needs its own
+   !important class rather than style.display. */
+#btn-show-changes.btn-gone {
+    display: none !important;
+}

@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const actionButtons = document.querySelectorAll('.action-btn');
     const resultHint = document.getElementById('result-hint');
     const btnKeep = document.getElementById('btn-keep');
+    const btnShowChanges = document.getElementById('btn-show-changes');
+    const diffView = document.getElementById('diff-view');
     const btnRevert = document.getElementById('btn-revert');
     const btnCancelGeneration = document.getElementById('btn-cancel-generation');
     const loadingBanner = document.getElementById('model-loading-banner');
@@ -114,6 +116,8 @@ document.addEventListener('DOMContentLoaded', function() {
         resultHint.textContent = 'Streaming response...';
         btnKeep.disabled = true;
         btnRevert.disabled = true;
+        diffCache = null;
+        refreshShowChangesButton();  // hides the toggle + overlay during streaming
         
         try {
             // Create AbortController so the user can cancel the stream
@@ -203,6 +207,66 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Called when generation completes (success or error)
      */
+    // --- Change-review overlay (Show Changes) ---
+    // The diff is computed server-side by /api/ai/diff (same word-level
+    // engine as the amendment history) once per original/generated pair
+    // and cached; editing the generated text invalidates the cache.
+    let diffCache = null;
+    let diffShowing = false;
+
+    function setShowChangesLabel(showing) {
+        btnShowChanges.innerHTML = showing
+            ? '<i data-lucide="eye-off" class="btn-icon-sm"></i> Hide Changes'
+            : '<i data-lucide="diff" class="btn-icon-sm"></i> Show Changes';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function hideDiff() {
+        diffView.style.display = 'none';
+        generatedText.style.display = '';
+        diffShowing = false;
+        setShowChangesLabel(false);
+    }
+
+    async function showDiff() {
+        try {
+            if (diffCache === null) {
+                const response = await fetch('/api/ai/diff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        original: originalText.value,
+                        generated: generatedText.value
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Diff failed');
+                diffCache = data.html;
+            }
+            diffView.innerHTML = diffCache;  // server-escaped; only del/strong tags
+            generatedText.style.display = 'none';
+            diffView.style.display = 'block';
+            diffShowing = true;
+            setShowChangesLabel(true);
+        } catch (error) {
+            console.error('Diff error:', error);
+            showError('Could not generate diff: ' + error.message);
+        }
+    }
+
+    function refreshShowChangesButton() {
+        const usable = !isGenerating && generatedText.value.trim().length > 0;
+        btnShowChanges.classList.toggle('btn-gone', !usable);
+        if (!usable) hideDiff();
+    }
+
+    btnShowChanges.addEventListener('click', () => (diffShowing ? hideDiff() : showDiff()));
+
+    generatedText.addEventListener('input', () => {
+        diffCache = null;  // edits change what a diff would show
+        refreshShowChangesButton();
+    });
+
     function onGenerationComplete(hadError = false) {
         isGenerating = false;
         abortController = null;
@@ -223,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnKeep.disabled = false;
             btnRevert.disabled = false;
         }
+        refreshShowChangesButton();
     }
     
     /**
@@ -269,6 +334,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function revertContent() {
         generatedText.value = '';
         hasGeneratedContent = false;
+        diffCache = null;
+        refreshShowChangesButton();
         btnKeep.disabled = true;
         btnRevert.disabled = true;
         resultHint.textContent = 'Click an action to generate';
