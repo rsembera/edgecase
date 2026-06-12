@@ -162,6 +162,54 @@ def generate_content_diff(old_content, new_content, max_length=500):
     return _word_level_diff_with_context(old_words, new_words, max_length)
 
 
+def generate_full_content_diff(old_content, new_content):
+    """
+    Full-text word-level diff with no truncation or context elision.
+
+    Unlike generate_content_diff (which abbreviates unchanged runs to fit
+    edit-history rows), this returns the COMPLETE text in reading order
+    with deletions (<del>) and insertions (<strong>) marked in place.
+    Built for the AI Scribe change-review overlay, where the question is
+    "what did the model touch?" and the surrounding context must stay
+    readable. Same word-level SequenceMatcher core and the same
+    escape-before-tagging rule (CODE_REVIEW M17) as the history diff.
+
+    Returns:
+        str: HTML-safe diff string containing only <del>/<strong> tags.
+    """
+    old_content = ' '.join((old_content or '').split())
+    new_content = ' '.join((new_content or '').split())
+
+    if not old_content and not new_content:
+        return ""
+
+    old_content = str(escape(old_content))
+    new_content = str(escape(new_content))
+
+    if not old_content:
+        return f"<strong>{new_content}</strong>"
+    if not new_content:
+        return f"<del>{old_content}</del>"
+
+    old_words = old_content.split()
+    new_words = new_content.split()
+    matcher = difflib.SequenceMatcher(None, old_words, new_words)
+    parts = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            parts.extend(new_words[j1:j2])
+        elif tag == 'delete':
+            parts.append(f"<del>{' '.join(old_words[i1:i2])}</del>")
+        elif tag == 'insert':
+            parts.append(f"<strong>{' '.join(new_words[j1:j2])}</strong>")
+        elif tag == 'replace':
+            parts.append(
+                f"<del>{' '.join(old_words[i1:i2])}</del> "
+                f"<strong>{' '.join(new_words[j1:j2])}</strong>"
+            )
+    return ' '.join(parts)
+
+
 def _word_level_diff_with_context(old_words, new_words, max_length=None):
     """Helper function for word-level diff with context limiting."""
     matcher = difflib.SequenceMatcher(None, old_words, new_words)

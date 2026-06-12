@@ -23,7 +23,7 @@ import os
 from datetime import datetime, timedelta
 
 from core.database import Database
-from web.utils import parse_date_from_form, generate_content_diff
+from web.utils import parse_date_from_form, generate_content_diff, generate_full_content_diff
 
 
 # ============================================================================
@@ -1453,3 +1453,52 @@ class TestRequestSecurity:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
+
+
+# ============================================================================
+# FULL CONTENT DIFF (AI Scribe change-review overlay)
+# ============================================================================
+
+class TestFullContentDiff:
+    def test_identical_text_has_no_markup(self):
+        text = "Client attended the session and reported improvement."
+        out = generate_full_content_diff(text, text)
+        assert '<del>' not in out and '<strong>' not in out
+        assert out == text
+
+    def test_replacement_marks_old_and_new(self):
+        out = generate_full_content_diff(
+            "Client seemed anxious today.",
+            "Client appeared anxious today.",
+        )
+        assert '<del>seemed</del>' in out
+        assert '<strong>appeared</strong>' in out
+        # Unchanged context is preserved, not elided
+        assert out.startswith('Client')
+        assert 'anxious today.' in out
+        assert '[...]' not in out and '...' not in out
+
+    def test_long_unchanged_runs_are_not_elided(self):
+        old = ' '.join(f'word{i}' for i in range(200))
+        new = old.replace('word100', 'replaced')
+        out = generate_full_content_diff(old, new)
+        assert 'word0' in out and 'word199' in out
+        assert '[...]' not in out
+        assert '<del>word100</del>' in out
+        assert '<strong>replaced</strong>' in out
+
+    def test_html_in_notes_is_escaped(self):
+        out = generate_full_content_diff(
+            "Plain note.",
+            "Plain note. <script>alert(1)</script>",
+        )
+        assert '<script>' not in out
+        assert '&lt;script&gt;' in out
+
+    def test_empty_old_marks_everything_inserted(self):
+        out = generate_full_content_diff("", "Entirely new text.")
+        assert out == '<strong>Entirely new text.</strong>'
+
+    def test_empty_new_marks_everything_deleted(self):
+        out = generate_full_content_diff("Old text.", "")
+        assert out == '<del>Old text.</del>'
