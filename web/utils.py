@@ -7,6 +7,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from pathlib import Path
 import os
+import re
 import time
 import difflib
 import calendar
@@ -177,36 +178,68 @@ def generate_full_content_diff(old_content, new_content):
     Returns:
         str: HTML-safe diff string containing only <del>/<strong> tags.
     """
-    old_content = ' '.join((old_content or '').split())
-    new_content = ' '.join((new_content or '').split())
+    # Normalize line endings only — do NOT collapse newlines. Unlike the
+    # history diff (one flat table row), the change-review overlay shows the
+    # full multi-paragraph note, so paragraph/line structure must survive.
+    old_content = (old_content or '').replace('\r\n', '\n').replace('\r', '\n')
+    new_content = (new_content or '').replace('\r\n', '\n').replace('\r', '\n')
 
-    if not old_content and not new_content:
+    if not old_content.strip() and not new_content.strip():
         return ""
 
+    # Escape before tagging (CODE_REVIEW M17). escape() leaves '\n' and
+    # spaces untouched, so we can tokenize on whitespace afterwards.
     old_content = str(escape(old_content))
     new_content = str(escape(new_content))
 
-    if not old_content:
-        return f"<strong>{new_content}</strong>"
-    if not new_content:
-        return f"<del>{old_content}</del>"
+    # Tokenize into word tokens and newline-run tokens. Spaces/tabs collapse
+    # (re-added as single spaces on join); runs of newlines are preserved as
+    # their own tokens so the diff can align around line/paragraph breaks.
+    def _tokenize(text):
+        return re.findall(r'\n+|\S+', text)
 
-    old_words = old_content.split()
-    new_words = new_content.split()
-    matcher = difflib.SequenceMatcher(None, old_words, new_words)
+    # Render one opcode side: contiguous words wrap together in a single
+    # span (preserving the existing highlight look); newline tokens emit
+    # <br> and are never highlighted (structural, not content).
+    def _render(tokens, tag=None):
+        parts = []
+        buf = []
+
+        def flush():
+            if buf:
+                text = ' '.join(buf)
+                parts.append(f"<{tag}>{text}</{tag}>" if tag else text)
+                buf.clear()
+
+        for tok in tokens:
+            if tok[0] == '\n':
+                flush()
+                parts.append('<br>' * len(tok))
+            else:
+                buf.append(tok)
+        flush()
+        return parts
+
+    old_tokens = _tokenize(old_content)
+    new_tokens = _tokenize(new_content)
+
+    if not old_content.strip():
+        return ' '.join(_render(new_tokens, 'strong'))
+    if not new_content.strip():
+        return ' '.join(_render(old_tokens, 'del'))
+
+    matcher = difflib.SequenceMatcher(None, old_tokens, new_tokens)
     parts = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == 'equal':
-            parts.extend(new_words[j1:j2])
+            parts.extend(_render(new_tokens[j1:j2]))
         elif tag == 'delete':
-            parts.append(f"<del>{' '.join(old_words[i1:i2])}</del>")
+            parts.extend(_render(old_tokens[i1:i2], 'del'))
         elif tag == 'insert':
-            parts.append(f"<strong>{' '.join(new_words[j1:j2])}</strong>")
+            parts.extend(_render(new_tokens[j1:j2], 'strong'))
         elif tag == 'replace':
-            parts.append(
-                f"<del>{' '.join(old_words[i1:i2])}</del> "
-                f"<strong>{' '.join(new_words[j1:j2])}</strong>"
-            )
+            parts.extend(_render(old_tokens[i1:i2], 'del'))
+            parts.extend(_render(new_tokens[j1:j2], 'strong'))
     return ' '.join(parts)
 
 
