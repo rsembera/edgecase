@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 12, 2026  
+**Last Updated:** June 13, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -83,6 +83,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Unsaved-changes protection: custom modal on in-app navigation (window-capture guard preempting the base disconnect handler — the root cause of a multi-browser native-dialog misfire), native warning restored for tab close/reload after its three misfire causes were fixed
 - Silently-blocked form submissions made visible: invalid hidden (Choices-managed) required fields now raise an in-app modal naming the fields instead of a dead Save button
 - AI Scribe "Show Changes": word-level diff overlay (red deletions / green insertions, punctuation-level) via new `generate_full_content_diff` + `POST /api/ai/diff`, sharing the amendment-history diff engine
+  - June 13: overlay diff now preserves line/paragraph breaks (newline runs tokenized and rendered as `<br>`); the history diff stays single-line by design
 - New verification practice: jsdom harness with base-template scripts included, and Playwright against live instances (real Chromium, real layout); per-restart static cache-busting (`?v=`)
 - Tests: 77 → 83
 
