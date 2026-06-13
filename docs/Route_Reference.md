@@ -117,6 +117,20 @@ def ai_process()
 
 ---
 
+```python
+@ai_bp.route('/api/ai/diff', methods=['POST'])
+def ai_diff()
+```
+**Purpose:** Word-level diff between original and generated text for the Scribe "Show Changes" overlay. Pure text transform — no database, no model.
+
+**POST JSON Data:**
+- `original` (str): The original note text
+- `generated` (str): The AI-generated text
+
+**Returns:** JSON `{html}` — HTML-escaped diff string containing only `<del>`/`<strong>` markup (413 if either text exceeds 200k chars)
+
+---
+
 ### AI Scribe Page
 
 ```python
