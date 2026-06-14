@@ -47,9 +47,11 @@ in `setup_app.py`:
   migration-runner module (e.g. `core.migrate_crypto`) or packaged users hit an
   ImportError at launch. (Linux does not need this — its build copies all of
   `core/`.)
-- **No `cryptography` change needed.** Argon2id ships inside the already-bundled
-  `cryptography` package (same Rust extension as Fernet/PBKDF2), so the existing
-  `packages` entry already covers it.
+- **Add `argon2-cffi` to py2app `packages`.** EdgeCase derives the Argon2id
+  master key with `argon2-cffi` (cryptography's own Argon2id measured ~5× slower
+  on the M4 — ~3.9s vs ~0.74s). Add `'argon2'` and `'_argon2_cffi_bindings'` to
+  the `packages` list in `setup_app.py`, or packaged users hit an ImportError.
+  (`cryptography` is still bundled — it handles HKDF and AES-GCM.)
 - **Do not remove v1 (Fernet) read-compat** for at least a release cycle or two
   after this ships — see `Architecture_Decisions.md`. A user slow to update, or
   one whose migration failed and stayed on v1, must still be able to read files.

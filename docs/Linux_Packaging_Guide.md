@@ -156,8 +156,8 @@ sudo dpkg -r edgecase
   launch after update; data in `~/.local/share/edgecase/` is migrated in place
   and the runner takes its own verified backup first. No special packaging
   action is needed on Linux — step 3 builds the venv from `requirements.txt`
-  (cryptography 46.0.3, which provides Argon2id), and step 2 copies the whole
-  `core/` directory, so new modules like `encryption_v2` and the migration
+  (which now includes `argon2-cffi` for the Argon2id KDF), and step 2 copies the
+  whole `core/` directory, so new modules like `encryption_v2` and the migration
   runner are included automatically. (Only the macOS py2app build must list new
   modules by hand.) Do **not** remove v1 (Fernet) read-compat for a release
   cycle or two after shipping — see `Architecture_Decisions.md`.

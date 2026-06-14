@@ -12,6 +12,7 @@
 #
 # Dev/test dependencies (pytest) live in requirements-dev.txt.
 
+argon2-cffi==25.1.0
 blinker==1.9.0
 cffi==2.0.0
 charset-normalizer==3.4.4

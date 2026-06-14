@@ -1307,10 +1307,15 @@ single memory-hard KDF gates the entire install.
 
 ### Key choices — do NOT undo without reading this
 
-- **Argon2id via `cryptography`, not `argon2-cffi`.** `cryptography` is already a
-  dependency and already bundled; its Argon2id (256 MiB, t=6, p=1) needs no new
-  package and no py2app/PyInstaller bundling change. EdgeCase never interoperates
-  with MailRepo archives, so the two needn't share a KDF library.
+- **Argon2id via `argon2-cffi`, matching MailRepo.** `cryptography` ships an
+  Argon2id and was tried first to avoid a dependency, but it measured ~5× slower
+  on the M4 (~3.9s vs ~0.74s) for identical params — it is not the optimised
+  reference C implementation. EdgeCase therefore uses `argon2-cffi` (same library
+  and params as MailRepo): full 256 MiB / t=6 / p=1 strength at ~0.74s. Do NOT
+  switch the KDF back to `cryptography`. `cryptography` is retained for HKDF and
+  AES-GCM (microseconds, not the bottleneck). Cost: `argon2-cffi` added to
+  `requirements.txt` and `pyproject.toml`, plus `'argon2'` + `'_argon2_cffi_bindings'`
+  in py2app `packages` (the Linux `.deb` picks it up from `requirements.txt`).
 - **The old `.salt` is left in place.** A new versioned key-info file
   (`.keyinfo`: magic `ECC2` + Argon2id salt + verification token) is written
   alongside it. v1 Fernet tokens (urlsafe-base64, leading `g` / `0x67` on disk)

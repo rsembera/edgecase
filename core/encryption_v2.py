@@ -3,21 +3,21 @@ EdgeCase Encryption v2
 Argon2id KDF -> HKDF subkeys -> AES-256-GCM file encryption.
 
 Coexists with the v1 Fernet module (core/encryption.py) during migration.
-v1 files begin with Fernet's 0x80 version byte; v2 files begin with 0x02,
-so the two formats are unambiguously distinguishable on disk.
+v1 Fernet files are urlsafe-base64 and begin with 'g' (0x67) on disk; v2 files
+begin with 0x02, so the two formats are unambiguously distinguishable.
 """
 
 import os
 
+from argon2.low_level import Type as _Argon2Type, hash_secret_raw
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from core.config import DATA_DIR
 
 # --- Wire format / constants ---
-VERSION = 0x02            # v2 file format version byte (v1/Fernet uses 0x80)
+VERSION = 0x02            # v2 file format version byte (v1 Fernet leads with 0x67)
 NONCE_LEN = 12            # AES-GCM standard nonce length
 SALT_LEN = 16             # Argon2id salt length
 KEYINFO_MAGIC = b"ECC2"   # EdgeCase Crypto v2 key-info file magic
@@ -44,13 +44,21 @@ def derive_master(password: str, salt: bytes, *,
                   lanes: int = DEFAULT_LANES) -> bytes:
     """Derive the 32-byte master key from the password via Argon2id.
 
+    Uses argon2-cffi (the optimised reference C implementation, same as
+    MailRepo). cryptography's own Argon2id was measured ~5x slower for
+    identical params on the M4 (~4s vs ~0.7s), so do not switch back to it.
     Params are overridable so the test suite can use cheap settings;
     production always uses the module defaults.
     """
-    return Argon2id(
-        salt=salt, length=32,
-        iterations=iterations, lanes=lanes, memory_cost=memory_cost,
-    ).derive(password.encode())
+    return hash_secret_raw(
+        secret=password.encode(),
+        salt=salt,
+        time_cost=iterations,
+        memory_cost=memory_cost,
+        parallelism=lanes,
+        hash_len=32,
+        type=_Argon2Type.ID,
+    )
 
 
 def derive_subkeys(master: bytes):
