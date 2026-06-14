@@ -92,8 +92,9 @@ def is_v2(blob: bytes) -> bool:
 
 
 def is_v1(blob: bytes) -> bool:
-    # Fernet tokens begin with 0x80.
-    return bool(blob) and blob[0] == 0x80
+    # Fernet writes urlsafe-base64 tokens; the 0x80 format version byte inside
+    # the decoded token always encodes to a leading 'g' (0x67) on disk.
+    return bool(blob) and blob[0] == 0x67
 
 
 # --- Key-info file: MAGIC + salt + verification token ---

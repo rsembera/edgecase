@@ -1313,9 +1313,9 @@ single memory-hard KDF gates the entire install.
   with MailRepo archives, so the two needn't share a KDF library.
 - **The old `.salt` is left in place.** A new versioned key-info file
   (`.keyinfo`: magic `ECC2` + Argon2id salt + verification token) is written
-  alongside it. v1 Fernet tokens (`0x80` prefix) and v2 blobs (`0x02` prefix)
-  are unambiguously distinguishable, so both stay readable during and after
-  migration.
+  alongside it. v1 Fernet tokens (urlsafe-base64, leading `g` / `0x67` on disk)
+  and v2 blobs (`0x02` prefix) are unambiguously distinguishable, so both stay
+  readable during and after migration.
 - **DO NOT remove v1 read-compat early.** This is distributed software with real
   users on `.deb`/`.dmg`. v1 read-compat must survive at least a release cycle or
   two of the migration demonstrably running in the wild. A user slow to update,
