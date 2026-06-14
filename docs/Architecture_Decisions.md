@@ -1336,3 +1336,21 @@ single memory-hard KDF gates the entire install.
   developer's own `.salt` is a pre-current 21-byte relic — the migration reuses
   the existing v1 functions to derive the old key, so salt format is never
   assumed).
+
+
+## 2026-06-14 — v2 password change & the .keyinfo backup requirement
+
+The v2 master-password change (`migrate_crypto.change_password`) deliberately
+reuses the migration's crash-safe path rather than doing an in-place
+`PRAGMA rekey`. On v2 the database's raw key and the `.keyinfo` salt that derives
+it must agree, so an in-place rekey has a crash window that locks the user out;
+the export-to-new-file + atomic-swap + `.keyinfo`-as-commit-point approach has no
+such window. Recovery for an interrupted password change keys off the marker
+`kind: rekey_v2` and compares the on-disk `.keyinfo` salt to the marker's new
+salt (the v1→v2 path still keys off `.keyinfo` presence). Both are password-free.
+
+**Do not remove `.keyinfo` from `utils.backup.get_all_backup_files()`.** On a v2
+install the raw SQLCipher key is derived from the Argon2id salt inside `.keyinfo`;
+a backup without it restores to an unopenable database, exactly as a v1 backup
+without `.salt` would. It is as essential as `.salt`, and the password-change
+rollback depends on it to restore the prior key-info.

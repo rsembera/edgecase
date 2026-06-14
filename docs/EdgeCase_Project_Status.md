@@ -30,15 +30,16 @@ packaging implications in the Mac/Linux packaging guides.
 2. ✅ Dry-run migration harness — validated on real data (39 files, 364 rows, integrity ok, 0.74s derive, PASS) 2026-06-14
 3. ✅ SQLCipher raw-key keying in `database.py` — gated on `.keyinfo`; v1 installs open unchanged (full suite 100 passed) 2026-06-14
 4. ✅ Migration runner + login-flow wiring (4a + 4b, 2026-06-14). Runner `core/migrate_crypto.py` (crash-safe finalize/rollback, 5 tests). `login()` runs `recover_if_interrupted()` first, then after password verification migrates an existing v1 install via an `upgrading.html` interstitial + `/migrate/stream` SSE route that completes the login. 5 wiring tests. Full suite 110 passed.
-5. ⬜ Password-change flow updated for v2 — **REQUIRED before the master password is changed on a migrated (v2) install**. The current flow assumes Fernet files + passphrase rekey and will leave a v2 install inconsistent.
+5. ✅ Password-change flow updated for v2 (2026-06-14). `migrate_crypto.change_password()` re-encrypts files with a new file key and rebuilds the DB under a new raw key, committing with a new `.keyinfo` — crash-safe via the same marker + rollback machinery as the migration (recovery for a `rekey_v2` marker compares the on-disk `.keyinfo` salt to the marker's new salt). `change_password_progress` runs it for v2 installs and forces a fresh login. Also fixed: backups now include `.keyinfo` (essential to open a restored v2 install). 6 new tests. Full suite 116 passed.
 6. ⬜ Remove v1 Fernet path — DEFERRED across a release cycle or two (distributed-user safety; see `Architecture_Decisions.md`)
 
 The migration is now wired into login: on the next app **restart** followed by a
 login, an existing v1 install is automatically migrated to v2 (full backup first,
 crash-safe, rolls back on any failure). A currently-running instance is unaffected
-until it restarts. **Caveat:** the change-password flow is not yet v2-aware
-(Stage 5) — do not change the master password on a migrated install until Stage 5
-lands, or the database and files will be left inconsistent.
+until it restarts. A migrated install is now fully functional, password change
+included (Stage 5). What remains is Stage 6 — removing the v1 Fernet read path —
+which is deliberately deferred across a release cycle or two for distributed-user
+safety.
 
 ---
 

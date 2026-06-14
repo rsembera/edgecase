@@ -200,3 +200,114 @@ def test_recover_rolls_back_interrupted(tmp_path):
         blob = (tmp_path / rel).read_bytes()
         assert v2.is_v1(blob)
         assert fer.decrypt(blob) == data
+
+
+# --- Stage 5: v2 master-password change -------------------------------------
+
+NEW_PW = "new-master-pw-2"
+
+
+def _keys_for(root, password):
+    salt, _ = v2.read_keyinfo(path=root / "data" / ".keyinfo")
+    return v2.derive_subkeys(v2.derive_master(password, salt))
+
+
+def _opens_raw(root, db_key_hex):
+    con = sqlite3.connect(str(root / "data" / "edgecase.db"))
+    try:
+        con.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+        return con.execute("SELECT COUNT(*) FROM client_types").fetchone()[0]
+    except Exception:
+        return None
+    finally:
+        con.close()
+
+
+def test_change_password_happy(tmp_path):
+    originals = _build_v1_install(tmp_path)
+    mc.migrate(PW, root=tmp_path)
+    old_db_key, old_file_key = _keys_for(tmp_path, PW)
+
+    result = mc.change_password(PW, NEW_PW, root=tmp_path)
+
+    assert result["status"] == "rekeyed"
+    assert result["files_rekeyed"] == len(originals)
+    assert (tmp_path / "data" / ".keyinfo").exists()
+    assert not (tmp_path / "data" / ".v2_migrating").exists()
+    assert not (tmp_path / "data" / "edgecase.db.v2new").exists()
+
+    new_db_key, new_file_key = _keys_for(tmp_path, NEW_PW)
+    assert _opens_raw(tmp_path, new_db_key) == 2          # new password opens
+    assert _opens_raw(tmp_path, old_db_key) is None       # old key no longer
+    for rel, data in originals.items():
+        blob = (tmp_path / rel).read_bytes()
+        assert v2.is_v2(blob)
+        assert v2.decrypt_bytes(new_file_key, blob) == data
+        with pytest.raises(Exception):
+            v2.decrypt_bytes(old_file_key, blob)
+
+
+def test_change_password_rollback(tmp_path, monkeypatch):
+    originals = _build_v1_install(tmp_path)
+    mc.migrate(PW, root=tmp_path)
+    old_salt, _ = v2.read_keyinfo(path=tmp_path / "data" / ".keyinfo")
+    old_db_key, old_file_key = v2.derive_subkeys(v2.derive_master(PW, old_salt))
+
+    monkeypatch.setattr(mc, "_build_rekeyed_db_v2",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    with pytest.raises(RuntimeError):
+        mc.change_password(PW, NEW_PW, root=tmp_path)
+
+    # Rolled back to the pre-change v2 state: same salt, old key still opens.
+    assert not (tmp_path / "data" / ".v2_migrating").exists()
+    cur_salt, _ = v2.read_keyinfo(path=tmp_path / "data" / ".keyinfo")
+    assert cur_salt == old_salt
+    assert _opens_raw(tmp_path, old_db_key) == 2
+    for rel, data in originals.items():
+        assert v2.decrypt_bytes(old_file_key, (tmp_path / rel).read_bytes()) == data
+
+
+def test_recover_rekey_finalized(tmp_path):
+    _build_v1_install(tmp_path)
+    mc.migrate(PW, root=tmp_path)
+    mc.change_password(PW, NEW_PW, root=tmp_path)
+    cur_salt, _ = v2.read_keyinfo(path=tmp_path / "data" / ".keyinfo")
+    new_db_key, _ = v2.derive_subkeys(v2.derive_master(NEW_PW, cur_salt))
+
+    # Stuck marker whose new salt matches the committed .keyinfo -> finalize.
+    (tmp_path / "data" / ".v2_migrating").write_text(json.dumps(
+        {"kind": "rekey_v2", "new_salt": cur_salt.hex(),
+         "backup_filename": "x.zip", "backup_dir": str(tmp_path / "backups")}))
+    (tmp_path / "data" / "edgecase.db.v2new").write_bytes(b"stale")
+
+    assert mc.recover_if_interrupted(root=tmp_path) == "finalized"
+    assert not (tmp_path / "data" / ".v2_migrating").exists()
+    assert not (tmp_path / "data" / "edgecase.db.v2new").exists()
+    assert _opens_raw(tmp_path, new_db_key) == 2
+
+
+def test_recover_rekey_rolled_back(tmp_path):
+    originals = _build_v1_install(tmp_path)
+    mc.migrate(PW, root=tmp_path)
+    salt_A, _ = v2.read_keyinfo(path=tmp_path / "data" / ".keyinfo")
+    dbk_A, fk_A = v2.derive_subkeys(v2.derive_master(PW, salt_A))
+
+    paths = mc._resolve_paths(tmp_path)
+    backup_info = mc._zip_backup(paths)        # captures state A incl. .keyinfo
+    new_salt = v2.new_salt()                   # a never-committed new salt
+    _, fk_new = v2.derive_subkeys(v2.derive_master(NEW_PW, new_salt))
+    mc._write_marker(paths, backup_info, kind="rekey_v2", new_salt=new_salt)
+
+    # Partially re-encrypt two files to the (uncommitted) new file key.
+    for rel in ("attachments/att1.bin", "assets/logo.png"):
+        p = tmp_path / rel
+        p.write_bytes(v2.encrypt_bytes(fk_new, v2.decrypt_bytes(fk_A, p.read_bytes())))
+
+    # On-disk .keyinfo salt (A) != marker new salt -> roll back to state A.
+    assert mc.recover_if_interrupted(root=tmp_path) == "rolled_back"
+    assert not (tmp_path / "data" / ".v2_migrating").exists()
+    cur_salt, _ = v2.read_keyinfo(path=tmp_path / "data" / ".keyinfo")
+    assert cur_salt == salt_A                   # old key-info restored from backup
+    assert _opens_raw(tmp_path, dbk_A) == 2
+    for rel, data in originals.items():
+        assert v2.decrypt_bytes(fk_A, (tmp_path / rel).read_bytes()) == data
