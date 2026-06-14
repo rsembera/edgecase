@@ -154,63 +154,29 @@ def _reencrypt_file_v2(path: Path, old_file_key: bytes, new_file_key: bytes) -> 
     return "rekeyed"
 
 
-def _build_raw_keyed_db(paths: _Paths, password: str, db_key_hex: str):
-    """Export the v1 (passphrase) DB into a fresh raw-keyed DB and verify it.
-    Raises on integrity failure or row-count mismatch. Leaves the original DB
-    untouched; the result is written to paths.new_db."""
+def _export_verify(paths: _Paths, src_key_sql: str, dst_key_hex: str):
+    """Open the source DB with src_key_sql, export it into a fresh DB keyed with
+    the raw dst_key_hex (written to paths.new_db), and verify it (integrity_check
+    + row-count parity). Leaves the original DB untouched until it passes."""
     src, dst = str(paths.db), str(paths.new_db)
     for p in (dst, dst + "-wal", dst + "-shm"):
         if os.path.exists(p):
             os.remove(p)
-    esc = password.replace("'", "''")
 
     con = sqlite3.connect(src)
-    con.execute(f"PRAGMA key = '{esc}'")
+    con.execute(src_key_sql)
     tables = [r[0] for r in con.execute(
         "SELECT name FROM sqlite_master WHERE type='table' "
         "AND name NOT LIKE 'sqlite_%'")]
     src_counts = {t: con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
                   for t in tables}
-    con.execute(f"ATTACH DATABASE '{dst}' AS v2db KEY \"x'{db_key_hex}'\"")
-    con.execute("SELECT sqlcipher_export('v2db')")
-    con.execute("DETACH DATABASE v2db")
-    con.close()
-
-    ver = sqlite3.connect(dst)
-    ver.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
-    integrity = ver.execute("PRAGMA integrity_check").fetchone()[0]
-    dst_counts = {t: ver.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
-                  for t in tables}
-    ver.close()
-    for p in (dst + "-wal", dst + "-shm"):
-        if os.path.exists(p):
-            os.remove(p)
-    if integrity != "ok":
-        raise RuntimeError(f"new DB failed integrity_check: {integrity!r}")
-    if src_counts != dst_counts:
-        raise RuntimeError("new DB row counts differ from source")
-
-
-def _build_rekeyed_db_v2(paths: _Paths, old_db_key_hex: str, new_db_key_hex: str):
-    """Export the old-raw-keyed v2 DB into a fresh DB under the NEW raw key and
-    verify it. Original untouched until it passes; result in paths.new_db."""
-    src, dst = str(paths.db), str(paths.new_db)
-    for p in (dst, dst + "-wal", dst + "-shm"):
-        if os.path.exists(p):
-            os.remove(p)
-    con = sqlite3.connect(src)
-    con.execute(f"PRAGMA key = \"x'{old_db_key_hex}'\"")
-    tables = [r[0] for r in con.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' "
-        "AND name NOT LIKE 'sqlite_%'")]
-    src_counts = {t: con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
-                  for t in tables}
-    con.execute(f"ATTACH DATABASE '{dst}' AS newdb KEY \"x'{new_db_key_hex}'\"")
+    con.execute(f"ATTACH DATABASE '{dst}' AS newdb KEY \"x'{dst_key_hex}'\"")
     con.execute("SELECT sqlcipher_export('newdb')")
     con.execute("DETACH DATABASE newdb")
     con.close()
+
     ver = sqlite3.connect(dst)
-    ver.execute(f"PRAGMA key = \"x'{new_db_key_hex}'\"")
+    ver.execute(f"PRAGMA key = \"x'{dst_key_hex}'\"")
     integrity = ver.execute("PRAGMA integrity_check").fetchone()[0]
     dst_counts = {t: ver.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
                   for t in tables}
@@ -219,9 +185,20 @@ def _build_rekeyed_db_v2(paths: _Paths, old_db_key_hex: str, new_db_key_hex: str
         if os.path.exists(p):
             os.remove(p)
     if integrity != "ok":
-        raise RuntimeError(f"rekeyed DB failed integrity_check: {integrity!r}")
+        raise RuntimeError(f"rebuilt DB failed integrity_check: {integrity!r}")
     if src_counts != dst_counts:
-        raise RuntimeError("rekeyed DB row counts differ from source")
+        raise RuntimeError("rebuilt DB row counts differ from source")
+
+
+def _build_raw_keyed_db(paths: _Paths, password: str, db_key_hex: str):
+    """v1 (passphrase) DB -> fresh raw-keyed DB. See _export_verify."""
+    esc = password.replace("'", "''")
+    _export_verify(paths, f"PRAGMA key = '{esc}'", db_key_hex)
+
+
+def _build_rekeyed_db_v2(paths: _Paths, old_db_key_hex: str, new_db_key_hex: str):
+    """v2 (old raw key) DB -> fresh DB under the new raw key. See _export_verify."""
+    _export_verify(paths, f"PRAGMA key = \"x'{old_db_key_hex}'\"", new_db_key_hex)
 
 
 def _backup_file_set(paths: _Paths):
