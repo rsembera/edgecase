@@ -39,8 +39,14 @@ def connect(db_path, password, readonly=True):
     uri = f'file:{db_path}?mode=ro' if readonly else f'file:{db_path}'
     conn = sqlcipher3.connect(uri, uri=True)
     if password:
-        escaped = password.replace("'", "''")
-        conn.execute(f"PRAGMA key = '{escaped}'")
+        # v2 install (.keyinfo present): raw Argon2id-derived key, as core.database.
+        from core import encryption_v2 as _v2
+        if _v2.keyinfo_exists():
+            db_key_hex, _ = _v2.get_keys(password)
+            conn.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+        else:
+            escaped = password.replace("'", "''")
+            conn.execute(f"PRAGMA key = '{escaped}'")
     conn.execute("SELECT count(*) FROM sqlite_master")  # verify
     return conn
 

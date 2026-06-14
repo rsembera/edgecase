@@ -54,8 +54,14 @@ def get_default_db_path():
 def connect_readonly(db_path, password):
     conn = sqlcipher3.connect(f'file:{db_path}?mode=ro', uri=True)
     if password:
-        escaped = password.replace("'", "''")
-        conn.execute(f"PRAGMA key = '{escaped}'")
+        # v2 install (.keyinfo present): raw Argon2id-derived key, as core.database.
+        from core import encryption_v2 as _v2
+        if _v2.keyinfo_exists():
+            db_key_hex, _ = _v2.get_keys(password)
+            conn.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+        else:
+            escaped = password.replace("'", "''")
+            conn.execute(f"PRAGMA key = '{escaped}'")
     # Verify the key/file is readable
     conn.execute("SELECT count(*) FROM sqlite_master")
     return conn
