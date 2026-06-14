@@ -351,6 +351,25 @@ def change_password():
     return render_template('change_password.html')
 
 
+def _change_password_v2(db, app_obj, current_password, new_password):
+    """SSE generator: change the master password on a v2 install. Closes the
+    live DB handle, runs the crash-safe v2 rekey, and forces a fresh login (the
+    handle is stale either way; a failure has already rolled back to the old
+    password)."""
+    from core import migrate_crypto
+    yield f"data: {json.dumps({'status': 'backup', 'message': 'Creating safety backup and upgrading encryption...'})}\n\n"
+    try:
+        try:
+            db.close()
+        except Exception:
+            pass
+        app_obj.config['db'] = None
+        result = migrate_crypto.change_password(current_password, new_password)
+        yield f"data: {json.dumps({'status': 'complete', 'message': 'Password changed successfully!', 'files': result.get('files_rekeyed', 0)})}\n\n"
+    except Exception as e:
+        yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
+
+
 @auth_bp.route('/change-password-progress')
 @login_required
 def change_password_progress():
@@ -361,6 +380,9 @@ def change_password_progress():
     handoff = _pop_password_handoff(request.args.get('token'))
     current_password, new_password = handoff if handoff else (None, None)
     db = current_app.config.get('db')
+    from core import encryption_v2 as _v2
+    is_v2 = _v2.keyinfo_exists()
+    app_obj = current_app._get_current_object()
     
     def generate():
         if not current_password or not new_password:
@@ -369,6 +391,10 @@ def change_password_progress():
         
         if not db:
             yield f"data: {json.dumps({'error': 'Database not available'})}\n\n"
+            return
+
+        if is_v2:
+            yield from _change_password_v2(db, app_obj, current_password, new_password)
             return
         
         try:

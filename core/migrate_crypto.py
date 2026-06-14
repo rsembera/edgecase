@@ -128,6 +128,32 @@ def _reencrypt_file(path: Path, old_fernet: Fernet, file_key: bytes) -> str:
     return "migrated"
 
 
+def _reencrypt_file_v2(path: Path, old_file_key: bytes, new_file_key: bytes) -> str:
+    """Re-encrypt one v2 file from the old file key to the new one, atomically."""
+    blob = path.read_bytes()
+    if v2.is_v1(blob):
+        return "skip_v1"  # unexpected on a v2 install; leave untouched
+    if not v2.is_v2(blob):
+        return "skip_plain"
+    plain = v2.decrypt_bytes(old_file_key, blob)
+    new_blob = v2.encrypt_bytes(new_file_key, plain)
+    tmp = str(path) + ".v2tmp"
+    try:
+        with open(tmp, "wb") as f:
+            f.write(new_blob)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
+    return "rekeyed"
+
+
 def _build_raw_keyed_db(paths: _Paths, password: str, db_key_hex: str):
     """Export the v1 (passphrase) DB into a fresh raw-keyed DB and verify it.
     Raises on integrity failure or row-count mismatch. Leaves the original DB
@@ -165,12 +191,45 @@ def _build_raw_keyed_db(paths: _Paths, password: str, db_key_hex: str):
         raise RuntimeError("new DB row counts differ from source")
 
 
+def _build_rekeyed_db_v2(paths: _Paths, old_db_key_hex: str, new_db_key_hex: str):
+    """Export the old-raw-keyed v2 DB into a fresh DB under the NEW raw key and
+    verify it. Original untouched until it passes; result in paths.new_db."""
+    src, dst = str(paths.db), str(paths.new_db)
+    for p in (dst, dst + "-wal", dst + "-shm"):
+        if os.path.exists(p):
+            os.remove(p)
+    con = sqlite3.connect(src)
+    con.execute(f"PRAGMA key = \"x'{old_db_key_hex}'\"")
+    tables = [r[0] for r in con.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' "
+        "AND name NOT LIKE 'sqlite_%'")]
+    src_counts = {t: con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
+                  for t in tables}
+    con.execute(f"ATTACH DATABASE '{dst}' AS newdb KEY \"x'{new_db_key_hex}'\"")
+    con.execute("SELECT sqlcipher_export('newdb')")
+    con.execute("DETACH DATABASE newdb")
+    con.close()
+    ver = sqlite3.connect(dst)
+    ver.execute(f"PRAGMA key = \"x'{new_db_key_hex}'\"")
+    integrity = ver.execute("PRAGMA integrity_check").fetchone()[0]
+    dst_counts = {t: ver.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
+                  for t in tables}
+    ver.close()
+    for p in (dst + "-wal", dst + "-shm"):
+        if os.path.exists(p):
+            os.remove(p)
+    if integrity != "ok":
+        raise RuntimeError(f"rekeyed DB failed integrity_check: {integrity!r}")
+    if src_counts != dst_counts:
+        raise RuntimeError("rekeyed DB row counts differ from source")
+
+
 def _backup_file_set(paths: _Paths):
     """{arcname-relative-to-data_root: absolute_path} — mirrors backup scope."""
     files = {}
     if paths.db.exists():
         files["data/edgecase.db"] = paths.db
-    for name in ("edgecase.db-wal", ".salt", ".secret_key"):
+    for name in ("edgecase.db-wal", ".salt", ".secret_key", ".keyinfo"):
         p = paths.data_dir / name
         if p.exists():
             files[f"data/{name}"] = p
@@ -204,11 +263,16 @@ def _extract_backup(backup_path: Path, data_root: Path):
                 shutil.copyfileobj(src, out)
 
 
-def _write_marker(paths: _Paths, backup_info: dict):
-    paths.marker.write_text(json.dumps({
+def _write_marker(paths: _Paths, backup_info: dict, kind: str = "migrate_v1v2",
+                  new_salt: bytes = None):
+    data = {
         "backup_filename": backup_info["filename"],
         "backup_dir": backup_info.get("backup_dir", str(paths.backups_dir)),
-    }))
+        "kind": kind,
+    }
+    if new_salt is not None:
+        data["new_salt"] = new_salt.hex()
+    paths.marker.write_text(json.dumps(data))
 
 
 def _commit(paths: _Paths, salt: bytes, file_key: bytes):
@@ -306,15 +370,45 @@ def migrate(password: str, root=None, backup_fn=None, progress_cb=None) -> dict:
         raise
 
 
+def _recover_rekey_v2(paths: _Paths, marker: dict) -> str:
+    """Recovery for an interrupted v2 password change. The commit point is the
+    new .keyinfo: if the on-disk .keyinfo salt matches the marker's new salt the
+    rekey committed (finalize), otherwise it did not (roll back). Password-free."""
+    committed = False
+    if v2.keyinfo_exists(path=paths.keyinfo):
+        try:
+            cur_salt, _tok = v2.read_keyinfo(path=paths.keyinfo)
+            committed = (cur_salt.hex() == marker.get("new_salt"))
+        except Exception:
+            committed = False
+    if committed:
+        if paths.new_db.exists():
+            paths.new_db.unlink()
+        for sfx in ("-wal", "-shm"):
+            s = Path(str(paths.db) + sfx)
+            if s.exists():
+                s.unlink()
+        paths.marker.unlink()
+        return "finalized"
+    _rollback(paths, marker["backup_filename"], marker["backup_dir"])
+    paths.marker.unlink()
+    return "rolled_back"
+
+
 def recover_if_interrupted(root=None) -> str:
-    """At startup: finalize a completed-but-uncleaned migration, or roll back an
-    interrupted one. No password needed — .keyinfo is written only after the DB
-    swap, so its presence proves the migration reached commit. Returns
-    'finalized', 'rolled_back', or 'none'."""
+    """At startup: finalize a completed-but-uncleaned transition, or roll back an
+    interrupted one. Password-free. Returns 'finalized', 'rolled_back', or 'none'.
+
+    v1->v2 migration: .keyinfo is written only after the DB swap, so its presence
+    proves commit. v2 password change (kind 'rekey_v2'): .keyinfo exists in both
+    states, so the marker's new salt identifies the committed one."""
     paths = _resolve_paths(root)
     if not paths.marker.exists():
         return "none"
     marker = json.loads(paths.marker.read_text())
+
+    if marker.get("kind") == "rekey_v2":
+        return _recover_rekey_v2(paths, marker)
 
     if v2.keyinfo_exists(path=paths.keyinfo):
         # Commit was reached; just finish the idempotent cleanup.
@@ -330,3 +424,56 @@ def recover_if_interrupted(root=None) -> str:
     _rollback(paths, marker["backup_filename"], marker["backup_dir"])
     paths.marker.unlink()
     return "rolled_back"
+
+
+def change_password(current_password: str, new_password: str, root=None,
+                    backup_fn=None, progress_cb=None) -> dict:
+    """Crash-safe v2 master-password change: re-encrypt files with a new file key
+    and rebuild the DB under a new raw key, then commit by writing a new .keyinfo.
+    On failure, rolls back to the pre-change backup and re-raises.
+
+    Precondition: a v2 install (.keyinfo present) and no open DB handle."""
+    paths = _resolve_paths(root)
+    if not v2.keyinfo_exists(path=paths.keyinfo):
+        raise RuntimeError("change_password (v2) requires a migrated v2 install")
+    if backup_fn is None:
+        backup_fn = _live_backup if root is None else (lambda: _zip_backup(paths))
+
+    old_salt, _old_tok = v2.read_keyinfo(path=paths.keyinfo)
+    old_db_key_hex, old_file_key = v2.derive_subkeys(
+        v2.derive_master(current_password, old_salt))
+    new_salt = v2.new_salt()
+    new_db_key_hex, new_file_key = v2.derive_subkeys(
+        v2.derive_master(new_password, new_salt))
+
+    # Checkpoint so the backup captures a complete .db file.
+    try:
+        c = sqlite3.connect(str(paths.db))
+        c.execute(f"PRAGMA key = \"x'{old_db_key_hex}'\"")
+        c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        c.close()
+    except Exception:
+        pass
+
+    backup_info = backup_fn()
+    _write_marker(paths, backup_info, kind="rekey_v2", new_salt=new_salt)
+    try:
+        files = _candidate_files(paths)
+        done = 0
+        for i, fp in enumerate(files):
+            if _reencrypt_file_v2(fp, old_file_key, new_file_key) == "rekeyed":
+                done += 1
+            if progress_cb:
+                progress_cb(i + 1, len(files))
+        _build_rekeyed_db_v2(paths, old_db_key_hex, new_db_key_hex)
+        _commit(paths, new_salt, new_file_key)
+        paths.marker.unlink()
+        v2._key_cache.clear()
+        return {"status": "rekeyed", "files_rekeyed": done,
+                "files_total": len(files)}
+    except Exception:
+        _rollback(paths, backup_info["filename"],
+                  backup_info.get("backup_dir", str(paths.backups_dir)))
+        if paths.marker.exists():
+            paths.marker.unlink()
+        raise
