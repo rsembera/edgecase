@@ -27,12 +27,15 @@ def test_roundtrip_various_sizes(size):
 
 
 def test_version_byte_and_dispatch():
+    from cryptography.fernet import Fernet
     _, fk = _keys()
     blob = v2.encrypt_bytes(fk, b"x")
     assert blob[0] == v2.VERSION == 0x02
     assert v2.is_v2(blob) and not v2.is_v1(blob)
-    # A Fernet-style v1 token begins with 0x80
-    assert v2.is_v1(b"\x80rest") and not v2.is_v2(b"\x80rest")
+    # A real Fernet (v1) token is urlsafe-base64, starting with 'g' (0x67)
+    fernet_token = Fernet(Fernet.generate_key()).encrypt(b"x")
+    assert fernet_token[0] == 0x67
+    assert v2.is_v1(fernet_token) and not v2.is_v2(fernet_token)
 
 
 def test_wrong_key_fails():
