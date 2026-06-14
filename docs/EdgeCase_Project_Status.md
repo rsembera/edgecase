@@ -29,13 +29,15 @@ packaging implications in the Mac/Linux packaging guides.
 1. ✅ v2 primitives module + 16 unit tests (`core/encryption_v2.py`) — committed 2026-06-14
 2. ✅ Dry-run migration harness — validated on real data (39 files, 364 rows, integrity ok, 0.74s derive, PASS) 2026-06-14
 3. ✅ SQLCipher raw-key keying in `database.py` — gated on `.keyinfo`; v1 installs open unchanged (full suite 100 passed) 2026-06-14
-4. ⬜ Migration runner (auto-backup → rekey DB → re-encrypt files → write `.keyinfo` → verify → rollback)
+4. ◑ Migration runner (`core/migrate_crypto.py`) — core + crash-safety state machine (finalize/rollback) and 5 tests DONE (4a, 2026-06-14); startup wiring PENDING (4b). Imported by no production path yet.
 5. ⬜ Password-change flow + call sites updated for v2
 6. ⬜ Remove v1 Fernet path — DEFERRED across a release cycle or two (distributed-user safety; see `Architecture_Decisions.md`)
 
-Stage 3 modifies `database.py`, but the new code is gated on a `.keyinfo` file
-that only the stage-4 migration creates — so until you actually migrate, the
-running app stays entirely on the unchanged v1 (passphrase) path.
+Stage 3 modified `database.py` (gated on `.keyinfo`), and Stage 4a added
+`core/migrate_crypto.py` — but neither runs against real data yet: the runner is
+imported by no production path until the 4b login-flow wiring, and the v2 keying
+is dormant until a `.keyinfo` exists. So the running app stays entirely on the
+unchanged v1 (passphrase) path until you deliberately migrate.
 
 ---
 
