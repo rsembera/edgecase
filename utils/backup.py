@@ -503,9 +503,17 @@ def _verify_zipped_database(backup_path, db):
                 conn = sqlcipher3.connect(str(extracted_db), timeout=10.0)
                 try:
                     if db.password:
-                        # Same escaping as core.database.Database.connect
-                        escaped = db.password.replace("'", "''")
-                        conn.execute(f"PRAGMA key = '{escaped}'")
+                        # A migrated (v2) install keys SQLCipher with the raw
+                        # Argon2id-derived key, exactly as core.database does;
+                        # a v1 install keys with the passphrase.
+                        from core import encryption_v2
+                        if encryption_v2.keyinfo_exists():
+                            db_key_hex, _ = encryption_v2.get_keys(db.password)
+                            conn.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+                        else:
+                            # Same escaping as core.database.Database.connect
+                            escaped = db.password.replace("'", "''")
+                            conn.execute(f"PRAGMA key = '{escaped}'")
                     row = conn.execute('PRAGMA integrity_check').fetchone()
                     result = row[0] if row else None
                 finally:
