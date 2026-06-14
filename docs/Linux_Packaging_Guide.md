@@ -151,6 +151,16 @@ sudo dpkg -r edgecase
 - Icons are tracked in git so they don't need to be regenerated each build
 - The venv includes PyGObject copied from the system (not pip-installable)
 - Application data is stored in `~/.local/share/edgecase/`
+- **Crypto v2 migration (added 2026-06-14):** the attachment-encryption
+  migration (Fernet → Argon2id / AES-256-GCM) runs automatically on first
+  launch after update; data in `~/.local/share/edgecase/` is migrated in place
+  and the runner takes its own verified backup first. No special packaging
+  action is needed on Linux — step 3 builds the venv from `requirements.txt`
+  (cryptography 46.0.3, which provides Argon2id), and step 2 copies the whole
+  `core/` directory, so new modules like `encryption_v2` and the migration
+  runner are included automatically. (Only the macOS py2app build must list new
+  modules by hand.) Do **not** remove v1 (Fernet) read-compat for a release
+  cycle or two after shipping — see `Architecture_Decisions.md`.
 
 ---
 
