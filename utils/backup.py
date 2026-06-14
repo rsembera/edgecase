@@ -96,6 +96,13 @@ def get_all_backup_files():
     secret_key_path = DATA_DIR / '.secret_key'
     if secret_key_path.exists():
         files['data/.secret_key'] = secret_key_path
+
+    # Key-info file (Argon2id salt + verification token): essential to derive
+    # the v2 raw key. Without it a restored v2 install cannot be opened, just
+    # as .salt is essential for v1. Absent on un-migrated (v1) installs.
+    keyinfo_path = DATA_DIR / '.keyinfo'
+    if keyinfo_path.exists():
+        files['data/.keyinfo'] = keyinfo_path
     
     # Attachments (all subdirectories)
     if ATTACHMENTS_DIR.exists():
