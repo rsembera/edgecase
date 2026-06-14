@@ -12,6 +12,8 @@ import time
 import threading
 from datetime import datetime, timedelta
 
+from core import encryption_v2
+
 
 class EntryLockedError(Exception):
     """Raised when update_entry is called on a locked entry without
@@ -61,11 +63,19 @@ class Database:
         if not hasattr(self._local, 'conn') or self._local.conn is None:
             self._local.conn = sqlite3.connect(str(self.db_path), timeout=10.0)
             
-            # Set encryption key FIRST, before any other operations
+            # Set encryption key FIRST, before any other operations.
+            # A migrated (v2) install has a .keyinfo file: key SQLCipher with
+            # the raw Argon2id-derived key. Otherwise (v1 install) key with the
+            # passphrase exactly as before, so un-migrated installs are wholly
+            # unaffected. See Architecture_Decisions.md (Attachment Encryption v2).
             if self.password:
-                # Escape single quotes to prevent SQL injection/breakage
-                escaped_password = self.password.replace("'", "''")
-                self._local.conn.execute(f"PRAGMA key = '{escaped_password}'")
+                if encryption_v2.keyinfo_exists():
+                    db_key_hex, _ = encryption_v2.get_keys(self.password)
+                    self._local.conn.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+                else:
+                    # Escape single quotes to prevent SQL injection/breakage
+                    escaped_password = self.password.replace("'", "''")
+                    self._local.conn.execute(f"PRAGMA key = '{escaped_password}'")
             
             # Enable WAL mode for better concurrent access
             self._local.conn.execute('PRAGMA journal_mode=WAL')
@@ -163,6 +173,18 @@ class Database:
         as a DatabaseError (wrong key / not decryptable / corrupt).
         See CODE_REVIEW.md L18.
         """
+        # v2 install: verify against the key-info verification token. A
+        # correct password derives the file key that decrypts the token, which
+        # (same Argon2id master) also yields the correct DB key. No DB open.
+        if encryption_v2.keyinfo_exists():
+            try:
+                _salt, token = encryption_v2.read_keyinfo()
+                _db_key_hex, file_key = encryption_v2.get_keys(password)
+                return encryption_v2.check_verification_token(file_key, token)
+            except Exception as e:
+                print(f"verify_password: v2 verification error: {e}")
+                return False
+
         test_conn = None
         try:
             test_conn = sqlite3.connect(str(self.db_path), timeout=5.0)

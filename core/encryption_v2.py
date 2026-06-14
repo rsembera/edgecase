@@ -159,3 +159,28 @@ def read_keyinfo(path=None):
 def keyinfo_exists(path=None) -> bool:
     path = path or KEYINFO_FILE
     return os.path.exists(path)
+
+
+# --- Cached key derivation for a migrated (v2) install ---
+# Argon2id is deliberately expensive (~0.74s); derive once per password and
+# reuse across connections. Capped at 2 entries (old + new during a password
+# change), mirroring core.encryption's v1 Fernet cache.
+_key_cache: dict = {}
+
+
+def get_keys(password: str):
+    """Return (db_key_hex, file_key) for a migrated install, cached per password.
+
+    Reads the Argon2id salt from the key-info file, then derives via Argon2id
+    + HKDF. Raises if the key-info file is missing — callers gate on
+    keyinfo_exists() first.
+    """
+    cached = _key_cache.get(password)
+    if cached is not None:
+        return cached
+    salt, _token = read_keyinfo()
+    keys = derive_subkeys(derive_master(password, salt))
+    if len(_key_cache) >= 2:
+        _key_cache.clear()
+    _key_cache[password] = keys
+    return keys
