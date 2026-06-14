@@ -55,6 +55,38 @@ safety.
 
 ---
 
+## NEXT UP: DATA-LAYER REFACTOR (core/database.py)
+
+**Status:** planned — *safety net landed June 14, 2026*; the refactor itself is not started.
+
+`core/database.py` is the one real piece of structural debt: a ~2,350-line,
+60-public-method god-object that nearly every blueprint imports. It works and is
+well-behaved, so this is a maintainability tidy-up, **not** a fix for any bug.
+Sequencing matters: do it as its own focused session, and only after the v2
+crypto migration has had real-world runtime — refactoring the file the new DB
+keying lives in, right after a risky landing, is the wrong order.
+
+**Step 1 (done, 2026-06-14):** add a data-layer safety net so a behaviour-changing
+refactor gets caught. `tests/test_database_layer.py` — 31 round-trip/behavioural
+tests covering the previously-untested client lifecycle, client-type CRUD (incl.
+the system-type rename/delete guards), the PHIPA retention/deletion lifecycle,
+and the ledger queries. Full suite now 152.
+
+**Step 2 (next):** widen coverage at the route/integration level for the larger
+blueprints (entries, statements) — currently the thinnest spot — so the split is
+done against a net that exercises the data layer end-to-end, not just in isolation.
+
+**Step 3:** split `database.py` by domain. Candidate seams (each already a clear
+comment-delimited block in the file): client types, clients, entries/edit-history,
+ledger, statements/portions, retention/deletion, links, backups/maintenance. Likely
+shape is a thin `Database` facade delegating to per-domain mixins/modules while
+preserving the existing public method names, so callers don't change in lockstep.
+
+No forcing function — this is a watch-item, not a fire. `entries.py` (~1,924 lines)
+is the runner-up and can follow the same pattern afterwards.
+
+---
+
 ## PHASE STATUS
 
 ### Phase 1: Core Functionality ✅ COMPLETE (Nov 29, 2025)
