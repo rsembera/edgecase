@@ -344,7 +344,7 @@ def require_login():
         heartbeat_func()
     
     # Allow access to login page, static files, and session status endpoints without auth
-    allowed_endpoints = ['auth.login', 'auth.logout', 'static', 'session_status', 'keepalive', 'heartbeat']
+    allowed_endpoints = ['auth.login', 'auth.logout', 'auth.migrate_stream', 'static', 'session_status', 'keepalive', 'heartbeat']
     if request.endpoint in allowed_endpoints:
         return
     

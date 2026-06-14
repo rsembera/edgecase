@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upgrading - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 420px; text-align: center;
+        }
+        .ring {
+            width: 56px; height: 56px; margin: 0 auto 1.25rem; border-radius: 50%;
+            background: #BFDCDC; display: flex; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 28px; height: 28px; border: 3px solid rgba(17,93,79,0.25);
+            border-top-color: #115D4F; border-radius: 50%; animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h2 { color: #1F2937; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; font-weight: 400; margin-bottom: 1.25rem; }
+        #message { color: #374151; font-size: 0.95rem; min-height: 3rem; }
+        .actions { margin-top: 1.5rem; display: none; }
+        .actions a {
+            display: inline-block; text-decoration: none; color: #115D4F;
+            font-weight: 500; font-size: 0.9rem; border: 1px solid #115D4F;
+            border-radius: 0.5rem; padding: 0.5rem 1.25rem;
+        }
+        .error .ring { background: #FDE2E1; }
+        .error .spinner { display: none; }
+    </style>
+</head>
+<body>
+    <div class="card" id="card">
+        <div class="ring"><div class="spinner" id="spinner"></div></div>
+        <h2 id="title">Upgrading encryption</h2>
+        <p class="subtitle">One-time security upgrade</p>
+        <p id="message">Preparing&hellip;</p>
+        <div class="actions" id="actions"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var card = document.getElementById('card');
+            var title = document.getElementById('title');
+            var messageEl = document.getElementById('message');
+            var actions = document.getElementById('actions');
+
+            function fail(text) {
+                card.classList.add('error');
+                title.textContent = 'Upgrade not completed';
+                messageEl.textContent = text;
+                actions.style.display = 'block';
+            }
+
+            var es = new EventSource('{{ url_for("auth.migrate_stream", token=migrate_token) }}');
+
+            es.onmessage = function (event) {
+                var data = JSON.parse(event.data);
+                if (data.status === 'working') {
+                    messageEl.textContent = data.message;
+                } else if (data.status === 'complete') {
+                    es.close();
+                    title.textContent = 'Encryption upgraded';
+                    messageEl.textContent = 'Opening EdgeCase\u2026';
+                    setTimeout(function () { window.location.href = data.redirect; }, 900);
+                } else if (data.status === 'error') {
+                    es.close();
+                    fail(data.message);
+                }
+            };
+
+            es.onerror = function () {
+                es.close();
+                fail('The connection was interrupted. Your data is unchanged \u2014 please go back and log in again.');
+            };
+        });
+    </script>
+</body>
+</html>
