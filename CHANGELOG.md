@@ -8,6 +8,11 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-06-14 (data-layer test net + internal tidy)
+- **Added `tests/test_database_layer.py` — 31 data-layer tests**, the safety net for the planned `core/database.py` refactor. Round-trip / behavioural coverage for methods the existing suite touched only indirectly: the client lifecycle (add/get/get_all with type filter and `is_deleted` exclusion, update with column whitelisting, search with wildcard escaping, `file_number_exists`, `get_profile_entry`, `get_last_session_date`), client-type CRUD including the system-type rename/delete guards, the PHIPA retention/deletion lifecycle (`archive_and_delete_client`, `get_deleted_clients`, `snapshot_retention_on_inactive`, `get_clients_due_for_deletion`), and the ledger queries (`get_all_ledger_entries` with filter + name joins, `get_ledger_entry`, `get_ledger_entries_by_date_range`). Full suite: 152 passed.
+- **Internal tidy:** collapsed `migrate_crypto.py`'s two near-identical DB-rebuild functions (`_build_raw_keyed_db`, `_build_rekeyed_db_v2`) into one `_export_verify` helper with two thin wrappers — behaviour identical, covered by the existing migrate and change-password tests (−23 lines).
+- The `core/database.py` refactor itself is now queued as the explicit next-up item in `EdgeCase_Project_Status.md`.
+
 ### 2026-06-14 (crypto v2 — first-migration fixes)
 Three gaps surfaced and were fixed when the first real install migrated to v2:
 - **Backups now include `.keyinfo`.** `get_all_backup_files()` captured `.salt`/`.secret_key` but not `.keyinfo`; on a v2 install the raw SQLCipher key is derived from the Argon2id salt inside it, so a backup without it would restore an unopenable database (also a prerequisite for the password-change rollback).
