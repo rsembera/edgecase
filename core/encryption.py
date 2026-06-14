@@ -77,12 +77,17 @@ def encrypt_file(filepath: str, password: str) -> None:
     the original (os.replace), so a crash mid-write can never leave a
     truncated file with the plaintext already destroyed.
     """
-    fernet = _get_fernet(password)
-
     with open(filepath, 'rb') as f:
         data = f.read()
 
-    encrypted = fernet.encrypt(data)
+    # On a migrated (v2) install write v2 (Argon2id-derived file key,
+    # AES-256-GCM); otherwise v1 Fernet, so un-migrated installs are unchanged.
+    from core import encryption_v2 as _v2
+    if _v2.keyinfo_exists():
+        _db_key_hex, file_key = _v2.get_keys(password)
+        encrypted = _v2.encrypt_bytes(file_key, data)
+    else:
+        encrypted = _get_fernet(password).encrypt(data)
 
     tmp_path = f'{filepath}.tmp'
     try:
@@ -102,10 +107,17 @@ def encrypt_file(filepath: str, password: str) -> None:
 
 
 def decrypt_file_to_bytes(filepath: str, password: str) -> bytes:
-    """Decrypt a file and return the plaintext bytes."""
-    fernet = _get_fernet(password)
-    
+    """Decrypt a file and return the plaintext bytes.
+
+    Version-aware: a v2 blob (0x02 prefix) is decrypted with the Argon2id-
+    derived file key; anything else uses the v1 Fernet path. Both stay readable
+    during the migration bake period.
+    """
     with open(filepath, 'rb') as f:
-        encrypted = f.read()
-    
-    return fernet.decrypt(encrypted)
+        blob = f.read()
+
+    from core import encryption_v2 as _v2
+    if _v2.is_v2(blob):
+        _db_key_hex, file_key = _v2.get_keys(password)
+        return _v2.decrypt_bytes(file_key, blob)
+    return _get_fernet(password).decrypt(blob)
