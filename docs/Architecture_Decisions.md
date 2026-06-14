@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** May 30, 2026
+**Last Updated:** June 14, 2026
 
 ---
 
@@ -1279,3 +1279,55 @@ done in a dedicated pass with timing measurements.
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
 *Last Updated: June 7, 2026*
+
+
+---
+
+## ATTACHMENT ENCRYPTION v2 (ARGON2ID / AES-256-GCM)
+
+**Added:** June 14, 2026 — in progress (see Project Status for current stage)
+
+### The Decision
+
+Migrate file-attachment / asset / statement-PDF encryption from Fernet
+(PBKDF2-SHA256 480k → AES-128-CBC/HMAC) to an Argon2id → HKDF → AES-256-GCM
+scheme mirroring MailRepo's design. SQLCipher's database encryption algorithm
+is unchanged, but its key becomes a raw key derived from the same Argon2id
+master (`PRAGMA key = "x'<hex>'"`) instead of SQLCipher's internal PBKDF2 — so a
+single memory-hard KDF gates the entire install.
+
+### Why?
+
+- The attachment crypto was the weakest gate (PBKDF2, AES-128); MailRepo already
+  uses the stronger scheme, and this brings EdgeCase to parity.
+- The real security gain materialises only if Argon2id gates the *database* key
+  too. Upgrading attachments alone would leave SQLCipher's PBKDF2 as the soft
+  gate an attacker would simply target instead. Hence the raw-key SQLCipher
+  change is part of the same decision, not optional polish.
+
+### Key choices — do NOT undo without reading this
+
+- **Argon2id via `cryptography`, not `argon2-cffi`.** `cryptography` is already a
+  dependency and already bundled; its Argon2id (256 MiB, t=6, p=1) needs no new
+  package and no py2app/PyInstaller bundling change. EdgeCase never interoperates
+  with MailRepo archives, so the two needn't share a KDF library.
+- **The old `.salt` is left in place.** A new versioned key-info file
+  (`.keyinfo`: magic `ECC2` + Argon2id salt + verification token) is written
+  alongside it. v1 Fernet tokens (`0x80` prefix) and v2 blobs (`0x02` prefix)
+  are unambiguously distinguishable, so both stay readable during and after
+  migration.
+- **DO NOT remove v1 read-compat early.** This is distributed software with real
+  users on `.deb`/`.dmg`. v1 read-compat must survive at least a release cycle or
+  two of the migration demonstrably running in the wild. A user slow to update,
+  or one whose migration failed and stayed on v1, must not be stranded by a build
+  that can no longer read v1 files. "Proven on Richard's install" is NOT "proven
+  across all installs."
+- **The migration runner owns its own safety net.** On a user's machine it runs
+  unattended: it must take its own verified backup before touching anything, be
+  crash-safe and idempotent, and roll back to v1 on any failure. The commit point
+  is writing `.keyinfo`; nothing before that is destructive.
+- **Detection is data-driven:** no `.keyinfo` → v1 install, run migration;
+  `.keyinfo` present → already v2. Works on any install vintage (note even the
+  developer's own `.salt` is a pre-current 21-byte relic — the migration reuses
+  the existing v1 functions to derive the old key, so salt format is never
+  assumed).

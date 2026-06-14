@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 13, 2026  
+**Last Updated:** June 14, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -12,6 +12,29 @@
 EdgeCase Equalizer is a web-based practice management system for independent therapists, built using AI-assisted development. The system uses an entry-based architecture where all client records are stored as unified entries in SQLite with SQLCipher encryption.
 
 **Philosophy:** Every practice is an edge case - this software is built specifically for solo practitioners who need complete control, flexibility, and data ownership.
+
+---
+
+## CURRENT WORK IN PROGRESS
+
+### Attachment Encryption v2 (Argon2id / AES-256-GCM) — started June 14, 2026
+
+A post-launch security enhancement (does **not** change the "all phases complete
+/ in production" status): migrating attachment, asset, and statement-PDF
+encryption from Fernet to Argon2id → HKDF → AES-256-GCM, with SQLCipher rekeyed
+to a raw Argon2id-derived key. Full rationale in `Architecture_Decisions.md`;
+packaging implications in the Mac/Linux packaging guides.
+
+**Stages:**
+1. ✅ v2 primitives module + 16 unit tests (`core/encryption_v2.py`) — committed 2026-06-14
+2. ⬜ Dry-run migration harness (validates against a copy of real data)
+3. ⬜ SQLCipher raw-key keying in `database.py`
+4. ⬜ Migration runner (auto-backup → rekey DB → re-encrypt files → write `.keyinfo` → verify → rollback)
+5. ⬜ Password-change flow + call sites updated for v2
+6. ⬜ Remove v1 Fernet path — DEFERRED across a release cycle or two (distributed-user safety; see `Architecture_Decisions.md`)
+
+Nothing is wired into a production path until stage 4; the running app is
+unaffected before then.
 
 ---
 

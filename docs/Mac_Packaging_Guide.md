@@ -34,6 +34,26 @@ dist/
 
 ## Build Steps
 
+### 0. Crypto v2 migration — pre-build checklist (added 2026-06-14)
+
+The attachment-encryption migration (Fernet → Argon2id / AES-256-GCM) runs
+automatically on each user's first launch after updating; their data in
+`~/Library/Application Support/EdgeCase/` is migrated in place, and the
+migration runner takes its own verified backup first. Before building, confirm
+in `setup_app.py`:
+
+- **`includes` lists every new core module.** py2app does not auto-detect them.
+  `core.encryption` is listed; you must also add `core.encryption_v2` and the
+  migration-runner module (e.g. `core.migrate_crypto`) or packaged users hit an
+  ImportError at launch. (Linux does not need this — its build copies all of
+  `core/`.)
+- **No `cryptography` change needed.** Argon2id ships inside the already-bundled
+  `cryptography` package (same Rust extension as Fernet/PBKDF2), so the existing
+  `packages` entry already covers it.
+- **Do not remove v1 (Fernet) read-compat** for at least a release cycle or two
+  after this ships — see `Architecture_Decisions.md`. A user slow to update, or
+  one whose migration failed and stayed on v1, must still be able to read files.
+
 ### 1. Prepare for build
 
 Temporarily rename `pyproject.toml` to prevent py2app conflicts:
