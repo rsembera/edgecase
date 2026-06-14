@@ -49,6 +49,29 @@ def _pop_password_handoff(token):
         return None
     return entry['current'], entry['new']
 
+
+_migration_handoff = {}
+
+
+def _store_migration_handoff(password):
+    """Store the verified password server-side for the migration SSE route;
+    returns a single-use token. Never the session cookie (CODE_REVIEW.md H2)."""
+    _migration_handoff.clear()
+    token = secrets.token_urlsafe(32)
+    _migration_handoff[token] = {'password': password, 'created': time.time()}
+    return token
+
+
+def _pop_migration_handoff(token):
+    """Retrieve and delete the migration handoff. Returns the password or None."""
+    entry = _migration_handoff.pop(token, None) if token else None
+    if not entry:
+        return None
+    if time.time() - entry['created'] > _HANDOFF_TTL_SECONDS:
+        return None
+    return entry['password']
+
+
 # ============================================================================
 # LOGIN RATE LIMITING
 # ============================================================================
@@ -141,6 +164,16 @@ def is_first_run():
 def login():
     """Login page - unlock the encrypted database."""
     from core.database import Database
+
+    # Heal any interrupted v1->v2 migration before the database is opened.
+    # No password needed; a no-op when nothing is pending.
+    try:
+        from core import migrate_crypto
+        outcome = migrate_crypto.recover_if_interrupted()
+        if outcome != 'none':
+            print(f"[Migration] startup recovery: {outcome}")
+    except Exception as e:
+        print(f"[Migration] recovery check error: {e}")
     
     first_run = is_first_run()
     
@@ -175,7 +208,26 @@ def login():
             # Test that password works by running a query
             conn = db.connect()
             conn.execute("SELECT count(*) FROM client_types")
-            
+
+            # Existing v1 install: migrate encryption to v2 before
+            # completing login. The runner needs no DB handle open, so
+            # close ours; /migrate/stream re-opens the now-v2 DB and
+            # finishes the login.
+            if not first_run:
+                from core import migrate_crypto
+                if migrate_crypto.needs_migration():
+                    db.close()
+                    _clear_failed_attempts()
+                    migrate_token = _store_migration_handoff(password)
+                    session.clear()
+                    session.permanent = True
+                    session['authenticated'] = True
+                    session['login_time'] = int(time.time())
+                    session['last_activity'] = time.time()
+                    session.modified = True
+                    return render_template('upgrading.html',
+                                           migrate_token=migrate_token)
+
             # Success! Store db in app config
             current_app.config['db'] = db
             
@@ -210,6 +262,47 @@ def login():
             return render_template('login.html', first_run=first_run, error=error)
     
     return render_template('login.html', first_run=first_run)
+
+
+@auth_bp.route('/migrate/stream')
+def migrate_stream():
+    """SSE endpoint that runs the v1->v2 encryption migration and then completes
+    the login. Reachable without config['db'] (it is in require_login's allowed
+    endpoints) and gated instead by the single-use token from the verified
+    login POST."""
+    from pathlib import Path
+    from core.config import DATA_DIR
+
+    password = _pop_migration_handoff(request.args.get('token'))
+    db_path = str(Path(DATA_DIR) / "edgecase.db")
+    app_obj = current_app._get_current_object()
+    redirect_url = url_for('clients.index')
+
+    def generate():
+        if not password:
+            yield "data: " + json.dumps({'status': 'error', 'message': 'Your upgrade session expired. Please log in again.'}) + "\n\n"
+            return
+        try:
+            yield "data: " + json.dumps({'status': 'working', 'message': 'Creating a safety backup and upgrading your encryption. This one-time step can take a little while for a large practice \u2014 please do not close the app.'}) + "\n\n"
+
+            from core import migrate_crypto
+            from core.database import Database
+            from web.app import init_all_blueprints
+
+            result = migrate_crypto.migrate(password)
+
+            # Committed (.keyinfo written, marker cleared). Open the now-v2
+            # database and complete the login exactly as auth.login does.
+            db = Database(db_path, password=password)
+            db.connect().execute("SELECT count(*) FROM client_types")
+            app_obj.config['db'] = db
+            init_all_blueprints(db)
+
+            yield "data: " + json.dumps({'status': 'complete', 'message': 'Encryption upgraded.', 'files': result.get('files_migrated', 0), 'redirect': redirect_url}) + "\n\n"
+        except Exception as e:
+            yield "data: " + json.dumps({'status': 'error', 'message': 'The upgrade did not complete: ' + str(e) + '. Your data is unchanged and still on the previous encryption \u2014 please try logging in again.'}) + "\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 
 @auth_bp.route('/logout')

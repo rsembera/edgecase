@@ -29,15 +29,16 @@ packaging implications in the Mac/Linux packaging guides.
 1. ✅ v2 primitives module + 16 unit tests (`core/encryption_v2.py`) — committed 2026-06-14
 2. ✅ Dry-run migration harness — validated on real data (39 files, 364 rows, integrity ok, 0.74s derive, PASS) 2026-06-14
 3. ✅ SQLCipher raw-key keying in `database.py` — gated on `.keyinfo`; v1 installs open unchanged (full suite 100 passed) 2026-06-14
-4. ◑ Migration runner (`core/migrate_crypto.py`) — core + crash-safety state machine (finalize/rollback) and 5 tests DONE (4a, 2026-06-14); startup wiring PENDING (4b). Imported by no production path yet.
-5. ⬜ Password-change flow + call sites updated for v2
+4. ✅ Migration runner + login-flow wiring (4a + 4b, 2026-06-14). Runner `core/migrate_crypto.py` (crash-safe finalize/rollback, 5 tests). `login()` runs `recover_if_interrupted()` first, then after password verification migrates an existing v1 install via an `upgrading.html` interstitial + `/migrate/stream` SSE route that completes the login. 5 wiring tests. Full suite 110 passed.
+5. ⬜ Password-change flow updated for v2 — **REQUIRED before the master password is changed on a migrated (v2) install**. The current flow assumes Fernet files + passphrase rekey and will leave a v2 install inconsistent.
 6. ⬜ Remove v1 Fernet path — DEFERRED across a release cycle or two (distributed-user safety; see `Architecture_Decisions.md`)
 
-Stage 3 modified `database.py` (gated on `.keyinfo`), and Stage 4a added
-`core/migrate_crypto.py` — but neither runs against real data yet: the runner is
-imported by no production path until the 4b login-flow wiring, and the v2 keying
-is dormant until a `.keyinfo` exists. So the running app stays entirely on the
-unchanged v1 (passphrase) path until you deliberately migrate.
+The migration is now wired into login: on the next app **restart** followed by a
+login, an existing v1 install is automatically migrated to v2 (full backup first,
+crash-safe, rolls back on any failure). A currently-running instance is unaffected
+until it restarts. **Caveat:** the change-password flow is not yet v2-aware
+(Stage 5) — do not change the master password on a migrated install until Stage 5
+lands, or the database and files will be left inconsistent.
 
 ---
 
