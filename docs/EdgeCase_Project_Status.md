@@ -41,6 +41,18 @@ included (Stage 5). What remains is Stage 6 — removing the v1 Fernet read path
 which is deliberately deferred across a release cycle or two for distributed-user
 safety.
 
+**Post-launch (2026-06-14):** stages 1–5 plus three first-migration fixes (`.keyinfo` in backups, backup-verify keying, and the `core.encryption` v2 read/write dispatch) are committed, and the migration was verified end-to-end on a real install — attachments, logo, signature, statements, and backups all working on v2.
+
+### Next-release checklist (when the distributed artifacts are rebuilt)
+
+- **Bump the version + codename** in all five hand-synced places: `pyproject.toml`, `setup_app.py` (`CFBundleVersion` and `CFBundleShortVersionString`), the About modal in `web/templates/settings.html`, and the `.deb` control `Version` in `docs/Linux_Packaging_Guide.md`. Current: **1.0.0 / "v1.0 Simak"**.
+- **Settings → About** updated as part of that bump (version + codename; the "Coded by …" credit line lives there too).
+- **Website** — review and update edgecaseequalizer.ca and lightinextension.ca: the encryption description (now **Argon2id → HKDF → AES-256-GCM** for files and a raw Argon2id-derived SQLCipher key, previously PBKDF2/Fernet), the version, and any security/feature claims the v2 work changes.
+- **Packaging** — per the Mac/Linux guides: py2app needs `core.encryption_v2` and `core.migrate_crypto` in `includes`, and `argon2` + `_argon2_cffi_bindings` in `packages`; the `.deb` picks up `argon2-cffi` from `requirements.txt` automatically.
+- **Tag** the release once built.
+- Optional: make `tools/audit_orphans.py` / `tools/audit_typed_columns.py` v2-aware (raw key when `.keyinfo` exists) so the maintenance scripts work on migrated installs.
+- Stage 6 (remove the v1 Fernet read path) stays deferred for now.
+
 ---
 
 ## PHASE STATUS
