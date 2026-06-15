@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 14, 2026  
+**Last Updated:** June 15, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -156,6 +156,7 @@ is the runner-up and can follow the same pattern afterwards.
 - Silently-blocked form submissions made visible: invalid hidden (Choices-managed) required fields now raise an in-app modal naming the fields instead of a dead Save button
 - AI Scribe "Show Changes": word-level diff overlay (red deletions / green insertions, punctuation-level) via new `generate_full_content_diff` + `POST /api/ai/diff`, sharing the amendment-history diff engine
   - June 13: overlay diff now preserves line/paragraph breaks (newline runs tokenized and rendered as `<br>`); the history diff stays single-line by design
+  - June 15: overlay height now mirrors the AI Result textarea's live height (dropped auto-grow `min/max-height`; set inline from `offsetHeight`) so Show/Hide Changes no longer resizes the panel
 - New verification practice: jsdom harness with base-template scripts included, and Playwright against live instances (real Chromium, real layout); per-restart static cache-busting (`?v=`)
 - Tests: 77 → 83
 
