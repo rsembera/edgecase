@@ -244,6 +244,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 diffCache = data.html;
             }
             diffView.innerHTML = diffCache;  // server-escaped; only del/strong tags
+            // Mirror the AI Result textarea's current box height (measured
+            // while it's still visible, so manual resizes are respected) so
+            // the swap doesn't change the panel's size.
+            diffView.style.height = generatedText.offsetHeight + 'px';
             generatedText.style.display = 'none';
             diffView.style.display = 'block';
             diffShowing = true;
