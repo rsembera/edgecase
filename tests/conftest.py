@@ -32,18 +32,25 @@ def app_db():
 
 
 @pytest.fixture
-def client(app_db):
+def client(app_db, monkeypatch):
     """Authenticated Flask test client wired to ``app_db``.
 
     Blueprints capture their db reference via ``init_blueprint`` at login (a
     module-level ``db`` global), so setting ``app.config['db']`` alone is not
     enough — we also call ``init_all_blueprints(app_db)`` so route handlers use
-    the test database. CSRF is disabled: the app calls ``csrf.protect()``
-    manually in a before_request, and ``WTF_CSRF_ENABLED=False`` makes that a
-    no-op so form POSTs don't need a token.
+    the test database.
+
+    CSRF: the app disables Flask-WTF's automatic check
+    (``WTF_CSRF_CHECK_DEFAULT=False``) and instead calls ``csrf.protect()``
+    manually in a before_request. In flask_wtf 1.2.x ``protect()`` does *not*
+    honour ``WTF_CSRF_ENABLED``, so that flag alone leaves form POSTs returning
+    400 ("CSRF token is missing"). We no-op ``validate_csrf`` for the duration of
+    the test (function-scoped monkeypatch, auto-reverted) — the documented intent
+    of disabling CSRF in a test client — without touching production code.
     """
     flask_app.config["TESTING"] = True
     flask_app.config["WTF_CSRF_ENABLED"] = False
+    monkeypatch.setattr("flask_wtf.csrf.validate_csrf", lambda *a, **k: None)
 
     prev_db = flask_app.config.get("db")
     flask_app.config["db"] = app_db
