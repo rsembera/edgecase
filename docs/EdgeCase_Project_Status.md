@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 15, 2026  
+**Last Updated:** June 18, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -75,6 +75,41 @@ and the ledger queries. Full suite now 152.
 **Step 2 (next):** widen coverage at the route/integration level for the larger
 blueprints (entries, statements) — currently the thinnest spot — so the split is
 done against a net that exercises the data layer end-to-end, not just in isolation.
+
+*Concrete plan (mapped 2026-06-18):*
+
+- **Prerequisite — route-test harness.** No `conftest.py` / Flask `test_client`
+  exists yet; the whole suite drives a `db` object directly. Add `tests/conftest.py`
+  with a `client` fixture: import the module-level `app` from `web.app`; set
+  `TESTING=True` and `WTF_CSRF_ENABLED=False` (the CSRF gate is a `before_request`
+  calling `csrf.protect()`); build a temp-file test DB (reuse the `db` fixture setup
+  in `test_edgecase.py`) and inject it as `app.config['db']` — routes read the live
+  DB straight from there, so this sidesteps master-password/key derivation; mark the
+  session authenticated in a `session_transaction()` block (`authenticated`,
+  `login_time`, `last_activity`). Then each test is `client.get/post(...)` + assert
+  status + DB side-effect.
+- **Target A — `entries`** (highest value; runner-up god-object and a split seam).
+  Exercise the `entries/edit-history` and `retention/deletion` methods through real
+  routes: create→edit round trip per type (session, communication, absence, item,
+  profile); locked-session no-op save leaves `modified_at`/amendment trail untouched
+  while a real edit appends exactly one edit-history row; session numbering and
+  consultation-exclusion end-to-end; redaction POST then redacted view; attachment
+  upload→download→delete; one missing-required-field POST asserts the in-app error,
+  not a silent dead save.
+- **Target B — `statements`** (the statements/portions seam). Drive the billing
+  lifecycle through routes: `find-unbilled` → `generate` → `mark-sent/<id>` →
+  `mark-paid`, asserting status transitions (unbilled → pending → paid); partial
+  payment stays pending; `write-off` resolves the portion; PDF routes (`/pdf`,
+  `/view-pdf`) assert 200 + `application/pdf` (don't parse the body).
+- **Breadth (quick wins).** Parametrized smoke test GETting every read-only route
+  (client file, statements index, ledger, settings) asserting 200 — catches
+  import/registration breakage from the split immediately.
+- **Skip/stub:** `send-applescript-email` (mock the AppleScript call); AI-Scribe
+  (not a split seam); never assert on PDF contents.
+- **Order:** harness → entries create/edit round trips → lock/amendment → statements
+  lifecycle → redaction/attachments → breadth. Harness + entries lifecycle +
+  statements lifecycle alone is a real net; the rest is gravy. Adds files under
+  `tests/` only, so the production checkout stays usable throughout.
 
 **Step 3:** split `database.py` by domain. Candidate seams (each already a clear
 comment-delimited block in the file): client types, clients, entries/edit-history,
