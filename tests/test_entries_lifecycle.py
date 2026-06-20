@@ -77,3 +77,44 @@ def test_session_locked_edit_appends_exactly_one_amendment(client, app_db):
 
     assert app_db.get_entry(entry_id)["content"] == "Amended notes"
     assert len(app_db.get_edit_history(entry_id)) == 1
+
+
+def test_redact_locked_session_clears_content_and_sets_flag(client, app_db):
+    """Redaction (wrong-file privacy incident) clears free-text content and
+    flags the entry, while structural metadata is preserved."""
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session", data=_session_form("Sensitive notes"))
+    entry_id = app_db.get_client_entries(cid, "session")[0]["id"]
+
+    resp = client.post(
+        f"/client/{cid}/redact/{entry_id}", data={"reason": "Entered in wrong file"}
+    )
+    assert resp.status_code == 302
+
+    entry = app_db.get_entry(entry_id)
+    assert entry["is_redacted"]
+    assert not entry["content"]
+
+
+def test_redacted_entry_view_renders(client, app_db):
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session", data=_session_form("Sensitive notes"))
+    entry_id = app_db.get_client_entries(cid, "session")[0]["id"]
+    client.post(
+        f"/client/{cid}/redact/{entry_id}", data={"reason": "Entered in wrong file"}
+    )
+
+    resp = client.get(f"/client/{cid}/redacted/{entry_id}")
+    assert resp.status_code == 200
+
+
+def test_redact_without_reason_is_rejected(client, app_db):
+    """A redaction with no reason must be refused (in-app 400), not performed."""
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session", data=_session_form("Sensitive notes"))
+    entry_id = app_db.get_client_entries(cid, "session")[0]["id"]
+
+    resp = client.post(f"/client/{cid}/redact/{entry_id}", data={"reason": "   "})
+    assert resp.status_code == 400
+    # Nothing was redacted.
+    assert not app_db.get_entry(entry_id)["is_redacted"]
