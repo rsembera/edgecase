@@ -275,3 +275,88 @@ def test_pdf_routes_generate_and_serve(client, app_db, monkeypatch):
     view = client.get(f"/statements/view-pdf/{pid}")
     assert view.status_code == 200
     assert view.mimetype == "application/pdf"
+
+
+def test_send_applescript_email_success(client, monkeypatch):
+    """The email route shells out to osascript via subprocess.run; with run
+    stubbed to succeed, it reports success and never launches Mail. Asserts the
+    recipient is escaped into the -e AppleScript that would have been run."""
+    import subprocess
+
+    captured = {}
+
+    class _Result:
+        returncode = 0
+        stderr = ""
+        stdout = ""
+
+    def _fake_run(cmd, capture_output=False, text=False, timeout=None):
+        captured["cmd"] = cmd
+        return _Result()
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    resp = client.post("/statements/send-applescript-email", json={
+        "recipient_email": "client@example.com",
+        "subject": "Your statement",
+        "body": "Attached.",
+    })
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+    assert captured["cmd"][0] == "osascript"
+    assert "-e" in captured["cmd"]
+    assert "client@example.com" in captured["cmd"][-1]
+
+
+def test_send_applescript_email_reports_osascript_failure(client, monkeypatch):
+    """A non-zero osascript return surfaces as success=False carrying stderr."""
+    import subprocess
+
+    class _Result:
+        returncode = 1
+        stderr = "boom"
+        stdout = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Result())
+
+    resp = client.post("/statements/send-applescript-email", json={
+        "recipient_email": "client@example.com",
+        "subject": "S",
+        "body": "B",
+    })
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is False
+    assert data["error"] == "boom"
+
+
+def test_send_applescript_email_cleans_up_temp_pdf(client, monkeypatch):
+    """When pdf_path points into a private 'edgecase-' temp dir, the route
+    removes that whole dir after the AppleScript step."""
+    import subprocess
+    import tempfile
+    import shutil
+    from pathlib import Path
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        lambda *a, **k: type("R", (), {"returncode": 0, "stderr": "", "stdout": ""})(),
+    )
+
+    tmpdir = Path(tempfile.mkdtemp(prefix="edgecase-"))
+    pdf = tmpdir / "Statement.pdf"
+    pdf.write_bytes(b"%PDF-1.4 test\n")
+    assert tmpdir.exists()
+
+    try:
+        resp = client.post("/statements/send-applescript-email", json={
+            "recipient_email": "client@example.com",
+            "subject": "S",
+            "body": "B",
+            "pdf_path": str(pdf),
+        })
+        assert resp.status_code == 200
+        assert resp.get_json()["success"] is True
+        assert not tmpdir.exists()
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
