@@ -118,3 +118,22 @@ def test_redact_without_reason_is_rejected(client, app_db):
     assert resp.status_code == 400
     # Nothing was redacted.
     assert not app_db.get_entry(entry_id)["is_redacted"]
+
+
+def test_consultation_session_excluded_from_numbering(client, app_db):
+    """Consultations are not part of the sequential session count: two regular
+    sessions number 1 and 2 even with a consultation created between them."""
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session",
+                data=_session_form("First", date="2026-06-10"))
+    client.post(f"/client/{cid}/session",
+                data=dict(_session_form("Intake consult", date="2026-06-12"),
+                          is_consultation="1"))
+    client.post(f"/client/{cid}/session",
+                data=_session_form("Second", date="2026-06-15"))
+
+    by_content = {s["content"]: s
+                  for s in app_db.get_client_entries(cid, "session")}
+    assert by_content["First"]["session_number"] == 1
+    assert by_content["Second"]["session_number"] == 2
+    assert by_content["Intake consult"]["session_number"] is None
