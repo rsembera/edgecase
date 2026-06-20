@@ -21,16 +21,7 @@ from core.db.clients import ClientMixin
 from core.db.entries import EntryMixin
 from core.db.ledger import LedgerMixin
 from core.db.retention import RetentionMixin
-
-
-class EntryLockedError(Exception):
-    """Raised when update_entry is called on a locked entry without
-    `allow_locked=True`. Locked clinical entries are immutable by design;
-    edits to them must go through the route layer's lock-check + edit
-    history flow, which then opts in via `allow_locked=True`.
-    See CODE_REVIEW.md M11.
-    """
-    pass
+from core.db.errors import EntryLockedError  # re-exported; defined in a leaf module to avoid an import cycle with EntryMixin
 
 
 class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, EntryMixin, LedgerMixin, RetentionMixin):
