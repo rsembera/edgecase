@@ -78,7 +78,49 @@ def edit_upload(client_id, entry_id):
             'upload_time': request.form.get('upload_time', ''),
             'content': request.form.get('content', '')
         }
-        
+
+        # Log field changes to edit history if the entry is locked (matches
+        # sessions/items/absences/communications). Previously old_upload was
+        # captured but never diffed, so locked-upload field edits — unlike
+        # every other entry type — left no audit trail.
+        if db.is_entry_locked(entry_id):
+            changes = []
+
+            if old_upload.get('description') != upload_data.get('description'):
+                from web.utils import generate_content_diff
+                old_desc = old_upload.get('description') or ''
+                new_desc = upload_data.get('description') or ''
+                if old_desc and new_desc:
+                    changes.append(f"Description: {generate_content_diff(old_desc, new_desc, max_length=150)}")
+                elif old_desc:
+                    changes.append("Description: Cleared")
+                else:
+                    changes.append("Description: Added")
+
+            if old_upload.get('upload_date') != upload_date_timestamp:
+                old_date = datetime.fromtimestamp(old_upload['upload_date']).strftime('%Y-%m-%d') if old_upload.get('upload_date') else 'None'
+                new_date = datetime.fromtimestamp(upload_date_timestamp).strftime('%Y-%m-%d') if upload_date_timestamp else 'None'
+                changes.append(f"Date: {old_date} → {new_date}")
+
+            if old_upload.get('upload_time') != upload_data.get('upload_time'):
+                old_time = old_upload.get('upload_time') or 'None'
+                new_time = upload_data.get('upload_time') or 'None'
+                changes.append(f"Time: {old_time} → {new_time}")
+
+            if old_upload.get('content') != upload_data.get('content'):
+                from web.utils import generate_content_diff
+                old_content = old_upload.get('content') or ''
+                new_content = upload_data.get('content') or ''
+                if old_content and new_content:
+                    changes.append(f"Content: {generate_content_diff(old_content, new_content)}")
+                elif old_content:
+                    changes.append("Content: Cleared")
+                else:
+                    changes.append("Content: Added")
+
+            if changes:
+                db.add_to_edit_history(entry_id, "; ".join(changes))
+
         # Handle new file uploads
         files = request.files.getlist('files[]')
         descriptions = request.form.getlist('file_descriptions[]')

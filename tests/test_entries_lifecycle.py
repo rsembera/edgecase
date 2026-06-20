@@ -137,3 +137,32 @@ def test_consultation_session_excluded_from_numbering(client, app_db):
     assert by_content["First"]["session_number"] == 1
     assert by_content["Second"]["session_number"] == 2
     assert by_content["Intake consult"]["session_number"] is None
+
+
+def test_locked_upload_edit_logs_field_changes(client, app_db):
+    """Editing a locked upload records field changes in the edit history, like
+    the other entry types. Regression guard: uploads captured old_upload but
+    never diffed it, so locked-upload field edits left no audit trail."""
+    import time
+
+    cid = _make_client(app_db)
+    eid = app_db.add_entry({
+        "client_id": cid, "class": "upload",
+        "description": "Original description",
+        "upload_date": int(time.time()), "upload_time": "",
+        "content": "original content",
+    })
+    app_db.update_entry(eid, {"locked": 1}, allow_locked=True)
+    assert len(app_db.get_edit_history(eid)) == 0
+
+    resp = client.post(f"/client/{cid}/upload/{eid}", data={
+        "description": "Revised description",
+        "date": "2026-06-19",
+        "upload_time": "",
+        "content": "original content",
+    })
+    assert resp.status_code in (200, 302)
+
+    history = app_db.get_edit_history(eid)
+    assert len(history) == 1
+    assert "Description" in str(history[0])
