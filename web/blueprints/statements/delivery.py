@@ -258,8 +258,7 @@ def view_statement_pdf(portion_id):
 @statements_bp.route('/send-applescript-email', methods=['POST'])
 def send_applescript_email():
     """Send email via AppleScript (Mac Mail.app)."""
-    db = get_db()
-    
+
     import subprocess
     
     data = request.get_json()
