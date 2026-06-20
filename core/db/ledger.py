@@ -7,7 +7,6 @@ shared entry methods (add_entry etc.) from the base Database class.
 import time
 
 import sqlcipher3 as sqlite3
-from typing import Any, Dict, List, Optional
 
 
 class LedgerMixin:
