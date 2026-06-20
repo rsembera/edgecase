@@ -10,6 +10,8 @@ import time
 import sqlcipher3 as sqlite3
 from typing import Any, Dict, List, Optional
 
+from core.db.errors import EntryLockedError
+
 
 class EntryMixin:
 

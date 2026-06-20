@@ -31,7 +31,7 @@ import tempfile
 
 import pytest
 
-from core.database import Database
+from core.database import Database, EntryLockedError
 
 
 @pytest.fixture
@@ -326,3 +326,33 @@ class TestLedgerQueries:
         self._add_income(db, 30.0, base + 60 * day)  # out of range
         got = db.get_ledger_entries_by_date_range(base, base + 10 * day)
         assert sorted(e['total_amount'] for e in got) == [10.0, 20.0]
+
+
+# ===========================================================================
+# ENTRY LOCK GUARD
+# ===========================================================================
+
+class TestEntryLock:
+    """update_entry must refuse a locked entry unless allow_locked=True.
+
+    Regression guard: EntryLockedError is defined in core.database but the
+    EntryMixin that raises it lives in core/db/entries.py; after the mixin
+    split the name was not imported there, so this raise path would have
+    thrown NameError instead of EntryLockedError. The exception now lives in
+    the leaf module core/db/errors.py, imported by both.
+    """
+
+    def test_update_locked_entry_raises_unless_allowed(self, db):
+        cid = _add_client(db, file_number='F-LOCK')
+        eid = db.add_entry({'client_id': cid, 'class': 'session',
+                            'session_date': 1000, 'description': 'orig'})
+        # Lock it (setting the lock itself requires opting in).
+        db.update_entry(eid, {'locked': 1}, allow_locked=True)
+
+        # A normal update of a locked entry must raise EntryLockedError
+        # (the bug: this branch previously raised NameError).
+        with pytest.raises(EntryLockedError):
+            db.update_entry(eid, {'description': 'tampered'})
+
+        # allow_locked=True opts in and must not raise.
+        db.update_entry(eid, {'description': 'amended'}, allow_locked=True)
