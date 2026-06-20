@@ -194,9 +194,14 @@ def mark_sent(portion_id):
         })
 
 
-@statements_bp.route('/pdf/<int:portion_id>')
-def download_statement_pdf(portion_id):
-    """Generate and download a PDF statement for a portion."""
+def _serve_statement_pdf(portion_id, *, as_attachment):
+    """Generate a portion's PDF into a private temp dir and serve it.
+
+    Shared by download_statement_pdf (as_attachment=True) and
+    view_statement_pdf (as_attachment=False). The portion's PDF is rendered
+    into a private (0700, randomized) temp dir that is removed once the
+    response has been sent; the browser sees `filename` via download_name.
+    """
     db = get_db()
 
     conn = db.connect()
@@ -208,17 +213,15 @@ def download_statement_pdf(portion_id):
         WHERE sp.id = ?
     """, (portion_id,))
     row = cursor.fetchone()
-    
+
     if not row:
         return jsonify({'success': False, 'error': 'Statement not found'}), 404
-    
+
     columns = [col[0] for col in cursor.description]
     portion = dict(zip(columns, row))
-    
+
     date_str = datetime.now().strftime('%Y%m%d')
     filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
-    # Private (0700, randomized) temp dir; the browser still sees
-    # `filename` via send_file's download_name.
     output_path = _private_pdf_dir() / filename
 
     try:
@@ -232,58 +235,24 @@ def download_statement_pdf(portion_id):
         return send_file(
             output_path,
             mimetype='application/pdf',
-            as_attachment=True,
+            as_attachment=as_attachment,
             download_name=filename
         )
     except Exception as e:
         shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@statements_bp.route('/pdf/<int:portion_id>')
+def download_statement_pdf(portion_id):
+    """Generate and download a PDF statement for a portion."""
+    return _serve_statement_pdf(portion_id, as_attachment=True)
 
 
 @statements_bp.route('/view-pdf/<int:portion_id>')
 def view_statement_pdf(portion_id):
     """Generate and view a PDF statement in browser."""
-    db = get_db()
-
-    conn = db.connect()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT sp.*, c.file_number
-        FROM statement_portions sp
-        JOIN clients c ON sp.client_id = c.id
-        WHERE sp.id = ?
-    """, (portion_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        return jsonify({'success': False, 'error': 'Statement not found'}), 404
-    
-    columns = [col[0] for col in cursor.description]
-    portion = dict(zip(columns, row))
-    
-    date_str = datetime.now().strftime('%Y%m%d')
-    filename = f"Statement_{portion['file_number']}_{date_str}.pdf"
-    # Private (0700, randomized) temp dir; the browser still sees
-    # `filename` via send_file's download_name.
-    output_path = _private_pdf_dir() / filename
-
-    try:
-        generate_statement_pdf(db, portion_id, str(output_path), str(ASSETS_DIR))
-
-        @after_this_request
-        def cleanup(response):
-            shutil.rmtree(output_path.parent, ignore_errors=True)
-            return response
-
-        return send_file(
-            output_path,
-            mimetype='application/pdf',
-            as_attachment=False,
-            download_name=filename
-        )
-    except Exception as e:
-        shutil.rmtree(output_path.parent, ignore_errors=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    return _serve_statement_pdf(portion_id, as_attachment=False)
 
 
 @statements_bp.route('/send-applescript-email', methods=['POST'])
