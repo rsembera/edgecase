@@ -259,7 +259,6 @@ def write_off_statement():
     comm_content = '\n\n'.join(content_parts)
     
     # Format current time for comm_time
-    from datetime import datetime
     now_dt = datetime.fromtimestamp(now)
     comm_time = now_dt.strftime('%I:%M %p').lstrip('0')
     

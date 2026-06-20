@@ -6,7 +6,6 @@ from flask import request, jsonify
 from datetime import datetime
 import calendar
 import time
-from core.database import Database
 from core.money import money_float
 from core.billing import compute_statement_totals, split_guardian_amounts
 from web.blueprints.statements.common import statements_bp, get_db

@@ -32,7 +32,6 @@ def mark_sent(portion_id):
     """Mark a statement portion as sent - generates PDF, creates Communication entry, triggers email."""
     db = get_db()
     
-    import subprocess
 
     # Check if we should skip email (generate-only mode)
     skip_email = request.args.get('skip_email') == '1'

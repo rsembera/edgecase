@@ -293,7 +293,6 @@ def timestamp_to_date(timestamp):
     """Convert Unix timestamp to readable date."""
     if not timestamp:
         return '-'
-    from datetime import datetime
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
 
 @app.template_filter('close_tags')

@@ -6,8 +6,6 @@ base Database class.
 import json
 import time
 
-import sqlcipher3 as sqlite3
-from typing import Any, Dict, List, Optional
 
 
 class EditHistoryMixin:

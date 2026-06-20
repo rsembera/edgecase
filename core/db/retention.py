@@ -7,7 +7,7 @@ base Database class.
 import os
 import time
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class RetentionMixin:
@@ -29,7 +29,6 @@ class RetentionMixin:
         (18th birthday + period). See Architecture_Decisions.md:
         RETENTION CLOCK ANCHORING.
         """
-        from datetime import datetime
 
         retention_seconds = (retention_days or 0) * 24 * 60 * 60
         standard_retain_until = last_contact + retention_seconds
@@ -57,7 +56,6 @@ class RetentionMixin:
         Get all Inactive clients whose retention period has expired.
         Returns list of dicts with client info and calculated retain_until.
         """
-        from datetime import datetime
         
         conn = self.connect()
         cursor = conn.cursor()
