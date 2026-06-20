@@ -178,9 +178,16 @@ split into a `web/blueprints/entries/` package — `common.py` (blueprint, `get_
 shared helpers) plus eight per-type route modules. Different mechanism from the
 database.py mixin split (a blueprint, not a class): routes contribute to the shared
 `entries_bp`, reading the db handle via `get_db()`. Endpoint set unchanged (16
-`entries.*` routes), suite 195 green. See `docs/Entries_Refactor_Plan.md`. The
-remaining large blueprint, `statements.py`, is the next optional candidate via the
-same pattern.
+`entries.*` routes), suite 195 green. See `docs/Entries_Refactor_Plan.md`.
+
+**And done (2026-06-20):** `statements.py` (1,078 lines, 9 routes) split into a
+`web/blueprints/statements/` package — `common.py` (blueprint + `get_db`) plus
+`views` (index), `generation` (find-unbilled, generate), `payments` (mark-paid,
+write-off, + the ledger category/payee helpers), and `delivery` (mark-sent, PDF
+download/view, applescript-email, + `_private_pdf_dir`). Same blueprint-package
+pattern as entries; endpoint set unchanged (9 `statements.*` routes), suite 196
+green. **All three large files (`database.py`, `entries.py`, `statements.py`) are
+now split — no remaining god-files.**
 
 ---
 
