@@ -1,106 +1,31 @@
-# -*- coding: utf-8 -*-
-"""
-EdgeCase Entries Blueprint
-Handles all entry types (Profile, Session, Communication, Absence, Item, Upload)
-"""
+"""Entry-type route handlers for the entries blueprint (temporary aggregate).
 
-from flask import Blueprint, render_template, request, redirect, url_for, send_file
-from pathlib import Path
+Step A of the entries.py split: all 16 routes relocated here unchanged, each now
+reading the db handle via get_db(). Later steps move these into per-type modules
+(sessions.py, communications.py, ...).
+"""
 from datetime import datetime
-from werkzeug.utils import secure_filename
-import sqlcipher3 as sqlite3
-import time
+from io import BytesIO
+from pathlib import Path
 import os
 import shutil
-from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files, get_link_group_fees
+import time
+
+import sqlcipher3 as sqlite3
+from flask import render_template, request, redirect, url_for, send_file
+from werkzeug.utils import secure_filename
+
+from core.config import ATTACHMENTS_DIR, ASSETS_DIR, DATA_ROOT
 from core.encryption import decrypt_file_to_bytes
-from io import BytesIO
-
-from core.database import Database
-from core.config import DATA_ROOT, ATTACHMENTS_DIR, ASSETS_DIR
 from core.money import money_float
-
-
-def safe_float(value, default=None):
-    """Safely convert form value to float, returning default if invalid."""
-    if not value:
-        return default
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def safe_money(value, default=None):
-    """Safely convert a form value to a cent-quantized float for storage.
-
-    Like safe_float, but for monetary amounts: the value is quantized to
-    cents via Decimal (core.money) so stored fees are always exact cent
-    quantities (CODE_REVIEW.md M1).
-    """
-    if not value:
-        return default
-    try:
-        return money_float(value)
-    except (ValueError, TypeError, ArithmeticError):
-        return default
-
-
-def safe_int(value, default=None):
-    """Safely convert form value to int, returning default if invalid."""
-    if not value:
-        return default
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def resolve_attachment_path(filepath):
-    """Resolve attachment filepath, handling both absolute and relative paths."""
-    if os.path.isabs(filepath):
-        return filepath
-    return str(DATA_ROOT / filepath)
-
-# Initialize blueprint
-entries_bp = Blueprint('entries', __name__)
-
-# Database instance (set by init_blueprint)
-db = None
-
-def init_blueprint(database):
-    """Initialize blueprint with database instance"""
-    global db
-    db = database
-
-
-# ============================================================================
-# HELPER FUNCTION (from app.py)
-# ============================================================================
-
-def renumber_sessions(client_id):
-    """Recalculate session numbers for a client based on chronological order."""
-    # Get client to check for session offset
-    client = db.get_client(client_id)
-    offset = client.get('session_offset', 0)
-    
-    # Get all non-consultation, non-redacted sessions with dates
-    all_sessions = db.get_client_entries(client_id, 'session')
-    dated_sessions = [s for s in all_sessions 
-                      if s.get('session_date') 
-                      and not s.get('is_consultation')
-                      and not s.get('is_redacted')]
-    
-    # Sort by date, then by ID
-    dated_sessions.sort(key=lambda s: (s['session_date'], s['id']))
-    
-    # Renumber sessions starting from (offset + 1)
-    for i, sess in enumerate(dated_sessions, start=offset + 1):
-        if sess['session_number'] != i:
-            db.update_entry(sess['id'], {
-                'session_number': i,
-                'description': f"Session {i}"
-            }, allow_locked=True)  # System invariant; not user-initiated.
+from web.utils import (
+    parse_date_from_form, get_today_date_parts, save_uploaded_files,
+    get_link_group_fees,
+)
+from web.blueprints.entries.common import (
+    entries_bp, get_db, safe_float, safe_money, safe_int,
+    resolve_attachment_path, renumber_sessions,
+)
 
 
 # ============================================================================
@@ -110,6 +35,7 @@ def renumber_sessions(client_id):
 @entries_bp.route('/client/<int:client_id>/profile', methods=['GET', 'POST'])
 def edit_profile(client_id):
     """Create or edit client profile entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -459,6 +385,7 @@ def edit_profile(client_id):
 @entries_bp.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
 def create_session(client_id):
     """Create a new session entry for a client."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -603,6 +530,7 @@ def create_session(client_id):
 @entries_bp.route('/client/<int:client_id>/session/<int:entry_id>', methods=['GET', 'POST'])
 def edit_session(client_id, entry_id):
     """Edit an existing session entry."""
+    db = get_db()
     
     # Get client info
     client = db.get_client(client_id)
@@ -902,6 +830,7 @@ def edit_session(client_id, entry_id):
 @entries_bp.route('/client/<int:client_id>/communication', methods=['GET', 'POST'])
 def create_communication(client_id):
     """Create new communication entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -946,6 +875,7 @@ def create_communication(client_id):
 @entries_bp.route('/client/<int:client_id>/communication/<int:entry_id>', methods=['GET', 'POST'])
 def edit_communication(client_id, entry_id):
     """Edit existing communication entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1116,6 +1046,7 @@ def edit_communication(client_id, entry_id):
 @entries_bp.route('/client/<int:client_id>/absence', methods=['GET', 'POST'])
 def create_absence(client_id):
     """Create a new absence entry for a client."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1186,6 +1117,7 @@ def create_absence(client_id):
 @entries_bp.route('/client/<int:client_id>/absence/<int:entry_id>', methods=['GET', 'POST'])
 def edit_absence(client_id, entry_id):
     """Edit existing absence entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1357,6 +1289,7 @@ def edit_absence(client_id, entry_id):
 @entries_bp.route('/client/<int:client_id>/item', methods=['GET', 'POST'])
 def create_item(client_id):
     """Create a new item entry for a client."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1425,6 +1358,7 @@ def create_item(client_id):
 @entries_bp.route('/client/<int:client_id>/item/<int:entry_id>', methods=['GET', 'POST'])
 def edit_item(client_id, entry_id):
     """Edit existing item entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1595,6 +1529,7 @@ def edit_item(client_id, entry_id):
 @entries_bp.route('/client/<int:client_id>/upload', methods=['GET', 'POST'])
 def create_upload(client_id):
     """Create new upload entry with file attachments."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1636,6 +1571,7 @@ def create_upload(client_id):
 @entries_bp.route('/client/<int:client_id>/upload/<int:entry_id>', methods=['GET', 'POST'])
 def edit_upload(client_id, entry_id):
     """Edit existing upload entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1708,6 +1644,7 @@ def edit_upload(client_id, entry_id):
 @entries_bp.route('/attachment/<int:attachment_id>/download')
 def download_attachment(attachment_id):
     """Download an attachment file."""
+    db = get_db()
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1771,6 +1708,7 @@ def view_attachment(attachment_id):
     Inline rendering is only allowed for a safe allowlist of types
     (images, PDF, plain text); everything else is served as a download.
     """
+    db = get_db()
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1827,6 +1765,7 @@ def view_attachment(attachment_id):
 @entries_bp.route('/attachment/<int:attachment_id>/delete', methods=['POST'])
 def delete_attachment(attachment_id):
     """Delete an attachment file and database record."""
+    db = get_db()
     conn = db.connect()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1873,6 +1812,7 @@ def delete_attachment(attachment_id):
 @entries_bp.route('/client/<int:client_id>/redact/<int:entry_id>', methods=['POST'])
 def redact_entry(client_id, entry_id):
     """Perform redaction on a specific entry."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1904,6 +1844,7 @@ def redact_entry(client_id, entry_id):
 @entries_bp.route('/client/<int:client_id>/redacted/<int:entry_id>')
 def view_redacted_entry(client_id, entry_id):
     """View metadata for a redacted entry (no content shown)."""
+    db = get_db()
     client = db.get_client(client_id)
     if not client:
         return "Client not found", 404
@@ -1922,3 +1863,4 @@ def view_redacted_entry(client_id, entry_id):
     return render_template('view_redacted.html',
                           client=client,
                           entry=entry)
+
