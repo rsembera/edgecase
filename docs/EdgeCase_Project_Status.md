@@ -173,8 +173,14 @@ Note: "statements/portions" and "backups/maintenance" from the original candidat
 list were never `database.py` methods — statement generation lives in the statements
 blueprint (raw SQL), backup/maintenance in the backup module + `migrate_crypto`.
 
-**Remaining (optional, no forcing function):** `entries.py` (~1,924 lines) is the
-runner-up god-file and could follow the same mixin pattern when convenient.
+**Also done (2026-06-20):** `entries.py` (the runner-up god-file, ~1,924 lines)
+split into a `web/blueprints/entries/` package — `common.py` (blueprint, `get_db`,
+shared helpers) plus eight per-type route modules. Different mechanism from the
+database.py mixin split (a blueprint, not a class): routes contribute to the shared
+`entries_bp`, reading the db handle via `get_db()`. Endpoint set unchanged (16
+`entries.*` routes), suite 195 green. See `docs/Entries_Refactor_Plan.md`. The
+remaining large blueprint, `statements.py`, is the next optional candidate via the
+same pattern.
 
 ---
 

@@ -1,6 +1,13 @@
 # entries.py Refactor Plan
 
-**Status:** Planned (not started)
+**Status:** DONE (2026-06-20) — executed exactly as planned. `entries.py` is now the
+`web/blueprints/entries/` package (`common.py` + 8 per-type modules + `__init__.py`).
+Endpoint set identical to baseline (16 `entries.*` routes), suite 195 green. Two
+issues surfaced and were fixed mid-flight, both caught by the net: a test that
+monkeypatched `DATA_ROOT` at the old module path (repointed to `common`), and the
+`_INLINE_SAFE_MIMETYPES` module-level constant that the function-only extraction
+initially dropped (moved into `attachments.py`). The plan below is retained as the
+record of what was done.
 **Author:** Claude + Richard
 **Created:** 2026-06-20
 **Context:** Runner-up god-file after the completed `core/database.py` split (Step 3).
