@@ -566,7 +566,6 @@ def reset_database():
     data = request.get_json()
     password = data.get('password', '')
     confirmation = data.get('confirmation', '')
-    keep_ai_model = data.get('keep_ai_model', True)
     
     # Validate confirmation text
     if confirmation != 'RESET':

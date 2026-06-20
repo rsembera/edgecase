@@ -73,7 +73,7 @@ def add_link_group():
         # Retry once if database is locked
         for attempt in range(2):
             try:
-                group_id = db.create_link_group(
+                db.create_link_group(
                     client_ids=data['client_ids'],
                     format=data['format'],
                     session_duration=session_duration,

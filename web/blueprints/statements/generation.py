@@ -167,9 +167,6 @@ def generate_statements():
         if not client_row:
             continue
         
-        client_cols = [col[0] for col in cursor.description]
-        client = dict(zip(client_cols, client_row))
-        
         # Get client's profile for guardian info
         cursor.execute("""
             SELECT * FROM entries 
@@ -208,9 +205,6 @@ def generate_statements():
         
         # Calculate total and total tax (Decimal arithmetic — see core/billing.py)
         total, total_tax = compute_statement_totals(entries)
-        
-        # Generate statement number: YYYYMMDD-FileNumber
-        statement_number = f"{datetime.now().strftime('%Y%m%d')}-{client['file_number']}"
         
         # Create statement description (use already-clamped values)
         start_dt = datetime(start_year, start_month, start_day)
