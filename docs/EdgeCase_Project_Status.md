@@ -111,7 +111,7 @@ done against a net that exercises the data layer end-to-end, not just in isolati
   statements lifecycle alone is a real net; the rest is gravy. Adds files under
   `tests/` only, so the production checkout stays usable throughout.
 
-**Step 2 — DONE (2026-06-19 → 06-20).** Suite 152 → 182, all green. Landed under
+**Step 2 — DONE (2026-06-19 → 06-20).** Suite 152 → 185, all green. Landed under
 `tests/` only (production checkout untouched throughout):
 `conftest.py` (authenticated `client` + temp-DB `app_db` fixtures),
 `test_routes_smoke.py`, `test_entries_lifecycle.py` (session create/lock/no-op/
@@ -137,6 +137,13 @@ write-off ×3 → mark-sent), `test_attachments_lifecycle.py`
   AppleScript email step is frontend-only and does not run, so no email mock was needed.
 - A bare local `client` fixture already existed in `test_migrate_wiring.py`; the
   conftest fixture shadows cleanly (local wins), no collision.
+
+*Follow-up pass (2026-06-20):* `test_links_layer.py` adds the mutating link
+operations `test_edgecase.py` missed (`update_link_group`, `delete_link_group`,
+`get_all_link_groups`). The other flagged seam, "backups/maintenance", is **not**
+in `database.py` — that code lives in the backup module + `migrate_crypto`, both
+already tested — so no additions were needed there. The data-layer net now covers
+every domain block in `database.py`.
 
 **Step 3:** split `database.py` by domain. Candidate seams (each already a clear
 comment-delimited block in the file): client types, clients, entries/edit-history,
