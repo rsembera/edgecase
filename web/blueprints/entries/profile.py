@@ -295,7 +295,7 @@ def edit_profile(client_id):
             db.update_entry(profile['id'], profile_data, allow_locked=True)
         else:
             # Create new profile
-            entry_id = db.add_entry(profile_data)
+            db.add_entry(profile_data)
             # Note: Profile entries are NOT locked on creation (they're meant to be updated)
         
         # Update client record if names or file number changed

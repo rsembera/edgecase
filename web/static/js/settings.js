@@ -1539,8 +1539,7 @@ async function executeResetDatabase() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 password: password,
-                confirmation: confirmation,
-                keep_ai_model: true
+                confirmation: confirmation
             })
         });
         

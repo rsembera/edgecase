@@ -50,7 +50,6 @@ def mark_paid():
     data = request.get_json()
     portion_id = data.get('portion_id')
     payment_amount = data.get('payment_amount')
-    payment_type = data.get('payment_type')  # 'full' or 'partial'
     notes = data.get('notes', '')
     
     if not portion_id or payment_amount is None:
@@ -182,7 +181,6 @@ def write_off_statement():
     portion_id = data.get('portion_id')
     reason = data.get('reason')  # 'uncollectible', 'waived', 'billing_error', 'other'
     note = data.get('note', '')
-    amount = data.get('amount', 0)
     
     if not portion_id or not reason:
         return jsonify({'success': False, 'error': 'Missing required fields'}), 400
