@@ -203,3 +203,47 @@ def test_write_off_billing_error_unlinks_entry_for_rebilling(client, app_db):
     assert _portions(app_db, cid)[0]["status"] == "written_off"
     # Billing-error write-off unlinks the entry so it can be edited and re-billed.
     assert app_db.get_entry(sid)["statement_id"] is None
+
+
+def test_mark_sent_skip_email_records_attachment_and_sets_status(
+        client, app_db, tmp_path, monkeypatch):
+    """mark-sent in generate-only mode (skip_email=1) generates the PDF, records
+    a communication entry + attachment, and moves the portion ready -> sent.
+
+    ATTACHMENTS_DIR is redirected to a temp tree and PDF generation is stubbed,
+    so the test touches neither the real attachments folder nor ReportLab/assets
+    (the route's own email step is frontend AppleScript and does not run here).
+    """
+    import web.blueprints.statements as st
+    from pathlib import Path
+
+    monkeypatch.setattr(st, "ATTACHMENTS_DIR", tmp_path / "attachments")
+
+    def _fake_pdf(database, portion_id, out_path, assets_dir):
+        p = Path(out_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.4 test\n")
+
+    monkeypatch.setattr(st, "generate_statement_pdf", _fake_pdf)
+
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    portion_id = _portions(app_db, cid)[0]["id"]
+
+    resp = client.post(f"/statements/mark-sent/{portion_id}?skip_email=1")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["success"] is True
+    assert body.get("skip_email") is True
+
+    assert _portions(app_db, cid)[0]["status"] == "sent"
+    assert _count_class(app_db, "communication") == 1
+
+    conn = app_db.connect()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*), MIN(filepath) FROM attachments")
+    count, filepath = cur.fetchone()
+    assert count == 1
+    # Proof the redirect held: the attachment landed under the temp tree.
+    assert str(tmp_path) in filepath
