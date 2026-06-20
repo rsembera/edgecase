@@ -13,6 +13,7 @@ import threading
 from datetime import datetime, timedelta
 
 from core import encryption_v2
+from core.db.settings import SettingsMixin
 
 
 class EntryLockedError(Exception):
@@ -25,7 +26,7 @@ class EntryLockedError(Exception):
     pass
 
 
-class Database:
+class Database(SettingsMixin):
     """
     Database interface for EdgeCase.
     Manages all SQLite operations using Entry-based architecture.
@@ -1637,32 +1638,8 @@ class Database:
         return attachments
         
     # ===== SETTINGS OPERATIONS =====
-    
-    def set_setting(self, key: str, value: str):
-        """Set a setting value."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        now = int(time.time())
-        cursor.execute("""
-            INSERT INTO settings (key, value, modified_at) 
-            VALUES (?, ?, ?)
-            ON CONFLICT(key) DO UPDATE SET value=?, modified_at=?
-        """, (key, value, now, value, now))
-        
-        conn.commit()
+    # Extracted to core/db/settings.py (SettingsMixin).
 
-
-    def get_setting(self, key: str, default: str = '') -> str:
-        """Get a setting value."""
-        conn = self.connect()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
-        row = cursor.fetchone()
-        
-        return row[0] if row else default
-    
     # EdgeCase Ledger - Database Methods
 
     # ============================================================================
