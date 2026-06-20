@@ -225,7 +225,7 @@ def download_model(progress_callback=None) -> bool:
         )
         # Verify against the pinned hash before accepting the file
         model_path = MODEL_DIR / MODEL_FILENAME
-        print(f"[AI Scribe] Verifying download integrity...")
+        print("[AI Scribe] Verifying download integrity...")
         if not verify_model_file(model_path):
             model_path.unlink(missing_ok=True)
             raise RuntimeError(
@@ -233,7 +233,7 @@ def download_model(progress_callback=None) -> bool:
                 "deleted. The file was corrupted in transit or does not "
                 "match the official release — try again."
             )
-        print(f"[AI Scribe] Download complete and verified")
+        print("[AI Scribe] Download complete and verified")
         return True
     except Exception as e:
         print(f"[AI Scribe] Download failed: {e}")
@@ -252,7 +252,7 @@ def delete_model() -> bool:
     model_path = get_model_path()
     if model_path.exists():
         model_path.unlink()
-        print(f"[AI Scribe] Model deleted")
+        print("[AI Scribe] Model deleted")
         return True
     return False
 
