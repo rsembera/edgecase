@@ -247,3 +247,31 @@ def test_mark_sent_skip_email_records_attachment_and_sets_status(
     assert count == 1
     # Proof the redirect held: the attachment landed under the temp tree.
     assert str(tmp_path) in filepath
+
+
+def test_pdf_routes_generate_and_serve(client, app_db, monkeypatch):
+    """download (/pdf) and view (/view-pdf) generate a PDF and serve it (200,
+    application/pdf). PDF generation is stubbed; _private_pdf_dir is a mkdtemp
+    dir that the routes clean up via after_this_request, so nothing persists."""
+    import web.blueprints.statements as st
+    from pathlib import Path
+
+    def _fake_pdf(database, portion_id, out_path, assets_dir):
+        p = Path(out_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.4 test\n")
+
+    monkeypatch.setattr(st, "generate_statement_pdf", _fake_pdf)
+
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    pid = _portions(app_db, cid)[0]["id"]
+
+    download = client.get(f"/statements/pdf/{pid}")
+    assert download.status_code == 200
+    assert download.mimetype == "application/pdf"
+
+    view = client.get(f"/statements/view-pdf/{pid}")
+    assert view.status_code == 200
+    assert view.mimetype == "application/pdf"
