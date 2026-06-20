@@ -18,12 +18,12 @@ import pytest
 def temp_attachments(tmp_path, monkeypatch):
     """Redirect the attachment storage + data root to a temp tree."""
     import web.utils as wu
-    import web.blueprints.entries as ent
+    import web.blueprints.entries.common as ent_common
 
     root = tmp_path
     monkeypatch.setattr(wu, "DATA_ROOT", root)
     monkeypatch.setattr(wu, "ATTACHMENTS_DIR", root / "attachments")
-    monkeypatch.setattr(ent, "DATA_ROOT", root)
+    monkeypatch.setattr(ent_common, "DATA_ROOT", root)
     return root
 
 
