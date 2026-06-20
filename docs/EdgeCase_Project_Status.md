@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 18, 2026  
+**Last Updated:** June 20, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -72,7 +72,7 @@ tests covering the previously-untested client lifecycle, client-type CRUD (incl.
 the system-type rename/delete guards), the PHIPA retention/deletion lifecycle,
 and the ledger queries. Full suite now 152.
 
-**Step 2 (next):** widen coverage at the route/integration level for the larger
+**Step 2 (done — see completion record below):** widen coverage at the route/integration level for the larger
 blueprints (entries, statements) — currently the thinnest spot — so the split is
 done against a net that exercises the data layer end-to-end, not just in isolation.
 
@@ -110,6 +110,33 @@ done against a net that exercises the data layer end-to-end, not just in isolati
   lifecycle → redaction/attachments → breadth. Harness + entries lifecycle +
   statements lifecycle alone is a real net; the rest is gravy. Adds files under
   `tests/` only, so the production checkout stays usable throughout.
+
+**Step 2 — DONE (2026-06-19 → 06-20).** Suite 152 → 182, all green. Landed under
+`tests/` only (production checkout untouched throughout):
+`conftest.py` (authenticated `client` + temp-DB `app_db` fixtures),
+`test_routes_smoke.py`, `test_entries_lifecycle.py` (session create/lock/no-op/
+amendment, redaction, consultation-exclusion numbering),
+`test_entry_types_roundtrip.py` (communication/absence/item/profile create→edit),
+`test_statements_lifecycle.py` (find-unbilled → generate → mark-paid full/partial →
+write-off ×3 → mark-sent), `test_attachments_lifecycle.py`
+(upload→download→view→delete), `test_routes_breadth.py` (read-only pages render 200).
+
+*Corrections to the mapped plan, worth knowing before Step 3:*
+
+- **CSRF:** `WTF_CSRF_ENABLED=False` does **not** work — flask-wtf 1.2.2
+  `csrf.protect()` (called manually in a `before_request`) ignores the flag, so form
+  POSTs 400. The `client` fixture instead no-ops `validate_csrf` via a function-scoped
+  monkeypatch.
+- **Blueprint DB wiring:** blueprints capture `db` via `init_blueprint` at login, so
+  the fixture also calls `init_all_blueprints(app_db)`; setting `app.config['db']`
+  alone is not enough.
+- **Portion statuses** are `ready → sent → paid` (plus `written_off`), not "pending";
+  partial payment leaves a positive `amount_owing`.
+- **mark-sent** is tested with `ATTACHMENTS_DIR` redirected to a temp tree and PDF
+  generation stubbed (it writes a real attachment otherwise). Under `skip_email=1` the
+  AppleScript email step is frontend-only and does not run, so no email mock was needed.
+- A bare local `client` fixture already existed in `test_migrate_wiring.py`; the
+  conftest fixture shadows cleanly (local wins), no collision.
 
 **Step 3:** split `database.py` by domain. Candidate seams (each already a clear
 comment-delimited block in the file): client types, clients, entries/edit-history,
