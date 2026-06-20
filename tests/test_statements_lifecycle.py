@@ -48,7 +48,7 @@ def _portions(db, client_id):
     conn = db.connect()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, status, amount_due, amount_paid "
+        "SELECT id, status, amount_due, amount_paid, write_off_reason "
         "FROM statement_portions WHERE client_id = ?",
         (client_id,),
     )
@@ -146,3 +146,60 @@ def test_mark_paid_partial_leaves_balance(client, app_db):
     assert payload["success"] is True
     assert payload["new_status"] != "paid"
     assert payload["amount_owing"] > 0
+
+
+def test_write_off_waived_marks_portion_written_off(client, app_db):
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+
+    portion = _portions(app_db, cid)[0]
+    resp = client.post(
+        "/statements/write-off",
+        json={"portion_id": portion["id"], "reason": "waived",
+              "note": "Goodwill"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+
+    after = _portions(app_db, cid)[0]
+    assert after["status"] == "written_off"
+    assert after["write_off_reason"] == "waived"
+
+
+def test_write_off_uncollectible_records_bad_debt_expense(client, app_db):
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+
+    portion = _portions(app_db, cid)[0]
+    resp = client.post(
+        "/statements/write-off",
+        json={"portion_id": portion["id"], "reason": "uncollectible"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+
+    assert _portions(app_db, cid)[0]["status"] == "written_off"
+    # Uncollectible write-off books a Bad Debt expense (statements -> ledger).
+    assert _count_class(app_db, "expense") == 1
+
+
+def test_write_off_billing_error_unlinks_entry_for_rebilling(client, app_db):
+    cid = _make_client(app_db)
+    sid = _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    # After generating, the session is billed.
+    assert app_db.get_entry(sid)["statement_id"] is not None
+
+    portion = _portions(app_db, cid)[0]
+    resp = client.post(
+        "/statements/write-off",
+        json={"portion_id": portion["id"], "reason": "billing_error"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+
+    assert _portions(app_db, cid)[0]["status"] == "written_off"
+    # Billing-error write-off unlinks the entry so it can be edited and re-billed.
+    assert app_db.get_entry(sid)["statement_id"] is None
