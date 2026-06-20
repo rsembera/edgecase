@@ -145,14 +145,36 @@ in `database.py` — that code lives in the backup module + `migrate_crypto`, bo
 already tested — so no additions were needed there. The data-layer net now covers
 every domain block in `database.py`.
 
-**Step 3:** split `database.py` by domain. Candidate seams (each already a clear
-comment-delimited block in the file): client types, clients, entries/edit-history,
-ledger, statements/portions, retention/deletion, links, backups/maintenance. Likely
-shape is a thin `Database` facade delegating to per-domain mixins/modules while
-preserving the existing public method names, so callers don't change in lockstep.
+**Step 3 — DONE (2026-06-20).** `database.py` split by domain: 2,353 → 632 lines.
+The remainder is base machinery only (`__init__`, `connect`, `_initialize_schema`,
+`verify_password`, `_check_foreign_key_integrity`, `_create_default_types`,
+`_migrate_typed_empty_strings`). Everything domain-specific moved to a new `core/db/`
+package as mixins:
 
-No forcing function — this is a watch-item, not a fire. `entries.py` (~1,924 lines)
-is the runner-up and can follow the same pattern afterwards.
+| Module | Mixin | Methods |
+|--------|-------|---------|
+| `core/db/settings.py` | `SettingsMixin` | 2 |
+| `core/db/client_types.py` | `ClientTypeMixin` | 5 |
+| `core/db/clients.py` | `ClientMixin` | 10 |
+| `core/db/edit_history.py` | `EditHistoryMixin` | 5 |
+| `core/db/links.py` | `LinkMixin` | 7 |
+| `core/db/entries.py` | `EntryMixin` | 5 |
+| `core/db/ledger.py` | `LedgerMixin` | 20 (payee + expense category + ledger) |
+| `core/db/retention.py` | `RetentionMixin` | 5 |
+
+`class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin,
+ClientMixin, EntryMixin, LedgerMixin, RetentionMixin)` composes them; all mixins
+share `self` (so cross-domain calls and `self.connect()` work unchanged) and callers
+still do `from core.database import Database`. Done in 8 commits, one per domain,
+suite 185 green at every step. Verified post-split: 62 public + 5 private methods
+preserved (identical names), class instantiates and exercises every domain.
+
+Note: "statements/portions" and "backups/maintenance" from the original candidate-seam
+list were never `database.py` methods — statement generation lives in the statements
+blueprint (raw SQL), backup/maintenance in the backup module + `migrate_crypto`.
+
+**Remaining (optional, no forcing function):** `entries.py` (~1,924 lines) is the
+runner-up god-file and could follow the same mixin pattern when convenient.
 
 ---
 
