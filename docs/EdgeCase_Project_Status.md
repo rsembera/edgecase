@@ -246,11 +246,21 @@ now split — no remaining god-files.**
 | Templates | 32 |
 | Entry Types | 8 |
 | Routes | 102 |
-| Automated Tests | 43 |
+| Automated Tests | 201 |
 
 ---
 
 ## RECENT ACCOMPLISHMENTS
+
+### June 20, 2026
+
+**God-file refactors + post-refactor bug hunt**
+- Split all three oversized files behind unchanged public interfaces (no behaviour change, suite green at every step): `core/database.py` (2,353 → 632 lines, eight domain mixins in `core/db/`), `web/blueprints/entries.py` (~1,924 lines → package, 8 per-type modules), and `web/blueprints/statements.py` (1,078 lines → package, grouped by billing concern). No god-files remain. (Detail in the refactor section above and `CHANGELOG.md`.)
+- Post-split cleanup: deduped the near-identical statement PDF download/view routes into a shared helper; added test coverage for the previously-untested `send-applescript-email` and PDF routes.
+- Introduced **ruff** as a static-analysis gate (pyflakes `F` rules). It immediately caught one real latent bug: `EntryLockedError` was unbound in the extracted EntryMixin (would have raised `NameError` on a locked-entry update) — fixed via a leaf `core/db/errors.py` + regression test.
+- Closed a real audit-trail gap: editing a *locked* upload now records field changes in edit history, like every other entry type.
+- Removed dead scaffolding from descoped features (statement numbering, reset's `keep_ai_model`, mark-paid `payment_type`, write-off `amount`) after confirming none were bugs. Partial write-offs and stored statement numbers deferred (wait-until-asked).
+- Tests: 185 → 201. `ruff check` clean.
 
 ### June 10–12, 2026
 
