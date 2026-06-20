@@ -43,6 +43,7 @@ ai = [
 ]
 dev = [
     "pytest>=9.0.0",
+    "ruff>=0.15.0",
 ]
 
 [project.scripts]
@@ -66,3 +67,21 @@ include = ["core*", "web*", "utils*", "pdf*", "ai*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+# Pyflakes (the "F" rules) is the bug-relevant set: undefined names (F821),
+# broken/duplicate imports (F811), f-string mistakes, etc. — the class of defect
+# a structural refactor can introduce and that tests miss on unexercised paths
+# (this is exactly how the EntryLockedError NameError was caught). Run
+# `venv/bin/ruff check` as a quick "did I break a reference?" gate; a clean run
+# is the green baseline.
+#
+# F401 (unused import) and F841 (unused local) are intentionally not enforced:
+# the existing code carries some, none are bugs, and flagging them would bury the
+# high-signal checks in cosmetic noise. Remove them from `ignore` for a full
+# tidy-up pass.
+select = ["F"]
+ignore = ["F401", "F841"]
