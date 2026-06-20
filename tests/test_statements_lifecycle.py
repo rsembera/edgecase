@@ -214,7 +214,7 @@ def test_mark_sent_skip_email_records_attachment_and_sets_status(
     so the test touches neither the real attachments folder nor ReportLab/assets
     (the route's own email step is frontend AppleScript and does not run here).
     """
-    import web.blueprints.statements as st
+    import web.blueprints.statements.delivery as st
     from pathlib import Path
 
     monkeypatch.setattr(st, "ATTACHMENTS_DIR", tmp_path / "attachments")
@@ -253,7 +253,7 @@ def test_pdf_routes_generate_and_serve(client, app_db, monkeypatch):
     """download (/pdf) and view (/view-pdf) generate a PDF and serve it (200,
     application/pdf). PDF generation is stubbed; _private_pdf_dir is a mkdtemp
     dir that the routes clean up via after_this_request, so nothing persists."""
-    import web.blueprints.statements as st
+    import web.blueprints.statements.delivery as st
     from pathlib import Path
 
     def _fake_pdf(database, portion_id, out_path, assets_dir):
