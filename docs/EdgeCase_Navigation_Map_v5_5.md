@@ -1,8 +1,8 @@
-# EdgeCase Equalizer - Navigation Map v5.5
+# EdgeCase Equalizer - Navigation Map v5.6
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** January 21, 2026
+**Last Updated:** June 21, 2026
 
 ---
 
@@ -11,11 +11,11 @@
 EdgeCase Equalizer is a web-based practice management system for independent therapists. Built using **AI-assisted development** (Nov 7 - Dec 2, 2025) with Flask + SQLite/SQLCipher, it uses an **Entry-based architecture** where all client records are stored as unified entries.
 
 **Tech Stack:**
-- Backend: Python 3.13, Flask with 12 Blueprints
+- Backend: Python 3.13, Flask with 11 Blueprints
 - Frontend: HTML, External CSS/JS files, Vanilla JavaScript
 - Database: SQLite with SQLCipher encryption (13 tables)
 - PDF Generation: ReportLab 4.4.5
-- Encryption: cryptography (Fernet for attachments)
+- Encryption: cryptography (Fernet v1 + Argon2id/AES-256-GCM v2 for attachments)
 - AI: llama-cpp-python with Hermes 3 8B model
 - Development: MacBook Air M4, macOS Sequoia
 
@@ -58,20 +58,20 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 | Metric | Count |
 |--------|-------|
-| Python Lines | ~8,500 |
-| HTML Lines | ~6,500 |
-| JavaScript Lines | ~6,200 |
-| CSS Lines | ~5,700 |
-| **Total Lines** | **~28,000** |
-| Blueprints | 12 |
+| Python Lines (app) | ~17,000 |
+| HTML Lines | ~7,900 |
+| JavaScript Lines | ~9,900 |
+| CSS Lines | ~7,500 |
+| **Total Lines** | **~42,000** |
+| Blueprints | 11 |
 | Database Tables | 13 |
-| Templates | 32 |
+| Templates | 33 |
 | CSS Files | 28 |
-| JS Files | 27 |
-| Python Files | 29 |
+| JS Files | 29 |
+| Python Files | 58 app (+ 19 test files) |
 | Entry Types | 8 (6 client + 2 ledger) |
-| Routes | 102 |
-| Automated Tests | 43 |
+| Routes | 105 |
+| Automated Tests | 201 |
 
 ---
 
@@ -80,92 +80,79 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ```
 ~/Applications/edgecase/
 ├── main.py                      # Application entry point
-├── requirements.txt             # Python dependencies
-├── pyproject.toml               # Package configuration
+├── requirements.txt             # Python dependencies (+ requirements-dev.txt for pytest/ruff)
+├── pyproject.toml               # Package config + [tool.ruff] lint config
 ├── README.md                    # Installation instructions
 ├── core/
-│   ├── config.py                # Path configuration (~35 lines)
-│   ├── database.py              # Database class (~1,930 lines)
-│   └── encryption.py            # Fernet file encryption
+│   ├── config.py                # Path configuration (~165 lines)
+│   ├── database.py              # Database FACADE — composes the db/ mixins (~623 lines; was ~2,350)
+│   ├── billing.py               # Statement/payment math (totals, guardian splits, apply_payment)
+│   ├── money.py                 # Decimal / cents money helpers
+│   ├── encryption.py            # Fernet file encryption (v1)
+│   ├── encryption_v2.py         # Argon2id / AES-256-GCM file encryption (v2)
+│   ├── migrate_crypto.py        # Crypto migration (v1 -> v2)
+│   └── db/                      # Database domain mixins (split from database.py)
+│       ├── settings.py          #   SettingsMixin
+│       ├── client_types.py      #   ClientTypeMixin
+│       ├── clients.py           #   ClientMixin
+│       ├── edit_history.py      #   EditHistoryMixin (+ is_entry_locked)
+│       ├── entries.py           #   EntryMixin (add/update/lock/redact)
+│       ├── errors.py            #   EntryLockedError (leaf module, no imports)
+│       ├── ledger.py            #   LedgerMixin (payees, categories, ledger)
+│       ├── links.py             #   LinkMixin (link groups)
+│       └── retention.py         #   RetentionMixin (archiving)
 ├── pdf/
-│   ├── generator.py             # Statement + Session report PDFs
-│   ├── ledger_report.py         # Financial report PDFs
-│   ├── client_export.py         # Client file export
-│   ├── formatting.py            # PDF helpers
-│   └── templates.py             # PDF templates
+│   ├── generator.py             # Statement + session report PDFs (~1,050 lines)
+│   ├── ledger_report.py         # Financial report PDFs (~570 lines)
+│   └── client_export.py         # Client file export (~1,100 lines)
 ├── utils/
-│   ├── backup.py                # Backup/restore system (~1,060 lines)
-│   ├── formatters.py            # Date/string formatting
-│   └── validators.py            # Input validation
+│   └── backup.py                # Backup/restore system (~1,280 lines)
 ├── ai/
-│   ├── assistant.py             # Model loading and generation (~340 lines)
-│   ├── model_manager.py         # Model download management
+│   ├── assistant.py             # Model loading and generation (~380 lines)
 │   └── prompts.py               # Prompt templates for AI actions
 ├── web/
-│   ├── app.py                   # Flask app initialization (~285 lines)
-│   ├── utils.py                 # Shared web utilities (~265 lines)
+│   ├── app.py                   # Flask app initialization (~505 lines)
+│   ├── utils.py                 # Shared web utilities incl. diff engine (~390 lines)
 │   ├── cli.py                   # Command-line interface
 │   └── blueprints/
-│       ├── ai.py                # AI Scribe routes (~330 lines)
+│       ├── ai.py                # AI Scribe routes
 │       ├── auth.py              # Login/logout, session management
 │       ├── backups.py           # Backup/restore UI
-│       ├── clients.py           # Client management, session reports
-│       ├── entries.py           # Entry CRUD (~1,780 lines)
+│       ├── clients.py           # Client management, session reports (~1,080 lines)
 │       ├── ledger.py            # Income/Expense, financial reports
 │       ├── links.py             # Link group management
 │       ├── scheduler.py         # Calendar integration
 │       ├── settings.py          # Practice configuration
-│       ├── statements.py        # Statement generation, payments
-│       └── types.py             # Client type management
-├── web/templates/               # 30 HTML templates
-│   ├── base.html
-│   ├── login.html
-│   ├── change_password.html
-│   ├── main_view.html
-│   ├── client_file.html
-│   ├── add_client.html
-│   ├── deleted_clients.html
-│   ├── ledger.html
-│   ├── ledger_report.html
-│   ├── outstanding_statements.html
-│   ├── session_report.html
-│   ├── export.html
-│   ├── schedule_form.html
-│   ├── backups.html
-│   ├── settings.html
-│   ├── manage_types.html
-│   ├── add_edit_type.html
-│   ├── manage_links.html
-│   ├── add_edit_link_group.html
-│   ├── ai_scribe.html
-│   ├── components/
-│   │   ├── attachment_upload.html
-│   │   └── edit_history.html
-│   └── entry_forms/
-│       ├── profile.html
-│       ├── session.html
-│       ├── communication.html
-│       ├── absence.html
-│       ├── item.html
-│       ├── upload.html
-│       ├── income.html
-│       └── expense.html
+│       ├── types.py             # Client type management
+│       ├── entries/             # entries_bp PACKAGE (split from entries.py ~1,920)
+│       │   ├── common.py        #   blueprint + get_db + shared helpers
+│       │   ├── profile.py       #   profile entries
+│       │   ├── sessions.py      #   session entries
+│       │   ├── communications.py
+│       │   ├── absences.py
+│       │   ├── items.py
+│       │   ├── uploads.py
+│       │   ├── attachments.py   #   encrypted attachment upload/serve/delete
+│       │   └── redaction.py
+│       └── statements/          # statements_bp PACKAGE (split from statements.py ~1,080)
+│           ├── common.py        #   blueprint + get_db
+│           ├── views.py         #   outstanding-statements index
+│           ├── generation.py    #   find-unbilled, generate
+│           ├── payments.py      #   mark-paid, write-off (+ ledger helpers)
+│           └── delivery.py      #   mark-sent, PDF download/view, email
+├── web/templates/               # 33 HTML templates
+│   ├── (base, login, client_file, ledger, settings, outstanding_statements, ...)
+│   ├── components/              # attachment_upload, edit_history
+│   └── entry_forms/             # profile, session, communication, absence, item, upload, income, expense
 ├── web/static/
-│   ├── css/                     # 27 CSS files
-│   │   ├── shared.css           # Common patterns (~2,360 lines)
-│   │   └── [page-specific].css
-│   ├── js/                      # 27 JS files
-│   │   ├── lucide.min.js        # Icon library
-│   │   ├── choices.min.js       # Dropdown library
-│   │   └── [page-specific].js
+│   ├── css/                     # 28 CSS files (shared.css + page-specific)
+│   ├── js/                      # 29 JS files (lucide, choices + page-specific)
 │   ├── fonts/                   # Lexend font family
 │   ├── favicons/
 │   └── img/                     # Background images
-├── models/                      # AI models (git-ignored)
-│   └── Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
-├── tests/
-│   ├── test_edgecase.py         # 41 tests
-│   └── pytest.ini               # Test configuration
+├── models/                      # AI model (git-ignored): Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+├── tests/                       # 19 test files, 201 tests (pytest)
+├── docs/                        # Navigation Map, Project Status, Architecture Decisions, etc.
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
 ├── backups/                     # Backup files + manifest.json
@@ -175,7 +162,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ---
 
-## BLUEPRINTS OVERVIEW (12)
+## BLUEPRINTS OVERVIEW (11 blueprints + app-level routes)
 
 ### 1. ai_bp (ai.py)
 - AI Scribe page
@@ -202,7 +189,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Export entries to PDF
 - Deleted clients view
 
-### 5. entries_bp (entries.py)
+### 5. entries_bp (entries/ package)
 - Profile, Session, Communication
 - Absence, Item, Upload
 - Edit history tracking
@@ -218,7 +205,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Member management
 - Fee allocation
 
-### 8. statements_bp (statements.py)
+### 8. statements_bp (statements/ package)
 - Statement generation
 - PDF invoice creation
 - Email workflow (mailto + AppleScript)
@@ -337,6 +324,11 @@ pytest tests/ -v
 
 ## RECENT CHANGES
 
+### June 2026
+- **God-file refactors (Jun 20):** `core/database.py` (~2,350 lines -> 623-line facade + `core/db/` domain mixins), `web/blueprints/entries.py` (~1,920 -> `entries/` package), and `web/blueprints/statements.py` (~1,080 -> `statements/` package) split behind unchanged public interfaces (endpoint sets + imports identical). No god-files remain.
+- **ruff lint gate + bug hunt (Jun 20-21):** added ruff (`[tool.ruff]`, pyflakes `F` rules) as a "did I break a reference?" gate; it caught a latent `EntryLockedError` NameError, fixed via the leaf module `core/db/errors.py` + a regression test. Also closed an upload edit-history audit gap and removed dead scaffolding from descoped features. Tests grew to 201.
+- **Attachment encryption v2 (Argon2id / AES-256-GCM):** `core/encryption_v2.py` + `core/migrate_crypto.py` (started Jun 14).
+
 ### February 2026
 - Financial Report attachment appendix option (Feb 1)
   - Receipts/invoices attached to ledger entries can be included in tax reports
@@ -374,7 +366,8 @@ pytest tests/ -v
 - v5.2: Bug investigation complete, autocomplete refactor (Dec 5, 2025)
 - v5.3: Comprehensive testing complete, production ready (Dec 16, 2025)
 - v5.4: Documentation accuracy audit (Dec 28, 2025)
-- **v5.5: Production updates, backup improvements (Jan 7, 2026)**
+- v5.5: Production updates, backup improvements (Jan 7, 2026)
+- **v5.6: God-file refactors, ruff lint gate, post-refactor bug hunt (Jun 21, 2026)**
 
 ---
 

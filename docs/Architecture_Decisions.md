@@ -75,11 +75,11 @@ Organize routes into 12 modular blueprints instead of one monolithic app.py.
 - `auth.py` - Login/logout, session management (~340 lines)
 - `backups.py` - Backup/restore operations (~210 lines)
 - `clients.py` - Client management (~1,065 lines)
-- `entries.py` - Entry CRUD (~1,780 lines)
+- `entries/` - Entry CRUD **package** (split from entries.py: common + 8 per-type modules)
 - `ledger.py` - Income/Expense (~660 lines)
 - `links.py` - Link group management (~200 lines)
 - `scheduler.py` - Calendar integration (~440 lines)
-- `statements.py` - Statement generation (~1,090 lines)
+- `statements/` - Statement generation **package** (split from statements.py: common + views/generation/payments/delivery)
 - `types.py` - Client types (~205 lines)
 - `settings.py` - Configuration (~550 lines)
 - `app.py` - Flask initialization (~290 lines)
@@ -1354,3 +1354,25 @@ install the raw SQLCipher key is derived from the Argon2id salt inside `.keyinfo
 a backup without it restores to an unopenable database, exactly as a v1 backup
 without `.salt` would. It is as essential as `.salt`, and the password-change
 rollback depends on it to restore the prior key-info.
+
+
+---
+
+## GOD-FILE REFACTOR (June 2026)
+
+### The Decision
+
+Split the three oversized files — `core/database.py` (~2,350 lines), `web/blueprints/entries.py` (~1,920), and `web/blueprints/statements.py` (~1,080) — into packages, behind **unchanged public interfaces**.
+
+### Why?
+
+Each had grown into a "god-file": imported by much of the app, slow to navigate, a merge-conflict magnet. They worked and were well-behaved, so this was a maintainability tidy-up, not a bug fix — which set the hard constraint: **no behaviour change.**
+
+### How
+
+- `core/database.py` -> a thin `Database` **facade** composing per-domain **mixins** in `core/db/` (settings, client_types, clients, edit_history, entries, ledger, links, retention) plus a leaf `errors.py`. The constructor and every method name are unchanged, so `from core.database import Database` callers are untouched.
+- `entries.py` and `statements.py` -> **blueprint packages**. Each keeps its blueprint object and DB handle in `common.py`; routes are grouped into modules (per entry type; per billing concern) that read the handle via `get_db()`. Blueprint names and every route-function name are preserved, so `url_for(...)` references, the URL map, and `app.py` imports are identical.
+
+### Result
+
+No behaviour change (endpoint sets byte-identical, verified via `app.url_map`); the test net grew alongside the work (now 201) and stayed green at every commit; ruff was added as a standing guard against the dangling-reference class of refactor bug. No god-files remain. See `CHANGELOG.md` (June 20-21, 2026) for the commit-level record.

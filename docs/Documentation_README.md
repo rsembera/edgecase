@@ -27,7 +27,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 2. EdgeCase_Project_Status.md (~235 lines)
+### 2. EdgeCase_Project_Status.md (~610 lines)
 **Purpose:** Current project state and accomplishments  
 **Use when:** Planning sessions, tracking progress, understanding what's done
 
@@ -62,7 +62,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 4. Route_Reference.md (~1,060 lines)
+### 4. Route_Reference.md (~1,170 lines)
 **Purpose:** Complete route listings organized by blueprint  
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
@@ -88,7 +88,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ---
 
-### 5. Architecture_Decisions.md (~980 lines)
+### 5. Architecture_Decisions.md (~1,380 lines)
 **Purpose:** Explain *why* we built things certain ways  
 **Use when:** Understanding design philosophy, making architectural decisions
 

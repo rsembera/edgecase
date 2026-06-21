@@ -55,11 +55,11 @@ safety.
 
 ---
 
-## NEXT UP: DATA-LAYER REFACTOR (core/database.py)
+## DONE: DATA-LAYER + BLUEPRINT REFACTORS (core/database.py, entries.py, statements.py)
 
-**Status:** planned — *safety net landed June 14, 2026*; the refactor itself is not started.
+**Status:** ✅ complete (June 20, 2026). All three god-files split behind unchanged public interfaces; suite 201 green. The plan detail below is retained as the historical record of how it was sequenced.
 
-`core/database.py` is the one real piece of structural debt: a ~2,350-line,
+`core/database.py` **was** the largest piece of structural debt: a ~2,350-line,
 60-public-method god-object that nearly every blueprint imports. It works and is
 well-behaved, so this is a maintainability tidy-up, **not** a fix for any bug.
 Sequencing matters: do it as its own focused session, and only after the v2
@@ -496,13 +496,15 @@ now split — no remaining god-files.**
 ### Key Files
 | File | Lines | Purpose |
 |------|-------|---------|
-| core/database.py | ~1,930 | Database operations |
-| utils/backup.py | ~1,060 | Backup/restore system |
-| web/blueprints/entries.py | ~1,780 | Entry CRUD |
-| ai/assistant.py | ~335 | LLM model management |
+| core/database.py | ~623 | Database facade (composes the core/db/ mixins) |
+| core/db/ | package | 9 domain mixins (settings, clients, entries, ledger, links, retention, ...) |
+| utils/backup.py | ~1,280 | Backup/restore system |
+| web/blueprints/entries/ | package | Entry CRUD (common + 8 per-type modules) |
+| web/blueprints/statements/ | package | Statements (common + views/generation/payments/delivery) |
+| ai/assistant.py | ~380 | LLM model management |
 | web/blueprints/ai.py | ~330 | AI Scribe routes |
-| web/app.py | ~290 | Flask initialization |
-| web/utils.py | ~270 | Shared utilities |
+| web/app.py | ~505 | Flask initialization |
+| web/utils.py | ~390 | Shared utilities |
 | web/static/css/shared.css | ~2,360 | Common CSS patterns |
 
 ---
