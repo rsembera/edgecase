@@ -6,6 +6,12 @@
 
 ---
 
+> **STATUS — historical snapshot (updated June 21, 2026).** This is the review *as written on 2026-06-07*; the findings below are preserved verbatim as the record that drove remediation. **Most Critical / High / Medium items have since been fixed** — e.g. C1+C2 (client-export attachments now resolve + decrypt), H1 (WAL/SHM unlinked on restore), H2 (master password out of the session cookie), H3 (single-guardian billing), H5 (typed-column `None` preserved), M1 (money on `Decimal`/cents via `core/money.py`), M2 (foreign keys enforced, gated on an orphan-integrity check), M11 (lock enforced in the data layer), M14 (ReportLab XML-escaping), plus the duplicated-helper and dead-code cleanups. See `CHANGELOG.md` and the "Recent Accomplishments" in `EdgeCase_Project_Status.md` for the per-item remediation record.
+>
+> **Two caveats when reading below:** (1) every file:line reference predates the June 2026 refactors — `core/database.py` is now a facade over `core/db/` mixins, and `entries.py`/`statements.py` are now packages — so the line numbers no longer resolve. (2) The encryption descriptions ("Fernet", "PBKDF2 480k") and the testing assessment ("~940 lines, no money/backup coverage") describe the June-7 state; encryption is now Argon2id → AES-256-GCM (v2) and the suite is 201 tests across 17 files. Items still **deferred with documented rationale:** L1 (macOS data-root detection), L13 (naive local-time timestamps), M5 (home-page N+1).
+
+---
+
 ## Executive summary
 
 EdgeCase is a well-architected application with genuinely thoughtful security foundations: real SQLCipher encryption with a sound key-derivation setup, an authenticated-encryption (Fernet) scheme for attachments with no nonce-reuse risk, a two-phase restore with a pre-restore safety backup, a fully local AI model that sends no client data anywhere, and parameterized SQL with column whitelists throughout. The bones are good.
