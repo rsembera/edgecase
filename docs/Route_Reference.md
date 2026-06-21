@@ -1,33 +1,36 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** January 21, 2026
+**Last Updated:** June 21, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 103 routes organized across 12 blueprints:
+EdgeCase has 104 routes: 100 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
 
-1. **ai_bp** - AI Scribe functionality (9 routes)
-2. **auth_bp** - Login/logout, session management (4 routes)
+1. **ai_bp** - AI Scribe functionality (10 routes)
+2. **auth_bp** - Login/logout, session management, v2 crypto migration (5 routes)
 3. **backups_bp** - Backup/restore operations (10 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
-5. **entries_bp** - Entry CRUD operations (17 routes)
+5. **entries_bp** - Entry CRUD operations (16 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
 7. **links_bp** - Link group management (4 routes)
 8. **statements_bp** - Statement generation (9 routes)
 9. **scheduler_bp** - Calendar integration (1 route)
 10. **types_bp** - Client type management (4 routes)
-11. **settings_bp** - Settings and configuration (16 routes)
-12. **Main app.py** - Session/restore APIs (4 routes)
+11. **settings_bp** - Settings and configuration (17 routes)
+
+Plus **app.py** - Session/restore APIs (4 app-level routes, not a blueprint).
+
+Note: `entries_bp` and `statements_bp` are now packages (`web/blueprints/entries/` and `web/blueprints/statements/`) rather than single files; the blueprint names and all route-function names are unchanged from the pre-split layout.
 
 ---
 
 ## AI BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/ai.py`
+**File:** `~/Applications/edgecase/web/blueprints/ai.py`
 
 ### AI Status
 
@@ -135,7 +138,7 @@ def ai_diff()
 
 ```python
 @ai_bp.route('/ai/scribe/<int:entry_id>')
-def ai_scribe(entry_id)
+def scribe_page(entry_id)
 ```
 **Purpose:** Display AI Scribe interface for a specific session entry
 
@@ -147,7 +150,7 @@ def ai_scribe(entry_id)
 
 ```python
 @ai_bp.route('/ai/scribe/<int:entry_id>/save', methods=['POST'])
-def ai_scribe_save(entry_id)
+def scribe_save(entry_id)
 ```
 **Purpose:** Save AI-generated content back to session entry
 
@@ -158,7 +161,7 @@ def ai_scribe_save(entry_id)
 ## AUTH BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/auth.py`
+**File:** `~/Applications/edgecase/web/blueprints/auth.py`
 
 ### Login
 
@@ -234,10 +237,22 @@ def change_password_progress()
 
 ---
 
+### Migrate Stream
+
+```python
+@auth_bp.route('/migrate/stream')
+def migrate_stream()
+```
+**Purpose:** SSE endpoint that runs the v1→v2 encryption migration during login (Argon2id / AES-256-GCM upgrade), driving the `upgrading.html` interstitial and completing the login once migration finishes. Only reached when an existing v1 install is detected at login.
+
+**Returns:** SSE stream with migration progress events
+
+---
+
 ## BACKUPS BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/backups.py`
+**File:** `~/Applications/edgecase/web/blueprints/backups.py`
 
 ### Backups Page
 
@@ -388,7 +403,7 @@ def list_folders()
 ## LINKS BLUEPRINT (EXTRACTED)
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/links.py`
+**File:** `~/Applications/edgecase/web/blueprints/links.py`
 
 ### Manage Links
 
@@ -453,7 +468,7 @@ def delete_link_group(group_id)
 ## CLIENTS BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/clients.py`
+**File:** `~/Applications/edgecase/web/blueprints/clients.py`
 
 ### Main View
 
@@ -565,7 +580,7 @@ def deleted_clients()
 
 ```python
 @clients_bp.route('/client/<int:client_id>/export')
-def export_entries(client_id)
+def export_client(client_id)
 ```
 **Purpose:** Show export options
 
@@ -593,7 +608,7 @@ def session_report(client_id)
 
 ```python
 @clients_bp.route('/client/<int:client_id>/export/calculate')
-def export_calculate(client_id)
+def calculate_export(client_id)
 ```
 **Purpose:** Calculate entry data for export preview
 
@@ -605,7 +620,7 @@ def export_calculate(client_id)
 
 ```python
 @clients_bp.route('/client/<int:client_id>/export/pdf')
-def export_pdf(client_id)
+def export_client_pdf(client_id)
 ```
 **Purpose:** Generate PDF of selected entries
 
@@ -616,7 +631,7 @@ def export_pdf(client_id)
 ## ENTRIES BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/entries/` (package: common + per-type modules)
+**File:** `~/Applications/edgecase/web/blueprints/entries/` (package: common + per-type modules)
 
 ### Profile Entry
 
@@ -749,8 +764,8 @@ def redact_entry(client_id, entry_id)
 ---
 
 ```python
-@entries_bp.route('/client/<int:client_id>/entry/<int:entry_id>/redacted')
-def view_redacted(client_id, entry_id)
+@entries_bp.route('/client/<int:client_id>/redacted/<int:entry_id>')
+def view_redacted_entry(client_id, entry_id)
 ```
 **Purpose:** View redacted entry metadata
 
@@ -758,28 +773,10 @@ def view_redacted(client_id, entry_id)
 
 ---
 
-### Session PDF View
-
-```python
-@entries_bp.route('/client/<int:client_id>/entry/<int:entry_id>/pdf')
-def view_entry_pdf(client_id, entry_id)
-```
-**Purpose:** Generate and serve a PDF for a single locked session entry
-
-**Requirements:**
-- Entry must be a session
-- Entry must be locked
-
-**Returns:** PDF file in browser (new tab)
-
-**Notes:** Useful for sharing individual session records with supervisors or for documentation. Uses same format as client file export.
-
----
-
 ## LEDGER BLUEPRINT
 
 **Prefix:** /ledger  
-**File:** `~/edgecase/web/blueprints/ledger.py`
+**File:** `~/Applications/edgecase/web/blueprints/ledger.py`
 
 ### Ledger Main View
 
@@ -829,7 +826,7 @@ def delete_expense_entry(entry_id)
 
 ```python
 @ledger_bp.route('/ledger/report')
-def ledger_report_page()
+def ledger_report()
 
 @ledger_bp.route('/ledger/report/calculate')
 def calculate_report()
@@ -865,7 +862,7 @@ def remove_payor_suggestion()
 ## STATEMENTS BLUEPRINT
 
 **Prefix:** /statements  
-**File:** `~/edgecase/web/blueprints/statements/` (package: common + views/generation/payments/delivery)
+**File:** `~/Applications/edgecase/web/blueprints/statements/` (package: common + views/generation/payments/delivery)
 
 ### Outstanding Statements
 
@@ -894,7 +891,7 @@ def find_unbilled()
 ### Generate Statements
 
 ```python
-@statements_bp.route('/statements/generate', methods=['POST'])
+@statements_bp.route('/generate', methods=['POST'])
 def generate_statements()
 ```
 **Purpose:** Generate statements for unbilled entries
@@ -908,10 +905,10 @@ def generate_statements()
 def mark_sent(portion_id)
 
 @statements_bp.route('/pdf/<int:portion_id>')
-def get_pdf(portion_id)
+def download_statement_pdf(portion_id)
 
 @statements_bp.route('/view-pdf/<int:portion_id>')
-def view_pdf(portion_id)
+def view_statement_pdf(portion_id)
 ```
 **Purpose:** Mark statement as sent, generate PDF, or view PDF in browser
 
@@ -934,7 +931,7 @@ def send_applescript_email()
 def mark_paid()
 
 @statements_bp.route('/write-off', methods=['POST'])
-def write_off()
+def write_off_statement()
 ```
 **Purpose:** Record payment or write off
 
@@ -943,7 +940,7 @@ def write_off()
 ## SCHEDULER BLUEPRINT
 
 **Prefix:** None  
-**File:** `~/edgecase/web/blueprints/scheduler.py`
+**File:** `~/Applications/edgecase/web/blueprints/scheduler.py`
 
 ```python
 @scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
@@ -975,7 +972,7 @@ def schedule_for_client(client_id)
 ## TYPES BLUEPRINT
 
 **Prefix:** None  
-**File:** `~/edgecase/web/blueprints/types.py`
+**File:** `~/Applications/edgecase/web/blueprints/types.py`
 
 ```python
 @types_bp.route('/types')
@@ -997,7 +994,7 @@ def delete_type(type_id)
 ## SETTINGS BLUEPRINT
 
 **Prefix:** None  
-**File:** `~/edgecase/web/blueprints/settings.py`
+**File:** `~/Applications/edgecase/web/blueprints/settings.py`
 
 ### Settings Page
 
@@ -1110,9 +1107,21 @@ def time_format()
 
 ---
 
+### Reset Database
+
+```python
+@settings_bp.route('/api/reset_database', methods=['POST'])
+def reset_database()
+```
+**Purpose:** Wipe and re-initialise the database from scratch. Destructive admin action — requires the master password and the user typing "RESET" to confirm.
+
+**Returns:** JSON with success status
+
+---
+
 ## MAIN APP ROUTES
 
-**File:** `~/edgecase/web/app.py`
+**File:** `~/Applications/edgecase/web/app.py`
 
 ### Session Status
 
@@ -1167,4 +1176,4 @@ def save_uploaded_files(files, descriptions, entry_id, db, client_id=None)
 *For database schema, see Database_Schema.md*  
 *For design decisions, see Architecture_Decisions.md*
 
-*Last updated: December 28, 2025*
+*Last updated: June 21, 2026*
