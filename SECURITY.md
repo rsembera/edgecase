@@ -31,7 +31,7 @@ EdgeCase Equalizer is designed as a **local-only, single-user** application for 
 ### Encryption
 
 - **Database:** SQLCipher (AES-256-CBC) encrypts all client data at rest. The database file is unreadable without the correct passphrase.
-- **Key derivation:** SQLCipher internally derives the encryption key from the user's passphrase using PBKDF2-HMAC-SHA512 with 256,000 iterations (SQLCipher 4 defaults). No custom key derivation code is used — this is handled entirely by the proven SQLCipher library.
+- **Key derivation:** The passphrase is stretched with **Argon2id** (memory-hard: 256 MiB, t=6, p=1) using the established `argon2-cffi` library. HKDF-SHA256 then splits the result into a raw key that opens the SQLCipher database (`PRAGMA key = "x'…'"`) and a separate AES-256-GCM key for file attachments. No homegrown cryptographic primitives are used — derivation relies on `argon2-cffi` and the `cryptography` library's HKDF. *(Installs created before the June 2026 v2 migration used SQLCipher's internal PBKDF2-HMAC-SHA512 at 256,000 iterations, with Fernet-encrypted attachments; such installs migrate automatically and crash-safely to v2 on the first login after updating to a v2 build.)*
 - **Flask session key:** Generated uniquely per installation using `os.urandom(24)`, stored in `data/.secret_key` with 0600 permissions (owner read/write only). Supports environment variable override for advanced users.
 - **No plaintext secrets:** Neither the database passphrase nor any derived keys are stored in the codebase or configuration files. The SECRET_KEY and salt are generated at runtime on first launch.
 
@@ -74,7 +74,7 @@ EdgeCase Equalizer is designed to make compliance with Ontario's *Personal Healt
 **What EdgeCase provides:**
 
 - **Data sovereignty:** All personal health information remains on the practitioner's own hardware. No cloud accounts, no third-party data processors, no cross-border transfers — this simplifies PHIPA obligations considerably.
-- **Encryption at rest:** SQLCipher (AES-256) encrypts the database; Fernet encryption protects file attachments. Encrypted data on a local machine provides stronger protection than unencrypted digital or paper records.
+- **Encryption at rest:** SQLCipher (AES-256) encrypts the database; file attachments are encrypted with AES-256-GCM keyed from the same Argon2id-derived master (older installs use Fernet until migrated). Encrypted data on a local machine provides stronger protection than unencrypted digital or paper records.
 - **Access control:** Single-user authentication with configurable idle timeout. Only the practitioner can access records.
 - **Immutable clinical records:** Session notes, communications, and other clinical entries are locked after creation. Changes are tracked with a full edit history showing exactly what was changed and when. Clinical records are retained throughout the active life of a client file and are never deleted during the retention period. When the retention period expires, records can be permanently removed, leaving only a minimal archive stub (name, file number, first and last contact dates). A separate redaction mechanism allows free-text content to be cleared from individual entries in the event of a privacy incident, while preserving the structural record.
 - **Record export:** Client records can be exported to PDF for access requests or transfers.
@@ -97,8 +97,9 @@ EdgeCase uses well-established, actively maintained libraries. Key security-rele
 | Library | Purpose |
 |---------|---------|
 | **SQLCipher** (via sqlcipher3) | AES-256 database encryption |
+| **argon2-cffi** | Argon2id key derivation (v2 encryption) |
 | **Flask-WTF** | CSRF protection on all forms |
-| **cryptography** | Cryptographic operations |
+| **cryptography** | HKDF key derivation, AES-256-GCM file encryption, Fernet (legacy v1) |
 | **Waitress** | Production WSGI server (no debug mode exposure) |
 
 ## License
