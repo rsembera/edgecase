@@ -1,23 +1,23 @@
 # EdgeCase CSS Architecture
 
-**Last Updated:** January 12, 2026
+**Last Updated:** June 21, 2026
 
 ## Overview
 
 EdgeCase uses a layered CSS architecture:
 
-1. **shared.css** (~2,360 lines) - Common patterns used across multiple pages
+1. **shared.css** (~2,390 lines) - Common patterns used across multiple pages
 2. **Page-specific CSS** - Styles unique to individual pages
 
 All pages load shared.css via base.html, then their own CSS via `{% block extra_css %}`.
 
-**Total CSS:** ~7,750 lines across 27 files
+**Total CSS:** ~7,530 lines across 28 files
 
 ---
 
-## shared.css Sections (~2,360 lines)
+## shared.css Sections (~2,390 lines)
 
-Organized into logical sections:
+Organized into logical sections (line numbers are approximate anchors and drift as the file grows; section order is stable):
 
 | Line | Section | What's in it |
 |------|---------|--------------|
@@ -82,34 +82,35 @@ Organized into logical sections:
 ### Large Files (100+ lines)
 | File | Lines | Page | Notes |
 |------|-------|------|-------|
-| main_view.css | ~684 | Client list | Filters, client cards, themes |
 | backups.css | ~765 | Backup settings | Backup cards, progress bars, folder picker |
-| outstanding_statements.css | ~402 | Billing | Statement cards, payment UI |
-| add_edit_link_group.css | ~413 | Link groups | Member selection, fee allocation |
-| pickers.css | ~321 | Date/time pickers | Custom picker components |
-| ai_scribe.css | ~293 | AI Scribe | Modal and streaming UI |
-| profile.css | ~291 | Profile entry | Contact fields, guardian billing |
-| manage_links.css | ~237 | Link management | Link group list |
-| add_edit_type.css | ~172 | Client types | Color picker, type form |
+| main_view.css | ~670 | Client list | Filters, client cards, themes |
+| ai_scribe.css | ~383 | AI Scribe | Modal and streaming UI |
+| outstanding_statements.css | ~368 | Billing | Statement cards, payment UI |
+| add_edit_link_group.css | ~359 | Link groups | Member selection, fee allocation |
+| pickers.css | ~294 | Date/time pickers | Custom picker components |
+| profile.css | ~272 | Profile entry | Contact fields, guardian billing |
+| settings.css | ~211 | Settings page | Settings sections |
+| manage_links.css | ~194 | Link management | Link group list |
 | ledger_report.css | ~170 | Financial report | Report form, preview |
-| session.css | ~168 | Session entry | Session form, AI button |
-| ledger.css | ~141 | Income/Expense | Ledger table, filters, themes |
-| upload.css | ~135 | Upload entry | File upload UI |
-| schedule_form.css | ~123 | Calendar scheduling | Schedule form |
+| add_edit_type.css | ~165 | Client types | Color picker, type form |
+| session.css | ~135 | Session entry | Session form, AI button |
+| ledger.css | ~131 | Income/Expense | Ledger table, filters, themes |
+| upload.css | ~116 | Upload entry | File upload UI |
 | manage_types.css | ~116 | Types table | Types list |
-| expense.css | ~116 | Expense entry | Expense form |
-| settings.css | ~115 | Settings page | Settings sections |
+| client_file.css | ~115 | Client timeline | Entry timeline |
 | export.css | ~114 | Export entries | Export options |
-| communication.css | ~103 | Communication | Communication form |
+| schedule_form.css | ~100 | Calendar scheduling | Schedule form |
 
 ### Small Files (<100 lines)
 | File | Lines | Notes |
 |------|-------|-------|
-| client_file.css | ~99 | Client timeline |
-| absence.css | ~98 | Absence entry |
-| income.css | ~97 | Income entry |
-| item.css | ~87 | Item entry |
-| deleted_clients.css | ~67 | Deleted clients view |
+| expense.css | ~80 | Expense entry |
+| redact.css | ~79 | Redacted-entry display (view_redacted.html) |
+| communication.css | ~73 | Communication form |
+| item.css | ~59 | Item entry |
+| income.css | ~58 | Income entry |
+| deleted_clients.css | ~50 | Deleted clients view |
+| absence.css | ~40 | Absence entry |
 | add_client.css | ~25 | New client form |
 | choices.min.css | - | Choices.js library (minified) |
 
@@ -255,3 +256,6 @@ Theme styles are in `main_view.css` (stat cards, nav buttons) and `ledger.css` (
 **December 27, 2025:**
 - Replaced Ocean Breeze, Sunset Glow, Garden Path, Warm Stone themes
 - Added Ink, Slate, Parchment themes (from Synesius)
+
+**June 21, 2026:**
+- Documentation accuracy resync: page-specific file tables regenerated from the live `web/static/css/` tree (corrected line counts, fixed the 100-line large/small split, added the previously-missing `redact.css`); totals corrected to ~7,530 lines across 28 files; shared.css ~2,390 lines.
