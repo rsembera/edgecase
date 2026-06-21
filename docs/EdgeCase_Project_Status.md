@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 20, 2026  
+**Last Updated:** June 21, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
@@ -235,18 +235,20 @@ now split — no remaining god-files.**
 
 | Metric | Value |
 |--------|-------|
-| Development Period | Nov 7 - Dec 2, 2025 (26 days) |
-| Total Lines of Code | ~30,000 |
-| Python Lines | ~9,400 |
-| HTML Lines | ~6,500 |
-| JavaScript Lines | ~6,200 |
-| CSS Lines | ~5,700 |
-| Blueprints | 12 |
+| Initial Development Period | Nov 7 - Dec 2, 2025 (26 days) |
+| Total Lines of Code | ~46,600 |
+| Python Lines | ~21,300 |
+| HTML Lines | ~7,900 |
+| JavaScript Lines | ~9,900 |
+| CSS Lines | ~7,500 |
+| Blueprints | 11 (+ app-level routes) |
 | Database Tables | 13 |
-| Templates | 32 |
+| Templates | 33 |
 | Entry Types | 8 |
-| Routes | 102 |
+| Routes | 104 |
 | Automated Tests | 201 |
+
+*(Line counts exclude `venv/`, `build/`, `dist/`. The "Initial Development Period" is the original Nov–Dec 2025 build; the codebase has grown since through post-launch work and the June 2026 refactors.)*
 
 ---
 
@@ -479,30 +481,31 @@ now split — no remaining god-files.**
 
 ## ARCHITECTURE SUMMARY
 
-### Blueprints (12)
+### Blueprints (11 + app-level routes)
 1. **ai** - AI Scribe functionality
-2. **auth** - Login/logout, session management
+2. **auth** - Login/logout, session management, v2 crypto migration
 3. **backups** - Backup/restore system
 4. **clients** - Client management, file viewing, session reports
-5. **entries** - Entry CRUD (6 types)
+5. **entries** - Entry CRUD (6 client types; now a package)
 6. **ledger** - Income/Expense, financial reports
 7. **links** - Link group management
-8. **statements** - Statement generation, PDF, email, payments
+8. **statements** - Statement generation, PDF, email, payments (now a package)
 9. **scheduler** - Calendar integration
 10. **types** - Client type management
 11. **settings** - Practice configuration
-12. **app.py routes** - Auto-backup, restore messages, filters
+
+Plus **app.py routes** (not a blueprint) - session status, keepalive, heartbeat, restore messages, template filters
 
 ### Key Files
 | File | Lines | Purpose |
 |------|-------|---------|
 | core/database.py | ~623 | Database facade (composes the core/db/ mixins) |
-| core/db/ | package | 9 domain mixins (settings, clients, entries, ledger, links, retention, ...) |
+| core/db/ | package | 8 domain mixins (settings, client_types, clients, edit_history, links, entries, ledger, retention) + errors leaf |
 | utils/backup.py | ~1,280 | Backup/restore system |
 | web/blueprints/entries/ | package | Entry CRUD (common + 8 per-type modules) |
 | web/blueprints/statements/ | package | Statements (common + views/generation/payments/delivery) |
 | ai/assistant.py | ~380 | LLM model management |
-| web/blueprints/ai.py | ~330 | AI Scribe routes |
+| web/blueprints/ai.py | ~350 | AI Scribe routes |
 | web/app.py | ~505 | Flask initialization |
 | web/utils.py | ~390 | Shared utilities |
 | web/static/css/shared.css | ~2,360 | Common CSS patterns |
@@ -522,19 +525,19 @@ now split — no remaining god-files.**
 - ✅ Export entries as PDF
 - ✅ Calendar integration
 - ✅ Encrypted database (SQLCipher)
-- ✅ Encrypted attachments (Fernet)
+- ✅ Encrypted attachments (AES-256-GCM v2; Fernet on un-migrated v1 installs)
 - ✅ Backup/restore system
 - ✅ Session timeout for security
 - ✅ File retention compliance
 - ✅ AI-assisted note writing
 
 ### Quality Requirements
-- ✅ Clean, modular codebase (12 blueprints)
+- ✅ Clean, modular codebase (11 blueprints, no god-files)
 - ✅ External CSS/JS (no inline code)
 - ✅ JSDoc documentation for IDE support
 - ✅ Consistent naming conventions
 - ✅ Professional UI with responsive design
-- ✅ Automated tests for critical business logic (43 tests)
+- ✅ Automated tests for critical business logic (201 tests)
 
 ---
 
@@ -565,13 +568,13 @@ These features passed all automated tests and manual testing in December 2025. F
 ## GIT STATUS
 
 **Branch:** main  
-**Total Commits:** 651 (as of Feb 5, 2026)
+**Total Commits:** 822 (as of June 21, 2026)
 
 **Recent Commits:**
 ```
-ed69ce6 Cleanup: move json import to top-level, remove 10 redundant in-method imports (database.py), rename session variable to session_entry to avoid shadowing Flask session (entries.py)
-0dcc0ff Remove keepalive debug logging
-9a29479 Adjust warning thresholds +15s to compensate for 30s poll interval
+8da5bb2 docs: audit + sync all docs to the refactored structure
+fae6415 docs: record post-refactor bug hunt + ruff in CHANGELOG and Project Status
+28f66ef build: add ruff to dev deps + a high-signal lint config
 ```
 
 ---
@@ -579,11 +582,11 @@ ed69ce6 Cleanup: move json import to top-level, remove 10 redundant in-method im
 ## ACCESS
 
 - **Mac:** http://localhost:8080
-- **iPad (same WiFi):** http://richards-macbook.local:8080
+- **iPad (same WiFi):** http://Ricks-MacBook-Air-M4.local:8080
 
 ### Start Server
 ```bash
-cd ~/apps/edgecase
+cd ~/Applications/edgecase
 source venv/bin/activate
 python main.py
 ```
@@ -594,7 +597,7 @@ python main.py
 
 | Document | Purpose |
 |----------|---------|
-| EdgeCase_Navigation_Map_v5_4.md | Quick reference, directory structure |
+| EdgeCase_Navigation_Map_v5_5.md | Quick reference, directory structure |
 | EdgeCase_Project_Status.md | This file - current state |
 | Database_Schema.md | Table definitions |
 | Route_Reference.md | All routes by blueprint |
