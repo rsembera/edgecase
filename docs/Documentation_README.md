@@ -16,7 +16,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 **Contents:**
 - Project overview and current status (All Phases Complete)
-- Directory structure (all 12 blueprints)
+- Directory structure (all 11 blueprints + app-level routes)
 - Tech stack summary
 - Blueprint architecture overview
 - Database tables list
@@ -67,7 +67,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
 **Contents:**
-- All 98 routes across 12 blueprints
+- All 104 routes across 11 blueprints (+ 4 app-level routes)
 - Route signatures (parameters, query params, form data)
 - Return values and redirects
 - Special behaviors and validation
@@ -200,9 +200,9 @@ EdgeCase Equalizer has **8 modular documentation files**:
 
 ## FILE LOCATIONS
 
-**Project docs folder:** `~/apps/edgecase/docs/`
+**Project docs folder:** `~/Applications/edgecase/docs/`
 
-**Files:**
+**Core files:**
 - EdgeCase_Navigation_Map_v5_5.md (main reference)
 - EdgeCase_Project_Status.md (current state)
 - Architecture_Decisions.md (design philosophy)
@@ -211,6 +211,8 @@ EdgeCase Equalizer has **8 modular documentation files**:
 - CSS_Architecture.md (styling guide)
 - Bug_Investigation_Log.md (production readiness audit)
 - Flask_Double_Login_Fix.md (technical reference)
+
+**Additional reference docs in the folder:** CHANGELOG.md (in repo root), Desktop_App_Testing_Checklist.md, Mac_Packaging_Guide.md, Linux_Packaging_Guide.md, Entries_Refactor_Plan.md, Future_Refinements.md, EdgeCase_Development_Timeline_GitVerified.md, WAL_Checkpoint_Backup_Issue.md.
 
 ---
 
@@ -235,9 +237,10 @@ EdgeCase Equalizer has **8 modular documentation files**:
 - Dec 16, 2025: All phases complete - Navigation Map v5.3, comprehensive testing
 - Dec 27, 2025: Documentation accuracy review - synced all docs with actual code
 - Dec 28, 2025: Security hardening, Python 3.13 upgrade - Navigation Map v5.4
-- **Jan 7, 2026: Production updates, backup improvements - Navigation Map v5.5**
+- Jan 7, 2026: Production updates, backup improvements - Navigation Map v5.5
+- **Jun 2026: Post-launch v2 crypto migration, god-file refactors (database.py / entries.py / statements.py split into packages), ruff; full docs audit + sync (Navigation Map v5.5 refreshed Jun 21)**
 
 ---
 
 *EdgeCase Equalizer - Modular Documentation System*  
-*Last Updated: January 7, 2026*
+*Last Updated: June 21, 2026*
