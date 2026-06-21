@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** June 14, 2026
+**Last Updated:** June 21, 2026
 
 ---
 
@@ -381,7 +381,7 @@ db.set_setting('file_number_counter', str(counter + 1))
 
 Store files in organized directory hierarchy:
 ```
-~/edgecase/attachments/
+~/Applications/edgecase/attachments/
   ├── {client_id}/{entry_id}/  # Client entry attachments
   └── ledger/{entry_id}/        # Ledger entry attachments
 ```
@@ -610,9 +610,11 @@ Hybrid approach: Automated tests for critical business logic, manual testing for
 
 ### Test Suite Details
 
-**Location:** `tests/test_edgecase.py` (874 lines)
+**Location:** `tests/test_edgecase.py` (1,504 lines) — the original critical-logic suite, now one of 17 test files.
 
-**Coverage:** 41 tests across 11 test classes:
+**Full suite:** 201 tests across 17 test files (route/integration coverage and the data-layer net were added during the June 2026 refactors).
+
+**Critical-logic coverage** in `test_edgecase.py` has grown to 83 tests across 22 classes. The original 11 money/compliance classes:
 | Test Class | What It Covers |
 |------------|----------------|
 | TestFeeCalculations | Three-way fee math |
@@ -627,16 +629,18 @@ Hybrid approach: Automated tests for critical business logic, manual testing for
 | TestLedger | Income/expense, totals |
 | TestSettings | Settings storage |
 
+Plus 11 classes added since (encryption, Decimal money primitives, statement totals, guardian-split rounding, payment application, pro-rata tax/refunds, FK enforcement, legacy DB migrations, backup/restore round-trip, request security, full-content diff), and separate test files for the data layer, entries/statements route lifecycles, attachments, links, crypto v2, and migration wiring.
+
 **Run tests:**
 ```bash
-cd ~/edgecase
+cd ~/Applications/edgecase
 source venv/bin/activate
-pytest tests/ -v
+venv/bin/python -m pytest -q
 ```
 
 **Benefits:**
 - ✅ **Critical logic protected** - Fee calculations can't silently break
-- ✅ **Fast feedback** - 41 tests run in 0.23 seconds
+- ✅ **Fast feedback** - the full suite of 201 tests runs in ~8 seconds
 - ✅ **Safe refactoring** - Catch regressions before they ship
 - ✅ **No over-testing** - UI flows tested manually where appropriate
 
@@ -1276,13 +1280,6 @@ done in a dedicated pass with timing measurements.
 
 ---
 
-*For database details, see Database_Schema.md*  
-*For route details, see Route_Reference.md*  
-*Last Updated: June 7, 2026*
-
-
----
-
 ## ATTACHMENT ENCRYPTION v2 (ARGON2ID / AES-256-GCM)
 
 **Added:** June 14, 2026 — in progress (see Project Status for current stage)
@@ -1376,3 +1373,9 @@ Each had grown into a "god-file": imported by much of the app, slow to navigate,
 ### Result
 
 No behaviour change (endpoint sets byte-identical, verified via `app.url_map`); the test net grew alongside the work (now 201) and stayed green at every commit; ruff was added as a standing guard against the dangling-reference class of refactor bug. No god-files remain. See `CHANGELOG.md` (June 20-21, 2026) for the commit-level record.
+
+---
+
+*For database details, see Database_Schema.md*  
+*For route details, see Route_Reference.md*  
+*Last Updated: June 21, 2026*
