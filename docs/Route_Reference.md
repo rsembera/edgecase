@@ -616,7 +616,7 @@ def export_pdf(client_id)
 ## ENTRIES BLUEPRINT
 
 **Prefix:** None (mounted at root)  
-**File:** `~/edgecase/web/blueprints/entries.py`
+**File:** `~/edgecase/web/blueprints/entries/` (package: common + per-type modules)
 
 ### Profile Entry
 
@@ -865,7 +865,7 @@ def remove_payor_suggestion()
 ## STATEMENTS BLUEPRINT
 
 **Prefix:** /statements  
-**File:** `~/edgecase/web/blueprints/statements.py`
+**File:** `~/edgecase/web/blueprints/statements/` (package: common + views/generation/payments/delivery)
 
 ### Outstanding Statements
 
