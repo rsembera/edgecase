@@ -12,7 +12,7 @@ This document tracks architectural improvements and refactoring ideas that aren'
 
 ### Rationale
 
-All of EdgeCase's encryption (SQLCipher database, Fernet attachments) derives its keys from the master password. The KDFs in use (PBKDF2, 256k–480k iterations) are sound, but no KDF rescues a weak password: the current 8-character minimum allows passwords that fall to a GPU cracking rig regardless of derivation function. Password entropy dominates every other crypto parameter in this system. This costs nothing at runtime, requires no migration, and protects the users least likely to read security documentation.
+All of EdgeCase's encryption (SQLCipher database, encrypted attachments) derives its keys from the master password. The KDFs in use are sound (Argon2id on v2 installs since the June 2026 migration; PBKDF2 at 256k–480k iterations on legacy v1), but no KDF rescues a weak password: the current 8-character minimum allows passwords that fall to a GPU cracking rig regardless of derivation function. Password entropy dominates every other crypto parameter in this system. This costs nothing at runtime, requires no migration, and protects the users least likely to read security documentation.
 
 ### Proposed change
 
@@ -26,24 +26,20 @@ Existing installs are unaffected (the check only runs at database creation).
 
 ## Argon2id for Attachment Encryption
 
-**Priority:** Low  
-**Effort:** Medium (3-4 hours including migration testing)  
-**Status:** Documented, not scheduled
+**Status:** ✅ DONE (June 2026) — implemented and verified in production.
 
-### Rationale
+This was built as the **v2 encryption migration**: attachment / asset / statement-PDF
+encryption moved from Fernet (PBKDF2 → AES-128-CBC/HMAC) to **Argon2id → HKDF →
+AES-256-GCM**, with the encrypted file format versioned so legacy v1 files stay
+readable. Notably, the "explicitly out of scope" note in the original proposal —
+keeping the SQLCipher DB on its internal PBKDF2 — was **reversed**: SQLCipher is now
+rekeyed to a raw Argon2id-derived key (`PRAGMA key = "x'...'"`) so the whole install
+derives from one Argon2id master, with crash-safe migration and rollback. Existing v1
+installs migrate automatically at the next login after upgrade.
 
-Attachment keys are currently derived with PBKDF2-HMAC-SHA256 (480k iterations). PBKDF2 is compute-hard but memory-light, so it parallelizes well on GPUs; Argon2id is memory-hard and neutralizes that advantage. OWASP lists Argon2id as the preferred KDF. The practical gain is real only against weak/medium passwords — against a strong generated password both are computationally hopeless — so the password-policy item above delivers more protection for far less risk. The `cryptography` dependency already includes Argon2id support (since v44), so no new dependency is needed.
-
-### Proposed approach (when/if done)
-
-1. Version the encrypted file format: new files get a 1-byte format prefix (e.g. `0x02`) before the Fernet token; absence of the prefix = legacy PBKDF2 file.
-2. `decrypt_file_to_bytes()` dispatches on the prefix — both formats remain readable forever.
-3. Lazy migration: re-encrypt each attachment with Argon2id the next time it is decrypted for any reason (view/export/backup verification), or via an explicit one-shot migration in Settings.
-4. Cache the Argon2id-derived Fernet exactly as the PBKDF2 one is cached today (`_fernet_cache`).
-
-### Explicitly out of scope
-
-The SQLCipher database KDF stays PBKDF2: that is what SQLCipher implements internally. Replacing it would mean deriving raw keys outside SQLCipher (`PRAGMA key = "x'...'"`), moving key-derivation correctness from a battle-tested library into application code — contrary to this codebase's "no homegrown crypto" principle. Not worth it.
+Full design and rationale: the "Attachment Encryption v2" section of
+`Architecture_Decisions.md`; current rollout state (stages 1–5 done, Stage 6 —
+removing the v1 Fernet read path — deliberately deferred) in `EdgeCase_Project_Status.md`.
 
 ---
 
@@ -144,16 +140,14 @@ The December 2025 CSS consolidation reduced duplication by ~25%, but there may b
 
 **Priority:** Low  
 **Effort:** Ongoing  
-**Status:** Idea only
+**Status:** Substantially advanced — suite grew 41 → 201 during the June 2026 refactors.
 
-Current: 41 automated tests covering core functionality.
+Current: 201 automated tests across 17 files (was 41). Much of the earlier wishlist is now covered: backup/restore round-trip (`test_backup_*`, plus a `TestBackupRestoreRoundTrip` class), link-group billing scenarios (`test_links_layer.py`, `test_statements_lifecycle.py`), and route/integration coverage for the entries and statements blueprints.
 
-Potential additions:
-- Backup/restore cycle tests
+Still-thin areas worth adding if time permits:
 - Calendar edge cases (timezone handling, recurring events)
-- PDF generation validation
-- Link group billing scenarios
+- PDF generation validation (currently smoke-tested for status/content-type only, never byte-asserted by design)
 
 ---
 
-*Last updated: February 2026*
+*Last updated: June 21, 2026*
