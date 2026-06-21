@@ -1,7 +1,7 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** January 10, 2026
+**Last Updated:** June 21, 2026
 
 ---
 
@@ -9,7 +9,7 @@
 
 EdgeCase uses SQLite with SQLCipher encryption, containing 13 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
 
-**Database Location:** `~/edgecase/data/edgecase.db`
+**Database Location:** `~/Applications/edgecase/data/edgecase.db`
 
 **Tables:**
 1. clients - Client records
@@ -326,8 +326,8 @@ CREATE TABLE attachments (
 ```
 
 **Storage Locations:**
-- Client entries: `~/edgecase/attachments/{client_id}/{entry_id}/`
-- Ledger entries: `~/edgecase/attachments/ledger/{entry_id}/`
+- Client entries: `~/Applications/edgecase/attachments/{client_id}/{entry_id}/`
+- Ledger entries: `~/Applications/edgecase/attachments/ledger/{entry_id}/`
 
 ---
 
@@ -470,7 +470,7 @@ When payment recorded:
 
 ## MIGRATIONS
 
-**Location:** `core/database.py` in `_run_migrations()` method
+**Location:** `core/database.py` — `_initialize_schema()` (which runs `CREATE TABLE IF NOT EXISTS` and additive `CREATE INDEX IF NOT EXISTS` statements on every open) plus `_migrate_typed_empty_strings()`
 
 **Philosophy:** Always additive, never destructive. Old data stays intact.
 
@@ -479,4 +479,4 @@ When payment recorded:
 *For route information, see Route_Reference.md*  
 *For design philosophy, see Architecture_Decisions.md*
 
-*Last updated: December 28, 2025*
+*Last updated: June 21, 2026*
