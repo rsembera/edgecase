@@ -451,6 +451,112 @@ class TestPaymentStatus:
 # EDIT HISTORY TESTS
 # ============================================================================
 
+class TestClientBalances:
+    """Client-file financial summary: unbilled owing + outstanding statements."""
+
+    def _add_billable_session(self, db, client_id, fee, locked=1, statement_id=None):
+        return db.add_entry({
+            'client_id': client_id,
+            'class': 'session',
+            'session_date': int(time.time()),
+            'session_number': 1,
+            'description': 'Session',
+            'fee': fee,
+            'locked': locked,
+            'statement_id': statement_id,
+        })
+
+    # --- get_unbilled_total ---
+
+    def test_unbilled_zero_with_no_entries(self, db, client_with_profile):
+        assert db.get_unbilled_total(client_with_profile['client_id']) == 0
+
+    def test_unbilled_sums_locked_billable_sessions(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_billable_session(db, client_id, 150.00)
+        self._add_billable_session(db, client_id, 90.50)
+        assert db.get_unbilled_total(client_id) == Decimal('240.50')
+
+    def test_unbilled_excludes_drafts(self, db, client_with_profile):
+        """Unlocked drafts aren't billable, so they don't count."""
+        client_id = client_with_profile['client_id']
+        self._add_billable_session(db, client_id, 150.00, locked=0)
+        assert db.get_unbilled_total(client_id) == 0
+
+    def test_unbilled_excludes_already_billed(self, db, client_with_profile):
+        """Entries attached to a statement are billed, not unbilled."""
+        client_id = client_with_profile['client_id']
+        stmt_id = db.add_entry({
+            'client_id': client_id, 'class': 'statement',
+            'description': 'Statement', 'statement_total': 150.00,
+        })
+        self._add_billable_session(db, client_id, 150.00, statement_id=stmt_id)
+        assert db.get_unbilled_total(client_id) == 0
+
+    def test_unbilled_excludes_consultation_and_pro_bono(self, db, client_with_profile):
+        """fee = 0 entries (consultations, pro bono) never bill."""
+        client_id = client_with_profile['client_id']
+        db.add_entry({
+            'client_id': client_id, 'class': 'session',
+            'session_date': int(time.time()), 'is_consultation': 1,
+            'description': 'Consultation', 'fee': 0, 'locked': 1,
+        })
+        db.add_entry({
+            'client_id': client_id, 'class': 'session',
+            'session_date': int(time.time()), 'is_pro_bono': 1,
+            'description': 'Pro bono', 'fee': 0, 'locked': 1,
+        })
+        self._add_billable_session(db, client_id, 100.00)
+        assert db.get_unbilled_total(client_id) == Decimal('100.00')
+
+    def test_unbilled_item_uses_base_price_fallback(self, db, client_with_profile):
+        """Items with no `fee` fall back to base_price, mirroring find_unbilled."""
+        client_id = client_with_profile['client_id']
+        db.add_entry({
+            'client_id': client_id, 'class': 'item',
+            'item_date': int(time.time()), 'description': 'Report',
+            'base_price': 75.00, 'locked': 1,
+        })
+        assert db.get_unbilled_total(client_id) == Decimal('75.00')
+
+    # --- get_outstanding_balance ---
+
+    def _add_portion(self, db, client_id, amount_due, status, amount_paid=0):
+        now = int(time.time())
+        stmt_id = db.add_entry({
+            'client_id': client_id, 'class': 'statement',
+            'description': 'Statement', 'statement_total': amount_due,
+        })
+        conn = db.connect()
+        conn.cursor().execute("""
+            INSERT INTO statement_portions
+            (statement_entry_id, client_id, amount_due, amount_paid, status, date_sent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (stmt_id, client_id, amount_due, amount_paid, status, now, now))
+        conn.commit()
+
+    def test_outstanding_zero_with_no_portions(self, db, client_with_profile):
+        assert db.get_outstanding_balance(client_with_profile['client_id']) == 0
+
+    def test_outstanding_sums_sent_portions(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 150.00, 'sent')
+        self._add_portion(db, client_id, 50.00, 'sent')
+        assert db.get_outstanding_balance(client_id) == Decimal('200.00')
+
+    def test_outstanding_subtracts_partial_payment(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 150.00, 'partial', amount_paid=40.00)
+        assert db.get_outstanding_balance(client_id) == Decimal('110.00')
+
+    def test_outstanding_excludes_paid_and_written_off(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 150.00, 'paid', amount_paid=150.00)
+        self._add_portion(db, client_id, 80.00, 'written_off')
+        self._add_portion(db, client_id, 25.00, 'sent')
+        assert db.get_outstanding_balance(client_id) == Decimal('25.00')
+
+
 class TestEditHistory:
     """Test edit history tracking."""
     

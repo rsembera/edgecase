@@ -45,6 +45,19 @@
                 </div>
                 <br>
                 <span class="file-number">File #{{ client.file_number }}</span>
+                <div class="client-balance-summary">
+                    <span class="balance-item{% if unbilled_is_zero %} balance-zero{% endif %}">
+                        <span class="balance-label">Unbilled</span>
+                        <span class="balance-value">{{ unbilled_display }}</span>
+                    </span>
+                    <span class="balance-item{% if outstanding_is_zero %} balance-zero{% endif %}">
+                        <span class="balance-label">Outstanding</span>
+                        <span class="balance-value">{{ outstanding_display }}</span>
+                    </span>
+                    {% if has_guardians and not unbilled_is_zero %}
+                    <span class="balance-note">unbilled splits across guardians on statement</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
         <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>

@@ -113,3 +113,44 @@ tr.redacted-entry td {
 tr.redacted-entry:hover {
     background-color: #f3f4f6 !important;
 }
+
+/* Client balance summary (file header) — unbilled owing + outstanding statements */
+.client-balance-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 18px;
+    margin-top: 10px;
+}
+
+.balance-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.balance-item .balance-label {
+    color: var(--text-muted, #6B7280);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.balance-item .balance-value {
+    font-weight: 600;
+    color: var(--text-primary, #1F2937);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Zero balances stay legible but recede, so a real number stands out */
+.balance-item.balance-zero .balance-value {
+    font-weight: 500;
+    color: var(--text-muted, #6B7280);
+}
+
+.client-balance-summary .balance-note {
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--text-muted, #6B7280);
+}
