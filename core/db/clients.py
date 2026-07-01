@@ -9,6 +9,9 @@ import time
 import sqlcipher3 as sqlite3
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
+from decimal import Decimal
+
+from core.money import dec, quantize_cents
 
 
 class ClientMixin:
@@ -285,7 +288,78 @@ class ClientMixin:
         """)
         
         return cursor.fetchone()[0]
-    
+
+    def get_unbilled_total(self, client_id: int) -> Decimal:
+        """Total owing for this client's billable, locked, not-yet-billed entries.
+
+        Mirrors the statement generator's find_unbilled predicate and fee
+        resolution exactly (sessions/absences/items that are locked and have no
+        statement_id, excluding consultations, pro bono, and zero-fee), but
+        scoped to a single client with no date bound. This is the "what a
+        statement would bill right now" figure. Unlike the bulk generation
+        picker, it does NOT exclude Inactive clients — on an individual file you
+        still want to see what an inactive client owes. Drafts (locked = 0) are
+        excluded, since they aren't billable yet.
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT class, fee, base_fee, base_price
+            FROM entries
+            WHERE client_id = ?
+            AND class IN ('session', 'absence', 'item')
+            AND statement_id IS NULL
+            AND locked = 1
+            AND (
+                (class = 'session' AND fee > 0)
+                OR (class = 'absence' AND (fee > 0 OR base_fee > 0))
+                OR (class = 'item' AND (fee != 0 OR base_price != 0))
+            )
+        """, (client_id,))
+
+        total = dec(0)
+        for row in cursor.fetchall():
+            # Same fee resolution as find_unbilled: prefer fee, fall back to
+            # base_price (items) / base_fee (absences).
+            fee = row['fee']
+            if not fee:
+                if row['class'] == 'item':
+                    fee = row['base_price'] or 0
+                elif row['class'] == 'absence':
+                    fee = row['base_fee'] or 0
+                else:
+                    fee = 0
+            total += dec(fee)
+
+        return quantize_cents(total)
+
+    def get_outstanding_balance(self, client_id: int) -> Decimal:
+        """Total still owing on this client's sent statement portions.
+
+        Sum of (amount_due - amount_paid) over statement_portions that are not
+        fully paid or written off. Exact Decimal arithmetic via core.money.
+        This is separate from get_unbilled_total: work that has been billed but
+        not yet paid, vs. work not yet billed.
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT amount_due, amount_paid
+            FROM statement_portions
+            WHERE client_id = ?
+            AND status NOT IN ('paid', 'written_off')
+        """, (client_id,))
+
+        total = dec(0)
+        for row in cursor.fetchall():
+            total += dec(row['amount_due']) - dec(row['amount_paid'] or 0)
+
+        return quantize_cents(total)
+
     def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
         """Get client's profile entry."""
         conn = self.connect()

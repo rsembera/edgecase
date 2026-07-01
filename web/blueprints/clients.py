@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import sqlcipher3 as sqlite3
 
 from core.database import Database
-from core.money import quantize_cents
+from core.money import quantize_cents, format_currency
 
 # Initialize blueprint
 clients_bp = Blueprint('clients', __name__)
@@ -686,6 +686,19 @@ def client_file(client_id):
             'is_current': (year == current_year)
         })
     
+    # Financial summary for the file header: what would a statement bill right
+    # now (unbilled), and what's still owing on statements already sent
+    # (outstanding). Both reuse the data-layer Decimal helpers — no fresh money
+    # math here.
+    currency_code = db.get_setting('currency', 'CAD')
+    unbilled_total = db.get_unbilled_total(client_id)
+    outstanding_balance = db.get_outstanding_balance(client_id)
+    unbilled_display = format_currency(unbilled_total, currency_code)
+    outstanding_display = format_currency(outstanding_balance, currency_code)
+    # Guardian-billed minor: the unbilled figure is the full amount, which splits
+    # across payers on the actual statement — flag it so the header can say so.
+    has_guardians = bool(profile_entry and profile_entry.get('guardian1_name'))
+
     return render_template('client_file.html',
                          client=client,
                          all_types=all_types,
@@ -695,7 +708,12 @@ def client_file(client_id):
                          consultation_count=consultation_count,
                          absence_count=absence_count,
                          class_filter=class_filter,
-                         linked_groups=linked_groups)
+                         linked_groups=linked_groups,
+                         unbilled_display=unbilled_display,
+                         outstanding_display=outstanding_display,
+                         unbilled_is_zero=(unbilled_total == 0),
+                         outstanding_is_zero=(outstanding_balance == 0),
+                         has_guardians=has_guardians)
 
 
 @clients_bp.route('/client/<int:client_id>/change_type', methods=['POST'])
