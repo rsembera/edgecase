@@ -697,7 +697,11 @@ def client_file(client_id):
     outstanding_display = format_currency(outstanding_balance, currency_code)
     # Guardian-billed minor: the unbilled figure is the full amount, which splits
     # across payers on the actual statement — flag it so the header can say so.
-    has_guardians = bool(profile_entry and profile_entry.get('guardian1_name'))
+    # Same condition the statement generator uses to create guardian portions
+    # (is_minor AND guardian1_name), so the note only appears when a statement
+    # would actually split.
+    has_guardians = bool(profile_entry and profile_entry.get('is_minor')
+                         and profile_entry.get('guardian1_name'))
 
     return render_template('client_file.html',
                          client=client,

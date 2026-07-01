@@ -336,10 +336,11 @@ class ClientMixin:
         return quantize_cents(total)
 
     def get_outstanding_balance(self, client_id: int) -> Decimal:
-        """Total still owing on this client's sent statement portions.
+        """Total still owing on this client's generated statement portions.
 
         Sum of (amount_due - amount_paid) over statement_portions that are not
-        fully paid or written off. Exact Decimal arithmetic via core.money.
+        fully paid or written off — includes 'ready' (generated but not yet
+        sent), 'sent', and 'partial'. Exact Decimal arithmetic via core.money.
         This is separate from get_unbilled_total: work that has been billed but
         not yet paid, vs. work not yet billed.
         """
