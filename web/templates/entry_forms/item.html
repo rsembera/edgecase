@@ -30,7 +30,7 @@
         {% include 'components/redact_button.html' %}
     </div>
     
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data"{% if is_edit %} data-dirty-guard{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" id="has-entry" value="{% if entry %}true{% else %}false{% endif %}">
         
@@ -231,7 +231,11 @@
         <!-- Form Actions -->
         <div class="entry-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
+            {% if is_edit %}
+            <button type="submit" class="btn" data-dirty-save data-dirty-label="Save Item" disabled>No Changes</button>
+            {% else %}
             <button type="submit" class="btn">Save Item</button>
+            {% endif %}
         </div>
     </form>
     
@@ -272,6 +276,7 @@
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/file-upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/item.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
 {% endblock %}
 
 {% endblock %}

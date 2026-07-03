@@ -8,6 +8,7 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -66,7 +67,7 @@
     </div>
     {% endif %}
 
-    <form method="post" id="profile-form">
+    <form method="post" id="profile-form" data-dirty-guard>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     
     <div class="form-row">
@@ -463,7 +464,7 @@
         <!-- Form Buttons -->
         <div class="profile-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn">Save Profile</button>
+            <button type="submit" class="btn" data-dirty-save data-dirty-label="Save Profile" disabled>No Changes</button>
         </div>
     </form>
 </div>
