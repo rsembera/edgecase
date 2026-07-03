@@ -30,7 +30,7 @@
         {% include 'components/redact_button.html' %}
     </div>
     
-    <form method="POST"{% if is_edit %} data-dirty-guard{% endif %}>
+    <form method="POST" data-dirty-guard>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% if is_billed %}
         <div class="billed-warning">
@@ -175,6 +175,8 @@
     "linkGroups": {{ link_group_fees | tojson }}
 }
 </script>
+
+{% include 'components/unsaved_changes_modal.html' %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>

@@ -30,7 +30,7 @@
         {% include 'components/redact_button.html' %}
     </div>
     
-    <form method="POST" enctype="multipart/form-data"{% if is_edit %} data-dirty-guard{% endif %}>
+    <form method="POST" enctype="multipart/form-data" data-dirty-guard>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" id="has-entry" value="{% if entry %}true{% else %}false{% endif %}">
         
@@ -271,6 +271,8 @@
      data-guardian1-percent="{{ profile.guardian1_pays_percent if profile and profile.guardian1_pays_percent else 50 }}"
      data-guardian2-percent="{{ profile.guardian2_pays_percent if profile and profile.guardian2_pays_percent else 50 }}">
 </div>
+
+{% include 'components/unsaved_changes_modal.html' %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
