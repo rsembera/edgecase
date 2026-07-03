@@ -361,6 +361,48 @@ class ClientMixin:
 
         return quantize_cents(total)
 
+    def get_prior_outstanding(self, client_id: int,
+                              exclude_statement_entry_id: int,
+                              guardian_number: Optional[int]) -> Decimal:
+        """Balance still owing on statements BILLED BEFORE the given one.
+
+        Sum of (amount_due - amount_paid) over this client's OTHER statement
+        portions with status 'sent' or 'partial', scoped to the same payer
+        (guardian_number, NULL-safe via IS). Used by the statement PDF's
+        "Previous balance" line, so the scoping rules matter:
+
+        - The current statement's own portion is excluded (it IS the
+          "current charges").
+        - 'ready' portions are excluded: a statement the client has never
+          received is not a "previous balance" they've been ignoring —
+          in particular, two statements generated in the same batch must
+          not list each other.
+        - 'paid'/'written_off' are excluded as settled.
+        - Guardian scoping means each guardian's PDF shows only THEIR
+          prior balance on a split statement.
+
+        Display-only: nothing here changes amount_due or how payments and
+        write-offs apply (each statement still settles separately).
+        """
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT amount_due, amount_paid
+            FROM statement_portions
+            WHERE client_id = ?
+            AND statement_entry_id != ?
+            AND guardian_number IS ?
+            AND status IN ('sent', 'partial')
+        """, (client_id, exclude_statement_entry_id, guardian_number))
+
+        total = dec(0)
+        for row in cursor.fetchall():
+            total += dec(row['amount_due']) - dec(row['amount_paid'] or 0)
+
+        return quantize_cents(total)
+
     def get_profile_entry(self, client_id: int) -> Optional[Dict[str, Any]]:
         """Get client's profile entry."""
         conn = self.connect()

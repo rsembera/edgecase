@@ -520,6 +520,41 @@ class StatementPDFGenerator:
         table.setStyle(TableStyle(style_commands))
         
         return table, total
+
+    def _build_balance_summary(self, current_due, prior_outstanding,
+                               currency_code):
+        """Balance-forward block shown when this payer still owes on
+        earlier statements.
+
+        Display-only: 'Current charges' is this portion's amount_due (this
+        payer's share, not the statement total on a guardian split);
+        'Previous balance' is the sent/partial remainder from
+        get_prior_outstanding. Neither figure changes how payments apply —
+        each statement still settles separately.
+        """
+        current = quantize_cents(dec(current_due))
+        prior = quantize_cents(dec(prior_outstanding))
+        combined = quantize_cents(current + prior)
+
+        data = [
+            ['Current charges', self._format_currency(current, currency_code)],
+            ['Previous balance', self._format_currency(prior, currency_code)],
+            ['TOTAL AMOUNT DUE', self._format_currency(combined, currency_code)],
+        ]
+
+        summary = Table(data, colWidths=[1.9*inch, 1.3*inch], hAlign='RIGHT')
+        summary.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 1), 'Helvetica'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+        ]))
+
+        return [Spacer(1, 0.2*inch), summary]
     
     def _build_signature_section(self, settings, assets_path):
         """Build the attestation and signature section."""
@@ -705,7 +740,19 @@ class StatementPDFGenerator:
         # Line items table
         table, total = self._build_line_items_table(entries, settings['currency'], guardian_number, profile)
         story.append(table)
-        
+
+        # Balance forward (display-only). Computed at render time — the copy
+        # attached to the Communication entry freezes it as-of-send, while a
+        # re-downloaded PDF shows the current truth. Zero prior balance
+        # renders nothing, so statements look exactly as before.
+        prior_outstanding = self.db.get_prior_outstanding(
+            portion['client_id'], portion['statement_entry_id'],
+            portion['guardian_number'])
+        if prior_outstanding > 0:
+            story.extend(self._build_balance_summary(
+                portion['amount_due'], prior_outstanding,
+                settings['currency']))
+
         # Signature section
         story.extend(self._build_signature_section(settings, assets_path))
         

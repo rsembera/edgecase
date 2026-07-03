@@ -48,7 +48,8 @@ def _portions(db, client_id):
     conn = db.connect()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, status, amount_due, amount_paid, write_off_reason "
+        "SELECT id, statement_entry_id, status, amount_due, amount_paid, "
+        "write_off_reason "
         "FROM statement_portions WHERE client_id = ?",
         (client_id,),
     )
@@ -329,6 +330,51 @@ def test_mark_sent_records_edited_email_in_communication(
     # The email path leaves the temp PDF for the frontend attach step;
     # clean it up here so the test leaves nothing behind.
     shutil.rmtree(Path(payload["pdf_path"]).parent, ignore_errors=True)
+
+
+def test_statement_pdf_renders_previous_balance_block(client, app_db, tmp_path):
+    """Real ReportLab render: a client with an earlier SENT statement still
+    owing gets the balance-forward block on their next statement's PDF
+    (current charges + previous balance), and a client with no prior
+    balance renders a byte-identical-shape PDF without it (no crash either
+    way). Exercises get_prior_outstanding wiring inside
+    generate_statement_pdf, not a stub."""
+    from pdf.generator import generate_statement_pdf
+
+    cid = _make_client(app_db)
+
+    # Statement 1 (June), marked sent and unpaid -> a prior balance of 113.
+    _add_locked_session(app_db, cid, date=(2026, 6, 10))
+    _generate(client, cid)
+    first = _portions(app_db, cid)[0]
+    conn = app_db.connect()
+    conn.cursor().execute(
+        "UPDATE statement_portions SET status = 'sent' WHERE id = ?",
+        (first["id"],))
+    conn.commit()
+
+    # Statement 2 (July) for the same client.
+    _add_locked_session(app_db, cid, date=(2026, 7, 10))
+    client.post("/statements/generate",
+                json={"client_ids": [cid], "start_date": "2026-07-01",
+                      "end_date": "2026-07-31"})
+    second = [p for p in _portions(app_db, cid) if p["id"] != first["id"]][0]
+
+    out = tmp_path / "with_prior.pdf"
+    assert generate_statement_pdf(app_db, second["id"], str(out), str(tmp_path))
+    assert out.stat().st_size > 0
+    assert out.read_bytes()[:5] == b"%PDF-"
+
+    # Sanity: the prior figure the block renders from.
+    prior = app_db.get_prior_outstanding(cid, second["statement_entry_id"], None)
+    assert prior > 0
+
+    # And the first statement's own PDF has NO prior balance (nothing
+    # earlier was sent) — the no-block path still renders.
+    out2 = tmp_path / "no_prior.pdf"
+    assert app_db.get_prior_outstanding(cid, first["statement_entry_id"], None) == 0
+    assert generate_statement_pdf(app_db, first["id"], str(out2), str(tmp_path))
+    assert out2.read_bytes()[:5] == b"%PDF-"
 
 
 def test_pdf_routes_generate_and_serve(client, app_db, monkeypatch):
