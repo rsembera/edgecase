@@ -2,8 +2,31 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** June 21, 2026  
+**Last Updated:** July 2, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
+
+---
+
+## RECENT POST-LAUNCH WORK (July 2026)
+
+Full detail in `CHANGELOG.md`; suite currently **229 passing**, `ruff check` clean.
+
+- **Client-file balance summary (2026-07-01):** Unbilled + Outstanding figures
+  in the client-file header, reusing the statement generator's exact predicate
+  (`get_unbilled_total`) and portion arithmetic (`get_outstanding_balance`) in
+  `ClientMixin`.
+- **Dirty-state Save button everywhere (2026-07-02):** the session form's
+  "No Changes" disabled-Save behaviour extended to communication, absence,
+  item, upload, and profile edit forms via a shared `form-guard.js`
+  (data-attribute opt-in; session.js untouched).
+- **Pre-send email review modal (2026-07-02):** statement emails are reviewed
+  and editable before anything is recorded; the approved text becomes the
+  Communication entry verbatim, and Cancel truly aborts (new read-only
+  `/statements/email-preview/<portion_id>` route).
+- **Previous balance on statement PDFs (2026-07-02):** display-only
+  Current charges / Previous balance / TOTAL AMOUNT DUE block when the payer
+  still owes on earlier sent/partial statements (`get_prior_outstanding`,
+  guardian-scoped; payment machinery untouched).
 
 ---
 
