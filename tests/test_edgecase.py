@@ -521,7 +521,8 @@ class TestClientBalances:
 
     # --- get_outstanding_balance ---
 
-    def _add_portion(self, db, client_id, amount_due, status, amount_paid=0):
+    def _add_portion(self, db, client_id, amount_due, status, amount_paid=0,
+                     guardian_number=None):
         now = int(time.time())
         stmt_id = db.add_entry({
             'client_id': client_id, 'class': 'statement',
@@ -530,10 +531,11 @@ class TestClientBalances:
         conn = db.connect()
         conn.cursor().execute("""
             INSERT INTO statement_portions
-            (statement_entry_id, client_id, amount_due, amount_paid, status, date_sent, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (stmt_id, client_id, amount_due, amount_paid, status, now, now))
+            (statement_entry_id, client_id, guardian_number, amount_due, amount_paid, status, date_sent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (stmt_id, client_id, guardian_number, amount_due, amount_paid, status, now, now))
         conn.commit()
+        return stmt_id
 
     def test_outstanding_zero_with_no_portions(self, db, client_with_profile):
         assert db.get_outstanding_balance(client_with_profile['client_id']) == 0
@@ -555,6 +557,52 @@ class TestClientBalances:
         self._add_portion(db, client_id, 80.00, 'written_off')
         self._add_portion(db, client_id, 25.00, 'sent')
         assert db.get_outstanding_balance(client_id) == Decimal('25.00')
+
+    # --- get_prior_outstanding (statement PDF "Previous balance") ---
+
+    def test_prior_outstanding_zero_with_no_other_statements(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        current = self._add_portion(db, client_id, 113.00, 'ready')
+        assert db.get_prior_outstanding(client_id, current, None) == 0
+
+    def test_prior_outstanding_sums_sent_and_partial_excluding_current(
+            self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 113.00, 'sent')
+        self._add_portion(db, client_id, 100.00, 'partial', amount_paid=40.00)
+        current = self._add_portion(db, client_id, 226.00, 'ready')
+        # 113 + (100 - 40); the current statement's own 226 is not "previous".
+        assert db.get_prior_outstanding(client_id, current, None) == Decimal('173.00')
+
+    def test_prior_outstanding_excludes_ready_batch_siblings(self, db, client_with_profile):
+        """Two statements generated in the same batch must not list each
+        other as 'previous balance' — the client has never received a
+        'ready' statement."""
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 150.00, 'ready')
+        current = self._add_portion(db, client_id, 113.00, 'ready')
+        assert db.get_prior_outstanding(client_id, current, None) == 0
+
+    def test_prior_outstanding_excludes_paid_and_written_off(self, db, client_with_profile):
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 150.00, 'paid', amount_paid=150.00)
+        self._add_portion(db, client_id, 80.00, 'written_off')
+        self._add_portion(db, client_id, 60.00, 'sent')
+        current = self._add_portion(db, client_id, 113.00, 'ready')
+        assert db.get_prior_outstanding(client_id, current, None) == Decimal('60.00')
+
+    def test_prior_outstanding_scopes_to_guardian(self, db, client_with_profile):
+        """On a guardian split each payer's PDF shows only THEIR prior
+        balance; the client's own (NULL) portions are a separate scope."""
+        client_id = client_with_profile['client_id']
+        self._add_portion(db, client_id, 90.00, 'sent', guardian_number=1)
+        self._add_portion(db, client_id, 40.00, 'sent', guardian_number=2)
+        self._add_portion(db, client_id, 25.00, 'sent', guardian_number=None)
+        current = self._add_portion(db, client_id, 113.00, 'ready',
+                                    guardian_number=1)
+        assert db.get_prior_outstanding(client_id, current, 1) == Decimal('90.00')
+        assert db.get_prior_outstanding(client_id, current, 2) == Decimal('40.00')
+        assert db.get_prior_outstanding(client_id, current, None) == Decimal('25.00')
 
 
 class TestEditHistory:
