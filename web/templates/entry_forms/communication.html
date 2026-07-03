@@ -11,6 +11,7 @@
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/file-upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/communication.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -36,7 +37,7 @@
         {% include 'components/redact_button.html' %}
     </div>
     
-    <form method="POST" id="communication-form" enctype="multipart/form-data">
+    <form method="POST" id="communication-form" enctype="multipart/form-data"{% if is_edit %} data-dirty-guard{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Date and Time -->
         <div class="two-column-grid">
@@ -207,7 +208,7 @@
         {% endif %}
         
         {% if is_edit %}
-        <button type="submit" form="communication-form" class="btn">Save Edits</button>
+        <button type="submit" form="communication-form" class="btn" data-dirty-save data-dirty-label="Save Edits" disabled>No Changes</button>
         {% else %}
         <button type="submit" form="communication-form" class="btn">Save Communication</button>
         {% endif %}

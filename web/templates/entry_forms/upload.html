@@ -11,6 +11,7 @@
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/file-upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -35,7 +36,7 @@
         </div>
     </div>
     
-    <form method="POST" id="upload-form" enctype="multipart/form-data">
+    <form method="POST" id="upload-form" enctype="multipart/form-data"{% if is_edit %} data-dirty-guard{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Date and Time -->
         <div class="two-column-grid">
@@ -164,7 +165,7 @@
         <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">Cancel</a>
         
         {% if is_edit %}
-        <button type="submit" form="upload-form" class="btn">Save Edits</button>
+        <button type="submit" form="upload-form" class="btn" data-dirty-save data-dirty-label="Save Edits" disabled>No Changes</button>
         {% else %}
         <button type="submit" form="upload-form" class="btn">Save Upload</button>
         {% endif %}

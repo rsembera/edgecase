@@ -30,7 +30,7 @@
         {% include 'components/redact_button.html' %}
     </div>
     
-    <form method="POST">
+    <form method="POST"{% if is_edit %} data-dirty-guard{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% if is_billed %}
         <div class="billed-warning">
@@ -142,7 +142,11 @@
         <!-- Form Actions -->
         <div class="entry-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
+            {% if is_edit %}
+            <button type="submit" class="btn" data-dirty-save data-dirty-label="Save Absence" disabled>No Changes</button>
+            {% else %}
             <button type="submit" class="btn">Save Absence</button>
+            {% endif %}
         </div>
     </form>
     
@@ -175,6 +179,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/absence.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
 {% endblock %}
 
 {% endblock %}
