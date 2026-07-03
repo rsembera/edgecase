@@ -16,6 +16,7 @@ let currentFilter = 'all';
 let currentPaymentPortionId = null;
 let currentWriteOffPortionId = null;
 let currentWriteOffAmount = 0;
+let currentEmailPortionId = null;
 let startDatePicker = null;
 let endDatePicker = null;
 
@@ -375,18 +376,66 @@ function generateStatements(btnEl) {
 // ============================================================
 
 /**
- * Mark statement as sent and trigger email
+ * Open the pre-send email review modal for a statement portion.
+ *
+ * Fetches the composed email (recipient/subject/body) from the read-only
+ * preview route — NOTHING is marked sent and no Communication entry exists
+ * yet, so Cancel truly aborts. The user can edit the subject/body; whatever
+ * they approve is posted to mark-sent, which records it verbatim as the
+ * Communication entry (the client file matches the email actually sent).
  * @param {number} portionId - Statement portion ID
  */
 function markSent(portionId) {
     const btn = resolveEventButton();
+    withButtonDisabled(btn, () => fetch(`/statements/email-preview/${portionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentEmailPortionId = portionId;
+                document.getElementById('email-recipient').textContent =
+                    data.recipient_email || '(no email on file — Mail will open without a recipient)';
+                document.getElementById('email-subject').value = data.subject;
+                document.getElementById('email-body').value = data.body;
+                document.getElementById('email-modal').classList.add('visible');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error loading email preview:', error);
+            alert('Error loading email preview');
+        }));
+}
+
+/**
+ * Hide the email review modal without sending (no server side effects).
+ */
+function hideEmailModal() {
+    document.getElementById('email-modal').classList.remove('visible');
+    currentEmailPortionId = null;
+}
+
+/**
+ * Confirm the reviewed email: mark the portion sent (creating the
+ * Communication entry with the edited text) and trigger the email.
+ */
+function confirmSendEmail() {
+    const btn = resolveEventButton();
+    const portionId = currentEmailPortionId;
+    if (!portionId) return;
+
+    const subject = document.getElementById('email-subject').value.trim();
+    const body = document.getElementById('email-body').value;
+
     withButtonDisabled(btn, () => fetch(`/statements/mark-sent/${portionId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: subject, body: body })
     })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                hideEmailModal();
                 data.portion_id = portionId;
 
                 if (data.email_method === 'applescript') {
@@ -401,7 +450,7 @@ function markSent(portionId) {
         .catch(error => {
             console.error('Error marking sent:', error);
             alert('Error marking statement as sent');
-        }));
+        }), 'Sending...');
 }
 
 /**

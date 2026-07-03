@@ -27,20 +27,13 @@ def _private_pdf_dir() -> Path:
     return Path(tempfile.mkdtemp(prefix='edgecase-'))
 
 
-@statements_bp.route('/mark-sent/<int:portion_id>', methods=['POST'])
-def mark_sent(portion_id):
-    """Mark a statement portion as sent - generates PDF, creates Communication entry, triggers email."""
-    db = get_db()
-    
+def _load_portion_and_profile(cursor, portion_id):
+    """Fetch a statement portion (joined with client + statement info) and
+    the client's profile. Returns (portion, profile) or (None, None).
 
-    # Check if we should skip email (generate-only mode)
-    skip_email = request.args.get('skip_email') == '1'
-    
-    now = int(time.time())
-    conn = db.connect()
-    cursor = conn.cursor()
-    
-    # Get portion with client info and statement description
+    Shared by email_preview and mark_sent so the two always see the same
+    data — the preview must show exactly what a send would use.
+    """
     cursor.execute("""
         SELECT sp.*, c.id as client_id, c.file_number, c.first_name, c.middle_name, c.last_name,
                e.created_at as statement_date, e.description as statement_description
@@ -49,17 +42,16 @@ def mark_sent(portion_id):
         JOIN entries e ON sp.statement_entry_id = e.id
         WHERE sp.id = ?
     """, (portion_id,))
-    
+
     row = cursor.fetchone()
     if not row:
-        return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
-    
+        return None, None
+
     columns = [col[0] for col in cursor.description]
     portion = dict(zip(columns, row))
-    
-    # Get profile for guardian info if needed
+
     cursor.execute("""
-        SELECT * FROM entries 
+        SELECT * FROM entries
         WHERE client_id = ? AND class = 'profile'
         ORDER BY created_at DESC LIMIT 1
     """, (portion['client_id'],))
@@ -68,8 +60,18 @@ def mark_sent(portion_id):
     if profile_row:
         profile_cols = [col[0] for col in cursor.description]
         profile = dict(zip(profile_cols, profile_row))
-    
-    # Determine recipient name and email
+
+    return portion, profile
+
+
+def _compose_statement_email(db, portion, profile):
+    """Build the default statement email for a portion.
+
+    Returns (recipient_email, subject, body, billing_period). Pure
+    composition — the single source of the recipient resolution (guardian 1/2
+    vs client) and the templated subject/body, used by both the pre-send
+    preview and the actual send so they can never drift apart.
+    """
     if portion['guardian_number'] == 1 and profile:
         recipient_first_name = profile.get('guardian1_name', '').split()[0] if profile.get('guardian1_name') else portion['first_name']
         recipient_email = profile.get('guardian1_email', '')
@@ -79,19 +81,82 @@ def mark_sent(portion_id):
     else:
         recipient_first_name = portion['first_name']
         recipient_email = profile.get('email', '') if profile else ''
-    
-    # Get statement billing period from statement description (e.g., "Statement Dec 2025" or "Statement Nov - Dec 2025")
+
+    # Billing period from the statement description (e.g. "Statement Dec 2025")
     statement_description = portion.get('statement_description', '')
     billing_period = statement_description.replace('Statement ', '') if statement_description.startswith('Statement ') else statement_description
+
+    email_body_template = db.get_setting('statement_email_body', '').strip()
+    subject = f"Statement for {billing_period}"
+    body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}".strip()
+
+    return recipient_email, subject, body, billing_period
+
+
+@statements_bp.route('/email-preview/<int:portion_id>')
+def email_preview(portion_id):
+    """Return the composed statement email for review BEFORE sending.
+
+    Read-only: no PDF is generated, no Communication entry is created, and
+    the portion stays 'ready'. The frontend shows this in an editable modal;
+    whatever the user approves there is posted back to mark-sent, which
+    records it verbatim as the Communication entry — so the client file
+    always contains the email that was actually sent, not the template.
+    """
+    db = get_db()
+    conn = db.connect()
+    cursor = conn.cursor()
+
+    portion, profile = _load_portion_and_profile(cursor, portion_id)
+    if not portion:
+        return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
+
+    recipient_email, subject, body, _ = _compose_statement_email(db, portion, profile)
+
+    return jsonify({
+        'success': True,
+        'recipient_email': recipient_email,
+        'subject': subject,
+        'body': body,
+    })
+
+
+@statements_bp.route('/mark-sent/<int:portion_id>', methods=['POST'])
+def mark_sent(portion_id):
+    """Mark a statement portion as sent - generates PDF, creates Communication entry, triggers email."""
+    db = get_db()
     
+
+    # Check if we should skip email (generate-only mode)
+    skip_email = request.args.get('skip_email') == '1'
+
+    # Optional user-edited subject/body from the pre-send review modal.
+    # When present they are used verbatim for BOTH the outgoing email and
+    # the Communication entry, so the record matches what was really sent.
+    # Absent (skip_email / older callers) the composed defaults apply.
+    payload = request.get_json(silent=True) or {}
+    subject_override = (payload.get('subject') or '').strip()
+    body_override = (payload.get('body') or '').strip()
+
+    now = int(time.time())
+    conn = db.connect()
+    cursor = conn.cursor()
+
+    portion, profile = _load_portion_and_profile(cursor, portion_id)
+    if not portion:
+        return jsonify({'success': False, 'error': 'Statement portion not found'}), 404
+
+    recipient_email, email_subject, email_body, billing_period = \
+        _compose_statement_email(db, portion, profile)
+    if not skip_email:
+        if subject_override:
+            email_subject = subject_override
+        if body_override:
+            email_body = body_override
+
     # Get email settings
     email_method = db.get_setting('email_method', 'mailto')
     email_from = db.get_setting('email_from_address', '')
-    email_body_template = db.get_setting('statement_email_body', '').strip()
-    
-    # Build email text
-    email_subject = f"Statement for {billing_period}"
-    email_body = f"Dear {recipient_first_name},\n\nPlease find attached your statement for {billing_period}.\n\n{email_body_template}".strip()
     
     # Generate PDF to a private temp dir (0700, randomized path). When the
     # email path is used, the path is handed to the frontend for the
