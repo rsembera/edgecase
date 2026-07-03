@@ -202,6 +202,27 @@
     </div>
 </div>
 
+<!-- Email Review Modal (pre-send) -->
+<div class="payment-modal-overlay" id="email-modal">
+    <div class="payment-modal email-modal">
+        <h3>Review Email Before Sending</h3>
+        <p class="email-recipient-line">To: <strong id="email-recipient"></strong></p>
+
+        <label for="email-subject">Subject</label>
+        <input type="text" id="email-subject">
+
+        <label for="email-body">Message</label>
+        <textarea id="email-body" rows="10"></textarea>
+
+        <p class="email-modal-hint">This text is recorded in the client file as the Communication entry.</p>
+
+        <div class="payment-modal-buttons">
+            <button class="btn-small btn-secondary" onclick="hideEmailModal()">Cancel</button>
+            <button class="btn-small" onclick="confirmSendEmail()">Send Email</button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden data for JavaScript -->
 <script id="statements-data" type="application/json">
 {

@@ -249,6 +249,88 @@ def test_mark_sent_skip_email_records_attachment_and_sets_status(
     assert str(tmp_path) in filepath
 
 
+def test_email_preview_composes_without_side_effects(client, app_db):
+    """/email-preview returns the composed recipient/subject/body and changes
+    NOTHING: no PDF, no communication entry, portion stays 'ready'. This is
+    the contract the pre-send review modal depends on — Cancel must truly
+    abort."""
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    portion_id = _portions(app_db, cid)[0]["id"]
+
+    resp = client.get(f"/statements/email-preview/{portion_id}")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["success"] is True
+    assert body["subject"].startswith("Statement for ")
+    assert "Please find attached your statement" in body["body"]
+    assert "recipient_email" in body
+
+    # Read-only: nothing was created or transitioned.
+    assert _portions(app_db, cid)[0]["status"] == "ready"
+    assert _count_class(app_db, "communication") == 0
+
+    # Unknown portion -> 404.
+    assert client.get("/statements/email-preview/99999").status_code == 404
+
+
+def test_mark_sent_records_edited_email_in_communication(
+        client, app_db, tmp_path, monkeypatch):
+    """mark-sent with an edited subject/body (the pre-send modal payload) uses
+    the edits verbatim for both the returned email fields and the
+    Communication entry content — the client file matches what was actually
+    sent, not the template."""
+    import shutil
+    import web.blueprints.statements.delivery as st
+    from pathlib import Path
+
+    monkeypatch.setattr(st, "ATTACHMENTS_DIR", tmp_path / "attachments")
+
+    def _fake_pdf(database, portion_id, out_path, assets_dir):
+        p = Path(out_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.4 test\n")
+
+    monkeypatch.setattr(st, "generate_statement_pdf", _fake_pdf)
+
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    portion_id = _portions(app_db, cid)[0]["id"]
+
+    edited_subject = "Statement for June 2026 — underpayment note"
+    edited_body = ("Dear State,\n\nPlease find attached your statement. "
+                   "Note the balance reflects your early payment of $100; "
+                   "$13 remains owing.")
+
+    resp = client.post(f"/statements/mark-sent/{portion_id}",
+                       json={"subject": edited_subject, "body": edited_body})
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["success"] is True
+    # The email handed to the frontend is the edited one.
+    assert payload["subject"] == edited_subject
+    assert payload["body"] == edited_body
+
+    # The Communication entry records the edited body verbatim.
+    conn = app_db.connect()
+    cur = conn.cursor()
+    cur.execute("SELECT description, content FROM entries "
+                "WHERE class = 'communication'")
+    rows = cur.fetchall()
+    assert len(rows) == 1
+    description, content = rows[0]
+    assert description.startswith("Statement Sent - ")
+    assert content == edited_body
+
+    assert _portions(app_db, cid)[0]["status"] == "sent"
+
+    # The email path leaves the temp PDF for the frontend attach step;
+    # clean it up here so the test leaves nothing behind.
+    shutil.rmtree(Path(payload["pdf_path"]).parent, ignore_errors=True)
+
+
 def test_pdf_routes_generate_and_serve(client, app_db, monkeypatch):
     """download (/pdf) and view (/view-pdf) generate a PDF and serve it (200,
     application/pdf). PDF generation is stubbed; _private_pdf_dir is a mkdtemp
