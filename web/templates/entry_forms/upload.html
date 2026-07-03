@@ -36,7 +36,7 @@
         </div>
     </div>
     
-    <form method="POST" id="upload-form" enctype="multipart/form-data"{% if is_edit %} data-dirty-guard{% endif %}>
+    <form method="POST" id="upload-form" enctype="multipart/form-data" data-dirty-guard>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Date and Time -->
         <div class="two-column-grid">
@@ -195,5 +195,7 @@
     </div>
 
 </div>
+
+{% include 'components/unsaved_changes_modal.html' %}
 
 {% endblock %}

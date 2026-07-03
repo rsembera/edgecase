@@ -48,18 +48,18 @@ def test_edit_form_renders(client, app_db, kind):
     assert resp.status_code == 200, f"{kind} edit form -> {resp.status_code}"
 
 
-# --- dirty-state Save button markup (form-guard.js contract) ---
+# --- dirty-form protection markup (form-guard.js contract) ---
 #
-# Edit forms opt in to the shared dirty guard: the form carries
-# data-dirty-guard and the save button starts disabled as "No Changes" with
-# its active label in data-dirty-label. Create forms must NOT carry the
-# guard (a fresh form is work-in-progress; Save stays enabled). The profile
-# form is always effectively edit mode, so it always carries the guard.
-# The SESSION edit form is deliberately absent here: it keeps its own
-# dirty-tracking in session.js (which also owns the beforeunload guard and
-# the leave-confirmation modal) and does not use the data-attribute
-# contract. form-guard.js itself is exercised in the browser; these tests
-# pin the server-rendered contract it binds to.
+# Every non-session entry form (create AND edit) carries data-dirty-guard
+# and includes the unsaved-changes modal: leaving a dirty form via
+# Cancel/Back/Prev/Next warns first, in all modes (a half-typed new entry
+# is the same loss as an edit). The dirty-state SAVE BUTTON is edit-only:
+# edit forms have a [data-dirty-save] button starting disabled as
+# "No Changes"; create forms must NOT have one (Save stays enabled on a
+# fresh form). The SESSION form is deliberately absent here: it keeps its
+# own bespoke version of all of this in session.js. form-guard.js itself
+# is exercised in the browser; these tests pin the server-rendered
+# contract it binds to.
 
 _GUARDED_EDIT_KINDS = ["communication", "absence", "item"]
 
@@ -76,6 +76,7 @@ def test_edit_form_has_dirty_guard(client, app_db, kind):
     assert "data-dirty-label=" in html
     assert ">No Changes</button>" in html
     assert "js/form-guard.js" in html
+    assert 'id="unsaved-changes-modal"' in html
 
 
 def test_upload_edit_form_has_dirty_guard(client, app_db, tmp_path, monkeypatch):
@@ -101,15 +102,20 @@ def test_upload_edit_form_has_dirty_guard(client, app_db, tmp_path, monkeypatch)
     assert "data-dirty-guard" in html
     assert "data-dirty-save" in html
     assert "js/form-guard.js" in html
+    assert 'id="unsaved-changes-modal"' in html
 
 
-@pytest.mark.parametrize("kind", ["session", "communication", "absence",
-                                  "item", "upload"])
-def test_create_form_has_no_dirty_guard(client, app_db, kind):
+@pytest.mark.parametrize("kind", ["communication", "absence", "item", "upload"])
+def test_create_form_has_leave_guard_but_no_save_gating(client, app_db, kind):
+    """Create forms get the leave protection (guard + modal) but the Save
+    button stays enabled — no [data-dirty-save] in create mode."""
     cid = _client(app_db)
     html = client.get(f"/client/{cid}/{kind}").get_data(as_text=True)
-    assert "data-dirty-guard" not in html, \
-        f"{kind} create form must not carry the dirty guard"
+    assert "data-dirty-guard" in html, f"{kind} create form lacks data-dirty-guard"
+    assert 'id="unsaved-changes-modal"' in html, \
+        f"{kind} create form lacks the unsaved-changes modal"
+    assert "data-dirty-save" not in html, \
+        f"{kind} create form must not gate its Save button"
 
 
 def test_profile_form_has_dirty_guard(client, app_db):
@@ -118,3 +124,4 @@ def test_profile_form_has_dirty_guard(client, app_db):
     assert "data-dirty-guard" in html
     assert "data-dirty-save" in html
     assert "js/form-guard.js" in html
+    assert 'id="unsaved-changes-modal"' in html

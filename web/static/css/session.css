@@ -122,14 +122,3 @@ button.btn:disabled {
 button.btn:disabled:hover {
     opacity: 0.5;
 }
-
-/* Unsaved-changes modal (navigation guard) */
-.unsaved-changes-modal-content {
-    max-width: 420px;
-}
-.unsaved-changes-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-}

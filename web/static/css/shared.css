@@ -590,6 +590,17 @@ input[type="number"] {
     display: flex;
 }
 
+/* Unsaved-changes modal (navigation guard — session.js and form-guard.js) */
+.unsaved-changes-modal-content {
+    max-width: 420px;
+}
+.unsaved-changes-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;

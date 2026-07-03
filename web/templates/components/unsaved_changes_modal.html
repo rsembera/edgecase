@@ -1,0 +1,14 @@
+<!-- Unsaved-changes modal (navigation guard, form-guard.js).
+     Session pages have their own copy wired by session.js; every other
+     entry form includes this component. form-guard.js only arms the
+     in-page navigation guard when these three elements exist. -->
+<div id="unsaved-changes-modal" class="modal">
+    <div class="modal-content unsaved-changes-modal-content">
+        <h3>Unsaved Changes</h3>
+        <p>This entry has unsaved changes. Leave without saving?</p>
+        <div class="unsaved-changes-modal-actions">
+            <button type="button" id="unsaved-stay-btn" class="btn btn-secondary">Stay Here</button>
+            <button type="button" id="unsaved-leave-btn" class="btn btn-danger">Leave Without Saving</button>
+        </div>
+    </div>
+</div>
