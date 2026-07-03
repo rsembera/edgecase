@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from core.database import Database
 from web.utils import get_today_date_parts
 import subprocess
+import time
 import uuid
 import re
 
@@ -219,11 +220,23 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     elif repeat == 'monthly':
         recurrence_rule = 'FREQ=MONTHLY'
     
-    # Build the AppleScript - launch Calendar first to ensure it's running
+    # Build the AppleScript. Calendar's scripting interface can refuse Apple
+    # events with -600 "Application isn't running" in two ways: on a cold
+    # start ('launch' returns before scripting is ready), and transiently
+    # even while the app is open (bit us in production 2026-07-03 — retrying
+    # immediately succeeded). The readiness poll below covers the first;
+    # the -600 retry in the caller covers the second.
     script = f'''
+    tell application "Calendar" to launch
+    repeat 30 times
+        try
+            tell application "Calendar" to count calendars
+            exit repeat
+        on error
+            delay 0.5
+        end try
+    end repeat
     tell application "Calendar"
-        launch
-        delay 0.5
         tell calendar "{calendar_name_escaped}"
             set newEvent to make new event with properties {{summary:"{file_number_escaped}", start date:date "{start_str}", end date:date "{end_str}", description:"{description}"'''
     
@@ -249,11 +262,28 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     end tell
     '''
     
-    try:
-        subprocess.run(['osascript', '-e', script], check=True, capture_output=True)
-        return True, None
-    except subprocess.CalledProcessError as e:
-        return False, e.stderr.decode() if e.stderr else str(e)
+    # -600 "Application isn't running" is transient (Calendar's scripting
+    # interface hiccups even while the app is open) and means the event was
+    # NOT created, so retrying is safe — no duplicate risk. Any other error
+    # (calendar name not found, permission denied) is structural: fail
+    # straight to the .ics fallback.
+    last_error = None
+    for _ in range(3):
+        try:
+            # Generous timeout: the readiness poll alone may take ~15s on a
+            # cold Calendar launch. Without one, a wedged Calendar hangs the
+            # request.
+            subprocess.run(['osascript', '-e', script], check=True,
+                           capture_output=True, timeout=60)
+            return True, None
+        except subprocess.TimeoutExpired:
+            return False, 'Calendar did not respond within 60 seconds'
+        except subprocess.CalledProcessError as e:
+            last_error = e.stderr.decode() if e.stderr else str(e)
+            if '-600' not in last_error:
+                break
+            time.sleep(2)
+    return False, last_error
 
 
 @scheduler_bp.route('/client/<int:client_id>/schedule', methods=['GET', 'POST'])
