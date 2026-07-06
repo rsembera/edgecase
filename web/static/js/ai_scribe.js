@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultHint = document.getElementById('result-hint');
     const btnKeep = document.getElementById('btn-keep');
     const btnShowChanges = document.getElementById('btn-show-changes');
+    const btnApplySelected = document.getElementById('btn-apply-selected');
     const diffView = document.getElementById('diff-view');
+    const diffHint = document.getElementById('diff-hint');
     const btnRevert = document.getElementById('btn-revert');
     const btnCancelGeneration = document.getElementById('btn-cancel-generation');
     const loadingBanner = document.getElementById('model-loading-banner');
@@ -116,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resultHint.textContent = 'Streaming response...';
         btnKeep.disabled = true;
         btnRevert.disabled = true;
-        diffCache = null;
+        segmentsCache = null;
         refreshShowChangesButton();  // hides the toggle + overlay during streaming
         
         try {
@@ -207,11 +209,16 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Called when generation completes (success or error)
      */
-    // --- Change-review overlay (Show Changes) ---
-    // The diff is computed server-side by /api/ai/diff (same word-level
-    // engine as the amendment history) once per original/generated pair
-    // and cached; editing the generated text invalidates the cache.
-    let diffCache = null;
+    // --- Per-change review overlay (Show Changes / Apply Changes) ---
+    // /api/ai/diff returns char-faithful segments (generate_diff_segments):
+    // {kind: 'equal'|'change', old, new}, tiling BOTH strings completely.
+    // Change chunks render as clickable toggles, ACCEPTED by default (the
+    // common case is vetoing a few overreaches, not opting into each edit).
+    // Apply Changes reconstructs the text from the choices and writes it
+    // into the AI Result box; the normal Keep Changes flow then saves it.
+    // Segment text is inserted via textContent/createTextNode ONLY — the
+    // payload is data, not HTML.
+    let segmentsCache = null;   // segments with an added .accepted flag
     let diffShowing = false;
 
     function setShowChangesLabel(showing) {
@@ -221,16 +228,76 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function changeChunks() {
+        return segmentsCache ? segmentsCache.filter(s => s.kind === 'change') : [];
+    }
+
+    function updateApplyButton() {
+        const chunks = changeChunks();
+        const accepted = chunks.filter(s => s.accepted).length;
+        btnApplySelected.classList.toggle('btn-gone', !diffShowing || chunks.length === 0);
+        if (chunks.length > 0) {
+            btnApplySelected.innerHTML =
+                '<i data-lucide="list-checks" class="btn-icon-sm"></i> Apply '
+                + accepted + ' of ' + chunks.length + ' Changes';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    function setChunkFace(span, seg) {
+        const text = seg.accepted ? seg.new : seg.old;
+        span.textContent = text;
+        span.classList.toggle('accepted', seg.accepted);
+        span.classList.toggle('rejected', !seg.accepted);
+        // A pure insertion rejected (or pure deletion accepted) has no text
+        // to show; keep a small visible handle so it stays clickable.
+        span.classList.toggle('diff-chunk-empty', text === '');
+        span.title = seg.accepted
+            ? 'AI change — click to reject and keep your original'
+            : 'Rejected — showing your original; click to re-accept the AI change';
+    }
+
+    function toggleChunk(span, seg) {
+        seg.accepted = !seg.accepted;
+        setChunkFace(span, seg);
+        updateApplyButton();
+    }
+
+    function renderSegments() {
+        diffView.textContent = '';
+        segmentsCache.forEach(seg => {
+            if (seg.kind === 'equal') {
+                diffView.appendChild(document.createTextNode(seg.old));
+                return;
+            }
+            const span = document.createElement('span');
+            span.className = 'diff-chunk';
+            span.tabIndex = 0;
+            span.setAttribute('role', 'button');
+            setChunkFace(span, seg);
+            span.addEventListener('click', () => toggleChunk(span, seg));
+            span.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    toggleChunk(span, seg);
+                }
+            });
+            diffView.appendChild(span);
+        });
+    }
+
     function hideDiff() {
         diffView.style.display = 'none';
+        diffHint.style.display = 'none';
         generatedText.style.display = '';
         diffShowing = false;
         setShowChangesLabel(false);
+        updateApplyButton();
     }
 
     async function showDiff() {
         try {
-            if (diffCache === null) {
+            if (segmentsCache === null) {
                 const response = await fetch('/api/ai/diff', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -241,21 +308,59 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Diff failed');
-                diffCache = data.html;
+                segmentsCache = data.segments;
+                segmentsCache.forEach(s => { if (s.kind === 'change') s.accepted = true; });
             }
-            diffView.innerHTML = diffCache;  // server-escaped; only del/strong tags
+            renderSegments();  // re-render keeps prior accept/reject choices
             // Mirror the AI Result textarea's current box height (measured
             // while it's still visible, so manual resizes are respected) so
             // the swap doesn't change the panel's size.
             diffView.style.height = generatedText.offsetHeight + 'px';
             generatedText.style.display = 'none';
             diffView.style.display = 'block';
+            diffHint.style.display = 'block';
             diffShowing = true;
             setShowChangesLabel(true);
+            updateApplyButton();
         } catch (error) {
             console.error('Diff error:', error);
             showError('Could not generate diff: ' + error.message);
         }
+    }
+
+    /**
+     * Rebuild the result text from the per-chunk choices and put it in the
+     * AI Result box (Keep Changes then saves it as usual).
+     *
+     * All-accepted and none-accepted short-circuit to the exact generated /
+     * original strings. Mixed selections reconstruct from the segments,
+     * with 'equal' segments contributing the user's ORIGINAL slice — so a
+     * whitespace-only difference the model made inside an untouched run is
+     * never applied silently.
+     */
+    function applySelected() {
+        if (!segmentsCache) return;
+        const chunks = changeChunks();
+        const acceptedCount = chunks.filter(s => s.accepted).length;
+
+        let text;
+        if (acceptedCount === chunks.length) {
+            text = generatedText.value;
+        } else if (acceptedCount === 0) {
+            text = originalText.value;
+        } else {
+            text = segmentsCache.map(s =>
+                s.kind === 'equal' ? s.old : (s.accepted ? s.new : s.old)
+            ).join('');
+        }
+
+        generatedText.value = text;
+        hasGeneratedContent = text.trim().length > 0;
+        segmentsCache = null;  // result text changed; segments are stale
+        hideDiff();
+        refreshShowChangesButton();
+        resultHint.textContent = 'Applied ' + acceptedCount + ' of ' + chunks.length
+            + ' changes — review and Keep';
     }
 
     function refreshShowChangesButton() {
@@ -265,9 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     btnShowChanges.addEventListener('click', () => (diffShowing ? hideDiff() : showDiff()));
+    btnApplySelected.addEventListener('click', applySelected);
 
     generatedText.addEventListener('input', () => {
-        diffCache = null;  // edits change what a diff would show
+        segmentsCache = null;  // edits change what a diff would show
         refreshShowChangesButton();
     });
 
@@ -338,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function revertContent() {
         generatedText.value = '';
         hasGeneratedContent = false;
-        diffCache = null;
+        segmentsCache = null;
         refreshShowChangesButton();
         btnKeep.disabled = true;
         btnRevert.disabled = true;

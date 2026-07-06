@@ -23,7 +23,7 @@ import os
 from datetime import datetime, timedelta
 
 from core.database import Database
-from web.utils import parse_date_from_form, generate_content_diff, generate_full_content_diff
+from web.utils import parse_date_from_form, generate_content_diff, generate_full_content_diff, generate_diff_segments
 
 
 # ============================================================================
@@ -1656,3 +1656,106 @@ class TestFullContentDiff:
     def test_empty_new_marks_everything_deleted(self):
         out = generate_full_content_diff("Old text.", "")
         assert out == '<del>Old text.</del>'
+
+
+# ============================================================================
+# DIFF SEGMENTS (AI Scribe per-change review)
+# ============================================================================
+
+class TestDiffSegments:
+    """generate_diff_segments feeds the accept/reject-individual-changes UI.
+
+    The load-bearing property is the TILING INVARIANT: segments must tile
+    both input strings completely, so the client's reconstruction (new side
+    of every segment == generated text; old side of every segment ==
+    original text) is byte-exact. Everything else is UX shape.
+    """
+
+    def _assert_tiling(self, old, new):
+        segs = generate_diff_segments(old, new)
+        norm_old = (old or '').replace('\r\n', '\n').replace('\r', '\n')
+        norm_new = (new or '').replace('\r\n', '\n').replace('\r', '\n')
+        assert ''.join(s['old'] for s in segs) == norm_old
+        assert ''.join(s['new'] for s in segs) == norm_new
+        return segs
+
+    def test_tiling_invariant_realistic_note(self):
+        old = ("Client attended the session on time.\n\n"
+               "Reported ongoing conflict with employer.  Sleep has improved "
+               "since last session.\nHomework partially completed.")
+        new = ("Client attended the session punctually.\n\n"
+               "Reported ongoing workplace conflict. Sleep has improved "
+               "since the previous session.\nHomework partially completed. "
+               "Plans to continue journalling.")
+        self._assert_tiling(old, new)
+
+    def test_tiling_invariant_weird_whitespace(self):
+        # Double spaces, trailing newlines, leading spaces, \r\n endings.
+        old = "  Leading spaces.\r\nDouble  spaced   words.\n\n\nTrailing.\n\n"
+        new = "Leading spaces.\nDouble spaced words. Extra.\nTrailing.\n"
+        self._assert_tiling(old, new)
+
+    def test_tiling_invariant_one_side_empty(self):
+        segs = self._assert_tiling("", "Entirely new text.")
+        assert [s['kind'] for s in segs] == ['change']
+        assert segs[0]['old'] == ''
+        segs = self._assert_tiling("Old text only.", "")
+        assert [s['kind'] for s in segs] == ['change']
+        assert segs[0]['new'] == ''
+
+    def test_identical_text_yields_no_change_segments(self):
+        text = "Client attended the session and reported improvement.\n"
+        segs = self._assert_tiling(text, text)
+        assert all(s['kind'] == 'equal' for s in segs)
+
+    def test_both_empty(self):
+        assert generate_diff_segments("", "") == []
+        assert generate_diff_segments(None, None) == []
+
+    def test_two_separate_edits_are_two_change_segments(self):
+        old = "Client seemed anxious today and discussed work stress at length."
+        new = "Client appeared anxious today and discussed family stress at length."
+        segs = self._assert_tiling(old, new)
+        changes = [s for s in segs if s['kind'] == 'change']
+        assert len(changes) == 2
+        assert 'seemed' in changes[0]['old'] and 'appeared' in changes[0]['new']
+        assert 'work' in changes[1]['old'] and 'family' in changes[1]['new']
+
+    def test_mixed_selection_reconstruction(self):
+        """The exact operation the UI performs: accept one change, reject
+        the other, equal segments contribute the ORIGINAL slice."""
+        old = "Client seemed anxious today and discussed work stress at length."
+        new = "Client appeared anxious today and discussed family stress at length."
+        segs = self._assert_tiling(old, new)
+        changes = [s for s in segs if s['kind'] == 'change']
+        # Accept the first change, reject the second.
+        accepted = {id(changes[0])}
+        result = ''.join(
+            s['old'] if s['kind'] == 'equal'
+            else (s['new'] if id(s) in accepted else s['old'])
+            for s in segs
+        )
+        assert result == ("Client appeared anxious today and discussed "
+                          "work stress at length.")
+
+    def test_multiline_insertion_is_single_change_and_reconstructs(self):
+        """A paragraph insertion is one accept/reject decision.
+
+        NOTE: when inserted text ends with the same tokens that follow it
+        (here 'paragraph.'), the edit region is ambiguous and SequenceMatcher
+        may 'slide' the chunk boundary (e.g. marking ' paragraph.\\n\\nInserted
+        middle' as the insertion). Cosmetically odd, functionally exact: the
+        tiling invariant guarantees accept/reject still reconstruct the
+        precise generated/original strings, which is what we pin here.
+        """
+        old = "First paragraph.\n\nSecond paragraph."
+        new = "First paragraph.\n\nInserted middle paragraph.\n\nSecond paragraph."
+        segs = self._assert_tiling(old, new)
+        changes = [s for s in segs if s['kind'] == 'change']
+        assert len(changes) == 1
+        # Accepting the single change yields the generated text exactly;
+        # rejecting it yields the original exactly (tiling already proves
+        # the reject case; prove the accept case explicitly).
+        accepted = ''.join(s['new'] if s['kind'] == 'change' else s['old']
+                           for s in segs)
+        assert accepted == new
