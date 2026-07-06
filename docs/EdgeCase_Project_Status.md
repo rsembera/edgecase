@@ -2,14 +2,14 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** July 2, 2026  
+**Last Updated:** July 5, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
 
 ## RECENT POST-LAUNCH WORK (July 2026)
 
-Full detail in `CHANGELOG.md`; suite currently **229 passing**, `ruff check` clean.
+Full detail in `CHANGELOG.md`; suite currently **236 passing**, `ruff check` clean.
 
 - **Client-file balance summary (2026-07-01):** Unbilled + Outstanding figures
   in the client-file header, reusing the statement generator's exact predicate
@@ -27,6 +27,21 @@ Full detail in `CHANGELOG.md`; suite currently **229 passing**, `ruff check` cle
   Current charges / Previous balance / TOTAL AMOUNT DUE block when the payer
   still owes on earlier sent/partial statements (`get_prior_outstanding`,
   guardian-scoped; payment machinery untouched).
+- **Unsaved-changes protection on all entry forms (2026-07-02):**
+  `form-guard.js` extended with the session form's leave protection —
+  beforeunload guard plus the Cancel/Back/Prev/Next confirmation modal
+  (shared `components/unsaved_changes_modal.html`), in create and edit
+  modes alike; session pages keep their bespoke session.js version.
+- **Calendar AppleScript resilience (2026-07-03):** transient error -600
+  ("Application isn't running", seen in production with Calendar open) now
+  retried up to 3×; the post-`launch` fixed delay replaced with a readiness
+  poll; 60s subprocess timeout added.
+- **AI Scribe per-change review (2026-07-05):** Show Changes chunks are
+  clickable accept/reject toggles (accepted by default) with an
+  Apply N of M Changes button. `/api/ai/diff` returns char-faithful
+  segments (`generate_diff_segments`) whose tiling invariant makes
+  accept-all/reject-all reconstruction byte-exact; mixed selections
+  resolve untouched runs to the user's original text.
 
 ---
 
