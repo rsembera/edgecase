@@ -338,8 +338,8 @@
     }
 }
 
-/* Change-review overlay (Show Changes): mirrors the textarea's box so the
-   swap is visually seamless. Deletions struck red, insertions green. */
+/* Per-change review overlay (Show Changes): mirrors the textarea's box so
+   the swap is visually seamless. Accepted chunks green, rejected amber. */
 .diff-view {
     width: 100%;
     min-height: 450px;
@@ -357,27 +357,56 @@
     color: var(--color-text);
     background: var(--color-background-secondary);
     box-sizing: border-box;
+    /* Segments arrive as raw text (newlines, not <br>) inserted via
+       textContent; preserve line/paragraph structure. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
-.diff-view del {
-    background: #FEE2E2;
-    color: #B91C1C;
-    text-decoration: line-through;
+/* Per-change review chunks (ai_scribe.js renderSegments) */
+.diff-view .diff-chunk {
+    cursor: pointer;
     border-radius: 0.2rem;
     padding: 0 0.15rem;
 }
 
-.diff-view strong {
+.diff-view .diff-chunk.accepted {
     background: #D1FAE5;
     color: #065F46;
     font-weight: 600;
-    border-radius: 0.2rem;
-    padding: 0 0.15rem;
+}
+
+.diff-view .diff-chunk.rejected {
+    background: #FEF3C7;
+    color: #92400E;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+}
+
+.diff-view .diff-chunk:hover,
+.diff-view .diff-chunk:focus-visible {
+    outline: 2px solid #1F8F74;
+    outline-offset: 1px;
+}
+
+/* A chunk whose visible side is empty (rejected insertion / accepted
+   deletion) keeps a small clickable handle. */
+.diff-view .diff-chunk-empty::after {
+    content: '\00b7\00b7\00b7';
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+}
+
+.diff-hint {
+    margin-bottom: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #718096);
 }
 
 /* Visibility utility: .btn rules set display with !important, which beats
-   inline styles — so hiding the Show Changes button needs its own
-   !important class rather than style.display. */
-#btn-show-changes.btn-gone {
+   inline styles — so hiding the Show Changes / Apply Changes buttons needs
+   its own !important class rather than style.display. */
+#btn-show-changes.btn-gone,
+#btn-apply-selected.btn-gone {
     display: none !important;
 }

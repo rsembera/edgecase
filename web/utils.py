@@ -243,6 +243,90 @@ def generate_full_content_diff(old_content, new_content):
     return ' '.join(parts)
 
 
+def generate_diff_segments(old_content, new_content):
+    """
+    Word-level diff as a list of char-faithful segments, for the AI Scribe
+    per-change review overlay (accept/reject individual changes).
+
+    Returns a list of dicts {'kind': 'equal'|'change', 'old': str, 'new': str}.
+    Adjacent non-equal opcodes merge into one 'change' segment, so each
+    contiguous edit is a single accept/reject decision.
+
+    STRUCTURAL INVARIANTS (tested in TestDiffSegments):
+      ''.join(s['old'] for s in segments) == old_content   (line endings normalized)
+      ''.join(s['new'] for s in segments) == new_content   (line endings normalized)
+    i.e. the segments tile BOTH strings completely — taking the 'new' side of
+    every segment reconstructs the generated text byte-for-byte, and taking
+    the 'old' side of every segment reconstructs the original byte-for-byte.
+
+    Matching is whitespace-insensitive between words (same tokenizer as
+    generate_full_content_diff), so a whitespace-only difference inside an
+    'equal' run lives in that segment's old/new slices rather than becoming
+    a visible change; the review UI resolves mixed selections in favour of
+    the user's original slice for 'equal' segments, so the model can never
+    silently alter untouched text.
+
+    Only line endings are normalized (\\r\\n and \\r -> \\n). Returned as
+    JSON data, NOT HTML: the client must render segment text via
+    textContent/createTextNode, never innerHTML.
+    """
+    old_content = (old_content or '').replace('\r\n', '\n').replace('\r', '\n')
+    new_content = (new_content or '').replace('\r\n', '\n').replace('\r', '\n')
+
+    if not old_content and not new_content:
+        return []
+
+    token_re = re.compile(r'\n+|\S+')
+    old_spans = [(m.start(), m.end()) for m in token_re.finditer(old_content)]
+    new_spans = [(m.start(), m.end()) for m in token_re.finditer(new_content)]
+    old_tokens = [old_content[a:b] for a, b in old_spans]
+    new_tokens = [new_content[a:b] for a, b in new_spans]
+
+    matcher = difflib.SequenceMatcher(None, old_tokens, new_tokens)
+
+    # Merge adjacent non-equal opcodes into single 'change' groups.
+    # (SequenceMatcher shouldn't emit two adjacent non-equal opcodes, but
+    # the merge is cheap insurance and makes the contract explicit.)
+    groups = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        kind = 'equal' if tag == 'equal' else 'change'
+        if groups and groups[-1][0] == 'change' and kind == 'change':
+            _, pi1, _, pj1, _ = groups[-1]
+            groups[-1] = ('change', pi1, i2, pj1, j2)
+        else:
+            groups.append((kind, i1, i2, j1, j2))
+
+    # Slice so segments tile each string completely: every segment runs from
+    # the end of the previous segment's slice to the end of its own last
+    # token. Inter-token whitespace therefore lands at the START of the
+    # following segment; leading whitespace lands in the first segment.
+    segments = []
+    old_pos = 0
+    new_pos = 0
+    for kind, i1, i2, j1, j2 in groups:
+        old_end = old_spans[i2 - 1][1] if i2 > i1 else old_pos
+        new_end = new_spans[j2 - 1][1] if j2 > j1 else new_pos
+        segments.append({
+            'kind': kind,
+            'old': old_content[old_pos:old_end],
+            'new': new_content[new_pos:new_end],
+        })
+        old_pos = old_end
+        new_pos = new_end
+
+    # Trailing whitespace/newlines after the last token on either side.
+    if old_pos < len(old_content) or new_pos < len(new_content):
+        tail_old = old_content[old_pos:]
+        tail_new = new_content[new_pos:]
+        if segments and segments[-1]['kind'] == 'equal':
+            segments[-1]['old'] += tail_old
+            segments[-1]['new'] += tail_new
+        else:
+            segments.append({'kind': 'equal', 'old': tail_old, 'new': tail_new})
+
+    return segments
+
+
 def _word_level_diff_with_context(old_words, new_words, max_length=None):
     """Helper function for word-level diff with context limiting."""
     matcher = difflib.SequenceMatcher(None, old_words, new_words)

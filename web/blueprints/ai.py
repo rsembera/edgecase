@@ -262,12 +262,14 @@ def ai_process():
 @ai_bp.route('/api/ai/diff', methods=['POST'])
 def ai_diff():
     """
-    Word-level diff between original and generated text, for the Scribe
-    change-review overlay. Pure text transform: no database, no model.
-    Output is HTML-escaped by generate_full_content_diff (only the
-    <del>/<strong> tags it adds are real markup).
+    Word-level diff between original and generated text as char-faithful
+    segments, for the Scribe per-change review overlay. Pure text
+    transform: no database, no model. Returns JSON data, not HTML — the
+    client renders segment text via textContent (see
+    generate_diff_segments for the tiling invariants the overlay's
+    Apply Selected reconstruction depends on).
     """
-    from web.utils import generate_full_content_diff
+    from web.utils import generate_diff_segments
 
     data = request.get_json(silent=True) or {}
     original = data.get('original', '')
@@ -276,7 +278,7 @@ def ai_diff():
         return jsonify({'error': 'original and generated must be strings'}), 400
     if len(original) > 200_000 or len(generated) > 200_000:
         return jsonify({'error': 'Text too large to diff'}), 413
-    return jsonify({'html': generate_full_content_diff(original, generated)})
+    return jsonify({'segments': generate_diff_segments(original, generated)})
 
 
 @ai_bp.route('/ai/scribe/<int:entry_id>')

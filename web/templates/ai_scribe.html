@@ -76,7 +76,8 @@
             </div>
             <div class="text-area-container">
                 <textarea id="generated-text" placeholder="AI-generated text will appear here..."></textarea>
-                <!-- Change-review overlay: swapped in for the textarea by Show Changes (ai_scribe.js) -->
+                <!-- Per-change review overlay: swapped in for the textarea by Show Changes (ai_scribe.js) -->
+                <div id="diff-hint" class="diff-hint" style="display: none;">Click a highlighted change to reject it (keeps your original text); click again to re-accept.</div>
                 <div id="diff-view" class="diff-view" style="display: none;" aria-live="polite"></div>
             </div>
         </div>
@@ -91,6 +92,10 @@
             <button type="button" id="btn-show-changes" class="btn btn-secondary btn-gone">
                 <i data-lucide="diff" class="btn-icon-sm"></i>
                 Show Changes
+            </button>
+            <button type="button" id="btn-apply-selected" class="btn btn-secondary btn-gone">
+                <i data-lucide="list-checks" class="btn-icon-sm"></i>
+                Apply Changes
             </button>
             <button type="button" id="btn-revert" class="btn btn-secondary" disabled>
                 <i data-lucide="rotate-ccw" class="btn-icon-sm"></i>
