@@ -71,7 +71,7 @@ def ai_download():
                 print(f"[AI Scribe] Could not get file size: {e}")
                 total_size = None
             
-            total_gb = f"{total_size / (1024**3):.1f}" if total_size else "~5"
+            total_gb = f"{total_size / (1024**3):.1f}" if total_size else "~7"
             yield f"data: {json.dumps({'status': 'downloading', 'message': f'Downloading model ({total_gb} GB)...', 'total': total_size})}\n\n"
             
             # Ensure models directory exists
@@ -197,6 +197,16 @@ def ai_unload():
     return jsonify({'success': True, 'message': 'Model unloaded'})
 
 
+def _action_temperature(action):
+    """Per-action sampling temperature.
+
+    Proofread wants maximum determinism (0.1); every other action returns
+    None, which lets generate() fall back to the GENERATION_PARAMS default
+    (0.3). Agreed 2026-07-18 alongside the Gemma 4 swap.
+    """
+    return 0.1 if action == 'proofread' else None
+
+
 @ai_bp.route('/api/ai/process', methods=['POST'])
 def ai_process():
     """
@@ -235,10 +245,13 @@ def ai_process():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     
+    temperature = _action_temperature(action)
+
     def generate_stream():
         """Generator that yields SSE events."""
         try:
-            for token in generate(user_prompt, system_prompt=system_prompt):
+            for token in generate(user_prompt, system_prompt=system_prompt,
+                                  temperature=temperature):
                 # Send each token as an SSE event
                 yield f"data: {json.dumps({'token': token})}\n\n"
             

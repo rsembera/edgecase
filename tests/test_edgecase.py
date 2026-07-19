@@ -1759,3 +1759,44 @@ class TestDiffSegments:
         accepted = ''.join(s['new'] if s['kind'] == 'change' else s['old']
                            for s in segs)
         assert accepted == new
+
+
+# ============================================================================
+# AI SCRIBE CONFIGURATION TESTS
+# ============================================================================
+
+class TestAiScribeConfig:
+    """Model-swap invariants for AI Scribe (Gemma 4 12B QAT, 2026-07-19).
+
+    The E4B lesson from the July bake-off: a model can leak reasoning
+    narration or structural tokens into clinical notes. Our layer's
+    guarantee is the stop-token list — any structural token the model
+    begins to emit truncates generation before it reaches the note.
+    (The live acceptance test — a real proofread with zero artifacts —
+    is manual, per the swap plan.)
+    """
+
+    def test_stop_tokens_block_structural_and_thinking_tokens(self):
+        """Every Gemma 4 structural token must be a stop string.
+
+        <|turn> opens a turn, <turn|> closes one, and <|channel> opens a
+        thinking/answer channel. If any of these stream out, the model is
+        narrating its scaffolding into the note. Verified against the
+        GGUF's embedded chat template on 2026-07-19.
+        """
+        from ai.assistant import STOP_TOKENS
+        for token in ('<|turn>', '<turn|>', '<|channel>'):
+            assert token in STOP_TOKENS
+
+    def test_proofread_runs_cold(self):
+        """Proofread overrides to temperature 0.1 for determinism."""
+        from web.blueprints.ai import _action_temperature
+        assert _action_temperature('proofread') == 0.1
+
+    def test_other_actions_use_default_temperature(self):
+        """Non-proofread actions return None -> GENERATION_PARAMS default."""
+        from web.blueprints.ai import _action_temperature
+        from ai.assistant import GENERATION_PARAMS
+        for action in ('writeup', 'expand', 'contract'):
+            assert _action_temperature(action) is None
+        assert GENERATION_PARAMS['temperature'] == 0.3

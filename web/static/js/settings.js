@@ -1330,7 +1330,7 @@ async function downloadAIModel() {
                         if (data.status === 'checking') {
                             statusText.textContent = data.message;
                         } else if (data.status === 'downloading') {
-                            statusText.textContent = 'Downloading Hermes 3...';
+                            statusText.textContent = 'Downloading Gemma 4 12B...';
                             if (data.total) {
                                 totalSize = data.total;
                             }

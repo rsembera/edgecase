@@ -16,7 +16,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Database: SQLite with SQLCipher encryption (13 tables)
 - PDF Generation: ReportLab 4.4.5
 - Encryption: cryptography (Fernet v1 + Argon2id/AES-256-GCM v2 for attachments)
-- AI: llama-cpp-python with Hermes 3 8B model
+- AI: llama-cpp-python with Gemma 4 12B QAT model
 - Development: MacBook Air M4, macOS Sequoia
 
 **Access:**
@@ -45,7 +45,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Performance optimizations
 
 ### Phase 3: AI Integration ✅ COMPLETE (Dec 2, 2025)
-- Local LLM integration (Hermes 3 8B)
+- Local LLM integration (Gemma 4 12B QAT)
 - AI Scribe for session notes
 - Four actions: Write Up, Proofread, Expand, Condense
 - Auto-platform detection (Mac/Windows/Linux)
@@ -150,7 +150,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── fonts/                   # Lexend font family
 │   ├── favicons/
 │   └── img/                     # Background images
-├── models/                      # AI model (git-ignored): Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+├── models/                      # AI model (git-ignored): gemma-4-12B-it-QAT-Q4_0.gguf
 ├── tests/                       # 19 test files, 201 tests (pytest)
 ├── docs/                        # Navigation Map, Project Status, Architecture Decisions, etc.
 ├── assets/                      # Practice logo, signature
@@ -275,7 +275,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 - Post-backup command support (e.g., rsync to remote server)
 
 ### AI Scribe (Phase 3)
-- Local LLM (Hermes 3 Llama 3.1 8B)
+- Local LLM (Gemma 4 12B QAT)
 - Four actions: Write Up, Proofread, Expand, Condense
 - SSE streaming for real-time output
 - Auto-platform detection (Metal on Mac, CPU elsewhere)

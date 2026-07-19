@@ -257,7 +257,7 @@ now split — no remaining god-files.**
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Local LLM Integration | ✅ Complete | llama-cpp-python with Hermes 3 8B |
+| Local LLM Integration | ✅ Complete | llama-cpp-python with Gemma 4 12B QAT |
 | AI Scribe UI | ✅ Complete | Integrated into Session form |
 | Write Up Action | ✅ Complete | Point-form to prose |
 | Proofread Action | ✅ Complete | Grammar/spelling fixes |
@@ -512,7 +512,7 @@ now split — no remaining god-files.**
 
 **AI Scribe Feature**
 - Local LLM integration using llama-cpp-python
-- Hermes 3 Llama 3.1 8B model (Q4_K_M quantization)
+- Gemma 4 12B QAT model (Q4_0 quantization, quantization-aware trained)
 - Four text processing actions with SSE streaming
 
 ---
