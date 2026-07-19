@@ -38,7 +38,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ai = [
-    "llama_cpp_python>=0.3.0",
+    "llama_cpp_python>=0.3.34",
     "huggingface_hub>=1.0.0",
 ]
 dev = [
