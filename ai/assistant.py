@@ -1,7 +1,7 @@
 """
 AI Scribe - Local LLM Assistant for EdgeCase Equalizer
 Handles model loading, unloading, and text generation.
-Uses Hermes 3 with ChatML prompt format.
+Uses Gemma 4 12B QAT with the GGUF's embedded chat template.
 Auto-configures for the user's system (Mac/Windows/Linux, GPU/CPU).
 """
 
@@ -22,14 +22,14 @@ _llm_lock = threading.Lock()
 _model_loaded = False
 
 # Default model configuration
-MODEL_REPO = "NousResearch/Hermes-3-Llama-3.1-8B-GGUF"
-MODEL_FILENAME = "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
+MODEL_REPO = "lmstudio-community/gemma-4-12B-it-QAT-GGUF"
+MODEL_FILENAME = "gemma-4-12B-it-QAT-Q4_0.gguf"
 MODEL_DIR = MODELS_DIR
-# SHA-256 of the official Q4_K_M file. Verified two ways on 2026-06-09:
+# SHA-256 of the official QAT Q4_0 file. Verified two ways on 2026-07-19:
 # HuggingFace's LFS metadata for the repo, and an independent hash of a
 # locally downloaded copy. Downloads that don't match are deleted —
 # protects every install against a tampered or corrupted model file.
-MODEL_SHA256 = "d4403ce5a6e930f4c2509456388c20d633a15ff08dd52ef3b142ff1810ec3553"
+MODEL_SHA256 = "929fde4e951e520b74806268e8e8ffaa20a20fab955f3606d5ce7b2c35798501"
 
 # Generation parameters (tuned for clinical notes - low temp for consistency)
 GENERATION_PARAMS = {
@@ -40,8 +40,16 @@ GENERATION_PARAMS = {
     'max_tokens': 2048,
 }
 
-# ChatML stop tokens for Hermes 3
-STOP_TOKENS = ['<|im_start|>', '<|im_end|>']
+# Gemma 4's structural tokens, verified 2026-07-19 by rendering the
+# GGUF's embedded chat template: turns are <|turn>...<turn|> and
+# thinking/answer sections use <|channel>...<channel|>. EOS (special
+# token id 1) is handled natively by create_chat_completion; these
+# string stops are belt-and-suspenders so no structural token can ever
+# leak into a note. With enable_thinking unset the template pre-fills
+# an empty closed thought channel, so thinking stays off — stopping on
+# <|channel> also prevents the model from ever reopening one.
+# (Hermes used ChatML's <|im_start|>/<|im_end|> here.)
+STOP_TOKENS = ['<|turn>', '<turn|>', '<|channel>']
 
 
 def get_model_path() -> Path:
@@ -63,7 +71,7 @@ def get_model_info() -> dict:
     """Get information about the model."""
     model_path = get_model_path()
     info = {
-        'name': 'Hermes 3 Llama 3.1 8B',
+        'name': 'Gemma 4 12B QAT',
         'filename': MODEL_FILENAME,
         'downloaded': model_path.exists(),
         'loaded': is_model_loaded(),
@@ -290,7 +298,7 @@ def load_model() -> bool:
                 n_ctx=config['n_ctx'],
                 n_gpu_layers=config['n_gpu_layers'],
                 n_threads=config['n_threads'],
-                chat_format='chatml',  # Hermes 3 uses ChatML format
+                chat_format=None,  # Use the GGUF's embedded chat template (Gemma)
                 verbose=False,
             )
             _model_loaded = True
@@ -316,14 +324,17 @@ def unload_model():
         print("[AI Scribe] Model unloaded")
 
 
-def generate(prompt: str, system_prompt: str = None, max_tokens: int = None) -> Generator[str, None, None]:
+def generate(prompt: str, system_prompt: str = None, max_tokens: int = None,
+             temperature: float = None) -> Generator[str, None, None]:
     """
-    Generate text using chat completion with proper ChatML formatting.
+    Generate text using chat completion via the model's chat template.
     
     Args:
         prompt: The user prompt (will be formatted as user message)
         system_prompt: Optional system message (for clinical context)
         max_tokens: Maximum tokens to generate
+        temperature: Override GENERATION_PARAMS['temperature'] for this
+            call (e.g. 0.1 for proofread, where determinism matters most)
     
     Yields:
         Generated tokens as they're produced
@@ -340,6 +351,8 @@ def generate(prompt: str, system_prompt: str = None, max_tokens: int = None) -> 
 
     if max_tokens is None:
         max_tokens = GENERATION_PARAMS['max_tokens']
+    if temperature is None:
+        temperature = GENERATION_PARAMS['temperature']
 
     # Build messages array for chat completion
     messages = []
@@ -356,11 +369,11 @@ def generate(prompt: str, system_prompt: str = None, max_tokens: int = None) -> 
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
         try:
-            # Use create_chat_completion for proper ChatML formatting
+            # Use create_chat_completion so the GGUF's chat template applies
             stream = _llm.create_chat_completion(
                 messages=messages,
                 max_tokens=max_tokens,
-                temperature=GENERATION_PARAMS['temperature'],
+                temperature=temperature,
                 top_p=GENERATION_PARAMS['top_p'],
                 top_k=GENERATION_PARAMS['top_k'],
                 repeat_penalty=GENERATION_PARAMS['repeat_penalty'],

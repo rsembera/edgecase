@@ -1,6 +1,7 @@
 """
 AI Scribe - Prompt Templates for Clinical Note Processing
-Uses ChatML format compatible with Hermes 3.
+Model-agnostic message content; formatting is handled by the GGUF's
+embedded chat template (currently Gemma 4 12B QAT).
 """
 
 # System prompt for clinical note assistant
