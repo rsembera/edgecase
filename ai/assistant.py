@@ -299,6 +299,9 @@ def load_model() -> bool:
                 n_gpu_layers=config['n_gpu_layers'],
                 n_threads=config['n_threads'],
                 chat_format=None,  # Use the GGUF's embedded chat template (Gemma)
+                flash_attn=True,   # Avoids V-cache padding on Gemma 4's
+                                   # mixed-size layers; saves memory and a
+                                   # bit of speed on Metal (added 2026-07-20)
                 verbose=False,
             )
             _model_loaded = True
