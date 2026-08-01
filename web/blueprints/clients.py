@@ -9,8 +9,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import sqlcipher3 as sqlite3
 
+from decimal import Decimal
+
 from core.database import Database
-from core.money import quantize_cents, format_currency
+from core.money import format_currency
 
 # Initialize blueprint
 clients_bp = Blueprint('clients', __name__)
@@ -176,33 +178,14 @@ def index():
     # Count pending invoices (statement portions not fully paid)
     pending_invoices = db.count_pending_invoices()
             
-    # Calculate unbilled this month
-    now = datetime.now()
-    month_start = int(datetime(now.year, now.month, 1).timestamp())
-    
-    billable_this_month = 0
-    for client in all_clients:
-        entries = db.get_client_entries(client['id'])
-        for entry in entries:
-            # Skip if already billed or still a draft
-            if entry.get('statement_id') is not None:
-                continue
-            if not entry.get('locked'):
-                continue
-                
-            # Use appropriate date field for each type
-            if entry.get('class') == 'session' and not entry.get('is_consultation'):
-                entry_date = entry.get('session_date', 0)
-                if entry_date >= month_start:
-                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
-            elif entry.get('class') == 'item':
-                entry_date = entry.get('item_date', 0)
-                if entry_date >= month_start:
-                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
-            elif entry.get('class') == 'absence':
-                entry_date = entry.get('absence_date', 0)
-                if entry_date >= month_start:
-                    billable_this_month += quantize_cents(entry.get('fee', 0) or 0)
+    # Total unbilled across all clients — "what statements would bill right
+    # now". Delegates to the same per-client query used on client files, so
+    # the dashboard, client pages, and statement generator always agree.
+    # Deliberately date-unbounded: last month's unbilled work still counts
+    # (changed 2026-08-01; the old month-scoped version read $0.00 every
+    # 1st of the month while statements were still ungenerated).
+    unbilled_total = sum((db.get_unbilled_total(c['id']) for c in all_clients),
+                         Decimal('0'))
                     
     # Get current date and time
     current_date = now.strftime('%B %d, %Y')
@@ -316,7 +299,7 @@ def index():
                          active_count=active_count,
                          sessions_this_month=sessions_this_month,
                          pending_invoices=pending_invoices,
-                         billable_this_month=billable_this_month,
+                         unbilled_total=unbilled_total,
                          current_date=current_date,
                          current_time=current_time,
                          backup_warning=backup_warning,
