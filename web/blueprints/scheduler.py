@@ -263,11 +263,12 @@ def add_to_calendar_applescript(calendar_name, file_number, start_dt, duration, 
     '''
     
     # Shell-launch Calendar before scripting it. AppleScript's own 'launch'
-    # can wedge against a Calendar that has never run since a macOS update
-    # (observed 2026-08-04 on 26.5.2: headless launch no-oped, every attempt
-    # -600'd, and scheduling fell to .ics until the app was opened normally).
-    # 'open -gj' starts it in the background without stealing focus, is a
-    # no-op when already running, and works in every state we've seen.
+    # can wedge against a not-running Calendar (observed 2026-08-04 on
+    # 26.5.2: Calendar had exited cleanly minutes earlier, headless launch
+    # no-oped, every attempt -600'd, and scheduling fell to .ics; after one
+    # normal GUI launch the wedge cleared — mechanism unknown). 'open -gj'
+    # starts it in the background without stealing focus, is a no-op when
+    # already running, and worked in every state we tested.
     try:
         subprocess.run(['open', '-gj', '-a', 'Calendar'],
                        check=False, timeout=10)
