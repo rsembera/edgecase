@@ -437,7 +437,10 @@ def schedule_for_client(client_id):
                 )
                 
                 import base64
+                import html as html_mod
                 ics_b64 = base64.b64encode(ics_content.encode()).decode()
+                error_detail = html_mod.escape(error or 'No error detail available')
+                calendar_name_safe = html_mod.escape(calendar_name)
                 
                 # Return page that shows message and triggers download
                 return f'''<!DOCTYPE html>
@@ -451,13 +454,18 @@ def schedule_for_client(client_id):
         h2 {{ color: #1F2937; margin-bottom: 0.5rem; }}
         p {{ color: #6B7280; margin-bottom: 1.5rem; }}
         .btn {{ display: inline-block; padding: 0.75rem 1.5rem; background: #BFDCDC; color: #115D4F; border-radius: 0.5rem; text-decoration: none; font-weight: 600; }}
+        .details {{ margin-top: 1.5rem; font-size: 0.75rem; color: #9CA3AF; text-align: left; }}
+        .details code {{ display: block; margin-top: 0.25rem; padding: 0.5rem; background: #F9FAFB; border-radius: 0.375rem; font-family: monospace; white-space: pre-wrap; word-break: break-word; }}
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Calendar not found</h2>
-        <p>Couldn't add to calendar "{calendar_name}".<br>Downloading .ics file instead.</p>
+        <h2>Couldn't add to Calendar</h2>
+        <p>The appointment couldn't be added to "{calendar_name_safe}" automatically,
+        so an .ics file is downloading instead — open it to add the appointment
+        to your calendar. Your appointment details are safe.</p>
         <a href="{url_for('clients.client_file', client_id=client_id)}" class="btn">Back to Client File</a>
+        <div class="details">Technical detail:<code>{error_detail}</code></div>
     </div>
     <script>
         const blob = new Blob([atob("{ics_b64}")], {{type: 'text/calendar'}});
