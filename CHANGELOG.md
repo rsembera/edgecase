@@ -8,6 +8,9 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+### 2026-08-04 (scheduler: Calendar cold-launch fix)
+- **Scheduling no longer falls to .ics when Calendar has never run since a macOS update.** On 26.5.2, AppleScript's own `launch` no-oped against a never-initialized Calendar, every attempt -600'd through the readiness poll, and the scheduler declared structural failure (the "Calendar not found" page — mislabelled, since the Counselling calendar was fine). Fix: shell-launch via `open -gj -a Calendar` (background, no focus steal, idempotent) before scripting; AppleScript launch + readiness poll retained as the second line of defence. Verified end-to-end from a fully-quit Calendar.
+
 ### 2026-07-19 (AI Scribe model swap: Hermes 3 → Gemma 4 12B QAT)
 - **Gemma 4 12B QAT (Q4_0) is now the Scribe model**, replacing Hermes-3-Llama-3.1-8B, per the July 18 four-model bake-off (14/14 planted errors fixed, 2/2 traps passed, near-zero unauthorized edits vs. Hermes's June production record of rewrites and sanitization). One validated model, no picker; Hermes GGUF stays on disk as instant rollback.
 - **llama-cpp-python 0.3.16 → 0.3.34** (Gemma 4 architecture needs mid-2026 llama.cpp). Staged as the rollback point: Hermes was verified working on the new bindings *before* the model swap, so reverting the model constants alone restores the old setup. `pyproject.toml`'s `[ai]` extra floor raised to `>=0.3.34` to match.
