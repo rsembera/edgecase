@@ -2,14 +2,36 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** July 5, 2026  
+**Last Updated:** August 5, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
 
-## RECENT POST-LAUNCH WORK (July 2026)
+## RECENT POST-LAUNCH WORK (July-August 2026)
 
-Full detail in `CHANGELOG.md`; suite currently **236 passing**, `ruff check` clean.
+Full detail in `CHANGELOG.md`; suite currently **242 passing**, `ruff check` clean.
+
+- **Per-client Payment Record (2026-08-05):** Financial Report gained a client
+  dropdown (grouped Active/Inactive); selecting one produces a Payment Record
+  PDF — the client's payments and refunds only, matched by source file number
+  or the statement chain. Closes the "per-client payment history must be
+  producible" records gap. Same day: report text columns now wrap via
+  Paragraph cells (long descriptions no longer collide with adjacent columns).
+- **Scheduler Calendar cold-launch fix (2026-08-04):** shell-launch via
+  `open -gj` before AppleScript; fallback page copy made honest ("Couldn't
+  add to Calendar" + actual error detail, was "Calendar not found" for
+  every failure).
+- **Dashboard Unbilled card (2026-08-01):** date-unbounded via canonical
+  `get_unbilled_total`; no longer reads $0.00 on the 1st of the month while
+  statements are ungenerated.
+- **Scribe first-person voice fix (2026-07-27):** ambiguous third-person
+  prompt rule split in two; Gemma no longer rewrites the clinician's "I" as
+  "the clinician". Gap added to bake-off methodology: trap set needs a
+  first-person clinician-voice note.
+- **AI Scribe model swap (2026-07-19):** Hermes 3 8B → Gemma 4 12B QAT;
+  llama-cpp-python 0.3.34, embedded chat template, structural stop tokens,
+  per-action temperature (proofread 0.1), flash_attn (2026-07-20). Hermes
+  retained on disk; rollback = `git revert` of the swap commit.
 
 - **Client-file balance summary (2026-07-01):** Unbilled + Outstanding figures
   in the client-file header, reusing the statement generator's exact predicate
