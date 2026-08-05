@@ -116,11 +116,22 @@ function getDateFromInput(inputId) {
 /**
  * Calculate and display report preview
  */
+/**
+ * Get the selected client id ('' when generating a full financial report)
+ * @returns {string} Client id or empty string
+ */
+function getSelectedClient() {
+    const select = document.getElementById('client-select');
+    return select ? select.value : '';
+}
+
 function calculateTotals() {
     const startDate = getDateFromInput('start_date');
     const endDate = getDateFromInput('end_date');
+    const clientId = getSelectedClient();
+    const clientParam = clientId ? `&client=${clientId}` : '';
     
-    fetch(`/ledger/report/calculate?start=${startDate}&end=${endDate}`)
+    fetch(`/ledger/report/calculate?start=${startDate}&end=${endDate}${clientParam}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -142,6 +153,15 @@ function calculateTotals() {
 function displayPreview(data) {
     document.getElementById('preview-results').style.display = 'block';
     
+    // Payment-record mode relabels the summary; expenses are refunds
+    const labels = data.client_mode
+        ? {income: 'Payments Received', expenses: 'Refunds', net: 'Net Received', taxPaid: 'Tax Refunded'}
+        : {income: 'Total Income', expenses: 'Total Expenses', net: 'Net Income', taxPaid: 'Tax Paid'};
+    document.querySelector('.summary-item.income .summary-label').textContent = labels.income;
+    document.querySelector('.summary-item.expenses .summary-label').textContent = labels.expenses;
+    document.querySelector('.summary-item.net .summary-label').textContent = labels.net;
+    document.querySelector('.summary-item.tax-paid .summary-label').textContent = labels.taxPaid;
+    
     document.getElementById('preview-income').textContent = formatCurrency(data.total_income);
     document.getElementById('preview-expenses').textContent = formatCurrency(data.total_expenses);
     document.getElementById('preview-net').textContent = formatCurrency(data.net_income);
@@ -157,8 +177,12 @@ function displayPreview(data) {
         netItem.classList.remove('negative');
     }
     
-    // Build category breakdown
+    // Build category breakdown (hidden in payment-record mode)
     const breakdownDiv = document.getElementById('category-breakdown');
+    if (data.client_mode) {
+        breakdownDiv.innerHTML = '';
+        return;
+    }
     let html = '<h4>Expenses by Category</h4>';
     
     if (data.categories && data.categories.length > 0) {
@@ -202,8 +226,10 @@ function generateReport() {
     const includeDetails = document.getElementById('include-details').checked;
     const includeTaxes = document.getElementById('include-taxes').checked;
     const includeAttachments = document.getElementById('include-attachments').checked;
+    const clientId = getSelectedClient();
+    const clientParam = clientId ? `&client=${clientId}` : '';
     
-    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}&attachments=${includeAttachments ? '1' : '0'}`;
+    const url = `/ledger/report/pdf?start=${startDate}&end=${endDate}&details=${includeDetails ? '1' : '0'}&taxes=${includeTaxes ? '1' : '0'}&attachments=${includeAttachments ? '1' : '0'}${clientParam}`;
     
     openPDF(url);
 }

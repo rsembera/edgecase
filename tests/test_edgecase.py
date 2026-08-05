@@ -1800,3 +1800,93 @@ class TestAiScribeConfig:
         for action in ('writeup', 'expand', 'contract'):
             assert _action_temperature(action) is None
         assert GENERATION_PARAMS['temperature'] == 0.3
+
+
+# ============================================================================
+# PAYMENT RECORD (PER-CLIENT FINANCIAL REPORT) TESTS
+# ============================================================================
+
+class TestPaymentRecord:
+    """Client-filtered financial report = Payment Record (2026-08-05).
+
+    The filter must catch payments recorded by source file number AND
+    refunds, which carry the file number in the payee, not source — both
+    resolved through the statement_id -> statement entry -> client chain.
+    """
+
+    def _seed(self, db):
+        import time as _t
+        now = int(_t.time())
+        client_id = db.add_client({
+            'file_number': 'PR-001', 'first_name': 'Pay', 'middle_name': '',
+            'last_name': 'Record', 'type_id': 1})
+        # Statement entry belonging to the client (anchors the chain)
+        stmt_id = db.add_entry({
+            'client_id': client_id, 'class': 'statement',
+            'description': 'Statement'})
+        # The client's payment (source match)
+        db.add_entry({
+            'client_id': None, 'class': 'income', 'ledger_type': 'income',
+            'ledger_date': now, 'source': 'PR-001',
+            'description': 'Client Payment', 'total_amount': 150.0,
+            'tax_amount': 0.0, 'statement_id': stmt_id})
+        # The client's refund (statement chain; no source field)
+        db.add_entry({
+            'client_id': None, 'class': 'expense', 'ledger_type': 'expense',
+            'ledger_date': now, 'description': 'Client Refund',
+            'total_amount': 50.0, 'tax_amount': 0.0, 'statement_id': stmt_id})
+        # Another client's payment and a business expense — must be excluded
+        db.add_entry({
+            'client_id': None, 'class': 'income', 'ledger_type': 'income',
+            'ledger_date': now, 'source': 'OTHER-999',
+            'description': 'Client Payment', 'total_amount': 999.0,
+            'tax_amount': 0.0})
+        db.add_entry({
+            'client_id': None, 'class': 'expense', 'ledger_type': 'expense',
+            'ledger_date': now, 'description': 'Rent',
+            'total_amount': 490.0, 'tax_amount': 0.0})
+        return client_id, now
+
+    def test_client_filtered_pdf_builds(self, db, tmp_path):
+        from pdf.ledger_report import generate_ledger_report_pdf
+        client_id, now = self._seed(db)
+        out = tmp_path / 'payment_record.pdf'
+        generate_ledger_report_pdf(
+            db=db, start_ts=now - 86400, end_ts=now + 86400,
+            output_path=str(out), include_details=True, include_taxes=True,
+            start_date_str='2026-08-04', end_date_str='2026-08-06',
+            client={'id': client_id, 'file_number': 'PR-001',
+                    'name': 'Record, Pay'})
+        assert out.exists() and out.stat().st_size > 0
+
+    def test_unfiltered_report_still_builds(self, db, tmp_path):
+        from pdf.ledger_report import generate_ledger_report_pdf
+        self._seed(db)
+        out = tmp_path / 'financial_report.pdf'
+        generate_ledger_report_pdf(
+            db=db, start_ts=0, end_ts=2**31, output_path=str(out),
+            include_details=True, include_taxes=True,
+            start_date_str='2026-01-01', end_date_str='2026-12-31')
+        assert out.exists() and out.stat().st_size > 0
+
+    def test_client_filter_sql_selects_payments_and_refunds_only(self, db):
+        """The shared filter catches the client's payment (by source) and
+        refund (by statement chain), excluding other clients and business
+        expenses."""
+        from web.blueprints.ledger import _client_filter_sql
+        client_id, now = self._seed(db)
+        income_cond, refund_cond = _client_filter_sql()
+        conn = db.connect()
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT COALESCE(SUM(total_amount), 0) FROM entries
+            WHERE class = 'income' AND ledger_type = 'income'
+            AND ledger_date >= ? AND ledger_date <= ? {income_cond}
+        """, (now - 86400, now + 86400, 'PR-001', client_id))
+        assert cur.fetchone()[0] == 150.0
+        cur.execute(f"""
+            SELECT COALESCE(SUM(total_amount), 0) FROM entries
+            WHERE class = 'expense' AND ledger_type = 'expense'
+            AND ledger_date >= ? AND ledger_date <= ? {refund_cond}
+        """, (now - 86400, now + 86400, client_id))
+        assert cur.fetchone()[0] == 50.0

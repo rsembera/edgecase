@@ -41,9 +41,9 @@ def _format_currency(amount, currency_code):
 
 def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_details=True,
                                 include_taxes=True, include_attachments=False,
-                                start_date_str='', end_date_str=''):
+                                start_date_str='', end_date_str='', client=None):
     """
-    Generate a PDF financial report.
+    Generate a PDF financial report, or a per-client payment record.
     
     Args:
         db: Database instance
@@ -55,6 +55,13 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         include_attachments: Whether to include receipt attachments as appendix
         start_date_str: Start date string for display
         end_date_str: End date string for display
+        client: Optional dict with 'id', 'file_number', 'name'. When given,
+            the report becomes a Payment Record for that client: income is
+            their payments (matched by source file number OR by the
+            statement_id -> statement entry -> client chain), expenses are
+            their refunds only (statement chain; refunds carry the file
+            number in the payee, not source), and business-wide sections
+            (category summary, attachments) are omitted.
     """
     
     # Get practice info
@@ -64,30 +71,60 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Fetch all data
     conn = db.connect()
     cursor = conn.cursor()
-    
+
+    # Per-client filters (see docstring). The statement subquery catches
+    # payments and refunds regardless of source/payee string conventions.
+    stmt_subq = "(SELECT id FROM entries WHERE class = 'statement' AND client_id = ?)"
+
     # Get income entries (include id for attachments)
-    cursor.execute("""
-        SELECT id, ledger_date, total_amount, source, description, tax_amount
-        FROM entries
-        WHERE class = 'income' AND ledger_type = 'income'
-        AND ledger_date >= ? AND ledger_date <= ?
-        ORDER BY ledger_date
-    """, (start_ts, end_ts))
+    if client:
+        cursor.execute(f"""
+            SELECT id, ledger_date, total_amount, source, description, tax_amount
+            FROM entries
+            WHERE class = 'income' AND ledger_type = 'income'
+            AND ledger_date >= ? AND ledger_date <= ?
+            AND (source = ? OR statement_id IN {stmt_subq})
+            ORDER BY ledger_date
+        """, (start_ts, end_ts, client['file_number'], client['id']))
+    else:
+        cursor.execute("""
+            SELECT id, ledger_date, total_amount, source, description, tax_amount
+            FROM entries
+            WHERE class = 'income' AND ledger_type = 'income'
+            AND ledger_date >= ? AND ledger_date <= ?
+            ORDER BY ledger_date
+        """, (start_ts, end_ts))
     income_entries = cursor.fetchall()
     
-    # Get expense entries with category names and payee names (via JOINs)
-    cursor.execute("""
-        SELECT e.id, e.ledger_date, e.total_amount, e.description, 
-               COALESCE(ec.name, 'Uncategorized') as category_name,
-               COALESCE(p.name, '') as payee_name,
-               e.tax_amount
-        FROM entries e
-        LEFT JOIN expense_categories ec ON e.category_id = ec.id
-        LEFT JOIN payees p ON e.payee_id = p.id
-        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
-        AND e.ledger_date >= ? AND e.ledger_date <= ?
-        ORDER BY e.ledger_date
-    """, (start_ts, end_ts))
+    # Get expense entries with category names and payee names (via JOINs).
+    # In client mode these are the client's refunds only.
+    if client:
+        cursor.execute(f"""
+            SELECT e.id, e.ledger_date, e.total_amount, e.description, 
+                   COALESCE(ec.name, 'Uncategorized') as category_name,
+                   COALESCE(p.name, '') as payee_name,
+                   e.tax_amount
+            FROM entries e
+            LEFT JOIN expense_categories ec ON e.category_id = ec.id
+            LEFT JOIN payees p ON e.payee_id = p.id
+            WHERE e.class = 'expense' AND e.ledger_type = 'expense'
+            AND e.ledger_date >= ? AND e.ledger_date <= ?
+            AND e.statement_id IN {stmt_subq}
+            ORDER BY e.ledger_date
+        """, (start_ts, end_ts, client['id']))
+    else:
+        cursor.execute("""
+            SELECT e.id, e.ledger_date, e.total_amount, e.description, 
+                   COALESCE(ec.name, 'Uncategorized') as category_name,
+                   COALESCE(p.name, '') as payee_name,
+                   e.tax_amount
+            FROM entries e
+            LEFT JOIN expense_categories ec ON e.category_id = ec.id
+            LEFT JOIN payees p ON e.payee_id = p.id
+            WHERE e.class = 'expense' AND e.ledger_type = 'expense'
+            AND e.ledger_date >= ? AND e.ledger_date <= ?
+            ORDER BY e.ledger_date
+        """, (start_ts, end_ts))
     expense_entries = cursor.fetchall()
     
     # Get category totals (via JOIN with expense_categories)
@@ -159,8 +196,14 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Format date range for display
     start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
     end_dt = datetime.strptime(end_date_str, '%Y-%m-%d')
-    date_range = f"INCOME AND EXPENSE RECORD ({start_dt.strftime('%b %d, %Y')} - {end_dt.strftime('%b %d, %Y')})"
-    story.append(Paragraph(date_range, subtitle_style))
+    range_str = f"{start_dt.strftime('%b %d, %Y')} - {end_dt.strftime('%b %d, %Y')}"
+    if client:
+        story.append(Paragraph(
+            f"PAYMENT RECORD — {esc(client['name'])} ({esc(client['file_number'])})",
+            subtitle_style))
+        story.append(Paragraph(range_str, subtitle_style))
+    else:
+        story.append(Paragraph(f"INCOME AND EXPENSE RECORD ({range_str})", subtitle_style))
     
     # Transaction Details (if requested)
     if include_details:
@@ -196,11 +239,14 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         # Sort by date
         all_transactions.sort(key=lambda x: x['date'])
         
-        # Build table - 6 or 7 columns depending on include_taxes
+        # Build table - 6 or 7 columns depending on include_taxes.
+        # Client mode relabels the money columns; layout is identical.
+        inc_h = 'Payment' if client else 'Income'
+        exp_h = 'Refund' if client else 'Expense'
         if include_taxes:
-            table_data = [['Date', 'Income', 'Expense', 'Tax', 'Description', 'Payor/Payee', 'Category']]
+            table_data = [['Date', inc_h, exp_h, 'Tax', 'Description', 'Payor/Payee', 'Category']]
         else:
-            table_data = [['Date', 'Income', 'Expense', 'Description', 'Payor/Payee', 'Category']]
+            table_data = [['Date', inc_h, exp_h, 'Description', 'Payor/Payee', 'Category']]
         
         # Text columns are Paragraphs so long content WRAPS inside its
         # column instead of painting over the neighbour (plain-string
@@ -300,75 +346,85 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         story.append(table)
         story.append(Spacer(1, 30))
     
-    # Category Summary (always included) - wrapped in KeepTogether
+    # Category Summary (business reports only; a payment record has no
+    # expense categories worth summarizing) - wrapped in KeepTogether
     summary_elements = []
     
-    summary_elements.append(Paragraph("Expense Summary by Category", section_style))
+    if not client:
+        summary_elements.append(Paragraph("Expense Summary by Category", section_style))
     
-    summary_data = [['Expense Category', 'Total Amount']]
-    
-    for cat in category_totals:
-        cat_name = cat[0] or 'Uncategorized'
-        cat_total = cat[1]
-        summary_data.append([cat_name, _format_currency(cat_total, currency)])
-    
-    # Add total row
-    summary_data.append(['TOTAL', _format_currency(total_expenses, currency)])
-    
-    summary_table = Table(summary_data, colWidths=[4*inch, 2*inch])
-    summary_table.setStyle(TableStyle([
-        # Header
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#475569')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        summary_data = [['Expense Category', 'Total Amount']]
         
-        # Body
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TOPPADDING', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        for cat in category_totals:
+            cat_name = cat[0] or 'Uncategorized'
+            cat_total = cat[1]
+            summary_data.append([cat_name, _format_currency(cat_total, currency)])
         
-        # Totals row
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E1')),
+        # Add total row
+        summary_data.append(['TOTAL', _format_currency(total_expenses, currency)])
         
-        # Alignment
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        summary_table = Table(summary_data, colWidths=[4*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            # Header
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#475569')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            
+            # Body
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('TOPPADDING', (0, 1), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            
+            # Totals row
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#CBD5E1')),
+            
+            # Alignment
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            
+            # Grid
+            ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#CBD5E1')),
+            ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor('#E2E8F0')),
+            
+            # Borders
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
+        ]))
         
-        # Grid
-        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#CBD5E1')),
-        ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor('#E2E8F0')),
+        summary_elements.append(summary_table)
         
-        # Borders
-        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
-    ]))
-    
-    summary_elements.append(summary_table)
-    
-    # Net Income Summary
-    summary_elements.append(Spacer(1, 20))
+        # Net Income Summary
+        summary_elements.append(Spacer(1, 20))
     
     net_income = total_income - total_expenses
     
+    # Client mode reuses the same summary table with payment-record labels
+    if client:
+        lbl_income, lbl_expense, lbl_net = 'Payments Received', 'Refunds', 'Net Received'
+        lbl_tax_in, lbl_tax_out = 'Tax Collected', 'Tax Refunded'
+    else:
+        lbl_income, lbl_expense, lbl_net = 'Total Income', 'Total Expenses', 'Net Income'
+        lbl_tax_in, lbl_tax_out = 'Tax Collected', 'Tax Paid'
+
     # Build net data - conditionally include tax rows
     if include_taxes:
         net_data = [
-            ['Total Income', _format_currency(total_income, currency)],
-            ['Total Expenses', _format_currency(total_expenses, currency)],
-            ['Net Income', _format_currency(net_income, currency)],
+            [lbl_income, _format_currency(total_income, currency)],
+            [lbl_expense, _format_currency(total_expenses, currency)],
+            [lbl_net, _format_currency(net_income, currency)],
             ['', ''],  # Spacer row
-            ['Tax Collected', _format_currency(tax_collected, currency)],
-            ['Tax Paid', _format_currency(tax_paid, currency)],
+            [lbl_tax_in, _format_currency(tax_collected, currency)],
+            [lbl_tax_out, _format_currency(tax_paid, currency)],
         ]
     else:
         net_data = [
-            ['Total Income', _format_currency(total_income, currency)],
-            ['Total Expenses', _format_currency(total_expenses, currency)],
-            ['Net Income', _format_currency(net_income, currency)],
+            [lbl_income, _format_currency(total_income, currency)],
+            [lbl_expense, _format_currency(total_expenses, currency)],
+            [lbl_net, _format_currency(net_income, currency)],
         ]
     
     net_table = Table(net_data, colWidths=[4*inch, 2*inch])
@@ -419,7 +475,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Collect attachments if requested
     pdf_attachments = []  # (entry_type, description, date_str, filepath) tuples for PDF files
     
-    if include_attachments:
+    if include_attachments and not client:  # receipts are business docs, not part of a payment record
         # Gather all attachments from income and expense entries
         attachment_info = []  # (entry_type, entry_id, date, description, payee_source)
         

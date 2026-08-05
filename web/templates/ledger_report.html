@@ -49,6 +49,28 @@
             <button type="button" class="btn-small" onclick="setYTD()">Year to Date</button>
         </div>
         
+        <div class="form-group">
+            <label for="client-select">Client</label>
+            <select id="client-select">
+                <option value="">All clients (full financial report)</option>
+                {% if active_clients %}
+                <optgroup label="Active">
+                    {% for c in active_clients %}
+                    <option value="{{ c.id }}">{{ c.label }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+                {% if inactive_clients %}
+                <optgroup label="Inactive">
+                    {% for c in inactive_clients %}
+                    <option value="{{ c.id }}">{{ c.label }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+            </select>
+            <p class="checkbox-hint">Selecting a client produces a Payment Record: their payments and refunds only, no business expenses.</p>
+        </div>
+        
         <div class="checkbox-group">
             <label class="checkbox-label">
                 <input type="checkbox" id="include-details" checked>
