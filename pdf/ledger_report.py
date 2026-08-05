@@ -202,14 +202,27 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         else:
             table_data = [['Date', 'Income', 'Expense', 'Description', 'Payor/Payee', 'Category']]
         
+        # Text columns are Paragraphs so long content WRAPS inside its
+        # column instead of painting over the neighbour (plain-string
+        # cells don't wrap; the old [:30] character truncation was a
+        # width guess and 28-char descriptions still collided — fixed
+        # 2026-08-05). Full text is kept: a financial report shouldn't
+        # ellipsize what the CRA might want to read.
+        cell_style = ParagraphStyle(
+            'TableCell',
+            fontName='Helvetica',
+            fontSize=8,
+            leading=10,
+        )
+
         for t in all_transactions:
             date_str = datetime.fromtimestamp(t['date']).strftime('%d-%b')
             income_str = _format_currency(t['income'], currency) if t['income'] else ''
             expense_str = _format_currency(t['expense'], currency) if t['expense'] else ''
             tax_str = _format_currency(t['tax'], currency) if t['tax'] else ''
-            desc = t['description'][:30] + ('...' if len(t['description']) > 30 else '')
-            payor_payee = t['payor_payee'][:25] + ('...' if len(t['payor_payee']) > 25 else '')
-            category = t['category'][:20] + ('...' if len(t['category']) > 20 else '')
+            desc = Paragraph(esc(t['description']), cell_style)
+            payor_payee = Paragraph(esc(t['payor_payee']), cell_style)
+            category = Paragraph(esc(t['category']), cell_style)
             
             if include_taxes:
                 table_data.append([date_str, income_str, expense_str, tax_str, desc, payor_payee, category])
@@ -247,6 +260,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('TOPPADDING', (0, 1), (-1, -1), 2),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 2),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             
             # Totals row
             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
