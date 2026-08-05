@@ -543,15 +543,45 @@ def remove_payor_suggestion():
 def ledger_report():
     """Display the financial report generator page."""
     now = datetime.now()
-    
+
+    # Client dropdown for per-client payment records, grouped so the
+    # active roster stays one glance long (Rick, 2026-08-05). "Inactive"
+    # is a client type, not a status column.
+    all_clients = db.get_all_clients()
+    all_types = db.get_all_client_types()
+    inactive_type = next((t for t in all_types if t['name'] == 'Inactive'), None)
+    inactive_id = inactive_type['id'] if inactive_type else None
+
+    def _label(c):
+        return f"{c['file_number']} — {c['last_name']}, {c['first_name']}"
+
+    active_clients = [{'id': c['id'], 'label': _label(c)}
+                      for c in all_clients if c['type_id'] != inactive_id]
+    inactive_clients = [{'id': c['id'], 'label': _label(c)}
+                        for c in all_clients if c['type_id'] == inactive_id]
+
     return render_template('ledger_report.html',
         default_start_year=now.year,
         default_start_month=1,
         default_start_day=1,
         default_end_year=now.year,
         default_end_month=now.month,
-        default_end_day=now.day
+        default_end_day=now.day,
+        active_clients=active_clients,
+        inactive_clients=inactive_clients
     )
+
+
+def _client_filter_sql():
+    """Shared per-client payment/refund filters (see pdf/ledger_report.py).
+
+    Returns (income_condition, refund_condition); both use the statement
+    subquery so payments AND refunds are caught regardless of how the
+    file number was stored (income: source column; refunds: payee name).
+    """
+    stmt_subq = "(SELECT id FROM entries WHERE class = 'statement' AND client_id = ?)"
+    return (f"AND (source = ? OR statement_id IN {stmt_subq})",
+            f"AND statement_id IN {stmt_subq}")
 
 
 @ledger_bp.route('/ledger/report/calculate')
@@ -559,6 +589,7 @@ def calculate_report():
     """Calculate totals for preview without generating PDF."""
     start_date = request.args.get('start')
     end_date = request.args.get('end')
+    client_id = request.args.get('client', type=int)
     
     if not start_date or not end_date:
         return jsonify({'success': False, 'error': 'Missing date range'}), 400
@@ -568,49 +599,62 @@ def calculate_report():
     
     conn = db.connect()
     cursor = conn.cursor()
+
+    # Per-client mode: income = the client's payments, expenses = their
+    # refunds only; category breakdown is meaningless and returned empty.
+    client = db.get_client(client_id) if client_id else None
+    if client_id and not client:
+        return jsonify({'success': False, 'error': 'Client not found'}), 404
+    income_cond, refund_cond = _client_filter_sql() if client else ('', '')
+    income_params = (client['file_number'], client['id']) if client else ()
+    refund_params = (client['id'],) if client else ()
     
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT COALESCE(SUM(total_amount), 0) as total,
                COALESCE(SUM(tax_amount), 0) as tax
         FROM entries
         WHERE class = 'income' AND ledger_type = 'income'
         AND ledger_date >= ? AND ledger_date <= ?
-    """, (start_ts, end_ts))
+        {income_cond}
+    """, (start_ts, end_ts) + income_params)
     row = cursor.fetchone()
     total_income = row[0] or 0
     tax_collected = row[1] or 0
     
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT COALESCE(SUM(total_amount), 0) as total,
                COALESCE(SUM(tax_amount), 0) as tax
         FROM entries
         WHERE class = 'expense' AND ledger_type = 'expense'
         AND ledger_date >= ? AND ledger_date <= ?
-    """, (start_ts, end_ts))
+        {refund_cond}
+    """, (start_ts, end_ts) + refund_params)
     row = cursor.fetchone()
     total_expenses = row[0] or 0
     tax_paid = row[1] or 0
     
-    cursor.execute("""
-        SELECT COALESCE(ec.name, 'Uncategorized') as cat_name, 
-               COALESCE(SUM(e.total_amount), 0) as total
-        FROM entries e
-        LEFT JOIN expense_categories ec ON e.category_id = ec.id
-        WHERE e.class = 'expense' AND e.ledger_type = 'expense'
-        AND e.ledger_date >= ? AND e.ledger_date <= ?
-        GROUP BY ec.name
-        ORDER BY cat_name
-    """, (start_ts, end_ts))
-    
     categories = []
-    for row in cursor.fetchall():
-        categories.append({
-            'name': row[0] or 'Uncategorized',
-            'total': row[1]
-        })
+    if not client:
+        cursor.execute("""
+            SELECT COALESCE(ec.name, 'Uncategorized') as cat_name, 
+                   COALESCE(SUM(e.total_amount), 0) as total
+            FROM entries e
+            LEFT JOIN expense_categories ec ON e.category_id = ec.id
+            WHERE e.class = 'expense' AND e.ledger_type = 'expense'
+            AND e.ledger_date >= ? AND e.ledger_date <= ?
+            GROUP BY ec.name
+            ORDER BY cat_name
+        """, (start_ts, end_ts))
+        
+        for row in cursor.fetchall():
+            categories.append({
+                'name': row[0] or 'Uncategorized',
+                'total': row[1]
+            })
     
     return jsonify({
         'success': True,
+        'client_mode': bool(client),
         'total_income': total_income,
         'total_expenses': total_expenses,
         'net_income': total_income - total_expenses,
@@ -627,6 +671,7 @@ def generate_report_pdf():
     
     start_date = request.args.get('start')
     end_date = request.args.get('end')
+    client_id = request.args.get('client', type=int)
     include_details = request.args.get('details') == '1'
     include_taxes = request.args.get('taxes') == '1'
     include_attachments = request.args.get('attachments') == '1'
@@ -637,7 +682,22 @@ def generate_report_pdf():
     start_ts = int(datetime.strptime(start_date, '%Y-%m-%d').timestamp())
     end_ts = int(datetime.strptime(end_date + ' 23:59:59', '%Y-%m-%d %H:%M:%S').timestamp())
     
-    filename = f"Financial_Report_{start_date}_to_{end_date}.pdf"
+    # Client mode: Payment Record for one client. Details ARE the point,
+    # so force them on; attachments are suppressed inside the generator.
+    client = None
+    if client_id:
+        c = db.get_client(client_id)
+        if not c:
+            return jsonify({'success': False, 'error': 'Client not found'}), 404
+        client = {
+            'id': c['id'],
+            'file_number': c['file_number'],
+            'name': f"{c['last_name']}, {c['first_name']}",
+        }
+        include_details = True
+        filename = f"Payment_Record_{c['file_number']}_{start_date}_to_{end_date}.pdf"
+    else:
+        filename = f"Financial_Report_{start_date}_to_{end_date}.pdf"
     temp_dir = tempfile.gettempdir()
     output_path = Path(temp_dir) / filename
     
@@ -651,7 +711,8 @@ def generate_report_pdf():
             include_taxes=include_taxes,
             include_attachments=include_attachments,
             start_date_str=start_date,
-            end_date_str=end_date
+            end_date_str=end_date,
+            client=client
         )
         
         return send_file(
