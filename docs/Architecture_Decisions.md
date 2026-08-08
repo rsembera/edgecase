@@ -1420,6 +1420,15 @@ writer's variant" (short notes may carry no evidence; the training prior
 then wins). Ask for restraint: style conventions are not errors; absent an
 actual error, change nothing. Restraint needs no evidence.
 
+**7. Preservation rules chill adjacent corrections.** (2026-08-08, same
+day) After the symmetric hands-off examples shipped, the model stopped
+fixing genuinely malformed "e.g" (missing period) — the guarded token
+became a no-touch zone and a real error hid inside it. The rule's escape
+clause ("correct what is wrong in every convention") technically covered
+the case but lost to the emphatic examples. Error cases adjacent to a
+preservation rule must be carved out explicitly, with their own examples
+("e.g" becomes "e.g."), in the same rule.
+
 ### Deferred by design
 
 A user-facing "proofing language" setting (raised 2026-08-08) is deferred:
