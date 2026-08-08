@@ -9,6 +9,7 @@ Format: Each entry includes date, version (if applicable), and description.
 ## [Unreleased]
 
 ### 2026-08-08 (Scribe: regional punctuation preserved symmetrically)
+- **Follow-up (2:07 p.m.):** the new hands-off examples over-chilled — genuinely malformed "e.g" (missing period) stopped being corrected. Error case carved out explicitly in the same rule ("e.g" becomes "e.g.", keeping the writer's comma choice); verified live 8/8 across malformed, bare, and comma'd forms in both variants. Lesson #7 added to Architecture_Decisions: preservation rules chill adjacent corrections; carve out error cases with their own examples.
 - **Proofread no longer Americanizes punctuation** (e.g. adding a comma after "e.g." — reported by Rick from production). The existing preservation rule covered spelling only; punctuation style fell under the proofread prompt's "fix punctuation errors" licence. Fixed via a both-direction example rule (Canadian "e.g." stays bare, American "e.g.," keeps its comma; serial commas untouched either way) plus a reinforcing line in the proofread prompt; our own system prompt's two "e.g.," Americanisms scrubbed. Verified live at temp 0.1: 10/10 across a Canadian and an American test note (variants preserved, planted typos still fixed). A "proofing language" Settings option was considered and deferred — see Architecture_Decisions.md ("AI Scribe Prompt Engineering"), which now records the full prompt-engineering lessons from the Gemma era.
 
 ### 2026-08-05 (per-client Payment Record + report wrapping)
