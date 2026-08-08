@@ -1376,6 +1376,63 @@ No behaviour change (endpoint sets byte-identical, verified via `app.url_map`); 
 
 ---
 
+## AI SCRIBE PROMPT ENGINEERING (Gemma 4 era)
+
+### The Principle
+
+Gemma 4 is instruction-literal. Every Scribe bug since the swap has been the
+same species: the model doing exactly what the prompt *said* instead of what
+we *meant*. Prompt rules are load-bearing clinical infrastructure and must be
+written — and verified — with the same rigour as code.
+
+### Lessons (each learned from a production incident)
+
+**1. Rule scope must match intent, exactly.** (2026-07-27, third-person bug)
+"Use third person" was meant to stop second-person references to the client;
+Gemma applied it globally and rewrote the clinician's "I" as "the clinician".
+(2026-08-08, Americanism bug) "Preserve spelling conventions" covered
+spelling only; "e.g." → "e.g.," is punctuation, so the rule didn't restrain
+it — and the proofread prompt explicitly licenses punctuation fixes. State
+the intent's full scope; a literal reader gets only what is written.
+
+**2. Examples beat prohibitions.** A plain prohibition ("do not add a comma
+after e.g.") LOST to the model's training prior even at temperature 0.1.
+Restating the rule as a worked before/after example held.
+
+**3. Examples must be symmetric.** A single-direction example ("e.g. X must
+stay e.g. X") was learned as a *target style*: the model then stripped an
+American writer's legitimate "e.g.," — over-correction in the opposite
+direction. Preservation rules need examples in every direction: "if notes
+say X, output X; if notes say Y, output Y; both are correct."
+
+**4. The system prompt's own text is few-shot evidence.** Our prompt wrote
+"e.g.," (American style) twice while we expected the model not to impose it.
+The prompt must model the neutrality it demands — audit its own usage.
+
+**5. Verify against the live model, in both directions.** Round one of the
+punctuation fix looked reasonable and passed the Canadian test while
+silently breaking the American one. Every prompt change gets a live repro
+test with planted errors AND preservation traps on each side of the rule,
+at proofread temperature (0.1), before commit.
+
+**6. Restraint beats detection.** Don't ask the model to "detect the
+writer's variant" (short notes may carry no evidence; the training prior
+then wins). Ask for restraint: style conventions are not errors; absent an
+actual error, change nothing. Restraint needs no evidence.
+
+### Deferred by design
+
+A user-facing "proofing language" setting (raised 2026-08-08) is deferred:
+the style-imposition fix above is variant-neutral and needs no config, and a
+language dropdown is an implicit quality promise — offering "Français" says
+French clinical proofreading was validated, which it has not been. Trigger
+for revisiting: a real request for non-English proofreading, followed by a
+mini bake-off with planted-error notes in that language BEFORE the option
+ships. (Bake-off trap set must also include a first-person clinician-voice
+note — the 2026-07-27 gap.)
+
+---
+
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: June 21, 2026*
+*Last Updated: August 8, 2026*
