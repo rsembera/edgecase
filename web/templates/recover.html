@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use Recovery Key - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 500px;
+        }
+        h2 { color: #1F2937; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        input[type=text] {
+            width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
+            border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.95rem; letter-spacing: 0.04em;
+        }
+        input[type=text]:focus { outline: none; border-color: #115D4F; }
+        .hint { color: #6B7280; font-size: 0.8rem; margin-top: 0.4rem; }
+        .error {
+            background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
+            padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
+        }
+        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+        button {
+            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
+            padding: 0.65rem 1.5rem; font-family: inherit; font-size: 0.925rem;
+            font-weight: 500; cursor: pointer;
+        }
+        button:hover { background: #0D4A3F; }
+        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
+        .later:hover { color: #374151; text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="card">
+{% if unavailable %}
+    <h2>This practice file has no recovery key</h2>
+    <p class="subtitle">It can only be opened with its master password</p>
+    <p>Recovery keys were added in a later version of EdgeCase, and this file
+       predates them. There is no way to open it without the password.</p>
+    <div class="actions">
+        <a class="later" href="{{ url_for('auth.login') }}">Back to login</a>
+    </div>
+{% elif lockout_seconds %}
+    <h2>Too many attempts</h2>
+    <p class="subtitle">Please wait before trying again</p>
+    <p>Try again in about {{ (lockout_seconds / 60) | round(0, 'ceil') | int }} minute(s).</p>
+    <div class="actions">
+        <a class="later" href="{{ url_for('auth.login') }}">Back to login</a>
+    </div>
+{% else %}
+    <h2>Open with your recovery key</h2>
+    <p class="subtitle">For when the master password has been forgotten</p>
+
+    <p>Enter the recovery key you wrote down. You'll then choose a new master
+       password, and your records will open as normal — nothing is lost.</p>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <form method="POST" action="{{ url_for('auth.recover') }}">
+        <label for="recovery_key">Recovery key</label>
+        <input type="text" id="recovery_key" name="recovery_key" required autofocus
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+        <p class="hint">Hyphens, spacing and capitals don't matter.</p>
+        <div class="actions">
+            <button type="submit">Continue</button>
+            <a class="later" href="{{ url_for('auth.login') }}">Back to login</a>
+        </div>
+    </form>
+{% endif %}
+</div>
+</body>
+</html>

@@ -111,6 +111,34 @@ def _drop_recovery_handoff(token):
     _recovery_key_handoff.pop(token, None)
 
 
+# A recovery key that has been verified, held between /recover and
+# /recover/reset. Short TTL: the user is mid-flow with the key in front of
+# them, so there is no reason for this to outlive a single sitting.
+
+_recovery_reset_handoff = {}
+
+
+def _store_recovery_reset_handoff(recovery_key):
+    _recovery_reset_handoff.clear()
+    token = secrets.token_urlsafe(32)
+    _recovery_reset_handoff[token] = {'key': recovery_key, 'created': time.time()}
+    return token
+
+
+def _peek_recovery_reset_handoff(token):
+    entry = _recovery_reset_handoff.get(token) if token else None
+    if not entry:
+        return None
+    if time.time() - entry['created'] > _HANDOFF_TTL_SECONDS:
+        _recovery_reset_handoff.pop(token, None)
+        return None
+    return entry['key']
+
+
+def _drop_recovery_reset_handoff(token):
+    _recovery_reset_handoff.pop(token, None)
+
+
 # ============================================================================
 # LOGIN RATE LIMITING
 # ============================================================================
@@ -429,6 +457,85 @@ def regenerate_recovery_key():
         return redirect(url_for('auth.recovery_key', token=token))
 
     return render_template('recovery_key_regenerate.html')
+
+
+@auth_bp.route('/recover', methods=['GET', 'POST'])
+def recover():
+    """Open the install with a recovery key, then set a new master password.
+
+    Unauthenticated, so it carries the same rate limiting as login. 160 bits of
+    uniform entropy makes guessing hopeless on its own, but the limiter also
+    covers the malformed-input path and keeps this route from being a way to
+    sidestep the lockout on /login.
+
+    Success hands a server-side token to /recover/reset — never the key itself
+    in a cookie, and never the master in the session.
+    """
+    from core import migrate_crypto
+
+    if not migrate_crypto.has_recovery_key():
+        return render_template('recover.html', unavailable=True)
+
+    is_blocked, seconds_remaining = _check_rate_limit()
+    if is_blocked:
+        return render_template('recover.html', lockout_seconds=seconds_remaining)
+
+    if request.method == 'POST':
+        key = request.form.get('recovery_key', '')
+        try:
+            migrate_crypto.v3.unwrap_with_recovery_key(
+                migrate_crypto.v3.read_keyinfo(), key)
+        except migrate_crypto.v3.RecoveryKeyError as e:
+            # Malformed — a typo, not a wrong key. Say which, and don't spend
+            # an attempt on it.
+            return render_template('recover.html', error=str(e))
+        except Exception:
+            _record_failed_attempt()
+            return render_template(
+                'recover.html',
+                error="That recovery key does not open this practice file.")
+
+        _clear_failed_attempts()
+        token = _store_recovery_reset_handoff(key)
+        return redirect(url_for('auth.recover_reset', token=token))
+
+    return render_template('recover.html')
+
+
+@auth_bp.route('/recover/reset', methods=['GET', 'POST'])
+def recover_reset():
+    """Set a new master password after a verified recovery key."""
+    from core import migrate_crypto
+
+    token = request.args.get('token') or request.form.get('token', '')
+    key = _peek_recovery_reset_handoff(token)
+    if not key:
+        return redirect(url_for('auth.recover'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password', '')
+        confirm = request.form.get('confirm_password', '')
+        if new_password != confirm:
+            return render_template('recover_reset.html', token=token,
+                                   error="Passwords don't match")
+        if len(new_password) < 8:
+            return render_template('recover_reset.html', token=token,
+                                   error="Password must be at least 8 characters")
+
+        try:
+            migrate_crypto.reset_password_with_recovery_key(key, new_password)
+        except Exception as e:
+            return render_template('recover_reset.html', token=token,
+                                   error=f"Could not reset the password: {e}")
+
+        _drop_recovery_reset_handoff(token)
+        # Deliberately does NOT log the user in. They just chose a password
+        # they have typed exactly twice; using it once more now is the cheapest
+        # possible confirmation that it is what they think it is, while the
+        # recovery key is still in their hand.
+        return render_template('recover_reset.html', done=True)
+
+    return render_template('recover_reset.html', token=token)
 
 
 @auth_bp.route('/logout')

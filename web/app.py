@@ -98,12 +98,18 @@ def inject_recovery_key_pending():
     user never wrote down is exactly the state that must not be dismissible by
     accident, and the flag survives restarts and crashes. Fails closed to
     False — a banner that cannot be computed must not break the app.
+
+    has_recovery_key drives whether the login page offers the recovery route at
+    all; a v1/v2 install must not advertise a door it does not have.
     """
     try:
         from core import migrate_crypto
-        return {'recovery_key_pending': migrate_crypto.recovery_key_pending()}
+        return {
+            'recovery_key_pending': migrate_crypto.recovery_key_pending(),
+            'has_recovery_key': migrate_crypto.has_recovery_key(),
+        }
     except Exception:
-        return {'recovery_key_pending': False}
+        return {'recovery_key_pending': False, 'has_recovery_key': False}
 
 
 # ============================================================================
@@ -359,7 +365,12 @@ def require_login():
         heartbeat_func()
     
     # Allow access to login page, static files, and session status endpoints without auth
-    allowed_endpoints = ['auth.login', 'auth.logout', 'auth.migrate_stream', 'static', 'session_status', 'keepalive', 'heartbeat']
+    # auth.recover / auth.recover_reset are unauthenticated by necessity: they
+    # are the route for someone who cannot log in. They are gated instead by
+    # the recovery key itself, plus the same rate limiter as /login.
+    allowed_endpoints = ['auth.login', 'auth.logout', 'auth.migrate_stream',
+                         'auth.recover', 'auth.recover_reset',
+                         'static', 'session_status', 'keepalive', 'heartbeat']
     if request.endpoint in allowed_endpoints:
         return
     

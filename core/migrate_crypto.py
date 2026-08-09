@@ -770,3 +770,56 @@ def regenerate_recovery_key(password: str, root=None) -> str:
     paths.rk_pending.write_text("1")
     v3.write_keyinfo(new_blob, path=paths.keyinfo)
     return recovery_key
+
+
+def reset_password_with_recovery_key(recovery_key: str, new_password: str,
+                                     root=None) -> None:
+    """Open the install with the recovery key and set a new master password.
+
+    This is the recovery door. It is deliberately a password RESET rather than
+    a passwordless session: EdgeCase is password-keyed all the way down — the
+    Flask session, Database(password=...), and the key cache all assume one
+    exists — so minting a new password here is both simpler and better UX than
+    plumbing a keyless unlock through those layers. Someone reaching for their
+    recovery key has forgotten their password and needs a working one anyway.
+
+    The recovery key is NOT rotated on use, which is a deliberate asymmetry
+    with the password. If a key has genuinely leaked, an attacker who used it
+    would otherwise be able to rotate it and lock the real owner out
+    permanently; leaving it valid means the owner's own written copy still
+    opens the install and they can rotate it themselves afterwards. Settings
+    offers exactly that, and the screen says so.
+
+    Raises RecoveryKeyError if the key is malformed, ValueError if it is
+    well-formed but does not open this install.
+    """
+    paths = _resolve_paths(root)
+    if install_crypto_version(root) != 3:
+        raise RuntimeError(
+            "This install predates recovery keys and can only be opened with "
+            "its master password.")
+
+    blob = v3.read_keyinfo(path=paths.keyinfo)
+    master = v3.unwrap_with_recovery_key(blob, recovery_key)
+
+    new_blob = v3.rewrap_password(blob, master, new_password)
+    if v3.unwrap_with_password(new_blob, new_password) != master:
+        raise RuntimeError("Rewrapped key file failed verification; aborting.")
+
+    v3.write_keyinfo(new_blob, path=paths.keyinfo)
+    # Load-bearing, as in _change_password_v3: the derived keys do not change,
+    # so a stale entry would keep the forgotten password working until restart.
+    v2._key_cache.clear()
+
+
+def has_recovery_key(root=None) -> bool:
+    """True if this install can be opened with a recovery key at all.
+
+    Used to decide whether the login page offers the recovery route. Saying
+    'that option does not exist here' up front is kinder than letting someone
+    hunt for a key that could never have worked.
+    """
+    try:
+        return install_crypto_version(root) == 3
+    except Exception:
+        return False
