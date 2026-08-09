@@ -476,10 +476,17 @@ details[open] .settings-section-header .arrow {
                 <i data-lucide="rotate-ccw" class="icon-sm icon-inline"></i>
                 {% if recovery_key_pending %}Set Up Recovery Key{% else %}Issue New Recovery Key{% endif %}
             </a>
+            {% if not recovery_key_pending %}
+            <a href="{{ url_for('auth.verify_recovery_key') }}" class="btn btn-sm">
+                <i data-lucide="check-circle" class="icon-sm icon-inline"></i>
+                Check My Recovery Key
+            </a>
+            {% endif %}
             <small class="helper-text">
-                Issuing a new key immediately retires the previous one. Do this
-                if you never recorded your key, can't find it, or think someone
-                else may have seen it. Your master password is unaffected.
+                Checking a key confirms it works and changes nothing. Issuing a
+                new key immediately retires the previous one — do that if you
+                never recorded your key, can't find it, or think someone else
+                may have seen it. Your master password is unaffected either way.
             </small>
         </div>
         {% endif %}

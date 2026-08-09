@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Set New Password - EdgeCase Equalizer</title>
+    <title>Check Recovery Key - EdgeCase Equalizer</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
     <style>
         @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype'); font-weight: 400; }
@@ -17,79 +17,72 @@
         }
         .card {
             background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            padding: 2.5rem; width: 100%; max-width: 460px;
+            padding: 2.5rem; width: 100%; max-width: 500px;
         }
         h2 { color: #1F2937; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.4rem; }
         .subtitle { color: #6B7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
         p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
-        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151;
-                margin-bottom: 0.4rem; margin-top: 1rem; }
-        input[type=password] {
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        input[type=text] {
             width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
-            border-radius: 0.5rem; font-family: inherit; font-size: 0.95rem;
+            border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.9rem; letter-spacing: 0.02em;
         }
-        input[type=password]:focus { outline: none; border-color: #115D4F; }
+        input[type=text]:focus { outline: none; border-color: #115D4F; }
+        .hint { color: #6B7280; font-size: 0.8rem; margin-top: 0.4rem; }
         .error {
             background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
             padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
         }
-        .note {
-            background: #FFF8E6; border-left: 3px solid #D9A441; border-radius: 0.4rem;
-            padding: 0.85rem 1rem; font-size: 0.875rem; color: #6B5320; margin: 1.25rem 0;
+        .ok {
+            background: #E6F4EA; border-left: 3px solid #2E7D4F; border-radius: 0.4rem;
+            padding: 0.9rem 1rem; font-size: 0.9rem; color: #1E5B39; margin-bottom: 1.25rem;
         }
-        .actions { margin-top: 1.5rem; }
+        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
         button, .btnlink {
             display: inline-block; background: #115D4F; color: white; border: none;
             border-radius: 0.5rem; padding: 0.65rem 1.5rem; font-family: inherit;
             font-size: 0.925rem; font-weight: 500; cursor: pointer; text-decoration: none;
         }
         button:hover, .btnlink:hover { background: #0D4A3F; }
-        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; margin-left: 0.75rem; }
+        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
         .later:hover { color: #374151; text-decoration: underline; }
     </style>
 </head>
 <body>
 <div class="card">
-{% if done %}
-    <h2>Password reset</h2>
-    <p class="subtitle">Your records are unchanged</p>
-    <p>Your new master password is now active. Sign in with it to continue.</p>
-    <div class="note">
-        Your recovery key still works and has not changed — keep it where it is.
-        If you're concerned someone else may have seen it, you can issue a
-        replacement from Settings once you're signed in.
+{% if verified %}
+    <h2>That key works</h2>
+    <p class="subtitle">Nothing was changed</p>
+    <div class="ok">
+        This recovery key opens your practice file. Your master password and
+        your records are exactly as they were — checking a key changes nothing.
     </div>
+    <p>Put it back wherever you keep it.</p>
     <div class="actions">
-        <a class="btnlink" href="{{ url_for('auth.login') }}">Sign in</a>
+        <a class="btnlink" href="{{ url_for('settings.settings_page') }}">Back to Settings</a>
     </div>
 {% else %}
-    <h2>Choose a new master password</h2>
-    <p class="subtitle">Your recovery key has been accepted</p>
+    <h2>Check your recovery key</h2>
+    <p class="subtitle">Confirms the key works without changing anything</p>
 
-    <p>Your records and attachments are untouched — only the password that
-       opens them is changing.</p>
-
-    <div class="note">
-        Setting a password here <strong>replaces your current one</strong>, and
-        the old password will stop working. If you've just remembered it, you
-        can back out — nothing has been changed yet. Your recovery key stays
-        valid either way.
-    </div>
+    <p>A recovery key you've never tested is one you're only assuming works,
+       and you'd find out on the worst possible day. This checks it against
+       your practice file and changes nothing at all — not your password, not
+       your records, not the key itself.</p>
 
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
-    <form method="POST" action="{{ url_for('auth.recover_reset') }}">
+    <form method="POST" action="{{ url_for('auth.verify_recovery_key') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="token" value="{{ token }}">
-        <label for="new_password">New master password</label>
-        <input type="password" id="new_password" name="new_password" required
-               autofocus autocomplete="new-password" minlength="8">
-        <label for="confirm_password">Confirm new password</label>
-        <input type="password" id="confirm_password" name="confirm_password"
-               required autocomplete="new-password" minlength="8">
+        <label for="recovery_key">Recovery key</label>
+        <input type="text" id="recovery_key" name="recovery_key" required autofocus
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+        <p class="hint">Hyphens, spacing and capitals don't matter.</p>
         <div class="actions">
-            <button type="submit">Set password</button>
-            <a class="later" href="{{ url_for('auth.login') }}">Cancel</a>
+            <button type="submit">Check key</button>
+            <a class="later" href="{{ url_for('settings.settings_page') }}">Cancel</a>
         </div>
     </form>
 {% endif %}
