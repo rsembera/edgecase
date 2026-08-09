@@ -45,6 +45,13 @@
             padding: 0.9rem 1rem; font-size: 0.875rem; color: #6B5320; margin-bottom: 1.25rem;
         }
         label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        .checkline {
+            display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer;
+            font-weight: 400; color: #374151; font-size: 0.925rem; margin-bottom: 0;
+        }
+        .checkline input { margin-top: 0.28rem; width: 1rem; height: 1rem; accent-color: #115D4F; }
+        button:disabled { background: #9CA3AF; cursor: not-allowed; }
+        button:disabled:hover { background: #9CA3AF; }
         input[type=text] {
             width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
             border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -109,12 +116,15 @@
     </div>
 
     <div class="warn">
-        <strong>Treat this like the records themselves.</strong> Anyone holding
-        it can open your practice file. Keep it where you keep other confidential
-        material — a locked cabinet or a safe — not a desk drawer or an unencrypted
-        note. Hyphens, spacing and capitals don't matter when you type it back.
+        <p style="margin-bottom:0.6rem;"><strong>This key is shown once and is
+        not stored anywhere.</strong> If you leave this page without saving it,
+        it cannot be shown again — you would need to issue a new one from
+        Settings, which requires your master password.</p>
+        <p style="margin-bottom:0;">Anyone who has this key can open your
+        practice file without the password. Store it the way you would store a
+        spare key to your office: somewhere physical, somewhere private, and
+        not in the same place as your password.</p>
     </div>
-
     <p class="print-only">EdgeCase Equalizer recovery key — store securely.</p>
 
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
@@ -122,13 +132,12 @@
     <form method="POST" action="{{ url_for('auth.recovery_key') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="token" value="{{ token }}">
-        <label for="confirm_key">Type the key back to confirm you've recorded it</label>
-        <input type="text" id="confirm_key" name="confirm_key" autocomplete="off"
-               autocapitalize="off" autocorrect="off" spellcheck="false"
-               placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required autofocus>
+        <label class="checkline">
+            <input type="checkbox" id="confirm-saved" name="confirm_saved" required>
+            <span>I have saved my recovery key somewhere safe</span>
+        </label>
         <div class="actions">
-            <button type="submit">Confirm and continue</button>
-            <a class="later" href="{{ url_for('clients.index') }}">I'll do this later</a>
+            <button type="submit" id="continue-button" disabled>Continue</button>
         </div>
     </form>
 {% endif %}
@@ -224,15 +233,23 @@
         });
     }
 
-    // Leaving loses the key permanently, so make that explicit — but only for
-    // accidental exits. Confirming, and the deliberate "I'll do this later"
-    // link, are both real choices and must not be nagged.
-    var leavingDeliberately = false;
-    document.querySelectorAll('form, .later').forEach(function (el) {
-        el.addEventListener(el.tagName === 'FORM' ? 'submit' : 'click', function () {
-            leavingDeliberately = true;
+    // Continue stays disabled until the box is ticked, so the acknowledgement
+    // is a deliberate act rather than a reflex click-through.
+    var confirmEl = document.getElementById('confirm-saved');
+    var continueEl = document.getElementById('continue-button');
+    if (confirmEl && continueEl) {
+        confirmEl.addEventListener('change', function () {
+            continueEl.disabled = !confirmEl.checked;
         });
-    });
+    }
+
+    // Leaving this page loses the key permanently, so make that explicit for
+    // anything other than the deliberate Continue action.
+    var leavingDeliberately = false;
+    var form = confirmEl ? confirmEl.closest('form') : null;
+    if (form) {
+        form.addEventListener('submit', function () { leavingDeliberately = true; });
+    }
 
     window.addEventListener('beforeunload', function (event) {
         if (leavingDeliberately) { return; }

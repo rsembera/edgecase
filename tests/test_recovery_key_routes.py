@@ -32,49 +32,37 @@ def test_display_shows_the_key(client, issued_key):
     assert key.encode() in resp.data
 
 
-@pytest.mark.parametrize("mangle", [
-    lambda s: s,
-    str.lower,
-    lambda s: s.replace("-", ""),
-    lambda s: s.replace("-", " "),
-    lambda s: f"  {s}  ",
-])
-def test_acknowledgement_accepts_realistic_typing(client, issued_key, mangle):
-    """The user is transcribing from paper; punish only genuine mismatches."""
+def test_acknowledgement_clears_the_flag(client, issued_key):
     key, token, cleared = issued_key
     resp = client.post("/recovery-key", headers={"Host": "localhost"},
-                       data={"token": token, "confirm_key": mangle(key)})
+                       data={"token": token, "confirm_saved": "on"})
     assert resp.status_code == 302
     assert cleared["count"] == 1
 
 
-def test_wrong_confirmation_keeps_the_key_on_screen(client, issued_key):
-    """A mistype must not consume the handoff — the key is unrecoverable once
-    it leaves the screen, so the cost of being strict here is total."""
-    key, token, cleared = issued_key
-    other = v3.generate_recovery_key()
-
-    resp = client.post("/recovery-key", headers={"Host": "localhost"},
-                       data={"token": token, "confirm_key": other})
-
-    assert resp.status_code == 200
-    assert key.encode() in resp.data, "key was dropped after a mistype"
-    assert cleared["count"] == 0
-    assert auth_bp._peek_recovery_handoff(token) == key
-
-
-def test_malformed_confirmation_is_not_a_crash(client, issued_key):
+def test_unchecked_box_is_rejected_server_side(client, issued_key):
+    """`required` on the checkbox is a browser hint; anything can POST."""
     key, token, cleared = issued_key
     resp = client.post("/recovery-key", headers={"Host": "localhost"},
-                       data={"token": token, "confirm_key": "nonsense!!"})
+                       data={"token": token})
     assert resp.status_code == 200
     assert cleared["count"] == 0
+    assert key.encode() in resp.data, "key was dropped on a rejected submit"
+
+
+def test_rejected_submit_keeps_the_handoff(client, issued_key):
+    """The key is unrecoverable once it leaves the screen, so a rejected
+    submit must not consume it."""
+    _key, token, _ = issued_key
+    client.post("/recovery-key", headers={"Host": "localhost"},
+                data={"token": token})
+    assert auth_bp._peek_recovery_handoff(token) is not None
 
 
 def test_acknowledgement_consumes_the_handoff(client, issued_key):
-    key, token, _ = issued_key
+    _key, token, _ = issued_key
     client.post("/recovery-key", headers={"Host": "localhost"},
-                data={"token": token, "confirm_key": key})
+                data={"token": token, "confirm_saved": "on"})
     assert auth_bp._peek_recovery_handoff(token) is None
 
 
