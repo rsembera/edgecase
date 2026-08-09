@@ -24,10 +24,13 @@
         p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
         .keybox {
             background: #F3F6F7; border: 1px solid #BFDCDC; border-radius: 0.75rem;
-            padding: 1.25rem; margin: 1.25rem 0 0.75rem; text-align: center;
+            padding: 1.1rem 0.75rem; margin: 1.25rem 0 0.75rem; text-align: center;
             font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
-            font-size: 1.15rem; letter-spacing: 0.06em; color: #115D4F;
-            word-break: break-all; user-select: all;
+            /* Sized to keep all 39 characters on ONE line at this card width.
+               Wrapping mid-key invites transcription errors, and a key that
+               looks like two lines gets written down as two lines. */
+            font-size: 0.95rem; letter-spacing: 0.02em; color: #115D4F;
+            white-space: nowrap; overflow-x: auto; user-select: all;
         }
         .keyactions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
         .keyactions button {
@@ -45,7 +48,7 @@
         input[type=text] {
             width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
             border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
-            font-size: 0.95rem; letter-spacing: 0.04em;
+            font-size: 0.9rem; letter-spacing: 0.02em;
         }
         input[type=text]:focus { outline: none; border-color: #115D4F; }
         .error {
@@ -117,6 +120,7 @@
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
     <form method="POST" action="{{ url_for('auth.recovery_key') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="token" value="{{ token }}">
         <label for="confirm_key">Type the key back to confirm you've recorded it</label>
         <input type="text" id="confirm_key" name="confirm_key" autocomplete="off"

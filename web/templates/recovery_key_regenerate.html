@@ -57,6 +57,7 @@
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
     <form method="POST" action="{{ url_for('auth.regenerate_recovery_key') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="password">Confirm your master password</label>
         <input type="password" id="password" name="password" required autofocus
                autocomplete="current-password">
