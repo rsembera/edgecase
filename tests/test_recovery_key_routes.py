@@ -252,3 +252,47 @@ def test_reset_completes_and_does_not_auto_login(client, recoverable, monkeypatc
     assert resp.status_code == 200
     assert b"Sign in" in resp.data
     assert auth_bp._peek_recovery_reset_handoff(token) is None
+
+
+# --- Regression: the SSE stream and application context ---
+
+def test_migrate_stream_resolves_urls_outside_the_generator():
+    """Regression for a real failure on the first live run.
+
+    Flask pops the application context before an SSE generator is consumed, so
+    url_for() called INSIDE the generator raises 'Working outside of
+    application context' — and it did so AFTER the migration had already
+    committed, producing a scary error screen over a perfectly good upgrade.
+
+    Both URLs must therefore be resolved in the request scope, before the
+    generator body. Asserting on source is crude, but the alternative is
+    driving a full SSE consume against a real v1/v2 install, and the property
+    worth pinning is exactly 'no url_for below def generate'.
+    """
+    import inspect
+
+    from web.blueprints import auth as auth_mod
+
+    src = inspect.getsource(auth_mod.migrate_stream)
+    head, _, body = src.partition("def generate():")
+    assert body, "migrate_stream no longer has a generate() body"
+    assert "url_for" in head, "URLs should be resolved in the request scope"
+    assert "url_for" not in body, (
+        "url_for() inside the SSE generator will raise 'Working outside of "
+        "application context' after the migration has already committed")
+
+
+def test_stream_failure_after_commit_does_not_claim_data_is_unchanged():
+    """The original handler asserted the data was untouched on ANY exception.
+    Everything after the commit point can fail with the migration already
+    committed, and telling the user nothing happened is the wrong mental
+    model — worse than the crash itself."""
+    import inspect
+
+    from web.blueprints import auth as auth_mod
+
+    src = inspect.getsource(auth_mod.migrate_stream)
+    _, _, handler = src.partition("except Exception as e:")
+    assert "install_crypto_version" in handler, (
+        "the error path must ask the disk whether the migration committed "
+        "rather than assuming it did not")
