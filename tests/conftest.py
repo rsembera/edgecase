@@ -15,6 +15,34 @@ from core.database import Database
 from web.app import app as flask_app, init_all_blueprints
 
 
+@pytest.fixture(autouse=True)
+def isolate_keyinfo(tmp_path_factory, monkeypatch):
+    """No test may read the real install's key-info file.
+
+    Several tests create a temp Database with an arbitrary password and never
+    redirected v2.KEYINFO_FILE, so key derivation silently consulted whatever
+    .keyinfo happened to exist in the developer's DATA_DIR. Under v2 that was
+    invisible: get_keys() with a mismatched password returned garbage keys
+    deterministically, and encrypt-then-decrypt with consistently garbage keys
+    round-trips fine. Under v3 the wrapper's GCM tag fails and get_keys()
+    raises — so the moment a live install became ECC3, four tests broke that
+    had nothing to do with the change.
+
+    Beyond the breakage, the dependency itself was wrong: the suite behaved
+    differently on a machine with a migrated install than on a fresh clone.
+
+    Points the path at an empty temp dir (so, no key-info -> v1 keying, which
+    is what those tests were written against). Tests needing a specific
+    version write their own key-info and override this.
+    """
+    from core import encryption_v2
+    keyinfo_dir = tmp_path_factory.mktemp("keyinfo")
+    monkeypatch.setattr(encryption_v2, "KEYINFO_FILE", keyinfo_dir / ".keyinfo")
+    encryption_v2._key_cache.clear()
+    yield
+    encryption_v2._key_cache.clear()
+
+
 @pytest.fixture
 def app_db():
     """A fresh temp-file Database per test (route-level analogue of the ``db``

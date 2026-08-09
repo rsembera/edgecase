@@ -264,17 +264,34 @@ def test_build_rejects_wrong_length_master():
 
 @pytest.fixture
 def live_keyinfo(tmp_path, monkeypatch):
-    """Point BOTH modules' default key-info path at a temp file.
+    """Redirect the live key-info path by overriding v2 ONLY.
 
-    get_keys() and verify_password() read the live path with no argument, so
-    exercising the real read path means relocating it rather than passing one in.
+    Deliberately does not touch encryption_v3: v2.KEYINFO_FILE is the single
+    source of truth, and patching both would hide the very bug this guards
+    against — v3 consulting the real install while the rest of the same
+    operation used the override.
     """
     path = tmp_path / ".keyinfo"
     monkeypatch.setattr(v2, "KEYINFO_FILE", path)
-    monkeypatch.setattr(v3, "KEYINFO_FILE", path)
     v2._key_cache.clear()
     yield path
     v2._key_cache.clear()
+
+
+def test_v3_follows_the_v2_keyinfo_override(tmp_path, monkeypatch, envelope):
+    """Regression: encryption_v3 must resolve the key-info path through
+    v2.KEYINFO_FILE at call time. When it kept its own constant, every caller
+    that redirected v2's path got a version check against the REAL install —
+    which silently broke seven tests the moment a live install became ECC3."""
+    blob, master, _rk = envelope
+    path = tmp_path / ".keyinfo"
+    monkeypatch.setattr(v2, "KEYINFO_FILE", path)
+
+    v3.write_keyinfo(blob, path=path)
+
+    assert v3.keyinfo_version() == 3
+    assert v3.read_keyinfo() == blob
+    assert v2.get_keys(PW) == v2.derive_subkeys(master)
 
 
 def test_get_keys_opens_a_v3_install(live_keyinfo, envelope):

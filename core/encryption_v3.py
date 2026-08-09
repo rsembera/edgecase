@@ -38,7 +38,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from core import encryption_v2 as v2
-from core.config import DATA_DIR
 
 
 # --- Wire format / constants ---
@@ -78,7 +77,20 @@ KEYINFO_LEN_V3 = _OFF_WRAPPED_RK + WRAPPED_LEN
 # common transcription failure.
 _RECOVERY_FIXUPS = str.maketrans({"0": "O", "1": "I", "8": "B"})
 
-KEYINFO_FILE = DATA_DIR / ".keyinfo"
+KEYINFO_FILE = v2.KEYINFO_FILE
+
+
+def _keyinfo_path(path=None):
+    """Resolve the key-info path, deferring to v2 as the single source of truth.
+
+    v3 must NOT keep its own copy of this path. Callers and tests have always
+    overridden v2.KEYINFO_FILE to redirect the key file; if v3 held a separate
+    constant, a version check would consult the live install while the rest of
+    the same operation used the override — which is exactly the bug that made
+    get_keys() read the real .keyinfo during tests that had correctly isolated
+    themselves. Resolved at call time so the override is always honoured.
+    """
+    return path if path is not None else v2.KEYINFO_FILE
 
 
 class RecoveryKeyError(ValueError):
@@ -265,7 +277,7 @@ def keyinfo_version(path=None) -> int:
     Callers that only need "is this still v1" should keep using
     v2.keyinfo_exists() — its meaning is unchanged by v3.
     """
-    path = path or KEYINFO_FILE
+    path = _keyinfo_path(path)
     with open(path, "rb") as f:
         magic = f.read(4)
     if magic == KEYINFO_MAGIC_V3:
@@ -279,7 +291,7 @@ def keyinfo_version(path=None) -> int:
 
 def read_keyinfo(path=None) -> bytes:
     """Raw bytes of the ECC3 key-info file (validated)."""
-    path = path or KEYINFO_FILE
+    path = _keyinfo_path(path)
     with open(path, "rb") as f:
         blob = f.read()
     parse_keyinfo(blob)
@@ -294,7 +306,7 @@ def write_keyinfo(blob: bytes, path=None) -> None:
     rename itself can vanish on power loss even though the data was synced.
     """
     parse_keyinfo(blob)
-    path = path or KEYINFO_FILE
+    path = _keyinfo_path(path)
     tmp = f"{path}.v3tmp"
     try:
         with open(tmp, "wb") as f:
