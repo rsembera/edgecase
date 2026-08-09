@@ -458,6 +458,32 @@ details[open] .settings-section-header .arrow {
             </a>
         </div>
 
+        {% if has_recovery_key %}
+        <div class="form-group">
+            <label>Recovery Key</label>
+            <p class="status-paragraph">
+                {% if recovery_key_pending %}
+                <i data-lucide="alert-triangle" class="icon-sm icon-inline"></i>
+                No recovery key has been recorded. Without one, a forgotten
+                master password means your records cannot be recovered.
+                {% else %}
+                <i data-lucide="shield-check" class="icon-sm icon-inline"></i>
+                A recovery key is set up. It opens your practice file if you
+                ever forget your master password.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('auth.regenerate_recovery_key') }}" class="btn btn-sm">
+                <i data-lucide="rotate-ccw" class="icon-sm icon-inline"></i>
+                {% if recovery_key_pending %}Set Up Recovery Key{% else %}Issue New Recovery Key{% endif %}
+            </a>
+            <small class="helper-text">
+                Issuing a new key immediately retires the previous one. Do this
+                if you never recorded your key, can't find it, or think someone
+                else may have seen it. Your master password is unaffected.
+            </small>
+        </div>
+        {% endif %}
+
         <div class="form-row-half">
         <div class="form-group mb-0">
             <label for="session_timeout">Auto-Logout After Inactivity</label>
