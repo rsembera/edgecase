@@ -1,0 +1,80 @@
+{# Button styles for the standalone auth/recovery screens.
+
+   These pages follow login.html's pattern: full standalone documents with
+   inline <style>, not extending base.html, so they never load
+   static/css/shared.css. Rather than let five copies of the button rules
+   drift apart, they all include this partial inside their <style> block.
+
+   Values mirror .btn / .btn-secondary in static/css/shared.css:
+     --color-primary-lighter  #BFDCDC   (primary background)
+     --color-primary-dark     #115D4F   (primary text)
+     --color-primary-light    #9FCFC0   (primary hover)
+     --color-text-light       #4B5563   (secondary text)
+     --shadow-md              0 4px 12px rgba(0,0,0,0.1)
+
+   If shared.css changes, change this too. #}
+.btn,
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.75rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    height: 38px;
+    line-height: 1;
+    box-sizing: border-box;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    background: #BFDCDC;
+    color: #115D4F;
+}
+
+.btn:hover,
+button:hover:not(:disabled) {
+    background: #9FCFC0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #E5E7EB;
+    color: #4B5563;
+}
+
+.btn-secondary:hover {
+    background: #D1D5DB;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+button:disabled,
+button:disabled:hover {
+    background: #E5E7EB;
+    color: #9CA3AF;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Row of actions at the foot of a card. */
+.actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Smaller buttons for in-card utilities (copy / download / print). */
+.btn-sm {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    height: auto;
+}
