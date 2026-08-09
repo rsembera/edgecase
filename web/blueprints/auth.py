@@ -346,6 +346,11 @@ def migrate_stream():
     db_path = str(Path(DATA_DIR) / "edgecase.db")
     app_obj = current_app._get_current_object()
     redirect_url = url_for('clients.index')
+    # Resolved HERE, not inside the generator. Flask pops the application
+    # context before the generator is consumed, so url_for() inside it raises
+    # "Working outside of application context" — after the migration has
+    # already committed.
+    recovery_key_url = url_for('auth.recovery_key')
 
     def generate():
         if not password:
@@ -373,11 +378,31 @@ def migrate_stream():
             # set on disk, so even a crash here leaves evidence the key was
             # never recorded.
             rk_token = _store_recovery_handoff(result.get('recovery_key'))
-            destination = url_for('auth.recovery_key', token=rk_token)
+            destination = f"{recovery_key_url}?token={rk_token}"
 
             yield "data: " + json.dumps({'status': 'complete', 'message': 'Encryption upgraded.', 'files': result.get('files_migrated', 0), 'redirect': destination}) + "\n\n"
         except Exception as e:
-            yield "data: " + json.dumps({'status': 'error', 'message': 'The upgrade did not complete: ' + str(e) + '. Your data is unchanged and still on the previous encryption \u2014 please try logging in again.'}) + "\n\n"
+            # Do NOT assume the data is untouched. Everything after the commit
+            # point — opening the new DB, wiring blueprints, building the
+            # redirect — can fail with the migration already committed, and
+            # telling the user nothing happened would leave them with exactly
+            # the wrong mental model. Ask the disk instead of guessing.
+            try:
+                from core import migrate_crypto
+                committed = migrate_crypto.install_crypto_version() == 3
+            except Exception:
+                committed = False
+
+            if committed:
+                message = ('Your encryption was upgraded, but EdgeCase could not '
+                           'finish opening it: ' + str(e) + '. Your records are '
+                           'safe and your password is unchanged \u2014 please log in '
+                           'again. You will be prompted to set up a recovery key.')
+            else:
+                message = ('The upgrade did not complete: ' + str(e) + '. Your data '
+                           'is unchanged and still on the previous encryption \u2014 '
+                           'please try logging in again.')
+            yield "data: " + json.dumps({'status': 'error', 'message': message}) + "\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
 
