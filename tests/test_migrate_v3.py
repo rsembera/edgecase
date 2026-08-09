@@ -322,3 +322,160 @@ def test_finalize_preserves_the_pending_flag(install):
 def test_recover_is_a_noop_without_a_marker(install):
     root, _v = install
     assert mc.recover_if_interrupted(root=root) == "none"
+
+
+# --- v3 password change: rewrap only ---
+
+NEW_PW = "synth-rotated-pw"
+
+
+@pytest.fixture
+def v3_install(install):
+    """A migrated v3 install plus the recovery key it was issued."""
+    root, version = install
+    rk = mc.migrate_to_v3(PW, root=root)["recovery_key"]
+    mc.clear_recovery_key_pending(root=root)
+    return root, version, rk
+
+
+def _keyinfo_bytes(root):
+    return (root / "data" / ".keyinfo").read_bytes()
+
+
+def test_password_change_is_a_rewrap_not_a_walk(v3_install):
+    """The payoff: attachments and the database are untouched by construction,
+    because the master — and so every key below it — does not move."""
+    root, _v, rk = v3_install
+    master_before = v3.unwrap_with_password(v3.read_keyinfo(
+        path=root / "data" / ".keyinfo"), PW)
+    db_before = (root / "data" / "edgecase.db").read_bytes()
+    files_before = {n: (root / "attachments" / n).read_bytes() for n in PAYLOADS}
+
+    result = mc.change_password(PW, NEW_PW, root=root)
+
+    assert result["status"] == "rewrapped"
+    assert result["files_rekeyed"] == 0
+    assert (root / "data" / "edgecase.db").read_bytes() == db_before
+    for n in PAYLOADS:
+        assert (root / "attachments" / n).read_bytes() == files_before[n]
+    assert v3.unwrap_with_password(v3.read_keyinfo(
+        path=root / "data" / ".keyinfo"), NEW_PW) == master_before
+
+
+def test_password_change_leaves_install_openable(v3_install):
+    root, _v, rk = v3_install
+    mc.change_password(PW, NEW_PW, root=root)
+    assert_openable_v3(root, NEW_PW, rk)
+
+
+def test_password_change_revokes_the_old_password(v3_install):
+    root, _v, _rk = v3_install
+    mc.change_password(PW, NEW_PW, root=root)
+    with pytest.raises(ValueError):
+        v3.unwrap_with_password(v3.read_keyinfo(
+            path=root / "data" / ".keyinfo"), PW)
+
+
+def test_password_change_clears_the_key_cache(v3_install):
+    """The trap this whole path has to avoid.
+
+    Under v3 the derived keys are IDENTICAL either side of a password change,
+    so an entry left in _key_cache under the old password string would keep
+    handing out working keys for the rest of the process lifetime — a revoked
+    password that still opens the install until restart.
+    """
+    root, _v, _rk = v3_install
+    v2._key_cache[PW] = ("deadbeef", b"\x00" * 32)
+
+    mc.change_password(PW, NEW_PW, root=root)
+
+    assert PW not in v2._key_cache, "revoked password still cached"
+    assert not v2._key_cache
+
+
+def test_password_change_does_no_backup_and_leaves_no_marker(v3_install):
+    """No file walk means no backup gate and no rollback window to guard."""
+    root, _v, _rk = v3_install
+    before = set(p.name for p in (root / "backups").iterdir())
+
+    mc.change_password(PW, NEW_PW, root=root)
+
+    assert set(p.name for p in (root / "backups").iterdir()) == before
+    assert not (root / "data" / ".v2_migrating").exists()
+
+
+def test_password_change_refuses_wrong_current_password(v3_install):
+    root, _v, rk = v3_install
+    blob_before = _keyinfo_bytes(root)
+
+    with pytest.raises(ValueError):
+        mc.change_password("not the password", NEW_PW, root=root)
+
+    assert _keyinfo_bytes(root) == blob_before
+    assert_openable_v3(root, PW, rk)
+
+
+# --- Recovery key rotation ---
+
+def test_regenerate_revokes_the_old_recovery_key(v3_install):
+    root, _v, old_rk = v3_install
+
+    new_rk = mc.regenerate_recovery_key(PW, root=root)
+
+    assert new_rk != old_rk
+    assert_openable_v3(root, PW, new_rk)
+    with pytest.raises(ValueError):
+        v3.unwrap_with_recovery_key(v3.read_keyinfo(
+            path=root / "data" / ".keyinfo"), old_rk)
+
+
+def test_regenerate_leaves_the_password_working(v3_install):
+    root, _v, _rk = v3_install
+    mc.regenerate_recovery_key(PW, root=root)
+    assert v3.unwrap_with_password(v3.read_keyinfo(
+        path=root / "data" / ".keyinfo"), PW)
+
+
+def test_regenerate_sets_pending_again(v3_install):
+    """A newly issued key is also unrecorded until the user types it back."""
+    root, _v, _rk = v3_install
+    assert not mc.recovery_key_pending(root=root)
+    mc.regenerate_recovery_key(PW, root=root)
+    assert mc.recovery_key_pending(root=root)
+
+
+def test_regenerate_refuses_wrong_password(v3_install):
+    root, _v, rk = v3_install
+    blob_before = _keyinfo_bytes(root)
+    with pytest.raises(ValueError):
+        mc.regenerate_recovery_key("not the password", root=root)
+    assert _keyinfo_bytes(root) == blob_before
+    assert_openable_v3(root, PW, rk)
+
+
+def test_regenerate_refused_on_a_non_v3_install(install):
+    root, _version = install
+    with pytest.raises(RuntimeError):
+        mc.regenerate_recovery_key(PW, root=root)
+
+
+def test_rotations_are_independent(v3_install):
+    """Rotate both credentials; each must revoke only its own half."""
+    root, _v, old_rk = v3_install
+
+    mc.change_password(PW, NEW_PW, root=root)
+    new_rk = mc.regenerate_recovery_key(NEW_PW, root=root)
+
+    assert_openable_v3(root, NEW_PW, new_rk)
+    blob = v3.read_keyinfo(path=root / "data" / ".keyinfo")
+    with pytest.raises(ValueError):
+        v3.unwrap_with_password(blob, PW)
+    with pytest.raises(ValueError):
+        v3.unwrap_with_recovery_key(blob, old_rk)
+
+
+def test_change_password_still_refuses_a_v1_install(tmp_path):
+    """The v2 path's precondition must survive the version dispatch."""
+    build_v1(tmp_path)
+    with pytest.raises(RuntimeError):
+        mc.change_password(PW, NEW_PW, root=tmp_path)
