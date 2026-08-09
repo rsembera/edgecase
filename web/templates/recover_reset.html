@@ -70,6 +70,7 @@
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
     <form method="POST" action="{{ url_for('auth.recover_reset') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="token" value="{{ token }}">
         <label for="new_password">New master password</label>
         <input type="password" id="new_password" name="new_password" required
