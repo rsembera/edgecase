@@ -422,11 +422,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                // Deliberate leave: the content is now in the database, so
-                // the unsaved-changes guard must not fire on this redirect.
-                if (typeof window.disarmScribeGuard === 'function') {
-                    window.disarmScribeGuard();
-                }
                 // Redirect back to the session entry
                 window.location.href = `/client/${window.CLIENT_ID}/session/${window.ENTRY_ID}`;
             } else {
@@ -484,75 +479,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-load model on page load if downloaded but not loaded
     if (window.MODEL_DOWNLOADED && !window.MODEL_LOADED) {
         ensureModelLoaded();
-    }
-
-    // -----------------------------------------------------------------
-    // Unsaved-changes guard.
-    //
-    // Generated text lives ONLY in this textarea until Keep Changes POSTs
-    // it to /ai/scribe/<id>/save. Until then, Back (or a tab close, or a
-    // reload) discards it silently — the AI Scribe page had no protection
-    // at all, so a proofread note could vanish with no warning. Reported
-    // by Rick 2026-08-09.
-    //
-    // Mirrors form-guard.js rather than reusing it: that script binds to
-    // form[data-dirty-guard] and there is no form on this page, only a
-    // bare textarea.
-    //
-    // CRITICAL PHASE NOTE (carried over from form-guard.js / session.js):
-    // the base layout registers a capture-phase click handler on document
-    // that intercepts same-origin link clicks for the server-liveness
-    // check, preventDefault()s them, and navigates PROGRAMMATICALLY via
-    // window.location.href. A bubble-phase listener therefore cannot stop
-    // those navigations. This guard listens on WINDOW in the capture phase
-    // (which fires before document capture) and stops propagation when it
-    // intervenes, so the liveness handler never starts.
-    // -----------------------------------------------------------------
-    const isScribeDirty = function() {
-        return !!(generatedText && generatedText.value.trim());
-    };
-
-    const onBeforeUnload = function(e) {
-        if (isScribeDirty()) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
-    // Keep Changes navigates programmatically once the POST succeeds, so
-    // the guard must be disarmed before that redirect fires.
-    window.disarmScribeGuard = function() {
-        window.removeEventListener('beforeunload', onBeforeUnload);
-    };
-
-    const modal = document.getElementById('unsaved-changes-modal');
-    const stayBtn = document.getElementById('unsaved-stay-btn');
-    const leaveBtn = document.getElementById('unsaved-leave-btn');
-    const backLink = document.getElementById('btn-back-to-session');
-    let pendingHref = null;
-
-    if (modal && stayBtn && leaveBtn && backLink) {
-        window.addEventListener('click', function(e) {
-            const link = e.target && e.target.closest
-                ? e.target.closest('#btn-back-to-session')
-                : null;
-            if (!link || !isScribeDirty()) return;
-            e.preventDefault();
-            e.stopPropagation();
-            pendingHref = link.href;
-            modal.style.display = 'flex';
-        }, true);
-
-        stayBtn.addEventListener('click', function() {
-            pendingHref = null;
-            modal.style.display = 'none';
-        });
-
-        leaveBtn.addEventListener('click', function() {
-            if (!pendingHref) return;
-            window.disarmScribeGuard();
-            modal.style.display = 'none';
-            window.location.assign(pendingHref);
-        });
     }
 });
