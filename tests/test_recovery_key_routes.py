@@ -312,3 +312,57 @@ def test_settings_hides_recovery_key_before_v3(client, monkeypatch):
     monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: False)
     resp = client.get("/settings", headers={"Host": "localhost"})
     assert b"/recovery-key/regenerate" not in resp.data
+
+
+# --- Verify route ---
+
+def test_verify_form_renders(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.install_crypto_version", lambda *a, **k: 3)
+    resp = client.get("/recovery-key/verify", headers={"Host": "localhost"})
+    assert resp.status_code == 200
+    assert b"Check your recovery key" in resp.data
+
+
+def test_verify_reports_success_without_changing_anything(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.install_crypto_version", lambda *a, **k: 3)
+    monkeypatch.setattr("core.migrate_crypto.verify_recovery_key", lambda *a, **k: True)
+    resp = client.post("/recovery-key/verify", headers={"Host": "localhost"},
+                       data={"recovery_key": v3.generate_recovery_key()})
+    assert b"That key works" in resp.data
+    assert b"changes nothing" in resp.data
+
+
+def test_verify_reports_a_wrong_key(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.install_crypto_version", lambda *a, **k: 3)
+    monkeypatch.setattr("core.migrate_crypto.verify_recovery_key", lambda *a, **k: False)
+    resp = client.post("/recovery-key/verify", headers={"Host": "localhost"},
+                       data={"recovery_key": v3.generate_recovery_key()})
+    assert b"does not open" in resp.data
+
+
+def test_verify_route_never_resets_the_password(client, monkeypatch):
+    """Guard against the verify path ever being wired to the reset function."""
+    monkeypatch.setattr("core.migrate_crypto.install_crypto_version", lambda *a, **k: 3)
+    monkeypatch.setattr("core.migrate_crypto.verify_recovery_key", lambda *a, **k: True)
+    called = {"n": 0}
+    monkeypatch.setattr("core.migrate_crypto.reset_password_with_recovery_key",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1))
+    client.post("/recovery-key/verify", headers={"Host": "localhost"},
+                data={"recovery_key": v3.generate_recovery_key()})
+    assert called["n"] == 0
+
+
+def test_settings_offers_key_verification(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: True)
+    monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: False)
+    resp = client.get("/settings", headers={"Host": "localhost"})
+    assert b"/recovery-key/verify" in resp.data
+    assert b"Check My Recovery Key" in resp.data
+
+
+def test_settings_hides_verification_when_no_key_recorded(client, monkeypatch):
+    """Nothing useful to check until a key has actually been issued."""
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: True)
+    monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: True)
+    resp = client.get("/settings", headers={"Host": "localhost"})
+    assert b"/recovery-key/verify" not in resp.data

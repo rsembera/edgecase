@@ -44,6 +44,8 @@
             font-size: 0.925rem; font-weight: 500; cursor: pointer; text-decoration: none;
         }
         button:hover, .btnlink:hover { background: #0D4A3F; }
+        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; margin-left: 0.75rem; }
+        .later:hover { color: #374151; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -67,6 +69,13 @@
     <p>Your records and attachments are untouched — only the password that
        opens them is changing.</p>
 
+    <div class="note">
+        Setting a password here <strong>replaces your current one</strong>, and
+        the old password will stop working. If you've just remembered it, you
+        can back out — nothing has been changed yet. Your recovery key stays
+        valid either way.
+    </div>
+
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
     <form method="POST" action="{{ url_for('auth.recover_reset') }}">
@@ -80,6 +89,7 @@
                required autocomplete="new-password" minlength="8">
         <div class="actions">
             <button type="submit">Set password</button>
+            <a class="later" href="{{ url_for('auth.login') }}">Cancel</a>
         </div>
     </form>
 {% endif %}

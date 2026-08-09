@@ -823,3 +823,34 @@ def has_recovery_key(root=None) -> bool:
         return install_crypto_version(root) == 3
     except Exception:
         return False
+
+
+def verify_recovery_key(recovery_key: str, root=None) -> bool:
+    """Check whether a recovery key opens this install, changing nothing.
+
+    A recovery key you have never tested is a key you are only assuming
+    works, and the failure is silent until the day it matters. This exists so
+    that checking costs nothing.
+
+    Deliberately separate from reset_password_with_recovery_key, which always
+    revokes the old password. Folding the two together would mean that
+    verifying your key destroys your password — punishing exactly the person
+    prudent enough to check.
+
+    Reads only: no rewrap, no write, no cache clear. Returns True/False rather
+    than raising on a wrong key, since "does this open it" is the question
+    being asked. Still raises RecoveryKeyError for malformed input, so
+    "you mistyped it" stays distinguishable from "that is the wrong key".
+    """
+    paths = _resolve_paths(root)
+    if install_crypto_version(root) != 3:
+        raise RuntimeError("This install has no recovery key to check.")
+
+    # Raises RecoveryKeyError on malformed input, before any crypto work.
+    v3.parse_recovery_key(recovery_key)
+
+    try:
+        v3.unwrap_with_recovery_key(v3.read_keyinfo(path=paths.keyinfo), recovery_key)
+        return True
+    except ValueError:
+        return False

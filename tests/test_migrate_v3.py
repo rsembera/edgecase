@@ -566,3 +566,59 @@ def test_reset_then_rotate_retires_the_used_key(v3_install):
     with pytest.raises(ValueError):
         v3.unwrap_with_recovery_key(v3.read_keyinfo(
             path=root / "data" / ".keyinfo"), old_rk)
+
+
+# --- Verification must change nothing ---
+
+def test_verify_accepts_the_right_key(v3_install):
+    root, _v, rk = v3_install
+    assert mc.verify_recovery_key(rk, root=root) is True
+
+
+def test_verify_rejects_a_wrong_key(v3_install):
+    root, _v, _rk = v3_install
+    assert mc.verify_recovery_key(v3.generate_recovery_key(), root=root) is False
+
+
+def test_verify_changes_absolutely_nothing(v3_install):
+    """The entire point. Checking a key must not cost the user their password,
+    their key, or anything else — otherwise the prudent person is punished for
+    checking and everyone learns not to."""
+    root, _v, rk = v3_install
+    keyinfo_before = _keyinfo_bytes(root)
+    db_before = (root / "data" / "edgecase.db").read_bytes()
+    files_before = {n: (root / "attachments" / n).read_bytes() for n in PAYLOADS}
+    pending_before = mc.recovery_key_pending(root=root)
+
+    mc.verify_recovery_key(rk, root=root)
+    mc.verify_recovery_key(v3.generate_recovery_key(), root=root)  # and a wrong one
+
+    assert _keyinfo_bytes(root) == keyinfo_before
+    assert (root / "data" / "edgecase.db").read_bytes() == db_before
+    for n in PAYLOADS:
+        assert (root / "attachments" / n).read_bytes() == files_before[n]
+    assert mc.recovery_key_pending(root=root) == pending_before
+    assert_openable_v3(root, PW, rk)
+
+
+def test_verify_leaves_the_password_working(v3_install):
+    """Contrast with reset_password_with_recovery_key, which always revokes."""
+    root, _v, rk = v3_install
+    mc.verify_recovery_key(rk, root=root)
+    assert v3.unwrap_with_password(v3.read_keyinfo(
+        path=root / "data" / ".keyinfo"), PW)
+
+
+def test_verify_distinguishes_mistyped_from_wrong(v3_install):
+    """Malformed raises; well-formed-but-wrong returns False. Someone checking
+    a key needs to know which of the two happened."""
+    root, _v, _rk = v3_install
+    with pytest.raises(v3.RecoveryKeyError):
+        mc.verify_recovery_key("not-a-key", root=root)
+    assert mc.verify_recovery_key(v3.generate_recovery_key(), root=root) is False
+
+
+def test_verify_refused_on_a_non_v3_install(install):
+    root, _version = install
+    with pytest.raises(RuntimeError):
+        mc.verify_recovery_key(v3.generate_recovery_key(), root=root)

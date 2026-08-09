@@ -560,6 +560,39 @@ def recover_reset():
     return render_template('recover_reset.html', token=token)
 
 
+@auth_bp.route('/recovery-key/verify', methods=['GET', 'POST'])
+@login_required
+def verify_recovery_key():
+    """Check a recovery key without changing anything.
+
+    The counterpart to /recover, which always resets the password. Testing a
+    key should not cost you your password, and a key that has never been
+    tested is one you are only assuming works.
+
+    Requires an existing session rather than the master password: this proves
+    nothing an attacker gains from and writes nothing, so gating it harder
+    would only discourage the checking it exists to encourage.
+    """
+    from core import migrate_crypto
+
+    if migrate_crypto.install_crypto_version() != 3:
+        return redirect(url_for('settings.settings_page'))
+
+    if request.method == 'POST':
+        key = request.form.get('recovery_key', '')
+        try:
+            if migrate_crypto.verify_recovery_key(key):
+                return render_template('recovery_key_verify.html', verified=True)
+            return render_template(
+                'recovery_key_verify.html',
+                error="That key does not open this practice file. If it's the "
+                      "one you have on file, issue a new one and replace it.")
+        except migrate_crypto.v3.RecoveryKeyError as e:
+            return render_template('recovery_key_verify.html', error=str(e))
+
+    return render_template('recovery_key_verify.html')
+
+
 @auth_bp.route('/logout')
 def logout():
     """Logout - run backup check and close database connection."""
