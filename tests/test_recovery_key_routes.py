@@ -284,3 +284,31 @@ def test_stream_failure_after_commit_does_not_claim_data_is_unchanged():
     assert "install_crypto_version" in handler, (
         "the error path must ask the disk whether the migration committed "
         "rather than assuming it did not")
+
+
+# --- Reachability: a route with no door is a route that does not exist ---
+
+def test_settings_offers_recovery_key_management(client, monkeypatch):
+    """The regenerate route shipped with no entry point in Settings. The
+    banner was the only way to reach it, so once a key was acknowledged the
+    door disappeared — exactly when a user would want to rotate one."""
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: True)
+    monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: False)
+    resp = client.get("/settings", headers={"Host": "localhost"})
+    assert b"/recovery-key/regenerate" in resp.data
+    assert b"Issue New Recovery Key" in resp.data
+
+
+def test_settings_prompts_when_no_key_recorded(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: True)
+    monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: True)
+    resp = client.get("/settings", headers={"Host": "localhost"})
+    assert b"Set Up Recovery Key" in resp.data
+
+
+def test_settings_hides_recovery_key_before_v3(client, monkeypatch):
+    """A v1/v2 install must not offer a feature its key file cannot support."""
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: False)
+    monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: False)
+    resp = client.get("/settings", headers={"Host": "localhost"})
+    assert b"/recovery-key/regenerate" not in resp.data
