@@ -480,14 +480,24 @@ def recover_if_interrupted(root=None) -> str:
 
 def change_password(current_password: str, new_password: str, root=None,
                     backup_fn=None, progress_cb=None) -> dict:
-    """Crash-safe v2 master-password change: re-encrypt files with a new file key
-    and rebuild the DB under a new raw key, then commit by writing a new .keyinfo.
-    On failure, rolls back to the pre-change backup and re-raises.
+    """Crash-safe master-password change.
 
-    Precondition: a v2 install (.keyinfo present) and no open DB handle."""
+    Dispatches on key-info version. On v3 this is a 190-byte rewrap with no
+    file walk and no rollback window (see _change_password_v3). On v2 it
+    re-encrypts every file and rebuilds the DB under a new raw key, committing
+    by writing a new .keyinfo, and rolls back to the pre-change backup on
+    failure.
+
+    Return shape is shared so callers need no branch: web.blueprints.auth reads
+    result['files_rekeyed'], which is simply 0 on the v3 path.
+
+    Precondition: a migrated install (.keyinfo present) and no open DB handle.
+    """
     paths = _resolve_paths(root)
     if not v2.keyinfo_exists(path=paths.keyinfo):
-        raise RuntimeError("change_password (v2) requires a migrated v2 install")
+        raise RuntimeError("change_password requires a migrated (v2 or v3) install")
+    if install_crypto_version(root) == 3:
+        return _change_password_v3(paths, current_password, new_password)
     if backup_fn is None:
         backup_fn = _live_backup if root is None else (lambda: _zip_backup(paths))
 
@@ -702,3 +712,61 @@ def migrate_to_v3(password: str, root=None, backup_fn=None,
         if paths.marker.exists():
             paths.marker.unlink()
         raise
+
+
+def _change_password_v3(paths: _Paths, current_password: str,
+                        new_password: str) -> dict:
+    """Password change on a v3 install: rewrap the password wrapper only.
+
+    No file walk, no database rebuild, no backup gate, no marker, no rollback
+    window — the whole operation is one atomic key-file replacement, and
+    v3.write_keyinfo validates the blob before it touches the real path. The
+    master is unchanged, so db_key and file_key are unchanged, so every
+    attachment and the database itself are untouched by construction.
+
+    CLEARING THE KEY CACHE IS LOAD-BEARING HERE, not hygiene. Under v2 a new
+    password derived new keys, so a stale cache entry was merely wasteful.
+    Under v3 the derived keys are IDENTICAL before and after, so an entry left
+    under the old password string would keep returning valid keys for the rest
+    of the process lifetime — the crypto would be correct while the cache
+    quietly kept the revoked password working.
+    """
+    blob = v3.read_keyinfo(path=paths.keyinfo)
+    master = v3.unwrap_with_password(blob, current_password)
+
+    new_blob = v3.rewrap_password(blob, master, new_password)
+    # Prove the new wrapper opens before replacing the only copy of the old one.
+    if v3.unwrap_with_password(new_blob, new_password) != master:
+        raise RuntimeError("Rewrapped key file failed verification; aborting.")
+
+    v3.write_keyinfo(new_blob, path=paths.keyinfo)
+    v2._key_cache.clear()
+    return {"status": "rewrapped", "files_rekeyed": 0, "files_total": 0}
+
+
+def regenerate_recovery_key(password: str, root=None) -> str:
+    """Issue a fresh recovery key, revoking the previous one.
+
+    Same shape as the password rewrap and the same reasoning: a printed
+    recovery key is a second full-access credential to clinical records, so it
+    has to be revocable on its own without forcing a password change. Returns
+    the new key in display format — the only time it exists in plaintext.
+
+    Also the remedy when a recovery key was issued but never recorded, which is
+    why .rk_pending can safely be a nag rather than a hard block.
+    """
+    paths = _resolve_paths(root)
+    if install_crypto_version(root) != 3:
+        raise RuntimeError("Recovery keys require a v3 install.")
+
+    blob = v3.read_keyinfo(path=paths.keyinfo)
+    master = v3.unwrap_with_password(blob, password)
+
+    recovery_key = v3.generate_recovery_key()
+    new_blob = v3.rewrap_recovery_key(blob, master, recovery_key)
+    if v3.unwrap_with_recovery_key(new_blob, recovery_key) != master:
+        raise RuntimeError("Rewrapped key file failed verification; aborting.")
+
+    paths.rk_pending.write_text("1")
+    v3.write_keyinfo(new_blob, path=paths.keyinfo)
+    return recovery_key
