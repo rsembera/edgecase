@@ -330,6 +330,15 @@
             </button>
         </form>
         
+        {% if not first_run and has_recovery_key %}
+        <div style="text-align:center;margin-top:1.25rem;">
+            <a href="{{ url_for('auth.recover') }}"
+               style="color:#6B7280;font-size:0.85rem;text-decoration:none;">
+                Forgotten your password? Use your recovery key
+            </a>
+        </div>
+        {% endif %}
+
         <div class="footer">
             Your data is encrypted with AES-256
         </div>

@@ -479,3 +479,90 @@ def test_change_password_still_refuses_a_v1_install(tmp_path):
     build_v1(tmp_path)
     with pytest.raises(RuntimeError):
         mc.change_password(PW, NEW_PW, root=tmp_path)
+
+
+# --- The recovery door: core reset ---
+
+def test_recovery_key_opens_and_resets_the_password(v3_install):
+    """The door itself: the key gets you in, and you leave with a working
+    password and untouched records."""
+    root, _v, rk = v3_install
+    db_before = (root / "data" / "edgecase.db").read_bytes()
+
+    mc.reset_password_with_recovery_key(rk, NEW_PW, root=root)
+
+    assert_openable_v3(root, NEW_PW, rk)
+    assert (root / "data" / "edgecase.db").read_bytes() == db_before
+
+
+def test_reset_revokes_the_forgotten_password(v3_install):
+    root, _v, rk = v3_install
+    mc.reset_password_with_recovery_key(rk, NEW_PW, root=root)
+    with pytest.raises(ValueError):
+        v3.unwrap_with_password(v3.read_keyinfo(
+            path=root / "data" / ".keyinfo"), PW)
+
+
+def test_reset_leaves_the_recovery_key_working(v3_install):
+    """Deliberate asymmetry with the password. If a key has leaked, an
+    attacker who used it must NOT be able to rotate it and lock the real owner
+    out — the owner's written copy has to keep working so they can recover and
+    then rotate it themselves."""
+    root, _v, rk = v3_install
+    mc.reset_password_with_recovery_key(rk, NEW_PW, root=root)
+    assert v3.unwrap_with_recovery_key(v3.read_keyinfo(
+        path=root / "data" / ".keyinfo"), rk)
+
+
+def test_reset_clears_the_key_cache(v3_install):
+    """Same trap as the password change: identical derived keys either side."""
+    root, _v, rk = v3_install
+    v2._key_cache[PW] = ("deadbeef", b"\x00" * 32)
+    mc.reset_password_with_recovery_key(rk, NEW_PW, root=root)
+    assert PW not in v2._key_cache
+
+
+def test_reset_refuses_a_wrong_recovery_key(v3_install):
+    root, _v, rk = v3_install
+    blob_before = _keyinfo_bytes(root)
+    with pytest.raises(ValueError):
+        mc.reset_password_with_recovery_key(
+            v3.generate_recovery_key(), NEW_PW, root=root)
+    assert _keyinfo_bytes(root) == blob_before
+    assert_openable_v3(root, PW, rk)
+
+
+def test_reset_refuses_a_malformed_recovery_key(v3_install):
+    """RecoveryKeyError, not ValueError — 'you mistyped it' has to stay
+    distinguishable from 'that is the wrong key'."""
+    root, _v, _rk = v3_install
+    with pytest.raises(v3.RecoveryKeyError):
+        mc.reset_password_with_recovery_key("not-a-key", NEW_PW, root=root)
+
+
+def test_reset_refused_on_a_non_v3_install(install):
+    root, _version = install
+    with pytest.raises(RuntimeError):
+        mc.reset_password_with_recovery_key(
+            v3.generate_recovery_key(), NEW_PW, root=root)
+
+
+def test_has_recovery_key_tracks_the_install(install):
+    """The login page must not advertise a door that does not exist."""
+    root, _version = install
+    assert not mc.has_recovery_key(root=root)
+    mc.migrate_to_v3(PW, root=root)
+    assert mc.has_recovery_key(root=root)
+
+
+def test_reset_then_rotate_retires_the_used_key(v3_install):
+    """The full 'my key may have leaked' path: recover, then rotate."""
+    root, _v, old_rk = v3_install
+
+    mc.reset_password_with_recovery_key(old_rk, NEW_PW, root=root)
+    fresh_rk = mc.regenerate_recovery_key(NEW_PW, root=root)
+
+    assert_openable_v3(root, NEW_PW, fresh_rk)
+    with pytest.raises(ValueError):
+        v3.unwrap_with_recovery_key(v3.read_keyinfo(
+            path=root / "data" / ".keyinfo"), old_rk)

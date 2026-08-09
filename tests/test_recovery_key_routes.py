@@ -145,3 +145,110 @@ def test_regenerate_refused_before_v3(client, monkeypatch):
     resp = client.get("/recovery-key/regenerate", headers={"Host": "localhost"})
     assert resp.status_code == 200
     assert b"Issue a new recovery key" not in resp.data
+
+
+# --- The recovery door: routes ---
+
+@pytest.fixture
+def recoverable(monkeypatch):
+    """An install that reports v3 with a known recovery key."""
+    key = v3.generate_recovery_key()
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: True)
+    monkeypatch.setattr("core.migrate_crypto.install_crypto_version", lambda *a, **k: 3)
+    monkeypatch.setattr("core.encryption_v3.read_keyinfo", lambda *a, **k: b"blob")
+
+    def fake_unwrap(_blob, candidate):
+        if v3.parse_recovery_key(candidate) != v3.parse_recovery_key(key):
+            raise ValueError("nope")
+        return b"\x00" * 32
+
+    monkeypatch.setattr("core.encryption_v3.unwrap_with_recovery_key", fake_unwrap)
+    auth_bp._login_attempts.clear()
+    yield key
+    auth_bp._recovery_reset_handoff.clear()
+    auth_bp._login_attempts.clear()
+
+
+def test_recover_form_renders(client, recoverable):
+    resp = client.get("/recover", headers={"Host": "localhost"})
+    assert resp.status_code == 200
+    assert b"recovery key" in resp.data.lower()
+
+
+def test_recover_accepts_the_right_key(client, recoverable):
+    resp = client.post("/recover", headers={"Host": "localhost"},
+                       data={"recovery_key": recoverable})
+    assert resp.status_code == 302
+    assert "/recover/reset" in resp.headers["Location"]
+
+
+def test_recover_rejects_a_wrong_key(client, recoverable):
+    resp = client.post("/recover", headers={"Host": "localhost"},
+                       data={"recovery_key": v3.generate_recovery_key()})
+    assert resp.status_code == 200
+    assert b"does not open" in resp.data
+
+
+def test_malformed_key_does_not_spend_an_attempt(client, recoverable):
+    """A typo is not a guess. Burning the lockout budget on mistyping a
+    32-character code would make the door useless exactly when it is needed."""
+    client.post("/recover", headers={"Host": "localhost"},
+                data={"recovery_key": "oops"})
+    assert not auth_bp._login_attempts
+
+
+def test_wrong_key_does_spend_an_attempt(client, recoverable):
+    client.post("/recover", headers={"Host": "localhost"},
+                data={"recovery_key": v3.generate_recovery_key()})
+    assert auth_bp._login_attempts
+
+
+def test_recover_unavailable_before_v3(client, monkeypatch):
+    monkeypatch.setattr("core.migrate_crypto.has_recovery_key", lambda *a, **k: False)
+    resp = client.get("/recover", headers={"Host": "localhost"})
+    assert b"no recovery key" in resp.data.lower()
+
+
+def test_reset_requires_a_verified_token(client, recoverable):
+    """No token, no reset — the key check cannot be skipped."""
+    resp = client.get("/recover/reset", headers={"Host": "localhost"})
+    assert resp.status_code == 302
+    assert "/recover" in resp.headers["Location"]
+
+
+def test_reset_rejects_mismatched_passwords(client, recoverable, monkeypatch):
+    called = {"n": 0}
+    monkeypatch.setattr("core.migrate_crypto.reset_password_with_recovery_key",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1))
+    token = auth_bp._store_recovery_reset_handoff(recoverable)
+    resp = client.post("/recover/reset", headers={"Host": "localhost"},
+                       data={"token": token, "new_password": "abcdefgh",
+                             "confirm_password": "different"})
+    assert b"don&#39;t match" in resp.data or b"don't match" in resp.data
+    assert called["n"] == 0
+
+
+def test_reset_rejects_a_short_password(client, recoverable, monkeypatch):
+    called = {"n": 0}
+    monkeypatch.setattr("core.migrate_crypto.reset_password_with_recovery_key",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1))
+    token = auth_bp._store_recovery_reset_handoff(recoverable)
+    resp = client.post("/recover/reset", headers={"Host": "localhost"},
+                       data={"token": token, "new_password": "short",
+                             "confirm_password": "short"})
+    assert b"8 characters" in resp.data
+    assert called["n"] == 0
+
+
+def test_reset_completes_and_does_not_auto_login(client, recoverable, monkeypatch):
+    """The user has typed the new password exactly twice; using it once more
+    is the cheapest confirmation it is what they think it is."""
+    monkeypatch.setattr("core.migrate_crypto.reset_password_with_recovery_key",
+                        lambda *a, **k: None)
+    token = auth_bp._store_recovery_reset_handoff(recoverable)
+    resp = client.post("/recover/reset", headers={"Host": "localhost"},
+                       data={"token": token, "new_password": "abcdefgh",
+                             "confirm_password": "abcdefgh"})
+    assert resp.status_code == 200
+    assert b"Sign in" in resp.data
+    assert auth_bp._peek_recovery_reset_handoff(token) is None
