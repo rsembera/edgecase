@@ -90,7 +90,8 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── money.py                 # Decimal / cents money helpers
 │   ├── encryption.py            # Fernet file encryption (v1)
 │   ├── encryption_v2.py         # Argon2id / AES-256-GCM file encryption (v2)
-│   ├── migrate_crypto.py        # Crypto migration (v1 -> v2)
+│   ├── encryption_v3.py         # Envelope encryption + recovery keys (v3)
+│   ├── migrate_crypto.py        # Crypto migration (v1/v2 -> v3), password change, recovery
 │   └── db/                      # Database domain mixins (split from database.py)
 │       ├── settings.py          #   SettingsMixin
 │       ├── client_types.py      #   ClientTypeMixin
@@ -140,7 +141,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │           ├── generation.py    #   find-unbilled, generate
 │           ├── payments.py      #   mark-paid, write-off (+ ledger helpers)
 │           └── delivery.py      #   mark-sent, PDF download/view, email
-├── web/templates/               # 33 HTML templates
+├── web/templates/               # 39 HTML templates (incl. entry_forms/, components/)
 │   ├── (base, login, client_file, ledger, settings, outstanding_statements, ...)
 │   ├── components/              # attachment_upload, edit_history
 │   └── entry_forms/             # profile, session, communication, absence, item, upload, income, expense
@@ -328,6 +329,7 @@ pytest tests/ -v
 - **God-file refactors (Jun 20):** `core/database.py` (~2,350 lines -> 623-line facade + `core/db/` domain mixins), `web/blueprints/entries.py` (~1,920 -> `entries/` package), and `web/blueprints/statements.py` (~1,080 -> `statements/` package) split behind unchanged public interfaces (endpoint sets + imports identical). No god-files remain.
 - **ruff lint gate + bug hunt (Jun 20-21):** added ruff (`[tool.ruff]`, pyflakes `F` rules) as a "did I break a reference?" gate; it caught a latent `EntryLockedError` NameError, fixed via the leaf module `core/db/errors.py` + a regression test. Also closed an upload edit-history audit gap and removed dead scaffolding from descoped features. Tests grew to 201.
 - **Attachment encryption v2 (Argon2id / AES-256-GCM):** `core/encryption_v2.py` + `core/migrate_crypto.py` (started Jun 14).
+- **Envelope encryption v3 (recovery keys):** `core/encryption_v3.py` + `core/migrate_crypto.py` (Aug 9). Key-info magic `ECC3`; recovery screens are `recovery_key*.html` and `recover*.html`; entry points on the login page and Settings → Security.
 
 ### February 2026
 - Financial Report attachment appendix option (Feb 1)

@@ -67,7 +67,7 @@ EdgeCase Equalizer has **8 modular documentation files**:
 **Use when:** Creating routes, debugging routing, understanding request/response flow
 
 **Contents:**
-- All 104 routes across 11 blueprints (+ 4 app-level routes)
+- All 110 routes across 11 blueprints (+ 4 app-level routes)
 - Route signatures (parameters, query params, form data)
 - Return values and redirects
 - Special behaviors and validation
