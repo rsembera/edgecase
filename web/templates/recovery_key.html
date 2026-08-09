@@ -33,13 +33,6 @@
             white-space: nowrap; overflow-x: auto; user-select: all;
         }
         .keyactions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-        .keyactions button {
-            background: white; color: #115D4F; border: 1px solid #BFDCDC;
-            border-radius: 0.5rem; padding: 0.45rem 0.9rem; font-family: inherit;
-            font-size: 0.825rem; font-weight: 500; cursor: pointer;
-        }
-        .keyactions button:hover:not(:disabled) { background: #F3F6F7; }
-        .keyactions button:disabled { opacity: 0.7; cursor: default; }
         .warn {
             background: #FFF8E6; border-left: 3px solid #D9A441; border-radius: 0.4rem;
             padding: 0.9rem 1rem; font-size: 0.875rem; color: #6B5320; margin-bottom: 1.25rem;
@@ -50,8 +43,6 @@
             font-weight: 400; color: #374151; font-size: 0.925rem; margin-bottom: 0;
         }
         .checkline input { margin-top: 0.28rem; width: 1rem; height: 1rem; accent-color: #115D4F; }
-        button:disabled { background: #9CA3AF; cursor: not-allowed; }
-        button:disabled:hover { background: #9CA3AF; }
         input[type=text] {
             width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
             border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -62,15 +53,6 @@
             background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
             padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
         }
-        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
-        button {
-            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
-            padding: 0.65rem 1.5rem; font-family: inherit; font-size: 0.925rem;
-            font-weight: 500; cursor: pointer;
-        }
-        button:hover { background: #0D4A3F; }
-        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
-        .later:hover { color: #374151; text-decoration: underline; }
         .print-only { display: none; }
         @media print {
             body { background: white; }
@@ -78,6 +60,7 @@
             form, .actions, .warn, .keyactions { display: none; }
             .print-only { display: block; font-size: 0.85rem; color: #6B7280; }
         }
+        {% include 'components/_auth_buttons.html' %}
     </style>
 </head>
 <body>
@@ -96,7 +79,7 @@
        at any time from <strong>Settings &rsaquo; Security</strong>.</p>
     {% endif %}
     <div class="actions">
-        <a class="later" href="{{ url_for('clients.index') }}">Continue to EdgeCase</a>
+        <a class="btn" href="{{ url_for('clients.index') }}">Continue to EdgeCase</a>
     </div>
 {% else %}
     <h2>Write down your recovery key</h2>
@@ -110,9 +93,9 @@
     <div class="keybox" id="recovery-key-value">{{ recovery_key }}</div>
 
     <div class="keyactions">
-        <button type="button" id="copy-recovery-key">Copy to clipboard</button>
-        <button type="button" id="download-recovery-key">Download as text file</button>
-        <button type="button" id="print-recovery-key">Print</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="copy-recovery-key">Copy to clipboard</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="download-recovery-key">Download as text file</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="print-recovery-key">Print</button>
     </div>
 
     <div class="warn">

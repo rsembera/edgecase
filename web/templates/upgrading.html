@@ -32,11 +32,6 @@
         .subtitle { color: #6B7280; font-size: 0.875rem; font-weight: 400; margin-bottom: 1.25rem; }
         #message { color: #374151; font-size: 0.95rem; min-height: 3rem; }
         .actions { margin-top: 1.5rem; display: none; }
-        .actions a {
-            display: inline-block; text-decoration: none; color: #115D4F;
-            font-weight: 500; font-size: 0.9rem; border: 1px solid #115D4F;
-            border-radius: 0.5rem; padding: 0.5rem 1.25rem;
-        }
         .error .ring { background: #FDE2E1; }
         .error .spinner { display: none; }
         /* The spinner is misleading before the user has chosen to start. */
@@ -44,12 +39,11 @@
         .waiting .ring::after { content: '\1F511'; font-size: 1.4rem; }
         .note { color: #6B7280; font-size: 0.85rem; margin-top: 0.75rem; }
         .begin { margin-top: 1.5rem; }
-        .begin button {
-            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
-            padding: 0.65rem 1.75rem; font-family: inherit; font-size: 0.95rem;
-            font-weight: 500; cursor: pointer;
-        }
-        .begin button:hover { background: #0D4A3F; }
+        {% include 'components/_auth_buttons.html' %}
+        /* AFTER the partial: it defines .actions as display:flex, but here the
+           row is revealed by JS only on failure. Order matters. */
+        .actions { display: none; }
+        .actions.shown { display: flex; justify-content: center; }
     </style>
 </head>
 <body>
@@ -66,9 +60,9 @@
             can take a few minutes. Please don't close the app while it works.</p>
             <p class="note"><strong>Have somewhere secure to write before you
             start</strong> — the key is shown once at the end and is never stored.</p>
-            <div class="begin"><button id="beginBtn" type="button">Begin upgrade</button></div>
+            <div class="begin"><button id="beginBtn" type="button" class="btn">Begin upgrade</button></div>
         </div>
-        <div class="actions" id="actions"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
+        <div class="actions" id="actions"><a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Back to login</a></div>
     </div>
 
     <script>
@@ -90,7 +84,7 @@
                 card.classList.remove('waiting');
                 title.textContent = 'Upgrade not completed';
                 messageEl.textContent = text;
-                actions.style.display = 'block';
+                actions.classList.add('shown');
             }
 
             function begin() {

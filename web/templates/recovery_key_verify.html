@@ -38,15 +38,7 @@
             background: #E6F4EA; border-left: 3px solid #2E7D4F; border-radius: 0.4rem;
             padding: 0.9rem 1rem; font-size: 0.9rem; color: #1E5B39; margin-bottom: 1.25rem;
         }
-        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
-        button, .btnlink {
-            display: inline-block; background: #115D4F; color: white; border: none;
-            border-radius: 0.5rem; padding: 0.65rem 1.5rem; font-family: inherit;
-            font-size: 0.925rem; font-weight: 500; cursor: pointer; text-decoration: none;
-        }
-        button:hover, .btnlink:hover { background: #0D4A3F; }
-        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
-        .later:hover { color: #374151; text-decoration: underline; }
+        {% include 'components/_auth_buttons.html' %}
     </style>
 </head>
 <body>
@@ -60,7 +52,7 @@
     </div>
     <p>Put it back wherever you keep it.</p>
     <div class="actions">
-        <a class="btnlink" href="{{ url_for('settings.settings_page') }}">Back to Settings</a>
+        <a class="btn" href="{{ url_for('settings.settings_page') }}">Back to Settings</a>
     </div>
 {% else %}
     <h2>Check your recovery key</h2>
@@ -82,7 +74,7 @@
         <p class="hint">Hyphens, spacing and capitals don't matter.</p>
         <div class="actions">
             <button type="submit">Check key</button>
-            <a class="later" href="{{ url_for('settings.settings_page') }}">Cancel</a>
+            <a class="btn btn-secondary" href="{{ url_for('settings.settings_page') }}">Cancel</a>
         </div>
     </form>
 {% endif %}
