@@ -170,6 +170,11 @@ without a payment, so it creates no allocation.
 - Partial lump sum ($150 against $300) → oldest fully paid, next partial
 - Manual override ignoring oldest-first
 - Overpayment → credit, and `amount_paid` never exceeds `amount_due`
+- Credit auto-applied to the next statement, shown as an explicit line
+- **A credit cannot be spent twice** — generating two statements in the same
+  batch must not both consume the same unallocated amount
+- Credit scoped to the same guardian: guardian 1's overpayment must not
+  reduce guardian 2's statement
 - Guardian-split statements: allocation must not cross payers
 - Refund against an allocated portion
 - Backfill idempotent; running twice creates no duplicates
@@ -180,12 +185,41 @@ without a payment, so it creates no allocation.
 
 ---
 
-## Open questions for Rick
+## Decisions taken (2026-08-09)
 
-1. Accountant's view on one-entry-per-deposit (expected: fine).
-2. Credit balance — auto-apply to the next statement, or hold and prompt?
-3. Should the payment entry point stay reachable per-portion as well, or
-   move entirely to per-client?
+**Credit balance: auto-apply to the next statement, as an explicit line.**
+
+Rendered next to "Previous balance" as `Credit applied  -$50.00`, using the
+same `_build_balance_summary` machinery. Not silent, not a surprise.
+
+The argument is symmetry. Carry-forward already pulls prior *debits* onto the
+next statement without asking. A credit is the same thing with the opposite
+sign. Auto-carrying what the client owes while making credits wait for the
+practitioner to remember them is asymmetric — and asymmetric in the
+practitioner's favour, which is the wrong direction on a clinical bill.
+
+Consequence for build: statement generation must consult unallocated credit
+for that client + guardian scope and consume it by writing allocation rows,
+so a credit cannot be spent twice.
+
+**Payment entry: per-client only. The per-portion path is retired.**
+
+A single-statement payment is not a separate case, it is the degenerate one:
+one open portion, the proposal allocates 100% to it, Rick confirms. Same
+number of clicks.
+
+Keeping both would mean two UIs and two code paths, and the per-portion path
+IS the defect being fixed — it records a payment against one statement when
+the money settled several. Two doors here is exactly the scope creep the
+project's restraint rule exists to prevent.
+
+The `mark_paid` backend entry point may remain briefly so existing tests keep
+passing, but nothing in the UI should reach it once `record_payment` lands,
+and it should be removed in the same release rather than left as a second way
+to do the same thing.
+
+**One entry per deposit** is settled — orthodox, not a blocker. Worth Rick
+mentioning to his accountant in passing; not a gate on building.
 
 ---
 
