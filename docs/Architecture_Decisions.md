@@ -1440,8 +1440,182 @@ mini bake-off with planted-error notes in that language BEFORE the option
 ships. (Bake-off trap set must also include a first-person clinician-voice
 note — the 2026-07-27 gap.)
 
+## CRYPTO v3 — ENVELOPE ENCRYPTION & RECOVERY KEYS (August 2026)
+
+### The problem with v2
+
+v2 derives the master key directly from the password: `Argon2id(password,
+salt) → master → HKDF → (db_key, file_key)`. Two consequences followed from
+that one fact:
+
+1. **The password was the only door.** Forget it and the records are gone.
+   Under CRPO's ten-year retention obligation that is not an inconvenience,
+   it is a professional problem — and for the people downloading EdgeCase it
+   is the single most likely catastrophic failure mode.
+2. **Changing the password moved every key below it.** So a password change
+   had to re-encrypt every attachment and rebuild the SQLCipher database,
+   guarded by a backup, a marker file and a rollback window.
+
+### The v3 envelope
+
+The master is now 32 random bytes, wrapped **twice** — once under a
+password-derived KEK (Argon2id), once under a recovery-key-derived KEK
+(HKDF). Either wrapper yields the same master, so `derive_subkeys` and the
+v2 attachment wire format (`0x02`) are unchanged and **nothing below the
+master knows v3 exists**. Only the key-info file changes: `ECC2` → `ECC3`.
+
+Both benefits fall out of the same change. A lost password stops being
+terminal, and a password change becomes a 190-byte rewrap with no file walk
+and no rollback window — a risk *reduction*, not just a feature.
+
+The recovery key is **generated, never user-chosen**: 160 bits of uniform
+entropy means there is no password-strength guessing to defend against, so
+HKDF is sufficient and unlock is instant. Argon2id would buy nothing against
+a uniformly random 160-bit secret. Base32 with 0/1/8 fix-ups on input, since
+those characters cannot appear in the alphabet and are therefore
+unambiguously typos.
+
+### Single-pass migration, and why there is no resume file
+
+`migrate()` (v1→v2) and `change_password()` (v2→v2′) already shared a shape:
+resolve how the old files decrypt, resolve how the old DB is keyed, mint new
+keys, checkpoint → backup → marker, walk files, `_export_verify`, commit,
+roll back on failure. Only the two "old" resolutions differ. So
+`migrate_to_v3()` goes **straight from v1 or v2 to v3 in one pass** rather
+than chaining — a v1 install gets one file walk and one DB rebuild instead of
+two, halving the window in which the attachment corpus is being rewritten.
+
+MailRepo's equivalent carries a resume-state file because it does an in-place
+`PRAGMA rekey` and must be re-runnable. EdgeCase does not need one: the
+rebuilt DB is a separate file, verified before the swap, so any failure
+restores the backup wholesale. **Rollback-to-known-good is a stronger
+guarantee than resume**, and it was already built.
+
+`_commit_v3` writes the ECC3 key-info **last**, after the verified swap, so
+the magic alone proves commit — `_recover_migrate_v3` needs no salt
+bookkeeping (unlike `_recover_rekey_v2`, which compares salts).
+
+### keyinfo_exists() keeps its old meaning
+
+Eight call sites treated `v2.keyinfo_exists()` as "not a v1 install". Rather
+than audit all eight, v3 preserves that meaning exactly and adds
+`keyinfo_version() → 2 | 3` for the three places that genuinely branch. The
+only chokepoint that had to change is `get_keys()`, which now sniffs the
+magic — so `core.database`, `core.encryption`, `utils.backup` and `tools/`
+work against either format unchanged.
+
+One contract difference: under v2 a wrong password returned garbage keys
+(verification was a separate token check); under v3 the wrapper's GCM tag
+fails and `get_keys` **raises**. `Database.verify_password` is the only
+caller passing unverified input. ECC3 has no verification token because it
+does not need one — the wrapper *is* the check.
+
+### Load-bearing: the key cache must be cleared on rewrap
+
+Under v2, a password change derived new keys, so a stale `_key_cache` entry
+was merely wasteful. **Under v3 the derived keys are identical either side of
+a password change**, so an entry left under the old password string keeps
+handing out working keys for the rest of the process lifetime — a revoked
+password that still opens the install until restart, with the on-disk crypto
+entirely correct. `_change_password_v3` and
+`reset_password_with_recovery_key` both clear it as a required step, with a
+dedicated test.
+
+### The revocation asymmetry (deliberate)
+
+A password change revokes the old password. **Using a recovery key does not
+revoke the recovery key.** If a key has genuinely leaked, an attacker who
+used it would otherwise be able to rotate it and lock the real owner out
+permanently; leaving it valid means the owner's written copy still opens the
+install so they can recover and then rotate deliberately. The reset screen
+says so explicitly.
+
+### Recovery is a password *reset*, not a passwordless session
+
+MailRepo unlocks with a recovery key into an authenticated session and only
+*offers* a new password. EdgeCase cannot copy that: MailRepo holds the master
+in class state, whereas EdgeCase threads the password through
+`Database(password=...)`, `_key_cache` and the session, so
+"authenticated but passwordless" is not a state it can represent. Rebuilding
+that to serve the recovery case would add a second unlock mode through the
+auth layer of an app holding live clinical records.
+
+The cost of the reset model is that using a key always revokes the password —
+which punishes the person prudent enough to *test* their key, and traps
+anyone who remembers their password halfway through. Both are covered
+without the architectural change:
+
+- `verify_recovery_key()` — unwraps, returns True/False, **writes nothing**.
+  Reachable from Settings while signed in, so no logout is needed to test a
+  key. Arguably better than the flow it substitutes for.
+- `/recover/reset` warns that continuing replaces the current password, and
+  offers Cancel.
+
+### Acknowledgement is a checkbox, not a typed key
+
+The first version asked the user to type the key back. That looked stronger
+than it was: the same page offers **Copy to clipboard**, so the check could
+be satisfied by paste with the key never reaching anything durable. It only
+verified transcription for people who copied by hand, while implying a
+guarantee it could not make — and sat beside an "I'll do this later" link
+that read as a peer choice rather than a deferral.
+
+Now matches MailRepo: one checkbox, Continue disabled until ticked, no escape
+hatch on the page (navigating away still works, and the banner still catches
+it). Validated server-side too, since `required` is a browser hint only.
+
+What actually protects the user is unchanged: the key cannot be shown again,
+`.rk_pending` nags until acknowledged, and regeneration is always available.
+
+### .rk_pending, and why it is written before the commit point
+
+The recovery key exists in plaintext exactly once, as the return value of
+`migrate_to_v3`. `.rk_pending` records that acknowledgement is outstanding —
+**never the key itself**. It is written *before* the ECC3 key-info, because
+if it went second there would be a window in which the install is already v3
+with no record that a key is outstanding. It deliberately survives the
+`recover_if_interrupted` finalize path, since a crash between commit and the
+user recording their key is exactly what it exists to catch.
+
+This was not theoretical. On the first live run, a `url_for` inside the SSE
+generator raised *after* the migration had committed, the recovery key was
+discarded with the exception, and the flag correctly carried the state
+forward to the banner.
+
+### Lessons from testing this feature
+
+**1. Tests proved the code, not the integration.** 395 tests passed while
+`url_for` sat inside an SSE generator — Flask pops the application context
+before the generator is consumed, and no unit test drove the stream. It
+failed on the first human click.
+
+**2. An error handler must not assume failure means rollback.** The original
+handler claimed "your data is unchanged" on *any* exception. That was true
+when the only failure modes were inside the guarded block, and stopped being
+true the moment work was added after the commit point. It now asks
+`install_crypto_version()` rather than guessing.
+
+**3. Four forms shipped without CSRF tokens** and every test passed, because
+the test client does not enforce CSRF. Fixed by a test that walks every
+template and asserts each POST form carries a token — the class of bug, not
+the four instances.
+
+**4. A route with no door does not exist.** The regenerate route was
+reachable only from the pending banner, so it vanished the moment a key was
+acknowledged — precisely when someone would want to rotate one. Settings >
+Security now carries both entry points.
+
+**5. The packaging manifest had rotted through three refactors.**
+`setup_app.py` was missing the `core/db/` mixins, both blueprint packages,
+the crypto modules, and `argon2` — which, being imported only inside
+`encryption_v2` and being a CFFI extension, would have failed at *login* in
+a packaged build that otherwise looked fine. First-party code is now declared
+as packages rather than an enumerated module list, and
+`test_packaging_manifest.py` asserts the manifest still describes the app.
+
+
 ---
 
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
-*Last Updated: August 8, 2026*
+*Last Updated: August 9, 2026*

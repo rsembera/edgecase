@@ -2,15 +2,25 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** August 5, 2026  
+**Last Updated:** August 9, 2026  
 **Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
 
 ---
 
 ## RECENT POST-LAUNCH WORK (July-August 2026)
 
-Full detail in `CHANGELOG.md`; suite currently **242 passing**, `ruff check` clean.
+Full detail in `CHANGELOG.md`; suite currently **454 passing**, `ruff check` clean.
 
+- **Crypto v3 — envelope encryption + recovery keys (2026-08-09):** the master
+  key is now 32 random bytes wrapped twice, under the password and under a
+  printed recovery key, so a forgotten master password stops being terminal
+  (CRPO ten-year retention) and a password change becomes a 190-byte rewrap
+  instead of a full file walk plus DB rebuild. Single-pass migration from v1
+  *or* v2. Recovery-key login (`/recover`), non-destructive verification and
+  regeneration from Settings → Security. Also fixed a packaging manifest that
+  had rotted through three refactors — `argon2` was undeclared and would have
+  failed at login in a packaged build. Verified end-to-end on the testing
+  instance. Suite 242 → 454.
 - **Per-client Payment Record (2026-08-05):** Financial Report gained a client
   dropdown (grouped Active/Inactive); selecting one produces a Payment Record
   PDF — the client's payments and refunds only, matched by source file number

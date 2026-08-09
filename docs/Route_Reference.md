@@ -7,10 +7,10 @@
 
 ## OVERVIEW
 
-EdgeCase has 104 routes: 100 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
+EdgeCase has 110 routes: 106 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
 
 1. **ai_bp** - AI Scribe functionality (10 routes)
-2. **auth_bp** - Login/logout, session management, v2 crypto migration (5 routes)
+2. **auth_bp** - Login/logout, session management, crypto migration, recovery keys (10 routes)
 3. **backups_bp** - Backup/restore operations (10 routes)
 4. **clients_bp** - Client management and file viewing (11 routes)
 5. **entries_bp** - Entry CRUD operations (16 routes)
@@ -253,6 +253,64 @@ def migrate_stream()
 
 **Prefix:** None (mounted at root)  
 **File:** `~/Applications/edgecase/web/blueprints/backups.py`
+
+
+### Recovery Key (display + acknowledgement)
+```python
+@auth_bp.route('/recovery-key', methods=['GET', 'POST'])
+@login_required
+def recovery_key():
+```
+Shows a freshly issued recovery key and takes the user's acknowledgement.
+Reached from `/migrate/stream` after a v3 migration, and from
+`/recovery-key/regenerate`. The key is held server-side (never in the signed
+session cookie) and read **without** consuming, so a refresh does not destroy
+the only copy. Acknowledgement is a checkbox, validated server-side; ticking
+it clears `.rk_pending`.
+
+### Regenerate Recovery Key
+```python
+@auth_bp.route('/recovery-key/regenerate', methods=['GET', 'POST'])
+@login_required
+def regenerate_recovery_key():
+```
+Issues a fresh recovery key, retiring the previous one. **Requires the master
+password** — it mints a new full-access credential, so an unattended session
+must not be able to do it. Redirects into `/recovery-key` for display.
+Reachable from Settings → Security and from the pending banner.
+
+### Verify Recovery Key
+```python
+@auth_bp.route('/recovery-key/verify', methods=['GET', 'POST'])
+@login_required
+def verify_recovery_key():
+```
+Checks whether a key opens the install, **changing nothing** — no rewrap, no
+write, no cache clear. Session-gated rather than password-gated: it writes
+nothing and reveals nothing an attacker gains from, so gating it harder would
+only discourage the checking it exists to encourage. Reachable from Settings →
+Security.
+
+### Recover (recovery-key login)
+```python
+@auth_bp.route('/recover', methods=['GET', 'POST'])
+```
+**Unauthenticated by necessity** — the route for someone who cannot log in.
+In `require_login`'s allowed list; gated by the recovery key itself plus the
+same rate limiter as `/login`. A *malformed* key does not spend an attempt; a
+well-formed but wrong key does. Offered on the login page only when the
+install actually has a recovery key.
+
+### Recover — Set New Password
+```python
+@auth_bp.route('/recover/reset', methods=['GET', 'POST'])
+```
+Sets a new master password after a verified recovery key. Requires the
+server-side handoff token issued by `/recover`, so the key check cannot be
+skipped. Warns before committing and offers Cancel. Does **not** auto-login:
+the user has typed the new password exactly twice, so signing in with it is
+the cheapest confirmation it is what they think it is. The recovery key is
+deliberately left valid.
 
 ### Backups Page
 
