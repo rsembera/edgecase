@@ -44,6 +44,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 import core.config as config
 from core import encryption_v2 as v2
+from core import encryption_v3 as v3
 
 
 @dataclass
@@ -70,6 +71,13 @@ class _Paths:
     @property
     def salt_file(self):
         return self.data_dir / ".salt"
+
+    @property
+    def rk_pending(self):
+        """Set before the v3 commit point, cleared only once the user has typed
+        their recovery key back. Records ONLY that acknowledgement is
+        outstanding — never the key itself, which is never stored anywhere."""
+        return self.data_dir / ".rk_pending"
 
 
 def _resolve_paths(root):
@@ -206,7 +214,8 @@ def _backup_file_set(paths: _Paths):
     files = {}
     if paths.db.exists():
         files["data/edgecase.db"] = paths.db
-    for name in ("edgecase.db-wal", ".salt", ".secret_key", ".keyinfo"):
+    for name in ("edgecase.db-wal", ".salt", ".secret_key", ".keyinfo",
+                 ".rk_pending"):
         p = paths.data_dir / name
         if p.exists():
             files[f"data/{name}"] = p
@@ -270,9 +279,41 @@ def _commit(paths: _Paths, salt: bytes, file_key: bytes):
     os.chmod(str(paths.db), 0o600)
 
 
+def _commit_v3(paths: _Paths, blob: bytes):
+    """Swap in the rebuilt DB, then write the ECC3 key-info (the commit point).
+
+    Identical in shape to _commit, but the key-info written is an envelope blob
+    rather than salt + verification token. Ordering is what makes an interrupted
+    run survivable: until v3.write_keyinfo lands, the install is still described
+    by its OLD key-info, so a crash anywhere above leaves a rollback-able state
+    rather than an unopenable database."""
+    for sfx in ("-wal", "-shm"):
+        s = Path(str(paths.new_db) + sfx)
+        if s.exists():
+            s.unlink()
+    os.replace(str(paths.new_db), str(paths.db))
+    # The old DB's stale sidecars would corrupt reads against the new file.
+    for sfx in ("-wal", "-shm"):
+        s = Path(str(paths.db) + sfx)
+        if s.exists():
+            s.unlink()
+    # COMMIT POINT: once this is ECC3, the install is detected as v3.
+    v3.write_keyinfo(blob, path=paths.keyinfo)
+    os.chmod(str(paths.db), 0o600)
+
+
 def _rollback(paths: _Paths, backup_filename: str, backup_dir: str):
-    """Restore the pre-migration backup, leaving a clean v1 install."""
-    # Drop every v2 artifact first.
+    """Restore the pre-migration backup, leaving a clean install of whatever
+    version preceded the attempt.
+
+    Deleting .keyinfo unconditionally is correct for BOTH sources: a v1 install
+    had none (and the backup carries none, so it stays absent), while a v2
+    install's ECC2 file is in _backup_file_set and is restored by the extract
+    below. The delete-then-restore ordering means a half-written ECC3 file can
+    never survive a rollback."""
+    if paths.rk_pending.exists():
+        paths.rk_pending.unlink()
+    # Drop every v2/v3 artifact first.
     for p in (paths.keyinfo, paths.new_db,
               Path(str(paths.new_db) + "-wal"), Path(str(paths.new_db) + "-shm"),
               Path(str(paths.db) + "-wal"), Path(str(paths.db) + "-shm")):
@@ -372,6 +413,37 @@ def _recover_rekey_v2(paths: _Paths, marker: dict) -> str:
     return "rolled_back"
 
 
+def _recover_migrate_v3(paths: _Paths, marker: dict) -> str:
+    """Recovery for an interrupted v1/v2 -> v3 migration. Password-free.
+
+    The commit point is unambiguous here in a way it is not for a v2 password
+    change: ECC3 magic in the key-info file can only have been written by
+    _commit_v3, which runs after the verified DB swap. So the magic alone
+    decides, with no salt bookkeeping in the marker.
+
+    Note the .rk_pending flag is deliberately NOT cleared on the finalize path.
+    A crash between commit and the user recording their key is exactly the case
+    it exists to survive; the banner must still appear at next login."""
+    committed = False
+    if v2.keyinfo_exists(path=paths.keyinfo):
+        try:
+            committed = v3.keyinfo_version(path=paths.keyinfo) == 3
+        except Exception:
+            committed = False
+    if committed:
+        if paths.new_db.exists():
+            paths.new_db.unlink()
+        for sfx in ("-wal", "-shm"):
+            s = Path(str(paths.db) + sfx)
+            if s.exists():
+                s.unlink()
+        paths.marker.unlink()
+        return "finalized"
+    _rollback(paths, marker["backup_filename"], marker["backup_dir"])
+    paths.marker.unlink()
+    return "rolled_back"
+
+
 def recover_if_interrupted(root=None) -> str:
     """At startup: finalize a completed-but-uncleaned transition, or roll back an
     interrupted one. Password-free. Returns 'finalized', 'rolled_back', or 'none'.
@@ -383,6 +455,9 @@ def recover_if_interrupted(root=None) -> str:
     if not paths.marker.exists():
         return "none"
     marker = json.loads(paths.marker.read_text())
+
+    if marker.get("kind") == "migrate_v3":
+        return _recover_migrate_v3(paths, marker)
 
     if marker.get("kind") == "rekey_v2":
         return _recover_rekey_v2(paths, marker)
@@ -448,6 +523,179 @@ def change_password(current_password: str, new_password: str, root=None,
         v2._key_cache.clear()
         return {"status": "rekeyed", "files_rekeyed": done,
                 "files_total": len(files)}
+    except Exception:
+        _rollback(paths, backup_info["filename"],
+                  backup_info.get("backup_dir", str(paths.backups_dir)))
+        if paths.marker.exists():
+            paths.marker.unlink()
+        raise
+
+
+# ---------------------------------------------------------------------------
+# v3 envelope migration
+# ---------------------------------------------------------------------------
+#
+# Deliberately a SINGLE PASS from either source, not a chain through v2.
+# migrate() (v1->v2) and change_password() (v2->v2') already share a shape:
+# resolve how the old files decrypt, resolve how the old DB is keyed, mint new
+# keys, checkpoint -> backup -> marker, walk files, _export_verify, commit,
+# roll back on failure. Only the two "old" resolutions differ. So a v1 install
+# goes straight to v3 with one file walk and one DB rebuild instead of two,
+# halving the window in which a large attachment corpus is being rewritten.
+#
+# EdgeCase does NOT need the resume-state file MailRepo carries. MailRepo does
+# an in-place PRAGMA rekey and so must be re-runnable; here the rebuilt DB is a
+# separate file that is verified before the swap, and any failure restores the
+# backup wholesale. Rollback-to-a-known-good is a stronger guarantee than
+# resume, and it is already built.
+
+
+def install_crypto_version(root=None) -> int:
+    """Which crypto generation this install is on: 1, 2 or 3.
+
+    v1 is "no key-info file at all", which is exactly what v2.keyinfo_exists()
+    has always meant. That is why adding v3 did not change its meaning.
+    """
+    paths = _resolve_paths(root)
+    if not v2.keyinfo_exists(path=paths.keyinfo):
+        return 1
+    return v3.keyinfo_version(path=paths.keyinfo)
+
+
+def needs_v3_migration(root=None) -> bool:
+    """True for an existing install that should be upgraded to the envelope.
+
+    False when a migration is already pending — that case belongs to
+    recover_if_interrupted(), which runs first and needs no password.
+    """
+    paths = _resolve_paths(root)
+    if not paths.db.exists() or paths.marker.exists():
+        return False
+    return install_crypto_version(root) in (1, 2)
+
+
+def recovery_key_pending(root=None) -> bool:
+    """True if a recovery key was issued but never acknowledged by the user."""
+    return _resolve_paths(root).rk_pending.exists()
+
+
+def clear_recovery_key_pending(root=None) -> None:
+    """Call ONLY after the user has typed their recovery key back correctly."""
+    paths = _resolve_paths(root)
+    if paths.rk_pending.exists():
+        paths.rk_pending.unlink()
+
+
+def _verify_current_password(paths: _Paths, password: str, version: int):
+    """Confirm the password really is the current one before anything is
+    touched. Cheap, and it turns "wrong password" into a clean refusal instead
+    of a mid-walk failure that has to unwind through a rollback."""
+    if version == 2:
+        salt, token = v2.read_keyinfo(path=paths.keyinfo)
+        _db, file_key = v2.derive_subkeys(v2.derive_master(password, salt))
+        if not v2.check_verification_token(file_key, token):
+            raise ValueError("Current password is incorrect.")
+        return
+    # v1: the passphrase keys SQLCipher directly, so a read proves it.
+    con = sqlite3.connect(str(paths.db))
+    try:
+        con.execute(f"PRAGMA key = '{password.replace(chr(39), chr(39) * 2)}'")
+        con.execute("SELECT count(*) FROM client_types")
+    except Exception:
+        raise ValueError("Current password is incorrect.")
+    finally:
+        con.close()
+
+
+def migrate_to_v3(password: str, root=None, backup_fn=None,
+                  progress_cb=None) -> dict:
+    """Migrate a v1 or v2 install to the v3 envelope, in one pass.
+
+    Returns a summary dict including "recovery_key" — the ONLY time that key
+    exists in plaintext. It is never stored, so the caller MUST show it to the
+    user. A `.rk_pending` flag is set before the commit point so that a crash
+    during display still leaves evidence the key was never acknowledged; the UI
+    nags until the user types it back, and regeneration is always available
+    because they are logged in with a working password.
+
+    On any failure this rolls back to the pre-migration backup and re-raises,
+    leaving a clean install of whatever version it started from. A hard crash
+    (no rollback runs) is handled by recover_if_interrupted() at next startup.
+
+    Precondition: no other SQLCipher connection to the database is open.
+    """
+    paths = _resolve_paths(root)
+    version = install_crypto_version(root)
+    if version == 3:
+        return {"status": "already_v3", "files_migrated": 0, "recovery_key": None}
+    if backup_fn is None:
+        backup_fn = _live_backup if root is None else (lambda: _zip_backup(paths))
+
+    _verify_current_password(paths, password, version)
+
+    # --- Resolve the source side. This is the ONLY place the two upgrade
+    #     paths differ; everything below is shared. ---
+    if version == 1:
+        old_fernet = _old_fernet(password, paths.salt_file.read_bytes())
+        old_db_key_hex = None
+        esc = password.replace("'", "''")
+        checkpoint_key_sql = f"PRAGMA key = '{esc}'"
+    else:
+        old_salt, _tok = v2.read_keyinfo(path=paths.keyinfo)
+        old_db_key_hex, old_file_key = v2.derive_subkeys(
+            v2.derive_master(password, old_salt))
+        old_fernet = None
+        checkpoint_key_sql = f"PRAGMA key = \"x'{old_db_key_hex}'\""
+
+    # --- The destination is identical regardless of source. ---
+    master = v3.new_master()
+    recovery_key = v3.generate_recovery_key()
+    new_db_key_hex, new_file_key = v2.derive_subkeys(master)
+    blob = v3.build_keyinfo(master, password, recovery_key)
+
+    # Checkpoint so the backup captures a complete .db file.
+    try:
+        c = sqlite3.connect(str(paths.db))
+        c.execute(checkpoint_key_sql)
+        c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        c.close()
+    except Exception:
+        pass  # best-effort; the WAL sidecar is backed up regardless
+
+    backup_info = backup_fn()
+    _write_marker(paths, backup_info, kind="migrate_v3")
+    try:
+        files = _candidate_files(paths)
+        done = 0
+        for i, fp in enumerate(files):
+            if version == 1:
+                outcome = _reencrypt_file(fp, old_fernet, new_file_key)
+                converted = outcome == "migrated"
+            else:
+                outcome = _reencrypt_file_v2(fp, old_file_key, new_file_key)
+                converted = outcome == "rekeyed"
+            if converted:
+                done += 1
+            if progress_cb:
+                progress_cb(i + 1, len(files))
+
+        if version == 1:
+            _build_raw_keyed_db(paths, password, new_db_key_hex)
+        else:
+            _build_rekeyed_db_v2(paths, old_db_key_hex, new_db_key_hex)
+
+        # Set the pending flag BEFORE the commit point, not after. If it went
+        # second there would be a window in which the install is already v3
+        # with no record that a recovery key is outstanding — precisely the
+        # crash this flag exists to catch.
+        paths.rk_pending.write_text("1")
+
+        _commit_v3(paths, blob)
+        paths.marker.unlink()
+        v2._key_cache.clear()
+        return {"status": "migrated_to_v3", "from_version": version,
+                "files_migrated": done, "files_total": len(files),
+                "recovery_key": recovery_key}
     except Exception:
         _rollback(paths, backup_info["filename"],
                   backup_info.get("backup_dir", str(paths.backups_dir)))
