@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Recovery Key - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 480px;
+        }
+        h2 { color: #1F2937; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        input[type=password] {
+            width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
+            border-radius: 0.5rem; font-family: inherit; font-size: 0.95rem;
+        }
+        input[type=password]:focus { outline: none; border-color: #115D4F; }
+        .error {
+            background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
+            padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
+        }
+        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+        button {
+            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
+            padding: 0.65rem 1.5rem; font-family: inherit; font-size: 0.925rem;
+            font-weight: 500; cursor: pointer;
+        }
+        button:hover { background: #0D4A3F; }
+        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
+        .later:hover { color: #374151; text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Issue a new recovery key</h2>
+    <p class="subtitle">Your master password stays the same</p>
+
+    <p>This creates a new recovery key and retires the previous one. Any key you
+       wrote down before will stop working, so replace it wherever you filed it.</p>
+
+    <p>Do this if you never recorded your key, if you can't find it, or if you
+       think someone else may have seen it.</p>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <form method="POST" action="{{ url_for('auth.regenerate_recovery_key') }}">
+        <label for="password">Confirm your master password</label>
+        <input type="password" id="password" name="password" required autofocus
+               autocomplete="current-password">
+        <div class="actions">
+            <button type="submit">Issue new key</button>
+            <a class="later" href="{{ url_for('clients.index') }}">Cancel</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

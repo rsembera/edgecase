@@ -90,6 +90,22 @@ def inject_static_version():
     return {'static_v': app.config['STATIC_VERSION']}
 
 
+@app.context_processor
+def inject_recovery_key_pending():
+    """Surface an unacknowledged recovery key to every template.
+
+    Deliberately a persistent banner rather than a one-shot modal: a key the
+    user never wrote down is exactly the state that must not be dismissible by
+    accident, and the flag survives restarts and crashes. Fails closed to
+    False — a banner that cannot be computed must not break the app.
+    """
+    try:
+        from core import migrate_crypto
+        return {'recovery_key_pending': migrate_crypto.recovery_key_pending()}
+    except Exception:
+        return {'recovery_key_pending': False}
+
+
 # ============================================================================
 # HOST HEADER VALIDATION (DNS rebinding protection)
 #

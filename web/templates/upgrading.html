@@ -39,14 +39,35 @@
         }
         .error .ring { background: #FDE2E1; }
         .error .spinner { display: none; }
+        /* The spinner is misleading before the user has chosen to start. */
+        .waiting .spinner { display: none; }
+        .waiting .ring::after { content: '\1F511'; font-size: 1.4rem; }
+        .note { color: #6B7280; font-size: 0.85rem; margin-top: 0.75rem; }
+        .begin { margin-top: 1.5rem; }
+        .begin button {
+            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
+            padding: 0.65rem 1.75rem; font-family: inherit; font-size: 0.95rem;
+            font-weight: 500; cursor: pointer;
+        }
+        .begin button:hover { background: #0D4A3F; }
     </style>
 </head>
 <body>
     <div class="card" id="card">
         <div class="ring"><div class="spinner" id="spinner"></div></div>
-        <h2 id="title">Upgrading encryption</h2>
+        <h2 id="title">Encryption upgrade</h2>
         <p class="subtitle">One-time security upgrade</p>
-        <p id="message">Preparing&hellip;</p>
+        <div id="intro">
+            <p id="message">EdgeCase is adding a <strong>recovery key</strong> — a
+            printed code that can open your records if you ever forget your master
+            password. Without one, a forgotten password means the records are gone
+            for good.</p>
+            <p class="note">This runs once and re-encrypts your practice file, so it
+            can take a few minutes. Please don't close the app while it works.</p>
+            <p class="note"><strong>Have somewhere secure to write before you
+            start</strong> — the key is shown once at the end and is never stored.</p>
+            <div class="begin"><button id="beginBtn" type="button">Begin upgrade</button></div>
+        </div>
         <div class="actions" id="actions"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
     </div>
 
@@ -54,37 +75,57 @@
         document.addEventListener('DOMContentLoaded', function () {
             var card = document.getElementById('card');
             var title = document.getElementById('title');
+            var intro = document.getElementById('intro');
             var messageEl = document.getElementById('message');
             var actions = document.getElementById('actions');
+            var beginBtn = document.getElementById('beginBtn');
+
+            // Wait for an explicit start. The upgrade ends with a secret the
+            // user has to physically record, so springing it on them mid-login
+            // is how it gets clicked past.
+            card.classList.add('waiting');
 
             function fail(text) {
                 card.classList.add('error');
+                card.classList.remove('waiting');
                 title.textContent = 'Upgrade not completed';
                 messageEl.textContent = text;
                 actions.style.display = 'block';
             }
 
-            var es = new EventSource('{{ url_for("auth.migrate_stream", token=migrate_token) }}');
+            function begin() {
+                beginBtn.style.display = 'none';
+                card.classList.remove('waiting');
+                title.textContent = 'Upgrading encryption';
+                messageEl.textContent = 'Preparing\u2026';
+                Array.prototype.forEach.call(
+                    intro.querySelectorAll('.note'),
+                    function (n) { n.style.display = 'none'; });
 
-            es.onmessage = function (event) {
-                var data = JSON.parse(event.data);
-                if (data.status === 'working') {
-                    messageEl.textContent = data.message;
-                } else if (data.status === 'complete') {
-                    es.close();
-                    title.textContent = 'Encryption upgraded';
-                    messageEl.textContent = 'Opening EdgeCase\u2026';
-                    setTimeout(function () { window.location.href = data.redirect; }, 900);
-                } else if (data.status === 'error') {
-                    es.close();
-                    fail(data.message);
-                }
-            };
+                var es = new EventSource('{{ url_for("auth.migrate_stream", token=migrate_token) }}');
 
-            es.onerror = function () {
-                es.close();
-                fail('The connection was interrupted. Your data is unchanged \u2014 please go back and log in again.');
-            };
+                es.onmessage = function (event) {
+                    var data = JSON.parse(event.data);
+                    if (data.status === 'working') {
+                        messageEl.textContent = data.message;
+                    } else if (data.status === 'complete') {
+                        es.close();
+                        title.textContent = 'Encryption upgraded';
+                        messageEl.textContent = 'Opening your recovery key\u2026';
+                        setTimeout(function () { window.location.href = data.redirect; }, 900);
+                    } else if (data.status === 'error') {
+                        es.close();
+                        fail(data.message);
+                    }
+                };
+
+                es.onerror = function () {
+                    es.close();
+                    fail('The connection was interrupted. Your data is unchanged \u2014 please go back and log in again.');
+                };
+            }
+
+            beginBtn.addEventListener('click', begin);
         });
     </script>
 </body>

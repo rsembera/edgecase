@@ -129,6 +129,12 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {% if recovery_key_pending %}
+    <div style="background:#FFF8E6;border-bottom:1px solid #E4CE93;padding:0.65rem 1rem;font-size:0.875rem;color:#6B5320;display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+        <span><strong>No recovery key recorded.</strong> If you forget your master password, your records cannot be recovered.</span>
+        <a href="{{ url_for('auth.regenerate_recovery_key') }}" style="color:#115D4F;font-weight:500;white-space:nowrap;">Set one up</a>
+    </div>
+    {% endif %}
     <main>
         {% block content %}{% endblock %}
     </main>
