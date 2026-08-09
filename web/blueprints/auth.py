@@ -412,14 +412,18 @@ def migrate_stream():
 def recovery_key():
     """Show a freshly issued recovery key and take the user's acknowledgement.
 
-    Acknowledgement is by typing the key back, not a checkbox: the difference
-    between having seen it and having recorded it is the whole point. The key
-    is held server-side and read WITHOUT consuming, so a mistype re-renders the
-    same key rather than destroying the only copy.
+    Acknowledgement is a checkbox, not a typed copy of the key. Typing it back
+    looks stronger but is not: the page also offers Copy to clipboard, so the
+    check could be satisfied by paste without the key ever reaching anything
+    durable. It only ever verified transcription for the subset of users who
+    copied by hand, while implying a guarantee it could not make.
 
-    Declining is allowed. .rk_pending stays set, the banner returns at every
-    login, and the remedy shifts from "recover" to "regenerate" — which is
-    always available because the user is logged in with a working password.
+    What actually protects the user is that the key cannot be shown again and
+    .rk_pending keeps nagging until acknowledged — plus regeneration always
+    being available, since they are logged in with a working password.
+
+    The key is held server-side and read WITHOUT consuming, so a refresh does
+    not destroy the only copy.
     """
     from core import migrate_crypto
 
@@ -433,18 +437,11 @@ def recovery_key():
                                pending=migrate_crypto.recovery_key_pending())
 
     if request.method == 'POST':
-        typed = request.form.get('confirm_key', '')
-        try:
-            matches = (migrate_crypto.v3.parse_recovery_key(typed)
-                       == migrate_crypto.v3.parse_recovery_key(key))
-        except Exception:
-            matches = False
-
-        if not matches:
+        # `required` on the input is a browser hint only; anything can POST.
+        if not request.form.get('confirm_saved'):
             return render_template(
                 'recovery_key.html', recovery_key=key, token=token,
-                error="That doesn't match. Check for transposed characters — "
-                      "hyphens, spacing and capitals don't matter.")
+                error="Please confirm you've saved your recovery key.")
 
         migrate_crypto.clear_recovery_key_pending()
         _drop_recovery_handoff(token)
