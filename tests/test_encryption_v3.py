@@ -258,3 +258,64 @@ def test_write_refuses_a_non_v3_blob(tmp_path):
 def test_build_rejects_wrong_length_master():
     with pytest.raises(ValueError):
         v3.build_keyinfo(b"\x00" * 16, PW, v3.generate_recovery_key())
+
+
+# --- The read path: an ECC3 install must be openable through get_keys ---
+
+@pytest.fixture
+def live_keyinfo(tmp_path, monkeypatch):
+    """Point BOTH modules' default key-info path at a temp file.
+
+    get_keys() and verify_password() read the live path with no argument, so
+    exercising the real read path means relocating it rather than passing one in.
+    """
+    path = tmp_path / ".keyinfo"
+    monkeypatch.setattr(v2, "KEYINFO_FILE", path)
+    monkeypatch.setattr(v3, "KEYINFO_FILE", path)
+    v2._key_cache.clear()
+    yield path
+    v2._key_cache.clear()
+
+
+def test_get_keys_opens_a_v3_install(live_keyinfo, envelope):
+    """The whole point of branching inside get_keys: an ECC3 install yields
+    exactly the subkeys the master implies, with no caller changes."""
+    blob, master, _rk = envelope
+    v3.write_keyinfo(blob, path=live_keyinfo)
+    assert v2.get_keys(PW) == v2.derive_subkeys(master)
+
+
+def test_get_keys_still_opens_a_v2_install(live_keyinfo):
+    """Regression guard: the v2 path must survive the branch being added."""
+    salt = v2.new_salt()
+    expected = v2.derive_subkeys(v2.derive_master(PW, salt))
+    v2.write_keyinfo(salt, v2.make_verification_token(expected[1]), path=live_keyinfo)
+    assert v2.get_keys(PW) == expected
+
+
+def test_get_keys_raises_on_wrong_password_under_v3(live_keyinfo, envelope):
+    """v2 returned garbage for a wrong password; v3 can and should refuse.
+    Database.verify_password is the one caller that passes unverified input."""
+    v3.write_keyinfo(envelope[0], path=live_keyinfo)
+    with pytest.raises(ValueError):
+        v2.get_keys("not the password")
+
+
+def test_wrong_password_is_not_cached(live_keyinfo, envelope):
+    v3.write_keyinfo(envelope[0], path=live_keyinfo)
+    with pytest.raises(ValueError):
+        v2.get_keys("not the password")
+    assert "not the password" not in v2._key_cache
+
+
+def test_keys_survive_a_password_rotation(live_keyinfo, envelope):
+    """The envelope's real payoff: rotating the password leaves db_key and
+    file_key untouched, so nothing needs re-encrypting or rekeying."""
+    blob, master, _rk = envelope
+    v3.write_keyinfo(blob, path=live_keyinfo)
+    before = v2.get_keys(PW)
+
+    v3.write_keyinfo(v3.rewrap_password(blob, master, NEW_PW), path=live_keyinfo)
+    v2._key_cache.clear()
+
+    assert v2.get_keys(NEW_PW) == before

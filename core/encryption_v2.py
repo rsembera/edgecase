@@ -171,15 +171,33 @@ _key_cache: dict = {}
 def get_keys(password: str):
     """Return (db_key_hex, file_key) for a migrated install, cached per password.
 
-    Reads the Argon2id salt from the key-info file, then derives via Argon2id
-    + HKDF. Raises if the key-info file is missing — callers gate on
-    keyinfo_exists() first.
+    Version-aware, and deliberately the ONLY place that branches on key-info
+    format. v2 (ECC2) derives the master from the password; v3 (ECC3) unwraps a
+    random master from the password wrapper. Both then take the same HKDF path,
+    so every caller — core.database, core.encryption, utils.backup, tools/ —
+    keeps working unchanged against either format.
+
+    Contract difference worth knowing: on a v2 install a wrong password returns
+    garbage keys (verification is a separate step against the token), whereas on
+    v3 the wrapper's GCM tag fails and this RAISES ValueError. Callers that pass
+    unverified passwords — Database.verify_password is the only one — must
+    handle that. Raising is the better contract; v2 simply could not offer it.
+
+    Raises if the key-info file is missing — callers gate on keyinfo_exists()
+    first.
     """
     cached = _key_cache.get(password)
     if cached is not None:
         return cached
-    salt, _token = read_keyinfo()
-    keys = derive_subkeys(derive_master(password, salt))
+    # Lazy import: encryption_v3 imports this module for its AEAD primitives,
+    # so a module-level import here would be circular.
+    from core import encryption_v3 as _v3
+    if _v3.keyinfo_version() == 3:
+        master = _v3.unwrap_with_password(_v3.read_keyinfo(), password)
+    else:
+        salt, _token = read_keyinfo()
+        master = derive_master(password, salt)
+    keys = derive_subkeys(master)
     if len(_key_cache) >= 2:
         _key_cache.clear()
     _key_cache[password] = keys

@@ -172,16 +172,29 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         as a DatabaseError (wrong key / not decryptable / corrupt).
         See CODE_REVIEW.md L18.
         """
-        # v2 install: verify against the key-info verification token. A
-        # correct password derives the file key that decrypts the token, which
-        # (same Argon2id master) also yields the correct DB key. No DB open.
+        # Migrated install (v2 or v3): verify without opening the database.
+        #
+        # v2 — derive the file key and decrypt the key-info verification token.
+        # v3 — there is no separate token: the password wrapper is AES-GCM, so a
+        #      wrong password fails the auth tag and unwrapping raises. The
+        #      wrapper IS the verification, which is why ECC3 has no token field.
+        # Either way the same master (and so the same DB key) is what a
+        # successful check proves access to.
         if encryption_v2.keyinfo_exists():
             try:
+                from core import encryption_v3
+                if encryption_v3.keyinfo_version() == 3:
+                    encryption_v3.unwrap_with_password(
+                        encryption_v3.read_keyinfo(), password)
+                    return True
                 _salt, token = encryption_v2.read_keyinfo()
                 _db_key_hex, file_key = encryption_v2.get_keys(password)
                 return encryption_v2.check_verification_token(file_key, token)
+            except ValueError:
+                # Wrong password on a v3 install — expected, not an error.
+                return False
             except Exception as e:
-                print(f"verify_password: v2 verification error: {e}")
+                print(f"verify_password: key-info verification error: {e}")
                 return False
 
         test_conn = None
