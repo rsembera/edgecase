@@ -85,7 +85,7 @@
 
     <!-- Bottom Actions -->
     <div class="bottom-actions">
-        <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}" class="btn">
+        <a href="{{ url_for('entries.edit_session', client_id=client.id, entry_id=entry.id) }}" class="btn" id="btn-back-to-session">
             <i data-lucide="arrow-left" class="icon-sm"></i> Back
         </a>
         <div class="action-group">
@@ -108,6 +108,8 @@
         </div>
     </div>
 </div>
+
+{% include 'components/unsaved_changes_modal.html' %}
 
 <!-- Store entry ID for JavaScript -->
 <script>
