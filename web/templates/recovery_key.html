@@ -24,11 +24,19 @@
         p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
         .keybox {
             background: #F3F6F7; border: 1px solid #BFDCDC; border-radius: 0.75rem;
-            padding: 1.25rem; margin: 1.25rem 0; text-align: center;
+            padding: 1.25rem; margin: 1.25rem 0 0.75rem; text-align: center;
             font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
             font-size: 1.15rem; letter-spacing: 0.06em; color: #115D4F;
             word-break: break-all; user-select: all;
         }
+        .keyactions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+        .keyactions button {
+            background: white; color: #115D4F; border: 1px solid #BFDCDC;
+            border-radius: 0.5rem; padding: 0.45rem 0.9rem; font-family: inherit;
+            font-size: 0.825rem; font-weight: 500; cursor: pointer;
+        }
+        .keyactions button:hover:not(:disabled) { background: #F3F6F7; }
+        .keyactions button:disabled { opacity: 0.7; cursor: default; }
         .warn {
             background: #FFF8E6; border-left: 3px solid #D9A441; border-radius: 0.4rem;
             padding: 0.9rem 1rem; font-size: 0.875rem; color: #6B5320; margin-bottom: 1.25rem;
@@ -57,7 +65,7 @@
         @media print {
             body { background: white; }
             .card { box-shadow: none; max-width: none; }
-            form, .actions, .warn { display: none; }
+            form, .actions, .warn, .keyactions { display: none; }
             .print-only { display: block; font-size: 0.85rem; color: #6B7280; }
         }
     </style>
@@ -89,7 +97,13 @@
        your backups. If you lose both this and your password, the records
        cannot be recovered by anyone.</p>
 
-    <div class="keybox">{{ recovery_key }}</div>
+    <div class="keybox" id="recovery-key-value">{{ recovery_key }}</div>
+
+    <div class="keyactions">
+        <button type="button" id="copy-recovery-key">Copy to clipboard</button>
+        <button type="button" id="download-recovery-key">Download as text file</button>
+        <button type="button" id="print-recovery-key">Print</button>
+    </div>
 
     <div class="warn">
         <strong>Treat this like the records themselves.</strong> Anyone holding
@@ -115,5 +129,114 @@
     </form>
 {% endif %}
 </div>
+{% if recovery_key %}
+<script>
+/*
+ * The key is rendered by the server and exists nowhere else — not in the
+ * session, not on disk, not in the database. Everything here is about getting
+ * it off the screen and into somewhere durable before the user navigates away.
+ * Adapted from MailRepo's recovery-key.js.
+ */
+(function () {
+    'use strict';
+    var keyEl = document.getElementById('recovery-key-value');
+    if (!keyEl) { return; }
+    var recoveryKey = keyEl.textContent.trim();
+
+    function flash(button, message) {
+        var original = button.textContent;
+        button.textContent = message;
+        button.disabled = true;
+        setTimeout(function () {
+            button.textContent = original;
+            button.disabled = false;
+        }, 2000);
+    }
+
+    function selectKeyText() {
+        var range = document.createRange();
+        range.selectNodeContents(keyEl);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    var copyButton = document.getElementById('copy-recovery-key');
+    if (copyButton) {
+        copyButton.addEventListener('click', function () {
+            // Clipboard API needs a secure context. EdgeCase runs on
+            // 127.0.0.1, which qualifies, but fall back to selecting the text
+            // rather than leaving the button silently dead if it is ever not.
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(recoveryKey).then(
+                    function () { flash(copyButton, 'Copied'); },
+                    function () { selectKeyText(); flash(copyButton, 'Press Cmd+C'); }
+                );
+            } else {
+                selectKeyText();
+                flash(copyButton, 'Press Cmd+C');
+            }
+        });
+    }
+
+    var printButton = document.getElementById('print-recovery-key');
+    if (printButton) {
+        printButton.addEventListener('click', function () { window.print(); });
+    }
+
+    var downloadButton = document.getElementById('download-recovery-key');
+    if (downloadButton) {
+        downloadButton.addEventListener('click', function () {
+            var stamp = new Date().toISOString().slice(0, 10);
+            var body = [
+                'EdgeCase Equalizer recovery key',
+                'Created: ' + stamp,
+                '',
+                recoveryKey,
+                '',
+                'This key opens your practice file WITHOUT the master password.',
+                'Anyone who has it has full access to your client records.',
+                '',
+                'Keep it somewhere private and separate from your password —',
+                'the way you would keep a spare key to your office. A downloaded',
+                'copy sitting in Downloads is not that place; move it somewhere',
+                'secure, or print it, and delete the download.',
+                '',
+                'If it is ever lost or exposed, issue a new one from Settings,',
+                'which immediately retires this one.',
+                ''
+            ].join('\n');
+
+            var blob = new Blob([body], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'edgecase-recovery-key-' + stamp + '.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            flash(downloadButton, 'Downloaded');
+        });
+    }
+
+    // Leaving loses the key permanently, so make that explicit — but only for
+    // accidental exits. Confirming, and the deliberate "I'll do this later"
+    // link, are both real choices and must not be nagged.
+    var leavingDeliberately = false;
+    document.querySelectorAll('form, .later').forEach(function (el) {
+        el.addEventListener(el.tagName === 'FORM' ? 'submit' : 'click', function () {
+            leavingDeliberately = true;
+        });
+    });
+
+    window.addEventListener('beforeunload', function (event) {
+        if (leavingDeliberately) { return; }
+        event.preventDefault();
+        event.returnValue = '';
+    });
+})();
+</script>
+{% endif %}
 </body>
 </html>
