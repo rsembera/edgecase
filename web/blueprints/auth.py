@@ -72,6 +72,45 @@ def _pop_migration_handoff(token):
     return entry['password']
 
 
+# A freshly issued recovery key, held between the migration SSE route and the
+# screen that displays it. Same reasoning as the handoffs above — the key is a
+# full-access credential and must never be serialized into the signed-but-not-
+# encrypted session cookie.
+#
+# Unlike those, this one is NOT single-use on read: the user has to be able to
+# refresh, or mistype the confirmation, without the key vanishing off the
+# screen mid-transcription. It is dropped explicitly on acknowledgement, and
+# expires on the same TTL regardless. If it does expire, nothing is lost that
+# regenerating from Settings cannot replace — which is the whole reason
+# .rk_pending can be a nag rather than a hard block.
+
+_recovery_key_handoff = {}
+_RECOVERY_TTL_SECONDS = 1800  # 30 minutes; writing a key down is not a 5-minute job
+
+
+def _store_recovery_handoff(recovery_key):
+    _recovery_key_handoff.clear()
+    token = secrets.token_urlsafe(32)
+    _recovery_key_handoff[token] = {'key': recovery_key, 'created': time.time()}
+    return token
+
+
+def _peek_recovery_handoff(token):
+    """Read WITHOUT consuming, so a refresh or a mistyped confirmation does not
+    destroy the only copy of the key."""
+    entry = _recovery_key_handoff.get(token) if token else None
+    if not entry:
+        return None
+    if time.time() - entry['created'] > _RECOVERY_TTL_SECONDS:
+        _recovery_key_handoff.pop(token, None)
+        return None
+    return entry['key']
+
+
+def _drop_recovery_handoff(token):
+    _recovery_key_handoff.pop(token, None)
+
+
 # ============================================================================
 # LOGIN RATE LIMITING
 # ============================================================================
@@ -209,13 +248,13 @@ def login():
             conn = db.connect()
             conn.execute("SELECT count(*) FROM client_types")
 
-            # Existing v1 install: migrate encryption to v2 before
-            # completing login. The runner needs no DB handle open, so
-            # close ours; /migrate/stream re-opens the now-v2 DB and
-            # finishes the login.
+            # Existing v1 or v2 install: upgrade encryption to the v3
+            # envelope before completing login. Single pass from either
+            # version. The runner needs no DB handle open, so close ours;
+            # /migrate/stream re-opens the now-v3 DB and finishes the login.
             if not first_run:
                 from core import migrate_crypto
-                if migrate_crypto.needs_migration():
+                if migrate_crypto.needs_v3_migration():
                     db.close()
                     _clear_failed_attempts()
                     migrate_token = _store_migration_handoff(password)
@@ -225,8 +264,10 @@ def login():
                     session['login_time'] = int(time.time())
                     session['last_activity'] = time.time()
                     session.modified = True
-                    return render_template('upgrading.html',
-                                           migrate_token=migrate_token)
+                    return render_template(
+                        'upgrading.html',
+                        migrate_token=migrate_token,
+                        from_version=migrate_crypto.install_crypto_version())
 
             # Success! Store db in app config
             current_app.config['db'] = db
@@ -289,20 +330,105 @@ def migrate_stream():
             from core.database import Database
             from web.app import init_all_blueprints
 
-            result = migrate_crypto.migrate(password)
+            result = migrate_crypto.migrate_to_v3(password)
 
-            # Committed (.keyinfo written, marker cleared). Open the now-v2
+            # Committed (.keyinfo written, marker cleared). Open the now-v3
             # database and complete the login exactly as auth.login does.
             db = Database(db_path, password=password)
             db.connect().execute("SELECT count(*) FROM client_types")
             app_obj.config['db'] = db
             init_all_blueprints(db)
 
-            yield "data: " + json.dumps({'status': 'complete', 'message': 'Encryption upgraded.', 'files': result.get('files_migrated', 0), 'redirect': redirect_url}) + "\n\n"
+            # The recovery key exists in plaintext exactly once, as this return
+            # value — it is never stored. Route to the screen that shows it
+            # instead of straight to the client list; .rk_pending is already
+            # set on disk, so even a crash here leaves evidence the key was
+            # never recorded.
+            rk_token = _store_recovery_handoff(result.get('recovery_key'))
+            destination = url_for('auth.recovery_key', token=rk_token)
+
+            yield "data: " + json.dumps({'status': 'complete', 'message': 'Encryption upgraded.', 'files': result.get('files_migrated', 0), 'redirect': destination}) + "\n\n"
         except Exception as e:
             yield "data: " + json.dumps({'status': 'error', 'message': 'The upgrade did not complete: ' + str(e) + '. Your data is unchanged and still on the previous encryption \u2014 please try logging in again.'}) + "\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
+
+
+@auth_bp.route('/recovery-key', methods=['GET', 'POST'])
+@login_required
+def recovery_key():
+    """Show a freshly issued recovery key and take the user's acknowledgement.
+
+    Acknowledgement is by typing the key back, not a checkbox: the difference
+    between having seen it and having recorded it is the whole point. The key
+    is held server-side and read WITHOUT consuming, so a mistype re-renders the
+    same key rather than destroying the only copy.
+
+    Declining is allowed. .rk_pending stays set, the banner returns at every
+    login, and the remedy shifts from "recover" to "regenerate" — which is
+    always available because the user is logged in with a working password.
+    """
+    from core import migrate_crypto
+
+    token = request.args.get('token') or request.form.get('token', '')
+    key = _peek_recovery_handoff(token)
+
+    if not key:
+        # Expired, already acknowledged, or a stale link. Nothing is lost that
+        # regenerating cannot replace, so say so plainly rather than erroring.
+        return render_template('recovery_key.html', expired=True,
+                               pending=migrate_crypto.recovery_key_pending())
+
+    if request.method == 'POST':
+        typed = request.form.get('confirm_key', '')
+        try:
+            matches = (migrate_crypto.v3.parse_recovery_key(typed)
+                       == migrate_crypto.v3.parse_recovery_key(key))
+        except Exception:
+            matches = False
+
+        if not matches:
+            return render_template(
+                'recovery_key.html', recovery_key=key, token=token,
+                error="That doesn't match. Check for transposed characters — "
+                      "hyphens, spacing and capitals don't matter.")
+
+        migrate_crypto.clear_recovery_key_pending()
+        _drop_recovery_handoff(token)
+        return redirect(url_for('clients.index'))
+
+    return render_template('recovery_key.html', recovery_key=key, token=token)
+
+
+@auth_bp.route('/recovery-key/regenerate', methods=['GET', 'POST'])
+@login_required
+def regenerate_recovery_key():
+    """Issue a fresh recovery key, retiring the previous one.
+
+    Requires the master password — the operation grants a new full-access
+    credential, so an unattended session must not be able to mint one. Routes
+    into the same display-and-confirm screen as the migration path.
+    """
+    from core import migrate_crypto
+
+    if migrate_crypto.install_crypto_version() != 3:
+        return render_template('recovery_key.html', expired=True, pending=False)
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        db = current_app.config.get('db')
+        if not db or not db.verify_password(password):
+            return render_template('recovery_key_regenerate.html',
+                                   error="That password is incorrect.")
+        try:
+            new_key = migrate_crypto.regenerate_recovery_key(password)
+        except Exception as e:
+            return render_template('recovery_key_regenerate.html',
+                                   error=f"Could not issue a new key: {e}")
+        token = _store_recovery_handoff(new_key)
+        return redirect(url_for('auth.recovery_key', token=token))
+
+    return render_template('recovery_key_regenerate.html')
 
 
 @auth_bp.route('/logout')

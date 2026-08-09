@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recovery Key - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 560px;
+        }
+        h2 { color: #1F2937; font-size: 1.35rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
+        .keybox {
+            background: #F3F6F7; border: 1px solid #BFDCDC; border-radius: 0.75rem;
+            padding: 1.25rem; margin: 1.25rem 0; text-align: center;
+            font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 1.15rem; letter-spacing: 0.06em; color: #115D4F;
+            word-break: break-all; user-select: all;
+        }
+        .warn {
+            background: #FFF8E6; border-left: 3px solid #D9A441; border-radius: 0.4rem;
+            padding: 0.9rem 1rem; font-size: 0.875rem; color: #6B5320; margin-bottom: 1.25rem;
+        }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        input[type=text] {
+            width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
+            border-radius: 0.5rem; font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.95rem; letter-spacing: 0.04em;
+        }
+        input[type=text]:focus { outline: none; border-color: #115D4F; }
+        .error {
+            background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
+            padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
+        }
+        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+        button {
+            background: #115D4F; color: white; border: none; border-radius: 0.5rem;
+            padding: 0.65rem 1.5rem; font-family: inherit; font-size: 0.925rem;
+            font-weight: 500; cursor: pointer;
+        }
+        button:hover { background: #0D4A3F; }
+        .later { color: #6B7280; font-size: 0.875rem; text-decoration: none; }
+        .later:hover { color: #374151; text-decoration: underline; }
+        .print-only { display: none; }
+        @media print {
+            body { background: white; }
+            .card { box-shadow: none; max-width: none; }
+            form, .actions, .warn { display: none; }
+            .print-only { display: block; font-size: 0.85rem; color: #6B7280; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+{% if expired %}
+    <h2>That recovery key is no longer on screen</h2>
+    <p class="subtitle">Nothing is lost</p>
+    {% if pending %}
+    <p>The key issued during your upgrade is no longer available to display —
+       it was never stored anywhere, by design.</p>
+    <p>You can issue a fresh one at any time from
+       <strong>Settings &rsaquo; Security</strong>. Doing so retires the old key
+       and gives you a new one to write down. Your password is unaffected.</p>
+    {% else %}
+    <p>This recovery key has already been confirmed. You can issue a fresh one
+       at any time from <strong>Settings &rsaquo; Security</strong>.</p>
+    {% endif %}
+    <div class="actions">
+        <a class="later" href="{{ url_for('clients.index') }}">Continue to EdgeCase</a>
+    </div>
+{% else %}
+    <h2>Write down your recovery key</h2>
+    <p class="subtitle">This is the only time it will be shown</p>
+
+    <p>If you ever forget your master password, this key is the only way back
+       into your records. It is not stored anywhere — not in EdgeCase, not in
+       your backups. If you lose both this and your password, the records
+       cannot be recovered by anyone.</p>
+
+    <div class="keybox">{{ recovery_key }}</div>
+
+    <div class="warn">
+        <strong>Treat this like the records themselves.</strong> Anyone holding
+        it can open your practice file. Keep it where you keep other confidential
+        material — a locked cabinet or a safe — not a desk drawer or an unencrypted
+        note. Hyphens, spacing and capitals don't matter when you type it back.
+    </div>
+
+    <p class="print-only">EdgeCase Equalizer recovery key — store securely.</p>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <form method="POST" action="{{ url_for('auth.recovery_key') }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="confirm_key">Type the key back to confirm you've recorded it</label>
+        <input type="text" id="confirm_key" name="confirm_key" autocomplete="off"
+               autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required autofocus>
+        <div class="actions">
+            <button type="submit">Confirm and continue</button>
+            <a class="later" href="{{ url_for('clients.index') }}">I'll do this later</a>
+        </div>
+    </form>
+{% endif %}
+</div>
+</body>
+</html>
