@@ -1,13 +1,13 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** June 21, 2026
+**Last Updated:** August 9, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase uses SQLite with SQLCipher encryption, containing 13 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
+EdgeCase uses SQLite with SQLCipher encryption, containing 14 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
 
 **Database Location:** `~/Applications/edgecase/data/edgecase.db`
 
@@ -25,6 +25,7 @@ EdgeCase uses SQLite with SQLCipher encryption, containing 13 tables organized a
 11. settings - Application settings
 12. archived_clients - Retention system archives
 13. statement_portions - Statement tracking
+14. payment_allocations - Which statements a payment settled; credit on account
 
 ---
 
@@ -444,8 +445,62 @@ CREATE TABLE statement_portions (
 **Key Fields:**
 - `guardian_number`: NULL for client paying directly, 1 or 2 for guardian splits
 - `amount_due`: Total amount for this portion
-- `amount_paid`: Running total of payments received
+- `amount_paid`: Running total of payments received — and of credit applied
+  at generation time (see payment_allocations)
 - `status`: 'ready', 'sent', 'partial', 'paid', 'written_off'
+
+---
+
+### 14. payment_allocations
+
+The sub-ledger recording which statements a payment settled, and any part
+of it held as credit. Added 2026-08-09; see
+`docs/Payment_Allocation_Plan.md` and `core/db/allocations.py`.
+
+```sql
+CREATE TABLE payment_allocations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id INTEGER NOT NULL,
+    portion_id INTEGER,
+    client_id INTEGER NOT NULL,
+    guardian_number INTEGER,
+    amount REAL NOT NULL,
+    tax_amount REAL,
+    created_at INTEGER NOT NULL,
+    is_credit INTEGER DEFAULT 0,
+    FOREIGN KEY (entry_id) REFERENCES entries(id),
+    FOREIGN KEY (portion_id) REFERENCES statement_portions(id),
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
+```
+
+**Key Fields:**
+- `entry_id`: the ledger entry this row claims part of. Named `entry_id`
+  rather than `income_entry_id` because a refund would be an expense entry.
+- `portion_id`: the statement portion settled, or NULL for an unallocated
+  remainder held as **credit** on the client's account
+- `client_id` / `guardian_number`: the payer scope. Carried here because an
+  income entry knows its client only by `source` and its guardian not at
+  all, and a credit must never cross payers.
+- `amount`: may be negative (a refund allocation); rows for one entry sum to
+  that entry's `total_amount`
+- `tax_amount`: `prorata_tax` for THIS portion — computed per allocation,
+  since two statements settled by one payment can have different tax rates
+- `is_credit`: 1 when the row was created by SPENDING credit on a statement
+  rather than by a payment arriving. Drives the PDF's "Credit applied" line.
+
+**Invariant:** `SUM(amount) == entries.total_amount` for any entry written
+by `record_payment`. Legacy entries that predate the table (or that the
+backfill could not resolve) have no rows at all — which is why credit is
+read from explicit NULL-portion rows and never derived as "total minus
+allocations".
+
+**Indexes:** `idx_alloc_entry`, `idx_alloc_portion`, `idx_alloc_credit`
+(client_id, guardian_number).
+
+**Note on `is_credit`:** added a day after the table, so
+`_initialize_schema()` carries an idempotent `PRAGMA table_info` guard that
+adds the column where it is missing.
 
 ---
 
@@ -460,17 +515,31 @@ CREATE TABLE statement_portions (
 - Easy to query outstanding statements
 
 **Auto-Income Generation:**
-When payment recorded:
-1. Update statement_portions (amount_paid, status)
-2. Create Income entry in ledger
-3. Link Income to statement via statement_id field
-4. Use file_number as source (privacy - not client name)
+When a payment is recorded (`record_payment`, one transaction):
+1. Create ONE Income entry for the amount that actually arrived, on the
+   date it arrived — a lump sum settling three statements is still one
+   deposit and one ledger line
+2. Write a payment_allocations row per statement portion settled, plus one
+   NULL-portion row for any remainder held as credit
+3. Update each statement_portions row (amount_paid, status)
+4. Link the Income to the FIRST statement settled via statement_id, so
+   everything that reads that field keeps working; payment_allocations is
+   authoritative when present
+5. Use file_number as source (privacy - not client name)
+
+**Credit:**
+An unallocated remainder is credit on the client's account, scoped to one
+payer. Statement generation consumes it automatically — on the generation
+cursor, inside the generation transaction, which is what stops two
+statements in one batch from both spending it. The PDF shows it as an
+explicit "Credit applied" line, and the originating Income entry is never
+rewritten.
 
 ---
 
 ## MIGRATIONS
 
-**Location:** `core/database.py` — `_initialize_schema()` (which runs `CREATE TABLE IF NOT EXISTS` and additive `CREATE INDEX IF NOT EXISTS` statements on every open) plus `_migrate_typed_empty_strings()`
+**Location:** `core/database.py` — `_initialize_schema()` (which runs `CREATE TABLE IF NOT EXISTS`, additive `CREATE INDEX IF NOT EXISTS` statements, and a `PRAGMA table_info` guard that adds `payment_allocations.is_credit` where missing, on every open) plus `_migrate_typed_empty_strings()` and `backfill_payment_allocations()`
 
 **Philosophy:** Always additive, never destructive. Old data stays intact.
 
@@ -479,4 +548,4 @@ When payment recorded:
 *For route information, see Route_Reference.md*  
 *For design philosophy, see Architecture_Decisions.md*
 
-*Last updated: June 21, 2026*
+*Last updated: August 9, 2026*
