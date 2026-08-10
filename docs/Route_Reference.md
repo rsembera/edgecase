@@ -1,13 +1,13 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** June 21, 2026
+**Last Updated:** August 9, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 110 routes: 106 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
+EdgeCase has 111 routes: 107 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
 
 1. **ai_bp** - AI Scribe functionality (10 routes)
 2. **auth_bp** - Login/logout, session management, crypto migration, recovery keys (10 routes)
@@ -16,7 +16,7 @@ EdgeCase has 110 routes: 106 across 11 blueprints, plus 4 app-level routes regis
 5. **entries_bp** - Entry CRUD operations (16 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
 7. **links_bp** - Link group management (4 routes)
-8. **statements_bp** - Statement generation (9 routes)
+8. **statements_bp** - Statement generation, payment allocation (11 routes)
 9. **scheduler_bp** - Calendar integration (1 route)
 10. **types_bp** - Client type management (4 routes)
 11. **settings_bp** - Settings and configuration (17 routes)
@@ -985,13 +985,38 @@ def send_applescript_email()
 ### Payment Operations
 
 ```python
-@statements_bp.route('/mark-paid', methods=['POST'])
-def mark_paid()
+@statements_bp.route('/payment-proposal', methods=['GET'])
+def payment_proposal()
+
+@statements_bp.route('/record-payment', methods=['POST'])
+def record_payment()
 
 @statements_bp.route('/write-off', methods=['POST'])
 def write_off_statement()
 ```
-**Purpose:** Record payment or write off
+**Purpose:** Record a payment against a payer, or write off a statement
+
+`payment-proposal` (query: `portion_id`, optional `amount`) resolves the
+payer behind a portion and returns every open statement for them, oldest
+first, with a proposed split. The modal calls it again whenever the amount
+changes, so the oldest-first arithmetic lives only in
+`core/billing.propose_allocation` and never in JavaScript.
+
+`record-payment` takes `portion_id` (any portion of the payer),
+`payment_amount`, optional `payment_date` (YYYY-MM-DD, defaults to today),
+optional `notes`, and an optional `allocations` list of
+`{portion_id, amount}`. Omitting `allocations` applies the oldest-first
+proposal. It writes ONE income entry plus a `payment_allocations` row per
+statement settled, and holds any remainder as credit — all in one
+transaction. Allocations naming another payer's portion, another client's
+portion, an unsent statement, or more than that statement has outstanding
+are rejected before anything is written.
+
+**Removed 2026-08-09:** `mark-paid` / `mark_paid`. It could only express a
+payment against a single statement, which was the defect `record_payment`
+exists to fix; keeping both would have meant two UIs for one operation. Its
+never-reachable negative-amount refund branch went with it — see
+`docs/Payment_Allocation_Plan.md`.
 
 ---
 
