@@ -360,6 +360,18 @@ function generateStatements(btnEl) {
                 const word = stmtCount === 1 ? 'statement' : 'statements';
                 message = `Generated ${stmtCount} ${word}`;
             }
+
+            // Clients whose credits outweighed their charges get no
+            // statement — say so, or the missing statement looks like a
+            // bug. Their entries stay unbilled and carry forward.
+            const skipped = data.skipped || [];
+            if (skipped.length > 0) {
+                const names = skipped.map(s => `${s.name} ($${s.total.toFixed(2)})`).join(', ');
+                message += `. No statement for ${names} — credits exceed charges `
+                         + `for this period, so those entries stay unbilled and `
+                         + `will appear on the next statement that covers them.`;
+            }
+
             showSuccessModal(message, 'Success');
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
