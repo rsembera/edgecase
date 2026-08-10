@@ -18,13 +18,14 @@ from core.db.client_types import ClientTypeMixin
 from core.db.edit_history import EditHistoryMixin
 from core.db.links import LinkMixin
 from core.db.clients import ClientMixin
+from core.db.allocations import AllocationMixin
 from core.db.entries import EntryMixin
 from core.db.ledger import LedgerMixin
 from core.db.retention import RetentionMixin
 from core.db.errors import EntryLockedError  # re-exported; defined in a leaf module to avoid an import cycle with EntryMixin
 
 
-class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, EntryMixin, LedgerMixin, RetentionMixin):
+class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin):
     """
     Database interface for EdgeCase.
     Manages all SQLite operations using Entry-based architecture.
@@ -48,6 +49,11 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         self._enforce_foreign_keys = False
         self._initialize_schema()
         self._migrate_typed_empty_strings()
+        # Give pre-existing payments their allocation rows. Idempotent and
+        # guarded by NOT EXISTS, so this is a no-op from the second launch
+        # onward; kept a standalone method (not inlined in schema init) so
+        # it can be re-run and tested independently.
+        self.backfill_payment_allocations()
         self._enforce_foreign_keys = self._check_foreign_key_integrity()
         if self._enforce_foreign_keys:
             # Apply to the connection this thread already opened during init
@@ -506,6 +512,34 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         )
         """)
 
+        # Payment Allocations (one payment settling one or more portions).
+        #
+        # A row is a claim on a ledger entry: portion_id NOT NULL applies the
+        # amount to that statement portion; portion_id NULL holds it as an
+        # unallocated CREDIT on the client's account. client_id and
+        # guardian_number carry the payer scope so a credit can be found and
+        # spent without inferring the payer from a description string.
+        #
+        # Additive only — no migration runner and no backup gate, unlike the
+        # crypto versions: the table appears on next launch, and installs
+        # that never overpay simply never write a NULL-portion row. See
+        # core/db/allocations.py and docs/Payment_Allocation_Plan.md.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS payment_allocations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id INTEGER NOT NULL,
+                portion_id INTEGER,
+                client_id INTEGER NOT NULL,
+                guardian_number INTEGER,
+                amount REAL NOT NULL,
+                tax_amount REAL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (entry_id) REFERENCES entries(id),
+                FOREIGN KEY (portion_id) REFERENCES statement_portions(id),
+                FOREIGN KEY (client_id) REFERENCES clients(id)
+            )
+        """)
+
         # Indexes for the most common query patterns (CODE_REVIEW.md M3).
         # IF NOT EXISTS makes this idempotent, so running at every startup
         # also migrates existing databases.
@@ -524,6 +558,18 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_statement_portions_client_status
             ON statement_portions(client_id, status)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_alloc_entry
+            ON payment_allocations(entry_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_alloc_portion
+            ON payment_allocations(portion_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_alloc_credit
+            ON payment_allocations(client_id, guardian_number)
         """)
 
         conn.commit()
