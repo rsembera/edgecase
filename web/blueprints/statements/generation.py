@@ -6,7 +6,7 @@ from flask import request, jsonify
 from datetime import datetime
 import calendar
 import time
-from core.money import money_float
+from core.money import money_float, to_cents
 from core.billing import compute_statement_totals, split_guardian_amounts
 from web.blueprints.statements.common import statements_bp, get_db
 
@@ -154,6 +154,7 @@ def generate_statements():
     cursor = conn.cursor()
     
     generated = []
+    skipped = []
     
     for client_id in client_ids:
         # Get client info
@@ -166,6 +167,8 @@ def generate_statements():
         client_row = cursor.fetchone()
         if not client_row:
             continue
+        client_cols = [col[0] for col in cursor.description]
+        client = dict(zip(client_cols, client_row))
         
         # Get client's profile for guardian info
         cursor.execute("""
@@ -205,6 +208,27 @@ def generate_statements():
         
         # Calculate total and total tax (Decimal arithmetic — see core/billing.py)
         total, total_tax = compute_statement_totals(entries)
+
+        # A period whose credits outweigh its charges produces no statement.
+        # The item form invites credit lines ("Use negative amounts for
+        # credits"), and normally they simply reduce the period's total —
+        # but with too few charges to absorb one, the statement total goes
+        # negative, and a document telling the client THEY are owed money
+        # is not something to send. The entries stay unbilled, so the
+        # credit carries forward to the next period that can absorb it.
+        # Zero is allowed through: it documents that a credit exactly
+        # offset the charges, and marks those entries settled.
+        if to_cents(total) < 0:
+            name_parts = [client['first_name']]
+            if client['middle_name']:
+                name_parts.append(client['middle_name'])
+            name_parts.append(client['last_name'])
+            skipped.append({
+                'client_id': client_id,
+                'name': ' '.join(name_parts),
+                'total': money_float(total),
+            })
+            continue
         
         # Create statement description (use already-clamped values)
         start_dt = datetime(start_year, start_month, start_day)
@@ -282,5 +306,6 @@ def generate_statements():
         'success': True,
         'generated': generated,
         'count': len(generated),
-        'portion_count': portion_count
+        'portion_count': portion_count,
+        'skipped': skipped,
     })
