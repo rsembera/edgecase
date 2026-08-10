@@ -195,6 +195,11 @@ def generate_statements():
             continue
         client_cols = [col[0] for col in cursor.description]
         client = dict(zip(client_cols, client_row))
+        name_parts = [client['first_name']]
+        if client['middle_name']:
+            name_parts.append(client['middle_name'])
+        name_parts.append(client['last_name'])
+        client_name = ' '.join(name_parts)
         
         # Get client's profile for guardian info
         cursor.execute("""
@@ -245,16 +250,35 @@ def generate_statements():
         # Zero is allowed through: it documents that a credit exactly
         # offset the charges, and marks those entries settled.
         if to_cents(total) < 0:
-            name_parts = [client['first_name']]
-            if client['middle_name']:
-                name_parts.append(client['middle_name'])
-            name_parts.append(client['last_name'])
             skipped.append({
                 'client_id': client_id,
-                'name': ' '.join(name_parts),
+                'name': client_name,
                 'total': money_float(total),
             })
             continue
+
+        # The same rule, applied PER PAYER. On a guardian split the
+        # statement total can stay positive while ONE guardian's share nets
+        # negative — explicit per-item assignments make this easy (sessions
+        # to guardian 1, a credit item to guardian 2). A negative portion
+        # has no sane life downstream: credit application skips it, and
+        # mark-sent's "amount_paid >= amount_due" test settles it on the
+        # spot, evaporating money that payer is genuinely owed. So the
+        # statement is not generated; the entries stay unbilled until a
+        # period whose charges can absorb the credit, exactly as above.
+        # The split is computed ONCE here and reused at insertion, so the
+        # check and the insert can never disagree.
+        split_portions = None
+        if profile and profile.get('is_minor') and profile.get('guardian1_name'):
+            split_portions = split_guardian_amounts(entries, profile, total)
+            negative = [amt for _, amt in split_portions if to_cents(amt) < 0]
+            if negative:
+                skipped.append({
+                    'client_id': client_id,
+                    'name': client_name,
+                    'total': money_float(min(negative)),
+                })
+                continue
         
         # Create statement description (use already-clamped values)
         start_dt = datetime(start_year, start_month, start_day)
@@ -283,12 +307,13 @@ def generate_statements():
         
         # Create statement portions
         # Check if minor with guardian billing
-        if profile and profile.get('is_minor') and profile.get('guardian1_name'):
+        if split_portions is not None:
             # Guardian split logic lives in core/billing.py:
             # explicit per-item amounts honored; percentage pool split with
             # the exact remainder to guardian 2; single guardian (H3) pays
-            # the full statement amount.
-            for guardian_number, amount in split_guardian_amounts(entries, profile, total):
+            # the full statement amount. Computed above (negative-portion
+            # check) and reused here.
+            for guardian_number, amount in split_portions:
                 cursor.execute("""
                     INSERT INTO statement_portions (
                         statement_entry_id, client_id, guardian_number,

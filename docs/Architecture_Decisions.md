@@ -51,6 +51,25 @@ manual Ledger expense. Statement generation therefore declines to produce
 a net-negative statement, which is the only thing a refund path would have
 had to settle.
 
+**The net-negative rule applies per payer, not just per statement.** On a
+guardian split the statement total can stay positive while one guardian's
+share nets negative (sessions assigned to guardian 1, a credit item
+explicitly assigned to guardian 2). A negative portion has no sane life
+downstream: credit application skips it, and mark-sent's
+`amount_paid >= amount_due` test settles it instantly — money that payer
+is owed, gone. So generation checks the split before creating anything
+and skips the whole statement, exactly as it does for a negative total;
+the entries wait for a period whose charges can absorb the credit.
+
+**If a refund path is ever built, reconcile the credit readers first.**
+`get_client_credit` sums *all* NULL-portion rows (a balance), while
+`consume_credit` / `get_credit_rows` spend only rows with `amount > 0`.
+Today every writer is constrained positive, so the two agree. A refund
+that wrote a negative NULL-portion row would split them: the balance
+would drop while consumption still saw the full positive rows — an
+overspend waiting to happen. Either net the rows at write time or teach
+the consumers about negatives before any such writer exists.
+
 ---
 
 ## PROJECT PHILOSOPHY
