@@ -4,9 +4,10 @@ Extracted from the statements.py blueprint split.
 """
 from flask import request, jsonify
 from datetime import datetime
+import calendar
 import time
-from core.money import dec, quantize_cents, money_float
-from core.billing import apply_payment, prorata_tax
+from core.money import dec, quantize_cents, money_float, to_cents
+from core.billing import apply_payment, prorata_tax, propose_allocation
 from web.blueprints.statements.common import statements_bp, get_db
 
 
@@ -40,6 +41,305 @@ def _get_or_create_payee(cursor, name, now):
         VALUES (?, ?)
     """, (name, now))
     return cursor.lastrowid
+
+
+def _payer_scope(cursor, portion_id):
+    """Resolve the payer (client + guardian) a statement portion belongs to.
+
+    Payment is recorded against a PAYER, not a statement — but the UI's
+    entry point is a row in the outstanding list, which knows a portion.
+    This turns the one into the other.
+    """
+    cursor.execute("""
+        SELECT sp.client_id, sp.guardian_number,
+               c.file_number, c.first_name, c.middle_name, c.last_name
+        FROM statement_portions sp
+        JOIN clients c ON sp.client_id = c.id
+        WHERE sp.id = ?
+    """, (portion_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+
+    columns = [col[0] for col in cursor.description]
+    scope = dict(zip(columns, row))
+
+    name_parts = [scope['first_name']]
+    if scope['middle_name']:
+        name_parts.append(scope['middle_name'])
+    name_parts.append(scope['last_name'])
+    scope['client_name'] = ' '.join(name_parts)
+
+    guardian = scope['guardian_number']
+    scope['payer_label'] = f"Guardian {guardian}" if guardian else None
+    return scope
+
+
+def _parse_payment_date(date_str):
+    """'YYYY-MM-DD' -> midnight timestamp. None/empty -> now.
+
+    Midnight rather than the time of entry: the ledger date is the day the
+    money arrived, and the financial report's range filter runs to
+    23:59:59, so any time within the day falls in the same period.
+    """
+    if not date_str:
+        return int(time.time())
+    parts = str(date_str).split('-')
+    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+    day = min(day, calendar.monthrange(year, month)[1])
+    return int(datetime(year, month, day).timestamp())
+
+
+@statements_bp.route('/payment-proposal', methods=['GET'])
+def payment_proposal():
+    """Open portions for a payer, with a proposed oldest-first split.
+
+    Called on opening the payment modal and again whenever the amount
+    changes, so the oldest-first arithmetic has exactly one home
+    (core/billing.propose_allocation) instead of a second copy in
+    JavaScript that could drift from it.
+
+    `amount` omitted proposes against everything outstanding.
+    """
+    db = get_db()
+
+    portion_id = request.args.get('portion_id', type=int)
+    if not portion_id:
+        return jsonify({'success': False, 'error': 'portion_id required'}), 400
+
+    conn = db.connect()
+    cursor = conn.cursor()
+
+    scope = _payer_scope(cursor, portion_id)
+    if not scope:
+        return jsonify({'success': False, 'error': 'Portion not found'}), 404
+
+    portions = db.get_client_outstanding_portions(
+        scope['client_id'], scope['guardian_number'])
+
+    total_owing = quantize_cents(
+        sum((p['amount_owing'] for p in portions), dec(0)))
+
+    requested = request.args.get('amount', type=float)
+    amount = total_owing if requested is None else quantize_cents(requested)
+
+    proposed, remainder = propose_allocation(portions, amount)
+    proposed_by_id = {pid: value for pid, value in proposed}
+
+    rows = []
+    for portion in portions:
+        rows.append({
+            'portion_id': portion['id'],
+            'description': portion['statement_description'],
+            'date': datetime.fromtimestamp(
+                portion['statement_date']).strftime('%Y-%m-%d'),
+            'amount_due': money_float(portion['amount_due']),
+            'amount_paid': money_float(portion['amount_paid']),
+            'amount_owing': money_float(portion['amount_owing']),
+            'proposed': money_float(
+                proposed_by_id.get(portion['id'], dec(0))),
+        })
+
+    return jsonify({
+        'success': True,
+        'client_id': scope['client_id'],
+        'client_name': scope['client_name'],
+        'file_number': scope['file_number'],
+        'guardian_number': scope['guardian_number'],
+        'payer_label': scope['payer_label'],
+        'total_owing': money_float(total_owing),
+        'amount': money_float(amount),
+        'credit': money_float(
+            db.get_client_credit(scope['client_id'], scope['guardian_number'])),
+        'portions': rows,
+        'unallocated': money_float(remainder),
+    })
+
+
+@statements_bp.route('/record-payment', methods=['POST'])
+def record_payment():
+    """Record ONE payment against one payer, settling one or more statements.
+
+    The deposit is one financial event: one income entry for the amount
+    that actually arrived, on the date it arrived. Which statements it
+    settles is a receivables fact, carried by payment_allocations — so a
+    $300 transfer covering July and August produces one ledger line that
+    maps onto one bank line, not two invented halves.
+
+    Everything here is one transaction: the entry, every allocation row,
+    and every portion's amount_paid/status move together or not at all.
+    """
+    db = get_db()
+
+    data = request.get_json() or {}
+    portion_id = data.get('portion_id')          # any portion of the payer
+    payment_amount = data.get('payment_amount')
+    allocations = data.get('allocations')
+    notes = (data.get('notes') or '').strip()
+
+    if not portion_id or payment_amount is None:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    try:
+        payment_amount = quantize_cents(payment_amount)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid payment amount'}), 400
+
+    if to_cents(payment_amount) <= 0:
+        return jsonify({'success': False,
+                        'error': 'Payment amount must be positive'}), 400
+
+    try:
+        ledger_date = _parse_payment_date(data.get('payment_date'))
+    except (ValueError, IndexError, TypeError):
+        return jsonify({'success': False, 'error': 'Invalid payment date'}), 400
+
+    conn = db.connect()
+    cursor = conn.cursor()
+
+    scope = _payer_scope(cursor, portion_id)
+    if not scope:
+        return jsonify({'success': False, 'error': 'Portion not found'}), 404
+
+    open_portions = db.get_client_outstanding_portions(
+        scope['client_id'], scope['guardian_number'])
+    by_id = {p['id']: p for p in open_portions}
+
+    # Absent an explicit split, propose one — a single-statement payment is
+    # the degenerate case of the same operation, not a separate path.
+    if allocations is None:
+        proposed, _ = propose_allocation(open_portions, payment_amount)
+        allocations = [{'portion_id': pid, 'amount': money_float(value)}
+                       for pid, value in proposed if to_cents(value) > 0]
+
+    # ---- validate before writing anything -------------------------------
+    cleaned = []
+    allocated_total = dec(0)
+    seen = set()
+
+    for allocation in allocations:
+        target_id = allocation.get('portion_id')
+        try:
+            amount = quantize_cents(allocation.get('amount'))
+        except Exception:
+            return jsonify({'success': False,
+                            'error': 'Invalid allocation amount'}), 400
+
+        if to_cents(amount) == 0:
+            continue
+        if to_cents(amount) < 0:
+            return jsonify({'success': False,
+                            'error': 'Allocation amounts cannot be negative'}), 400
+        if target_id in seen:
+            return jsonify({'success': False,
+                            'error': 'Duplicate allocation for one statement'}), 400
+        seen.add(target_id)
+
+        portion = by_id.get(target_id)
+        if not portion:
+            # Wrong client, wrong guardian, or not open: guardian scoping is
+            # load-bearing here — one payer's money must never settle
+            # another's portion.
+            return jsonify({
+                'success': False,
+                'error': 'Statement is not open for this payer'}), 400
+
+        if to_cents(amount) > to_cents(portion['amount_owing']):
+            # amount_paid must never exceed amount_due; every outstanding
+            # calculation downstream depends on it.
+            return jsonify({
+                'success': False,
+                'error': 'Allocation exceeds the amount outstanding on a '
+                         'statement'}), 400
+
+        cleaned.append((portion, amount))
+        allocated_total += amount
+
+    if to_cents(allocated_total) > to_cents(payment_amount):
+        return jsonify({'success': False,
+                        'error': 'Allocations exceed the payment amount'}), 400
+
+    remainder = quantize_cents(payment_amount - allocated_total)
+
+    # ---- write ----------------------------------------------------------
+    now = int(time.time())
+
+    description = "Client Payment"
+    if scope['guardian_number']:
+        description += f" (Guardian {scope['guardian_number']})"
+
+    # Tax is pro-rated PER allocation: the statements settled by one
+    # payment can carry different tax rates. The entry's tax_amount is the
+    # sum of those, not one call against the payment total.
+    tax_total = dec(0)
+    for portion, amount in cleaned:
+        tax_total += prorata_tax(amount, portion['statement_tax_total'],
+                                 portion['statement_total'])
+
+    # entries.statement_id stays populated for the first (or only)
+    # statement settled, so everything that reads it keeps working;
+    # payment_allocations is authoritative when present.
+    primary_statement_id = cleaned[0][0]['statement_entry_id'] if cleaned else None
+
+    try:
+        cursor.execute("""
+            INSERT INTO entries (
+                client_id, class, ledger_type, created_at, modified_at,
+                description, content, ledger_date, source, total_amount,
+                tax_amount, statement_id
+            ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            None, now, now, description, notes if notes else None,
+            ledger_date, scope['file_number'], money_float(payment_amount),
+            money_float(tax_total), primary_statement_id
+        ))
+        entry_id = cursor.lastrowid
+
+        results = []
+        for portion, amount in cleaned:
+            new_amount_paid, amount_owing, new_status = apply_payment(
+                portion['amount_due'], portion['amount_paid'], amount)
+
+            cursor.execute("""
+                UPDATE statement_portions
+                SET amount_paid = ?, status = ?
+                WHERE id = ?
+            """, (money_float(new_amount_paid), new_status, portion['id']))
+
+            db.insert_allocation(
+                cursor, entry_id, portion['id'], scope['client_id'],
+                scope['guardian_number'], amount,
+                prorata_tax(amount, portion['statement_tax_total'],
+                            portion['statement_total']),
+                now)
+
+            results.append({
+                'portion_id': portion['id'],
+                'amount': money_float(amount),
+                'status': new_status,
+                'amount_owing': money_float(amount_owing),
+            })
+
+        # Anything left over is held as credit rather than forced onto the
+        # last statement. The NULL-portion row keeps the invariant
+        # SUM(allocations) == entry.total_amount true.
+        if to_cents(remainder) > 0:
+            db.insert_allocation(
+                cursor, entry_id, None, scope['client_id'],
+                scope['guardian_number'], remainder, None, now)
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False,
+                        'error': f'Database error: {str(e)}'}), 500
+
+    return jsonify({
+        'success': True,
+        'entry_id': entry_id,
+        'allocations': results,
+        'credit': money_float(remainder),
+    })
 
 
 @statements_bp.route('/mark-paid', methods=['POST'])
