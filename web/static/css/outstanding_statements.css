@@ -441,9 +441,16 @@ body.parchment .generate-section { border-color: #8b7355; }
     min-width: 0;
 }
 
-/* The shared rule adds a bottom margin that would double up in the row */
+/* Match the date picker's display box exactly (pickers.css .picker-display:
+   46px tall, 0.75rem/1rem padding, 0.5rem radius, 0.875rem text) so the two
+   fields in the row line up. The shared number-input rule is 38px with a
+   different radius and a bottom margin that would double up here. */
 .payment-fields input[type="number"] {
     margin-bottom: 0;
+    height: 46px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
 }
 
 .allocation-table {
@@ -513,10 +520,6 @@ body.parchment .generate-section { border-color: #8b7355; }
 @media (max-width: 640px) {
     .payment-fields {
         flex-direction: column;
-        gap: 0;
-    }
-
-    .payment-fields input[type="number"] {
-        margin-bottom: 1rem;
+        gap: 1rem;
     }
 }
