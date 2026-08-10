@@ -43,6 +43,11 @@ DECLARED_FKS = [
     ('attachments',        'entry_id',           'entries',      'id', False),
     ('statement_portions', 'statement_entry_id', 'entries',      'id', False),
     ('statement_portions', 'client_id',          'clients',      'id', False),
+    # portion_id is nullable: a NULL-portion allocation row is an
+    # unallocated credit, not an orphan (core/db/allocations.py).
+    ('payment_allocations', 'entry_id',   'entries',            'id', False),
+    ('payment_allocations', 'portion_id', 'statement_portions', 'id', True),
+    ('payment_allocations', 'client_id',  'clients',            'id', False),
 ]
 
 
