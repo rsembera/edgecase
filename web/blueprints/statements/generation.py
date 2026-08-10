@@ -11,6 +11,32 @@ from core.billing import compute_statement_totals, split_guardian_amounts
 from web.blueprints.statements.common import statements_bp, get_db
 
 
+def _apply_credit(db, cursor, client_id, guardian_number, portion_id,
+                  amount_due, statement_total, statement_tax, now):
+    """Spend any credit this payer holds against a just-created portion.
+
+    Carry-forward already pulls prior DEBITS onto the next statement
+    without asking; a credit is the same thing with the opposite sign, and
+    carrying only what the client owes would be asymmetric in the
+    practitioner's favour. So credit is applied automatically — and shown
+    as its own line on the PDF, never silently.
+
+    Runs on the generation cursor, so a credit cannot be spent twice even
+    by two statements generated in the same batch.
+    """
+    consumed = db.consume_credit(cursor, client_id, guardian_number,
+                                 portion_id, amount_due, now,
+                                 statement_tax=statement_tax,
+                                 statement_total=statement_total)
+    if to_cents(consumed) > 0:
+        # Status stays 'ready': the statement still has to be sent, even
+        # when credit covers all of it. mark-sent settles it on the way out.
+        cursor.execute("""
+            UPDATE statement_portions SET amount_paid = ? WHERE id = ?
+        """, (money_float(consumed), portion_id))
+    return consumed
+
+
 @statements_bp.route('/find-unbilled', methods=['GET'])
 def find_unbilled():
     """Find all clients with unbilled entries in date range."""
@@ -270,6 +296,8 @@ def generate_statements():
                     ) VALUES (?, ?, ?, ?, 0, 'ready', ?)
                 """, (statement_id, client_id, guardian_number,
                       money_float(amount), now))
+                _apply_credit(db, cursor, client_id, guardian_number,
+                              cursor.lastrowid, amount, total, total_tax, now)
         else:
             # Single portion for client
             cursor.execute("""
@@ -278,6 +306,8 @@ def generate_statements():
                     amount_due, amount_paid, status, created_at
                 ) VALUES (?, ?, NULL, ?, 0, 'ready', ?)
             """, (statement_id, client_id, money_float(total), now))
+            _apply_credit(db, cursor, client_id, None, cursor.lastrowid,
+                          total, total, total_tax, now)
 
         generated.append({
             'client_id': client_id,
