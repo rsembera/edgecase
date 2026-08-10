@@ -57,11 +57,15 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
         end_date_str: End date string for display
         client: Optional dict with 'id', 'file_number', 'name'. When given,
             the report becomes a Payment Record for that client: income is
-            their payments (matched by source file number OR by the
-            statement_id -> statement entry -> client chain), expenses are
-            their refunds only (statement chain; refunds carry the file
-            number in the payee, not source), and business-wide sections
-            (category summary, attachments) are omitted.
+            their payments (matched by source file number, by the
+            statement_id -> statement entry -> client chain, or by a
+            payment_allocations row — the last is what catches a lump sum
+            settling several statements, which carries statement_id for only
+            the first of them), expenses are their refunds only (statement
+            chain, or the file number as payee, which is how both the
+            automatic refund path and a hand-entered Ledger expense are
+            recorded), and business-wide sections (category summary,
+            attachments) are omitted.
     """
     
     # Get practice info
@@ -75,6 +79,13 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     # Per-client filters (see docstring). The statement subquery catches
     # payments and refunds regardless of source/payee string conventions.
     stmt_subq = "(SELECT id FROM entries WHERE class = 'statement' AND client_id = ?)"
+    # payment_allocations is authoritative when present: a lump sum settling
+    # several statements carries statement_id for only the FIRST of them, so
+    # matching on that alone would drop a payment from the record of every
+    # other client involved — and on this client's record it would still be
+    # found, but only by luck of which statement came first.
+    alloc_subq = ("(SELECT entry_id FROM payment_allocations "
+                  "WHERE client_id = ?)")
 
     # Get income entries (include id for attachments)
     if client:
@@ -83,9 +94,11 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             FROM entries
             WHERE class = 'income' AND ledger_type = 'income'
             AND ledger_date >= ? AND ledger_date <= ?
-            AND (source = ? OR statement_id IN {stmt_subq})
+            AND (source = ? OR statement_id IN {stmt_subq}
+                 OR id IN {alloc_subq})
             ORDER BY ledger_date
-        """, (start_ts, end_ts, client['file_number'], client['id']))
+        """, (start_ts, end_ts, client['file_number'], client['id'],
+              client['id']))
     else:
         cursor.execute("""
             SELECT id, ledger_date, total_amount, source, description, tax_amount
@@ -109,9 +122,9 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             LEFT JOIN payees p ON e.payee_id = p.id
             WHERE e.class = 'expense' AND e.ledger_type = 'expense'
             AND e.ledger_date >= ? AND e.ledger_date <= ?
-            AND e.statement_id IN {stmt_subq}
+            AND (e.statement_id IN {stmt_subq} OR p.name = ?)
             ORDER BY e.ledger_date
-        """, (start_ts, end_ts, client['id']))
+        """, (start_ts, end_ts, client['id'], client['file_number']))
     else:
         cursor.execute("""
             SELECT e.id, e.ledger_date, e.total_amount, e.description, 

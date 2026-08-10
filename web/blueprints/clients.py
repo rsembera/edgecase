@@ -12,7 +12,7 @@ import sqlcipher3 as sqlite3
 from decimal import Decimal
 
 from core.database import Database
-from core.money import format_currency
+from core.money import format_currency, to_cents
 
 # Initialize blueprint
 clients_bp = Blueprint('clients', __name__)
@@ -676,8 +676,16 @@ def client_file(client_id):
     currency_code = db.get_setting('currency', 'CAD')
     unbilled_total = db.get_unbilled_total(client_id)
     outstanding_balance = db.get_outstanding_balance(client_id)
+    # Credit held on account across every payer scope for this client — money
+    # already received that no statement has claimed yet. Shown only when
+    # there is some, so the header is unchanged for everyone else. It applies
+    # itself to the next statement (see docs/Payment_Allocation_Plan.md), so
+    # the label says so rather than leaving it looking like a stranded figure.
+    credit_balance = db.get_client_credit_all_payers(client_id)
     unbilled_display = format_currency(unbilled_total, currency_code)
     outstanding_display = format_currency(outstanding_balance, currency_code)
+    credit_display = format_currency(credit_balance, currency_code)
+    has_credit = to_cents(credit_balance) > 0
     # Guardian-billed minor: the unbilled figure is the full amount, which splits
     # across payers on the actual statement — flag it so the header can say so.
     # Same condition the statement generator uses to create guardian portions
@@ -698,6 +706,8 @@ def client_file(client_id):
                          linked_groups=linked_groups,
                          unbilled_display=unbilled_display,
                          outstanding_display=outstanding_display,
+                         credit_display=credit_display,
+                         has_credit=has_credit,
                          unbilled_is_zero=(unbilled_total == 0),
                          outstanding_is_zero=(outstanding_balance == 0),
                          has_guardians=has_guardians)
