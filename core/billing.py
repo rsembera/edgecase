@@ -125,9 +125,44 @@ def prorata_tax(payment_amount, statement_tax, statement_total) -> Decimal:
 
     Used for both payments (tax collected) and refunds (tax reversed —
     CODE_REVIEW.md L11). Returns 0 when the statement has no tax.
+
+    MUST be computed per allocation, not once on a payment total: two
+    statements settled by one payment can carry different tax rates, and
+    a single call against a combined total would be silently wrong.
     """
     total = dec(statement_total)
     tax = dec(statement_tax)
     if to_cents(total) <= 0 or to_cents(tax) <= 0:
         return Decimal('0.00')
     return quantize_cents(dec(payment_amount) * tax / total)
+
+
+def propose_allocation(portions: List[Dict[str, Any]],
+                       payment_amount) -> Tuple[List[Tuple[int, Decimal]], Decimal]:
+    """Split a payment across open portions, oldest statement first.
+
+    `portions` comes from get_client_outstanding_portions (already ordered
+    oldest first and scoped to one payer). Returns a (portion_id, amount)
+    pair for EVERY portion given — zero where nothing reaches it, so the
+    UI can render the full picture — plus the unallocated remainder.
+
+    Oldest-first is the standard default and matches what a client
+    believes they are paying off. The remainder is never forced onto the
+    last portion: overpaying a portion would make amount_paid exceed
+    amount_due and corrupt every outstanding calculation downstream. It
+    is returned as a remainder for the caller to hold as credit.
+    """
+    remaining = quantize_cents(payment_amount)
+    proposed: List[Tuple[int, Decimal]] = []
+
+    for portion in portions:
+        owing = quantize_cents(
+            dec(portion['amount_due']) - dec(portion['amount_paid']))
+        if to_cents(owing) <= 0 or to_cents(remaining) <= 0:
+            proposed.append((portion['id'], Decimal('0.00')))
+            continue
+        take = owing if owing < remaining else remaining
+        proposed.append((portion['id'], quantize_cents(take)))
+        remaining = quantize_cents(remaining - take)
+
+    return proposed, remaining
