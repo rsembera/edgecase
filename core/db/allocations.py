@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional
 
 import sqlcipher3 as sqlite3
 
-from core.money import dec, quantize_cents
+from core.money import dec, quantize_cents, to_cents
 
 
 class AllocationMixin:
@@ -196,7 +196,7 @@ class AllocationMixin:
     def insert_allocation(self, cursor, entry_id: int,
                           portion_id: Optional[int], client_id: int,
                           guardian_number: Optional[int], amount,
-                          tax_amount, now: int) -> int:
+                          tax_amount, now: int, is_credit: bool = False) -> int:
         """Write one allocation row on the CALLER'S cursor.
 
         Takes a cursor rather than opening its own connection so the whole
@@ -206,19 +206,101 @@ class AllocationMixin:
         disagreeing with the allocations that justify it.
 
         portion_id None writes a credit row (unallocated remainder).
+        is_credit marks the reverse: a row created by SPENDING credit on a
+        statement, which the PDF shows as its own "Credit applied" line.
         """
         from core.money import money_float
 
         cursor.execute("""
             INSERT INTO payment_allocations (
                 entry_id, portion_id, client_id, guardian_number,
-                amount, tax_amount, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                amount, tax_amount, created_at, is_credit
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (entry_id, portion_id, client_id, guardian_number,
               money_float(amount),
               None if tax_amount is None else money_float(tax_amount),
-              now))
+              now, 1 if is_credit else 0))
         return cursor.lastrowid
+
+    def consume_credit(self, cursor, client_id: int,
+                       guardian_number: Optional[int], portion_id: int,
+                       max_amount, now: int,
+                       statement_tax=None, statement_total=None) -> Decimal:
+        """Spend a payer's credit balance on a newly created portion.
+
+        Runs on the CALLER'S cursor, inside the statement-generation
+        transaction. That is what makes double-spending structurally
+        impossible rather than merely guarded against: two statements
+        generated in the same batch cannot both consume the same credit,
+        because the first one's consumption is already written by the time
+        the second one reads the balance.
+
+        Credit rows are taken oldest first and reduced in place (deleted
+        when exhausted); each amount taken becomes an is_credit allocation
+        row against the portion. The originating ledger entry is never
+        touched — the money was recorded when it arrived, and rewriting a
+        recorded entry to reflect where it later landed would alter a
+        figure that may already have been reported.
+
+        Returns the total consumed, never more than max_amount, and never
+        more than the balance available.
+        """
+        from core.money import money_float
+        from core.billing import prorata_tax
+
+        remaining = quantize_cents(max_amount)
+        if to_cents(remaining) <= 0:
+            return Decimal('0.00')
+
+        cursor.execute("""
+            SELECT id, entry_id, amount FROM payment_allocations
+            WHERE client_id = ?
+            AND guardian_number IS ?
+            AND portion_id IS NULL
+            AND amount > 0
+            ORDER BY created_at ASC, id ASC
+        """, (client_id, guardian_number))
+        credit_rows = cursor.fetchall()
+
+        consumed = Decimal('0.00')
+
+        for row_id, entry_id, available in credit_rows:
+            if to_cents(remaining) <= 0:
+                break
+
+            available = quantize_cents(available)
+            take = available if available < remaining else remaining
+
+            if to_cents(take) == to_cents(available):
+                cursor.execute(
+                    "DELETE FROM payment_allocations WHERE id = ?", (row_id,))
+            else:
+                cursor.execute(
+                    "UPDATE payment_allocations SET amount = ? WHERE id = ?",
+                    (money_float(available - take), row_id))
+
+            self.insert_allocation(
+                cursor, entry_id, portion_id, client_id, guardian_number,
+                take, prorata_tax(take, statement_tax, statement_total),
+                now, is_credit=True)
+
+            consumed = quantize_cents(consumed + take)
+            remaining = quantize_cents(remaining - take)
+
+        return consumed
+
+    def get_credit_applied(self, portion_id: int) -> Decimal:
+        """Credit spent on one portion — the statement's 'Credit applied'."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT amount FROM payment_allocations
+            WHERE portion_id = ? AND is_credit = 1
+        """, (portion_id,))
+        total = dec(0)
+        for row in cursor.fetchall():
+            total += dec(row[0])
+        return quantize_cents(total)
 
     # ========================================================================
     # BACKFILL

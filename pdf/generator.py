@@ -15,7 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path
-from core.money import dec, quantize_cents, get_currency_symbol, format_currency
+from core.money import dec, quantize_cents, to_cents, get_currency_symbol, format_currency
 from io import BytesIO
 from xml.sax.saxutils import escape as _xml_escape
 
@@ -522,29 +522,41 @@ class StatementPDFGenerator:
         return table, total
 
     def _build_balance_summary(self, current_due, prior_outstanding,
-                               currency_code):
+                               currency_code, credit_applied=0):
         """Balance-forward block shown when this payer still owes on
-        earlier statements.
+        earlier statements, or when credit was applied to this one.
 
-        Display-only: 'Current charges' is this portion's amount_due (this
-        payer's share, not the statement total on a guardian split);
-        'Previous balance' is the sent/partial remainder from
-        get_prior_outstanding. Neither figure changes how payments apply —
-        each statement still settles separately.
+        Display-only for the first two figures: 'Current charges' is this
+        portion's amount_due (this payer's share, not the statement total
+        on a guardian split); 'Previous balance' is the sent/partial
+        remainder from get_prior_outstanding. Neither changes how payments
+        apply — each statement still settles separately.
+
+        'Credit applied' is different: that money has already moved. It is
+        shown as its own negative line rather than netted into the total,
+        because a credit silently reducing a bill is exactly the kind of
+        thing a client should be able to see and check.
         """
         current = quantize_cents(dec(current_due))
         prior = quantize_cents(dec(prior_outstanding))
-        combined = quantize_cents(current + prior)
+        credit = quantize_cents(dec(credit_applied))
+        combined = quantize_cents(current + prior - credit)
 
         data = [
             ['Current charges', self._format_currency(current, currency_code)],
-            ['Previous balance', self._format_currency(prior, currency_code)],
-            ['TOTAL AMOUNT DUE', self._format_currency(combined, currency_code)],
         ]
+        if to_cents(prior) > 0:
+            data.append(['Previous balance',
+                         self._format_currency(prior, currency_code)])
+        if to_cents(credit) > 0:
+            data.append(['Credit applied',
+                         '-' + self._format_currency(credit, currency_code)])
+        data.append(['TOTAL AMOUNT DUE',
+                     self._format_currency(combined, currency_code)])
 
         summary = Table(data, colWidths=[1.9*inch, 1.3*inch], hAlign='RIGHT')
         summary.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 1), 'Helvetica'),
+            ('FONTNAME', (0, 0), (-1, -2), 'Helvetica'),
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('ALIGN', (0, 0), (0, -1), 'LEFT'),
@@ -743,15 +755,16 @@ class StatementPDFGenerator:
 
         # Balance forward (display-only). Computed at render time — the copy
         # attached to the Communication entry freezes it as-of-send, while a
-        # re-downloaded PDF shows the current truth. Zero prior balance
-        # renders nothing, so statements look exactly as before.
+        # re-downloaded PDF shows the current truth. Zero prior balance and
+        # no credit renders nothing, so statements look exactly as before.
         prior_outstanding = self.db.get_prior_outstanding(
             portion['client_id'], portion['statement_entry_id'],
             portion['guardian_number'])
-        if prior_outstanding > 0:
+        credit_applied = self.db.get_credit_applied(portion['id'])
+        if prior_outstanding > 0 or credit_applied > 0:
             story.extend(self._build_balance_summary(
                 portion['amount_due'], prior_outstanding,
-                settings['currency']))
+                settings['currency'], credit_applied))
 
         # Signature section
         story.extend(self._build_signature_section(settings, assets_path))

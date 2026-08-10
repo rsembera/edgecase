@@ -534,11 +534,24 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
                 amount REAL NOT NULL,
                 tax_amount REAL,
                 created_at INTEGER NOT NULL,
+                is_credit INTEGER DEFAULT 0,
                 FOREIGN KEY (entry_id) REFERENCES entries(id),
                 FOREIGN KEY (portion_id) REFERENCES statement_portions(id),
                 FOREIGN KEY (client_id) REFERENCES clients(id)
             )
         """)
+
+        # is_credit marks a row written by consuming a credit balance rather
+        # than by a payment arriving, so the statement PDF can show "Credit
+        # applied" as its own line. Added a day after the table itself, so
+        # existing copies need the column filled in — guarded by table_info
+        # rather than ALTER-and-catch, which is the same idempotent shape as
+        # _migrate_typed_empty_strings.
+        cursor.execute("PRAGMA table_info(payment_allocations)")
+        alloc_columns = {row[1] for row in cursor.fetchall()}
+        if 'is_credit' not in alloc_columns:
+            cursor.execute("ALTER TABLE payment_allocations "
+                           "ADD COLUMN is_credit INTEGER DEFAULT 0")
 
         # Indexes for the most common query patterns (CODE_REVIEW.md M3).
         # IF NOT EXISTS makes this idempotent, so running at every startup

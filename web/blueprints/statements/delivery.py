@@ -228,10 +228,20 @@ def mark_sent(portion_id):
         now
     ))
     
-    # Update statement portion status
+    # Update statement portion status.
+    #
+    # A statement whose balance was already covered by credit at generation
+    # goes straight to 'paid': it still had to be issued (the client gets a
+    # document showing the credit applied), but there is nothing left to
+    # collect, and leaving it 'sent' would park a $0.00 row in Outstanding
+    # Statements forever with no action that clears it.
     cursor.execute("""
         UPDATE statement_portions
-        SET status = 'sent', date_sent = ?
+        SET status = CASE
+                WHEN amount_paid >= amount_due THEN 'paid'
+                ELSE 'sent'
+            END,
+            date_sent = ?
         WHERE id = ? AND status = 'ready'
     """, (now, portion_id))
     
