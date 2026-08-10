@@ -314,7 +314,10 @@ class AllocationMixin:
 
         result = {'created': created, 'skipped_ambiguous': skipped,
                   'already_allocated': already}
-        if verbose:
+        if verbose and (created or skipped):
+            # Silent when there is nothing to report — this runs at every
+            # launch, and a line saying "0 created" every time trains the
+            # eye to skip the one launch where the number matters.
             print(f"Payment allocation backfill: {created} created, "
                   f"{skipped} skipped (ambiguous), "
                   f"{already} entries already allocated")

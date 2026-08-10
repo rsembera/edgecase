@@ -53,7 +53,7 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         # guarded by NOT EXISTS, so this is a no-op from the second launch
         # onward; kept a standalone method (not inlined in schema init) so
         # it can be re-run and tested independently.
-        self.backfill_payment_allocations()
+        self.backfill_payment_allocations(verbose=True)
         self._enforce_foreign_keys = self._check_foreign_key_integrity()
         if self._enforce_foreign_keys:
             # Apply to the connection this thread already opened during init
