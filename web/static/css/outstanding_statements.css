@@ -481,6 +481,17 @@ body.parchment .generate-section { border-color: #8b7355; }
     color: #2D3748;
 }
 
+/* shared.css truncates every td in the app (nowrap + ellipsis), which suits
+   the wide data tables it was written for. In a 620px modal it cuts the YEAR
+   off "Statement Nov - Dec 2025" — the part you most need when deciding which
+   statement money belongs to. Only the description column wraps; the numeric
+   columns keep their nowrap so figures never break mid-amount. */
+.allocation-table td:first-child {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
 .allocation-table th.numeric,
 .allocation-table td.numeric {
     text-align: right;
