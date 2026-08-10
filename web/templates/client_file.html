@@ -54,8 +54,17 @@
                         <span class="balance-label">Outstanding</span>
                         <span class="balance-value">{{ outstanding_display }}</span>
                     </span>
+                    {% if has_credit %}
+                    <span class="balance-item balance-credit">
+                        <span class="balance-label">Credit</span>
+                        <span class="balance-value">{{ credit_display }}</span>
+                    </span>
+                    {% endif %}
                     {% if has_guardians and not unbilled_is_zero %}
                     <span class="balance-note">unbilled splits across guardians on statement</span>
+                    {% endif %}
+                    {% if has_credit %}
+                    <span class="balance-note">credit applies to the next statement</span>
                     {% endif %}
                 </div>
             </div>

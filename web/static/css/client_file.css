@@ -149,6 +149,13 @@ tr.redacted-entry:hover {
     color: var(--text-muted, #6B7280);
 }
 
+/* Credit is money owed the other way, so it reads in the practice's
+   accent green rather than the neutral used for amounts owing. Only
+   rendered when there is credit to show. */
+.balance-item.balance-credit .balance-value {
+    color: #1F8F74;
+}
+
 .client-balance-summary .balance-note {
     font-size: 0.78rem;
     font-style: italic;
