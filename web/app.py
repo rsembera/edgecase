@@ -91,6 +91,18 @@ def inject_static_version():
 
 
 @app.context_processor
+def inject_password_policy():
+    """One source of truth for the password rule.
+
+    The three screens that set a password each render their own hint and
+    live-validation message; without this they would hardcode the number in
+    six places and drift the moment it changed.
+    """
+    from web.blueprints.auth import MIN_PASSWORD_LENGTH
+    return {'min_password_length': MIN_PASSWORD_LENGTH}
+
+
+@app.context_processor
 def inject_recovery_key_pending():
     """Surface an unacknowledged recovery key to every template.
 

@@ -301,9 +301,7 @@
                         </svg>
                     </button>
                 </div>
-                {% if first_run %}
-                <p class="password-hint">Minimum 8 characters</p>
-                {% endif %}
+                {% if first_run %}{% with field_id='password', confirm_id='confirm_password' %}{% include 'components/_password_policy.html' %}{% endwith %}{% endif %}
             </div>
             
             {% if first_run %}

@@ -14,6 +14,20 @@ import tempfile
 
 auth_bp = Blueprint('auth', __name__)
 
+# Minimum master-password length, enforced at every point a password can be
+# SET: first-run database creation, change password, and the recovery-key
+# reset. Deliberately NOT checked on login — verify_password only cares
+# whether the password opens the install, so raising this never locks anyone
+# out of an existing shorter password. It applies to the next change.
+#
+# Templates read these via the min_password_length context processor rather
+# than hardcoding the number, so the rule and the message it produces cannot
+# drift apart across the three screens.
+MIN_PASSWORD_LENGTH = 12
+PASSWORD_LENGTH_ERROR = (
+    f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+
+
 # ============================================================================
 # PASSWORD-CHANGE HANDOFF (server-side, never the session cookie)
 # ============================================================================
@@ -261,10 +275,10 @@ def login():
                 return render_template('login.html', 
                                      first_run=True, 
                                      error="Passwords don't match")
-            if len(password) < 8:
+            if len(password) < MIN_PASSWORD_LENGTH:
                 return render_template('login.html', 
                                      first_run=True, 
-                                     error="Password must be at least 8 characters")
+                                     error=PASSWORD_LENGTH_ERROR)
         
         # Try to open/create database with this password
         from core.config import DATA_DIR
@@ -540,9 +554,9 @@ def recover_reset():
         if new_password != confirm:
             return render_template('recover_reset.html', token=token,
                                    error="Passwords don't match")
-        if len(new_password) < 8:
+        if len(new_password) < MIN_PASSWORD_LENGTH:
             return render_template('recover_reset.html', token=token,
-                                   error="Password must be at least 8 characters")
+                                   error=PASSWORD_LENGTH_ERROR)
 
         try:
             migrate_crypto.reset_password_with_recovery_key(key, new_password)
@@ -617,8 +631,8 @@ def change_password():
         if new_password != confirm_password:
             return render_template('change_password.html', error="New passwords don't match")
         
-        if len(new_password) < 8:
-            return render_template('change_password.html', error="Password must be at least 8 characters")
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            return render_template('change_password.html', error=PASSWORD_LENGTH_ERROR)
         
         db = current_app.config.get('db')
         if not db:
