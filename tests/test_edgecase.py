@@ -1218,6 +1218,79 @@ class TestGuardianSplitRounding:
         portions = split_guardian_amounts(entries, profile, total)
         assert portions == [(1, Decimal('113.00'))]
 
+    # --- credit lines (negative items) ---
+    # The item form invites these: "Use negative amounts for credits."
+
+    def test_credit_line_splits_by_percentage_like_a_charge(self):
+        """A $100 credit splits 50/50, exactly as a $100 charge does.
+
+        The per-line sanity clamp used to compare with min() regardless of
+        sign, which handed guardian 1 the entire credit.
+        """
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_item(-100.0, -100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert portions[1] == Decimal('-50.00')
+        assert portions[2] == Decimal('-50.00')
+        assert portions[1] + portions[2] == total
+
+    def test_returned_book_credit_reduces_both_guardians(self):
+        """A session billed and a book returned in the same period."""
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(200.0, 200.0), _item(-40.0, -40.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert total == Decimal('160.00')
+        assert portions[1] == Decimal('80.00')
+        assert portions[2] == Decimal('80.00')
+
+    def test_portions_sum_to_a_net_negative_total(self):
+        """Credit exceeding charges: guardian 2's share is not floored at 0.
+
+        Flooring it would break the sum-to-total guarantee and quietly
+        erase money guardian 2 is owed.
+        """
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(60.0, 60.0), _item(-100.0, -100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert total == Decimal('-40.00')
+        assert portions[1] + portions[2] == total
+
+    def test_credit_respects_an_uneven_percentage(self):
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 75,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_item(-100.0, -100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = dict(split_guardian_amounts(entries, profile, total))
+        assert portions[1] == Decimal('-75.00')
+        assert portions[2] == Decimal('-25.00')
+        assert portions[1] + portions[2] == total
+
+    def test_credit_line_creates_no_negative_tax(self):
+        entries = [_item(-40.0, -40.0)]
+        total, total_tax = compute_statement_totals(entries)
+        assert total == Decimal('-40.00')
+        assert total_tax == Decimal('0.00')
+
+    def test_exactly_offsetting_credit_leaves_no_g2_portion(self):
+        """A zero share is still no portion — unchanged from before."""
+        profile = {'is_minor': 1, 'guardian1_name': 'G1',
+                   'guardian1_pays_percent': 50,
+                   'has_guardian2': 1, 'guardian2_name': 'G2'}
+        entries = [_session(100.0, 100.0), _item(-100.0, -100.0)]
+        total, _ = compute_statement_totals(entries)
+        portions = split_guardian_amounts(entries, profile, total)
+        assert portions == [(1, Decimal('0.00'))]
+
 
 class TestPaymentApplication:
     """apply_payment: exact-cent status decisions, no epsilon fudge."""

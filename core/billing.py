@@ -94,15 +94,24 @@ def split_guardian_amounts(entries: List[Dict[str, Any]],
             # each line, so g1 + g2 always equals the line fee.
             fee = entry_fee(e)
             g1_line = quantize_cents(fee * g1_percent / 100)
-            g1_line = min(g1_line, fee)  # sanity: never exceed the line
+            # Sanity clamp: guardian 1's share never exceeds the line. The
+            # comparison has to follow the line's SIGN — items may be
+            # negative (the item form's "Use negative amounts for credits"),
+            # and a bare min() on a credit line hands guardian 1 the whole
+            # amount instead of their percentage, so a $100 charge splits
+            # 50/50 but a $100 credit does not.
+            g1_line = min(g1_line, fee) if fee >= 0 else max(g1_line, fee)
             g1_from_percent += g1_line
             g2_from_percent += fee - g1_line
 
     g1_amount = quantize_cents(g1_explicit + g1_from_percent)
-    g2_amount = max(Decimal('0.00'), quantize_cents(g2_explicit + g2_from_percent))
+    # Not floored at zero: once credits exist, a net-negative share is a
+    # real position (guardian 2 is owed money), and flooring it would break
+    # the guarantee that the portions sum to the statement total.
+    g2_amount = quantize_cents(g2_explicit + g2_from_percent)
 
     portions = [(1, g1_amount)]
-    if g2_amount > 0:
+    if to_cents(g2_amount) != 0:
         portions.append((2, g2_amount))
     return portions
 
