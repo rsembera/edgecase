@@ -10,6 +10,11 @@ import pytest
 
 from core import encryption_v3 as v3
 from web.blueprints import auth as auth_bp
+from web.blueprints.auth import MIN_PASSWORD_LENGTH
+
+# Derived from the rule rather than hardcoded, so raising the minimum
+# does not silently turn these into tests of a stale policy.
+LONG_ENOUGH = "a" * (MIN_PASSWORD_LENGTH + 2)
 
 
 @pytest.fixture
@@ -224,7 +229,7 @@ def test_reset_rejects_a_short_password(client, recoverable, monkeypatch):
     resp = client.post("/recover/reset", headers={"Host": "localhost"},
                        data={"token": token, "new_password": "short",
                              "confirm_password": "short"})
-    assert b"8 characters" in resp.data
+    assert str(MIN_PASSWORD_LENGTH).encode() + b" characters" in resp.data
     assert called["n"] == 0
 
 
@@ -235,8 +240,8 @@ def test_reset_completes_and_does_not_auto_login(client, recoverable, monkeypatc
                         lambda *a, **k: None)
     token = auth_bp._store_recovery_reset_handoff(recoverable)
     resp = client.post("/recover/reset", headers={"Host": "localhost"},
-                       data={"token": token, "new_password": "abcdefgh",
-                             "confirm_password": "abcdefgh"})
+                       data={"token": token, "new_password": LONG_ENOUGH,
+                             "confirm_password": LONG_ENOUGH})
     assert resp.status_code == 200
     assert b"Sign in" in resp.data
     assert auth_bp._peek_recovery_reset_handoff(token) is None

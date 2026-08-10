@@ -75,10 +75,11 @@
         <input type="hidden" name="token" value="{{ token }}">
         <label for="new_password">New master password</label>
         <input type="password" id="new_password" name="new_password" required
-               autofocus autocomplete="new-password" minlength="8">
+               autofocus autocomplete="new-password">
+        {% with field_id='new_password', confirm_id='confirm_password' %}{% include 'components/_password_policy.html' %}{% endwith %}
         <label for="confirm_password">Confirm new password</label>
         <input type="password" id="confirm_password" name="confirm_password"
-               required autocomplete="new-password" minlength="8">
+               required autocomplete="new-password">
         <div class="actions">
             <button type="submit">Set password</button>
             <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Cancel</a>

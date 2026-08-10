@@ -81,3 +81,51 @@ def test_button_partial_matches_shared_css_palette():
                        ("--color-text-light", "#4B5563")):
         assert f"{var}: {value};" in shared, f"{var} changed in shared.css"
         assert value in partial, f"{value} missing from the button partial"
+
+
+# --- Password policy: one source of truth, no browser-native validation ---
+
+PASSWORD_SET_SCREENS = ["login.html", "change_password.html", "recover_reset.html"]
+
+
+@pytest.mark.parametrize("name", PASSWORD_SET_SCREENS)
+def test_password_screens_do_not_use_native_validation(name):
+    """The HTML minlength attribute produces the browser's own validation
+    bubble — OS-styled, unstyleable, and used nowhere else in EdgeCase.
+    Reported by Rick after it shipped on the recovery reset screen."""
+    html = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+    assert "minlength" not in html
+
+
+@pytest.mark.parametrize("name", PASSWORD_SET_SCREENS)
+def test_password_screens_use_the_shared_policy_partial(name):
+    html = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+    assert "components/_password_policy.html" in html
+
+
+@pytest.mark.parametrize("name", PASSWORD_SET_SCREENS)
+def test_password_length_is_never_hardcoded_in_templates(name):
+    """The number lives in auth.MIN_PASSWORD_LENGTH and reaches templates via
+    a context processor. Hardcoding it is how login.html and
+    change_password.html were still advertising 8 after the rule moved."""
+    html = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+    for stale in ("8 characters", "Minimum 8", "12 characters", "Minimum 12"):
+        assert stale not in html, f"{name} hardcodes the password length"
+
+
+def test_server_side_checks_use_the_constant():
+    """All three set-password paths must share one rule."""
+    src = (TEMPLATE_DIR.parent / "blueprints" / "auth.py").read_text()
+    assert src.count("< MIN_PASSWORD_LENGTH") == 3
+    assert "< 8:" not in src
+
+
+def test_login_is_not_length_checked():
+    """Raising the minimum must never lock anyone out of an existing shorter
+    password — verify_password only asks whether the password opens the
+    install."""
+    src = (TEMPLATE_DIR.parent.parent / "core" / "database.py").read_text()
+    verify = src[src.index("def verify_password"):]
+    verify = verify[:verify.index("\n    def ", 1)]
+    assert "MIN_PASSWORD_LENGTH" not in verify
+    assert "len(password)" not in verify
