@@ -1,8 +1,33 @@
 # Payment Allocation — Design Plan
 
-**Status:** Planned, not started
+**Status:** IMPLEMENTED 2026-08-09. Kept as the design record; the built
+behaviour is summarised in CHANGELOG.md and Architecture_Decisions.md.
+Where the build diverged from this plan, the plan is marked inline.
 **Raised:** 2026-08-09 (Rick)
 **Prerequisite:** none — independent of the crypto v3 work
+
+---
+
+## Divergences from this plan, and why
+
+- **The column is `entry_id`, not `income_entry_id`** — refunds allocate
+  too, and a refund is an expense-class entry.
+- **`payment_allocations` also carries `client_id`, `guardian_number` and
+  `is_credit`.** The plan's "no extra column needed" holds for computing an
+  unallocated amount, but not for *scoping* a credit to a payer: an income
+  entry knows its client only by `source`, and its guardian not at all.
+  `is_credit` distinguishes a row created by spending credit from one
+  created by a payment arriving, which is what lets the PDF show a
+  "Credit applied" line.
+- **Credit is read from explicit NULL-portion rows, never derived** as
+  "total minus allocations" — the derivation invents money for any legacy
+  entry that has no rows at all.
+- **No refund path was built.** Rick's judgement (2026-08-09) is that a
+  credit sitting against the next statement answers every real case, and a
+  client insisting on cash is rare enough to handle as a manual Ledger
+  expense. The unreachable December 2025 refund branch was deleted with
+  `mark_paid`; statement generation now declines to produce the
+  net-negative statement that branch existed to settle.
 
 ---
 

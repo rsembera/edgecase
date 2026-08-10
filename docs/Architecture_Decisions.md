@@ -1,7 +1,55 @@
 # EdgeCase Equalizer - Architecture Decisions
 
 **Purpose:** Document key design decisions and the reasoning behind them  
-**Last Updated:** June 21, 2026
+**Last Updated:** August 9, 2026
+
+---
+
+## PAYMENT ALLOCATION AND CREDIT BALANCES
+
+**Date:** August 9, 2026. Full design record: `docs/Payment_Allocation_Plan.md`.
+
+**The defect.** Carry-forward made statements *present* a balance-forward
+total while the system continued to *track* open items per statement. The
+two models disagree at exactly one moment — when the client pays a lump
+sum. Recording it meant hand-splitting the payment across statements, so
+no recorded payment matched the amount that actually arrived.
+
+**One payment = one ledger entry.** The deposit is one financial event;
+which statements it settles is a receivables fact carried by a sub-ledger
+(`payment_allocations`). This is how QuickBooks / Xero / Sage model
+"Receive Payment", and the practical reason is CRA review: every ledger
+line should map one-to-one onto a bank line without explanation.
+
+**A row is a claim on a ledger entry.** `portion_id` set applies the
+amount to a statement portion; `portion_id` NULL holds it as credit on the
+client's account. Invariant: `SUM(allocations) == entries.total_amount`.
+`client_id` / `guardian_number` carry the payer scope, because an income
+entry knows its client only by `source` and its guardian not at all.
+
+**Credit is read from explicit NULL-portion rows, never derived** as
+"total minus allocations" — correct for entries this system writes, but it
+invents money for any legacy entry with no rows at all.
+
+**Credit auto-applies to the next statement, as a visible line.** By
+symmetry with carry-forward, which already pulls prior debits forward
+without asking. Carrying debits automatically while making credits wait
+for the practitioner to remember them is asymmetric in the practitioner's
+favour — the wrong direction on a clinical bill. Consumption runs on the
+generation cursor inside the generation transaction, which is what makes
+double-spending structurally impossible rather than merely guarded
+against.
+
+**The originating entry is never rewritten when credit is spent.** The
+money was recorded when it arrived, possibly in a filed period; pro-rated
+tax goes on the allocation row instead. Open question for an accountant,
+not a blocker.
+
+**No refund path.** A credit against the next statement answers every case
+for a continuing client; a client insisting on cash is rare enough for a
+manual Ledger expense. Statement generation therefore declines to produce
+a net-negative statement, which is the only thing a refund path would have
+had to settle.
 
 ---
 
