@@ -1,10 +1,10 @@
 """Statements lifecycle route tests (database.py refactor Step 2, Target B).
 
 Drives the billing seam through real routes: find-unbilled -> generate ->
-mark-paid (full and partial). All DB-only — billable entries are set up directly
-via the db fixture, and mark-sent is deliberately excluded here because it writes
-a PDF into the attachments tree (filesystem side effects); it needs its own
-harness with the attachment dir redirected.
+record-payment (full and partial). All DB-only — billable entries are set up
+directly via the db fixture, and mark-sent is deliberately excluded here
+because it writes a PDF into the attachments tree (filesystem side effects);
+it needs its own harness with the attachment dir redirected.
 """
 import time
 from datetime import datetime
@@ -107,46 +107,58 @@ def test_generate_creates_portion_and_bills_the_session(client, app_db):
     assert app_db.get_entry(sid)["statement_id"] is not None
 
 
-def test_mark_paid_full_settles_portion_and_records_income(client, app_db):
+def _mark_sent(db, portion_id):
+    """Put a portion in 'sent' without the PDF/email machinery.
+
+    Payment is only offered on statements the client has actually
+    received, so a freshly generated 'ready' portion is not payable.
+    """
+    conn = db.connect()
+    conn.execute("UPDATE statement_portions SET status = 'sent' WHERE id = ?",
+                 (portion_id,))
+    conn.commit()
+
+
+def test_payment_full_settles_portion_and_records_income(client, app_db):
     cid = _make_client(app_db)
     _add_locked_session(app_db, cid)
     _generate(client, cid)
 
     portion = _portions(app_db, cid)[0]
+    _mark_sent(app_db, portion["id"])
     resp = client.post(
-        "/statements/mark-paid",
+        "/statements/record-payment",
         json={"portion_id": portion["id"],
-              "payment_amount": portion["amount_due"],
-              "payment_type": "full"},
+              "payment_amount": portion["amount_due"]},
     )
     assert resp.status_code == 200
     payload = resp.get_json()
     assert payload["success"] is True
-    assert payload["new_status"] == "paid"
-    assert payload["amount_owing"] == 0
+    assert payload["allocations"][0]["status"] == "paid"
+    assert payload["allocations"][0]["amount_owing"] == 0
 
     assert _portions(app_db, cid)[0]["status"] == "paid"
     # Payment recorded an income ledger entry (statements -> ledger seam).
     assert _count_class(app_db, "income") == 1
 
 
-def test_mark_paid_partial_leaves_balance(client, app_db):
+def test_payment_partial_leaves_balance(client, app_db):
     cid = _make_client(app_db)
     _add_locked_session(app_db, cid)
     _generate(client, cid)
 
     portion = _portions(app_db, cid)[0]
+    _mark_sent(app_db, portion["id"])
     half = round(portion["amount_due"] / 2, 2)
     resp = client.post(
-        "/statements/mark-paid",
-        json={"portion_id": portion["id"], "payment_amount": half,
-              "payment_type": "partial"},
+        "/statements/record-payment",
+        json={"portion_id": portion["id"], "payment_amount": half},
     )
     assert resp.status_code == 200
     payload = resp.get_json()
     assert payload["success"] is True
-    assert payload["new_status"] != "paid"
-    assert payload["amount_owing"] > 0
+    assert payload["allocations"][0]["status"] != "paid"
+    assert payload["allocations"][0]["amount_owing"] > 0
 
 
 def test_write_off_waived_marks_portion_written_off(client, app_db):

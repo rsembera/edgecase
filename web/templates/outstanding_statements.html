@@ -117,14 +117,14 @@
                                 <i data-lucide="eye"></i>
                             </button>
                             {% elif stmt.status == 'sent' %}
-                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }}, {{ stmt.amount_due }})" title="Record Payment">
+                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }})" title="Record Payment">
                                 <i data-lucide="banknote"></i>
                             </button>
                             <button class="btn-icon btn-icon-grey" onclick="showWriteOffModal({{ stmt.id }}, {{ stmt.amount_owing }})" title="Write Off">
                                 <i data-lucide="x-circle"></i>
                             </button>
                             {% elif stmt.status == 'partial' %}
-                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }}, {{ stmt.amount_due - stmt.amount_paid }})" title="Add Payment">
+                            <button class="btn-icon" onclick="showPaymentForm({{ stmt.id }})" title="Add Payment">
                                 <i data-lucide="banknote"></i>
                             </button>
                             <button class="btn-icon btn-icon-grey" onclick="showWriteOffModal({{ stmt.id }}, {{ stmt.amount_owing }})" title="Write Off">
@@ -160,10 +160,41 @@
 
 <!-- Payment Modal -->
 <div class="payment-modal-overlay" id="payment-modal">
-    <div class="payment-modal">
+    <div class="payment-modal allocation-modal">
         <h3>Record Payment</h3>
-        <label for="payment-amount">Amount</label>
-        <input type="number" id="payment-amount" step="0.01" min="0">
+        <p class="payment-payer-line" id="payment-payer"></p>
+
+        <div id="payment-error" class="error-box" style="display: none; margin-bottom: 1rem;"></div>
+
+        <div class="payment-fields">
+            <div class="payment-field">
+                <label for="payment-amount">Amount received</label>
+                <input type="number" id="payment-amount" step="0.01" min="0">
+            </div>
+            <div class="payment-field">
+                <label>Date received</label>
+                <div id="payment-date-picker"></div>
+                <input type="hidden" id="payment-date">
+            </div>
+        </div>
+
+        <label>Applies to</label>
+        <table class="allocation-table">
+            <thead>
+                <tr>
+                    <th>Statement</th>
+                    <th class="numeric">Outstanding</th>
+                    <th class="numeric">Applied</th>
+                </tr>
+            </thead>
+            <tbody id="allocation-rows"></tbody>
+        </table>
+
+        <p class="allocation-summary" id="allocation-summary"></p>
+
+        <label for="payment-notes">Notes</label>
+        <textarea id="payment-notes" rows="2" placeholder="Optional"></textarea>
+
         <div class="payment-modal-buttons">
             <button class="btn-small btn-secondary" onclick="hidePaymentModal()">Cancel</button>
             <button class="btn-small" onclick="confirmPayment()">Confirm</button>

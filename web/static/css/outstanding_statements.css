@@ -412,3 +412,111 @@
 body.ink .generate-section { border-color: #404040; }
 body.slate .generate-section { border-color: #4a6080; }
 body.parchment .generate-section { border-color: #8b7355; }
+
+/* ============================================
+   PAYMENT ALLOCATION MODAL
+   One payment, split across the payer's open
+   statements (docs/Payment_Allocation_Plan.md)
+   ============================================ */
+.allocation-modal {
+    max-width: 620px;
+    width: 100%;
+}
+
+.allocation-modal .payment-payer-line {
+    margin: -0.5rem 0 1.25rem 0;
+    color: #4A5568;
+    font-size: 0.875rem;
+}
+
+/* Amount and date sit side by side; the date picker needs room to drop */
+.payment-fields {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.payment-fields .payment-field {
+    flex: 1;
+    min-width: 0;
+}
+
+/* The shared rule adds a bottom margin that would double up in the row */
+.payment-fields input[type="number"] {
+    margin-bottom: 0;
+}
+
+.allocation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0 0.75rem 0;
+    font-size: 0.875rem;
+}
+
+.allocation-table th {
+    text-align: left;
+    font-weight: 600;
+    color: #4A5568;
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.allocation-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+    color: #2D3748;
+}
+
+.allocation-table th.numeric,
+.allocation-table td.numeric {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.allocation-date {
+    display: block;
+    color: #718096;
+    font-size: 0.75rem;
+}
+
+.allocation-empty {
+    color: #718096;
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0.5rem;
+}
+
+/* Narrower than the full-width shared number input, and no stacking margin */
+.payment-modal input.allocation-input {
+    width: 6.5rem;
+    padding: 0.4rem 0.5rem;
+    height: 32px;
+    margin-bottom: 0;
+    text-align: right;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+}
+
+.allocation-summary {
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+    color: #4A5568;
+}
+
+.allocation-summary.over {
+    color: #B45309;
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .payment-fields {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .payment-fields input[type="number"] {
+        margin-bottom: 1rem;
+    }
+}

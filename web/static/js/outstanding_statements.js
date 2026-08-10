@@ -14,6 +14,9 @@
 
 let currentFilter = 'all';
 let currentPaymentPortionId = null;
+let currentProposal = null;
+let proposalDebounce = null;
+let paymentDatePicker = null;
 let currentWriteOffPortionId = null;
 let currentWriteOffAmount = 0;
 let currentEmailPortionId = null;
@@ -54,13 +57,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Payment amount - format on blur
+    // Payment amount - format on blur, re-propose the split on input
     const paymentAmount = document.getElementById('payment-amount');
     if (paymentAmount) {
         paymentAmount.addEventListener('blur', function() {
             const val = parseFloat(this.value);
             if (!isNaN(val)) this.value = val.toFixed(2);
         });
+        paymentAmount.addEventListener('input', onPaymentAmountChanged);
+    }
+
+    // Payment date picker (same custom picker as the generate section)
+    const paymentDateContainer = document.getElementById('payment-date-picker');
+    if (paymentDateContainer) {
+        paymentDatePicker = new DatePicker(paymentDateContainer, {
+            initialDate: new Date(),
+            onSelect: (date) => setPaymentDate(date)
+        });
+        setPaymentDate(new Date());
     }
     
     // Write-off modal - close on outside click
@@ -575,19 +589,191 @@ function triggerAppleScriptEmail(data) {
 // ============================================================
 // PAYMENT MODAL
 // ============================================================
+//
+// Payment is recorded against a PAYER, not a statement: one deposit can
+// settle several statements, which is the whole point of this modal. The
+// oldest-first split is proposed by the server (core/billing.propose_
+// allocation) rather than recomputed here, so there is only one copy of
+// that arithmetic. This file only sums and displays.
 
 /**
- * Show the payment modal for a statement portion
- * @param {number} portionId - Statement portion ID
- * @param {number} amountOwing - Amount still owed
+ * Open the payment modal for the payer behind a statement portion.
+ * @param {number} portionId - Any statement portion belonging to the payer
  */
-function showPaymentForm(portionId, amountOwing) {
+function showPaymentForm(portionId) {
     currentPaymentPortionId = portionId;
-    const input = document.getElementById('payment-amount');
-    input.value = amountOwing.toFixed(2);
-    input.dataset.max = amountOwing.toFixed(2);
-    input.max = amountOwing.toFixed(2);
-    document.getElementById('payment-modal').classList.add('visible');
+
+    document.getElementById('payment-error').style.display = 'none';
+    document.getElementById('payment-notes').value = '';
+    document.getElementById('allocation-rows').innerHTML = '';
+    document.getElementById('allocation-summary').textContent = '';
+
+    // Default the date to today, every time the modal opens
+    const today = new Date();
+    setPaymentDate(today);
+    if (paymentDatePicker) {
+        paymentDatePicker.setDate(today, false);
+    }
+
+    fetch(`/statements/payment-proposal?portion_id=${portionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error: ' + (data.error || 'Unknown error'));
+                return;
+            }
+            currentProposal = data;
+            document.getElementById('payment-amount').value = data.total_owing.toFixed(2);
+            renderPayerLine(data);
+            renderAllocationRows(data);
+            updateAllocationSummary();
+            document.getElementById('payment-modal').classList.add('visible');
+        })
+        .catch(error => {
+            console.error('Error loading payment proposal:', error);
+            alert('Error loading outstanding statements for this client');
+        });
+}
+
+/**
+ * Write the payer line: who this payment is from, and any credit held.
+ * @param {Object} data - Proposal payload
+ */
+function renderPayerLine(data) {
+    let text = data.client_name + ' (' + data.file_number + ')';
+    if (data.payer_label) {
+        text += ' — ' + data.payer_label;
+    }
+    if (data.credit > 0) {
+        text += ` · $${data.credit.toFixed(2)} on account`;
+    }
+    document.getElementById('payment-payer').textContent = text;
+}
+
+/**
+ * Render one row per open statement, with the proposed amount pre-filled.
+ * @param {Object} data - Proposal payload
+ */
+function renderAllocationRows(data) {
+    const tbody = document.getElementById('allocation-rows');
+
+    if (!data.portions || data.portions.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="3" class="allocation-empty">
+                Nothing outstanding — the full amount will be held as credit.
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.portions.map(portion => `
+        <tr>
+            <td>
+                ${escapeHtml(portion.description)}
+                <span class="allocation-date">${escapeHtml(portion.date)}</span>
+            </td>
+            <td class="numeric">$${portion.amount_owing.toFixed(2)}</td>
+            <td class="numeric">
+                <input type="number" class="allocation-input"
+                       step="0.01" min="0" max="${portion.amount_owing}"
+                       data-portion-id="${portion.portion_id}"
+                       data-owing="${portion.amount_owing}"
+                       value="${portion.proposed.toFixed(2)}"
+                       oninput="onAllocationEdited()">
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Re-ask the server for a split when the amount changes.
+ *
+ * Changing the amount re-proposes from scratch, discarding manual edits —
+ * the amount is the fact ("this is what arrived"), and the split is a
+ * consequence of it.
+ */
+function onPaymentAmountChanged() {
+    if (!currentPaymentPortionId) return;
+
+    clearTimeout(proposalDebounce);
+    proposalDebounce = setTimeout(() => {
+        const amount = parseFloat(document.getElementById('payment-amount').value);
+        if (isNaN(amount) || amount < 0) {
+            updateAllocationSummary();
+            return;
+        }
+
+        fetch(`/statements/payment-proposal?portion_id=${currentPaymentPortionId}`
+              + `&amount=${amount}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) return;
+                currentProposal = data;
+                renderAllocationRows(data);
+                updateAllocationSummary();
+            })
+            .catch(error => console.error('Error re-proposing split:', error));
+    }, 300);
+}
+
+/**
+ * A manual edit only changes the summary — the split is now the user's.
+ */
+function onAllocationEdited() {
+    updateAllocationSummary();
+}
+
+/**
+ * Total of the allocation inputs.
+ * @returns {number} Sum in dollars
+ */
+function allocationTotal() {
+    let total = 0;
+    document.querySelectorAll('.allocation-input').forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) total += value;
+    });
+    return Math.round(total * 100) / 100;
+}
+
+/**
+ * Describe what will happen: applied, held as credit, or over-applied.
+ */
+function updateAllocationSummary() {
+    const summary = document.getElementById('allocation-summary');
+    const amount = parseFloat(document.getElementById('payment-amount').value);
+    const applied = allocationTotal();
+
+    if (isNaN(amount)) {
+        summary.textContent = '';
+        summary.classList.remove('over');
+        return;
+    }
+
+    const remainder = Math.round((amount - applied) * 100) / 100;
+
+    if (remainder < 0) {
+        summary.textContent = `Applied $${applied.toFixed(2)}, which is more than `
+                            + `the $${amount.toFixed(2)} received.`;
+        summary.classList.add('over');
+    } else if (remainder > 0) {
+        summary.textContent = `Applied $${applied.toFixed(2)} · $${remainder.toFixed(2)} `
+                            + `held as credit on the client's account.`;
+        summary.classList.remove('over');
+    } else {
+        summary.textContent = `Applied $${applied.toFixed(2)} of $${amount.toFixed(2)}.`;
+        summary.classList.remove('over');
+    }
+}
+
+/**
+ * Store the chosen payment date as YYYY-MM-DD.
+ * @param {Date} date
+ */
+function setPaymentDate(date) {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    document.getElementById('payment-date').value = `${y}-${m}-${d}`;
 }
 
 /**
@@ -596,48 +782,85 @@ function showPaymentForm(portionId, amountOwing) {
 function hidePaymentModal() {
     document.getElementById('payment-modal').classList.remove('visible');
     currentPaymentPortionId = null;
+    currentProposal = null;
 }
 
 /**
- * Submit the payment
+ * Submit the payment with its allocation split.
  */
 function confirmPayment() {
     const btn = resolveEventButton();
-    const amountInput = document.getElementById('payment-amount');
-    const amount = parseFloat(amountInput.value);
+    const errorBox = document.getElementById('payment-error');
+    errorBox.style.display = 'none';
 
+    const showError = (message) => {
+        errorBox.textContent = message;
+        errorBox.style.display = 'block';
+    };
+
+    const amount = parseFloat(document.getElementById('payment-amount').value);
     if (isNaN(amount) || amount <= 0) {
-        showSuccessModal('Please enter a valid positive amount', 'Invalid Amount');
+        showError('Enter the amount received.');
         return;
     }
 
-    const maxAmount = parseFloat(amountInput.dataset.max);
-    if (amount > maxAmount) {
-        showSuccessModal(`Amount cannot exceed $${maxAmount.toFixed(2)}`, 'Invalid Amount');
+    const allocations = [];
+    let invalid = null;
+    document.querySelectorAll('.allocation-input').forEach(input => {
+        const value = parseFloat(input.value);
+        if (isNaN(value) || value === 0) return;
+        if (value < 0) {
+            invalid = 'Amounts applied to a statement cannot be negative.';
+            return;
+        }
+        if (value > parseFloat(input.dataset.owing) + 0.001) {
+            invalid = 'An amount applied is more than that statement has outstanding.';
+            return;
+        }
+        allocations.push({
+            portion_id: parseInt(input.dataset.portionId),
+            amount: value
+        });
+    });
+
+    if (invalid) {
+        showError(invalid);
         return;
     }
 
-    withButtonDisabled(btn, () => fetch('/statements/mark-paid', {
+    if (allocationTotal() > amount + 0.001) {
+        showError('The amounts applied add up to more than the payment received.');
+        return;
+    }
+
+    withButtonDisabled(btn, () => fetch('/statements/record-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             portion_id: currentPaymentPortionId,
             payment_amount: amount,
-            payment_type: amount >= maxAmount ? 'full' : 'partial'
+            payment_date: document.getElementById('payment-date').value,
+            notes: document.getElementById('payment-notes').value.trim(),
+            allocations: allocations
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             hidePaymentModal();
-            showSuccessModal('Payment recorded', 'Success');
+            let message = 'Payment recorded';
+            if (data.credit > 0) {
+                message += `. $${data.credit.toFixed(2)} is held as credit on the `
+                         + `client's account.`;
+            }
+            showSuccessModal(message, 'Success');
         } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
+            showError(data.error || 'Unknown error');
         }
     })
     .catch(error => {
         console.error('Error recording payment:', error);
-        alert('Error recording payment');
+        showError('Error recording payment');
     }), 'Saving...');
 }
 
