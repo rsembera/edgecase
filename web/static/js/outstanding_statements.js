@@ -366,7 +366,9 @@ function generateStatements(btnEl) {
             // bug. Their entries stay unbilled and carry forward.
             const skipped = data.skipped || [];
             if (skipped.length > 0) {
-                const names = skipped.map(s => `${s.name} ($${s.total.toFixed(2)})`).join(', ');
+                // Negative totals format as -$40.00, not $-40.00
+                const names = skipped.map(s =>
+                    `${s.name} (-$${Math.abs(s.total).toFixed(2)})`).join(', ');
                 message += `. No statement for ${names} — credits exceed charges `
                          + `for this period, so those entries stay unbilled and `
                          + `will appear on the next statement that covers them.`;
