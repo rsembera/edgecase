@@ -441,16 +441,21 @@ body.parchment .generate-section { border-color: #8b7355; }
     min-width: 0;
 }
 
-/* Match the date picker's display box exactly (pickers.css .picker-display:
-   46px tall, 0.75rem/1rem padding, 0.5rem radius, 0.875rem text) so the two
-   fields in the row line up. The shared number-input rule is 38px with a
-   different radius and a bottom margin that would double up here. */
-.payment-fields input[type="number"] {
-    margin-bottom: 0;
-    height: 46px;
+/* Amount and date must render as identical boxes. They come from different
+   rule sets that have never had to agree before: shared.css inputs are 50px
+   with a 0.75rem radius, while pickers.css .picker-display is content-height
+   (min-height 46px + padding, so ~48px actual). Elsewhere pickers only ever
+   sit beside other pickers. Both are pinned here to the app's 50px input
+   convention — fixed height, not min-height, so padding can't push one out. */
+.payment-fields input[type="number"],
+.payment-fields .picker-display {
+    height: 50px;
+    min-height: 50px;
     padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     font-size: 0.875rem;
+    box-sizing: border-box;
+    margin-bottom: 0;
 }
 
 .allocation-table {

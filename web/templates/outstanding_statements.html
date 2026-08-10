@@ -3,13 +3,13 @@
 {% block title %}Outstanding Statements - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/outstanding_statements.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/outstanding_statements.css', v=static_v) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css', v=static_v) }}">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/outstanding_statements.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/outstanding_statements.js', v=static_v) }}"></script>
 {% endblock %}
 
 {% block content %}
