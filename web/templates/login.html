@@ -247,6 +247,33 @@
             color: #A0AEC0;
             font-size: 0.8125rem;
         }
+
+        /* The recovery link was grey with text-decoration:none, so it read as
+           body text — the one moment someone needs it is the moment they are
+           locked out and scanning for a way forward. Accent colour and an
+           underline, so it is recognisable as the thing to click. */
+        .recovery-link-row {
+            text-align: center;
+            margin-top: 1.25rem;
+        }
+
+        .recovery-link {
+            color: #1F8F74;
+            font-size: 0.85rem;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            transition: color 0.2s;
+        }
+
+        .recovery-link:hover {
+            color: #115D4F;
+        }
+
+        .recovery-link:focus-visible {
+            outline: 2px solid #1F8F74;
+            outline-offset: 3px;
+            border-radius: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -329,9 +356,8 @@
         </form>
         
         {% if not first_run and has_recovery_key %}
-        <div style="text-align:center;margin-top:1.25rem;">
-            <a href="{{ url_for('auth.recover') }}"
-               style="color:#6B7280;font-size:0.85rem;text-decoration:none;">
+        <div class="recovery-link-row">
+            <a href="{{ url_for('auth.recover') }}" class="recovery-link">
                 Forgotten your password? Use your recovery key
             </a>
         </div>
