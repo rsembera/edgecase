@@ -50,7 +50,16 @@
         This recovery key opens your practice file. Your master password and
         your records are exactly as they were — checking a key changes nothing.
     </div>
-    <p>Put it back wherever you keep it.</p>
+    {# WORDING CORRECTED August 13. It read "Put it back wherever you keep it",
+       which assumes the key is a physical object that was taken out of
+       somewhere in order to be checked. Often it is not — it is a string
+       copied from a password manager, or read off a sheet that never moved,
+       and telling that reader to put it back describes something they never
+       did. The reassurance above already carries the substance; this line only
+       needs to close without giving an instruction that may not apply.
+       Daybook hit the same sentence on a device pass and corrected it there
+       first; this is the sibling catching up. #}
+    <p>Keep it where it is.</p>
     <div class="actions">
         <a class="btn" href="{{ url_for('settings.settings_page') }}">Back to Settings</a>
     </div>
