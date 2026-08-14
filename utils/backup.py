@@ -103,6 +103,15 @@ def get_all_backup_files():
     keyinfo_path = DATA_DIR / '.keyinfo'
     if keyinfo_path.exists():
         files['data/.keyinfo'] = keyinfo_path
+
+    # Recovery-key acknowledgement flag: contains no secrets, only the fact
+    # that a recovery key was issued and never typed back (see
+    # migrate_crypto, which likewise treats it as part of key state in its
+    # rollback file set). Backed up so a restore reinstates the
+    # acknowledgement nag alongside the keyinfo it refers to.
+    rk_pending_path = DATA_DIR / '.rk_pending'
+    if rk_pending_path.exists():
+        files['data/.rk_pending'] = rk_pending_path
     
     # Attachments (all subdirectories)
     if ATTACHMENTS_DIR.exists():
@@ -856,7 +865,34 @@ def complete_restore():
         staged_wal = RESTORE_STAGING_DIR / 'data' / 'edgecase.db-wal'
         if staged_wal.exists():
             shutil.copy2(staged_wal, DATA_DIR / 'edgecase.db-wal')
-    
+
+    # Replace key material (.salt, .secret_key, .keyinfo) so the restored
+    # database is paired with the key files it was encrypted under. The
+    # backup deliberately captures these (see get_all_backup_files);
+    # restoring the database WITHOUT them leaves an old database sitting
+    # under the CURRENT key files, which cannot be opened after any
+    # intervening password change or crypto migration. Key state is
+    # MIRRORED, not merged: a key file absent from the backup is deleted
+    # from disk, so restoring a pre-migration (v1) backup does not leave a
+    # stale .keyinfo behind that would misroute key derivation at login
+    # (keyinfo_exists() would select the v2/v3 path for a v1 database).
+    # The .rk_pending acknowledgement flag is mirrored for the same
+    # reason: it describes the keyinfo being restored, not the one being
+    # replaced. The pre-restore safety backup created in prepare_restore
+    # holds the current key files if they are ever needed again.
+    #
+    # Consequence for the user: after restoring, log in with the password
+    # that was in effect WHEN THE BACKUP WAS TAKEN.
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    staged_data = RESTORE_STAGING_DIR / 'data'
+    for name in ('.salt', '.secret_key', '.keyinfo', '.rk_pending'):
+        staged = staged_data / name
+        target = DATA_DIR / name
+        if staged.exists():
+            shutil.copy2(staged, target)
+        elif target.exists():
+            target.unlink()
+
     # Replace attachments
     staged_attachments = RESTORE_STAGING_DIR / 'attachments'
     if staged_attachments.exists():
