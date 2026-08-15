@@ -574,6 +574,269 @@ def recover_reset():
     return render_template('recover_reset.html', token=token)
 
 
+# ============================================================================
+# DISASTER RECOVERY (restore from backup with no database to log in to)
+#
+# These routes are public, and deliberately so — the same reasoning that
+# makes auth.login public. They exist for someone whose database is gone:
+# requiring a session to reach them would make them unreachable by
+# precisely the person they are for, since a session requires a database
+# that no longer exists.
+#
+# What keeps this narrow:
+#   - They are dead the moment a database exists. Every one of them
+#     bails out when is_first_run() is False, so this is not a way to
+#     roll a live practice back over its owner. The authenticated
+#     restore flow in the backups blueprint covers that case.
+#   - Completing a restore grants no access to anything. The restored
+#     database and key material are still encrypted under the master
+#     password that was in force when the backup was taken.
+#   - A recovery CSRF token (below) stops a page in another tab from
+#     firing off a restore, which is destructive even without granting
+#     access.
+# ============================================================================
+
+
+def _recovery_csrf_token():
+    """Mint (or reuse) a CSRF token for the disaster-recovery screen.
+
+    There is no authenticated session here, so this token is not proving
+    identity — there is nothing to prove it against. It stops a page in
+    another tab from POSTing a restore.
+    """
+    token = session.get('recovery_csrf')
+    if not token:
+        token = secrets.token_hex(32)
+        session['recovery_csrf'] = token
+    return token
+
+
+def _check_recovery_csrf():
+    """Accept the token from the X-CSRF-Token header or the JSON body."""
+    expected = session.get('recovery_csrf', '')
+    if not expected:
+        return False
+
+    supplied = request.headers.get('X-CSRF-Token', '')
+    if not supplied and request.is_json:
+        supplied = (request.get_json(silent=True) or {}).get('csrf_token', '')
+
+    return bool(supplied) and secrets.compare_digest(supplied, expected)
+
+
+def _recovery_gate_json():
+    """403 for the recovery JSON endpoints once a database exists, or when
+    the CSRF token is missing/wrong. Returns a response to send, or None
+    to proceed."""
+    from flask import jsonify
+    if not is_first_run():
+        return jsonify({'success': False,
+                        'error': 'This practice is already set up.'}), 403
+    if not _check_recovery_csrf():
+        return jsonify({'success': False,
+                        'error': 'Invalid request token.'}), 403
+    return None
+
+
+@auth_bp.route('/restore')
+def restore_page():
+    """Restore from a backup when there is no database to log in to."""
+    if not is_first_run():
+        return redirect(url_for('auth.login'))
+
+    return render_template('restore.html',
+                           recovery_csrf=_recovery_csrf_token())
+
+
+@auth_bp.route('/restore/search', methods=['POST'])
+def restore_search():
+    """Find this install's backups from its own records."""
+    from flask import jsonify
+    gate = _recovery_gate_json()
+    if gate:
+        return gate
+
+    from utils import backup
+
+    try:
+        locations = backup.find_backup_locations()
+    except Exception as e:
+        return jsonify({'success': False,
+                        'error': f'Could not look for backups: {e}'}), 500
+
+    return jsonify({'success': True, 'locations': locations})
+
+
+@auth_bp.route('/restore/scan', methods=['POST'])
+def restore_scan():
+    """List restore points found in a user-chosen folder."""
+    from flask import jsonify
+    gate = _recovery_gate_json()
+    if gate:
+        return gate
+
+    from utils import backup
+
+    data = request.get_json(silent=True) or {}
+    folder = (data.get('folder') or '').strip()
+
+    if not folder:
+        return jsonify({'success': False, 'error': 'No folder specified.'}), 400
+
+    try:
+        resolved = Path(folder).expanduser().resolve()
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid path: {e}'}), 400
+
+    if not resolved.exists():
+        return jsonify({'success': False,
+                        'error': 'That folder does not exist.'}), 400
+    if not resolved.is_dir():
+        return jsonify({'success': False,
+                        'error': 'That path is not a folder.'}), 400
+
+    try:
+        points, source = backup.discover_restore_points_in(resolved)
+    except PermissionError:
+        return jsonify({'success': False,
+                        'error': 'EdgeCase cannot read that folder.'}), 403
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False,
+                        'error': f'Could not read that folder: {e}'}), 500
+
+    return jsonify({
+        'success': True,
+        'folder': str(resolved),
+        'source': source,
+        'restore_points': points,
+    })
+
+
+@auth_bp.route('/restore/browse', methods=['POST'])
+def restore_browse():
+    """List subfolders so the user can point at a backup without typing.
+
+    A pared-down twin of the authenticated folder picker in the backups
+    blueprint. Kept separate rather than shared because that one sits
+    behind the auth gate, and the whole point here is that there is no
+    session to gate on.
+    """
+    from flask import jsonify
+    gate = _recovery_gate_json()
+    if gate:
+        return gate
+
+    from utils import backup
+
+    requested = ((request.get_json(silent=True) or {}).get('path') or '').strip()
+
+    try:
+        current = Path(requested).expanduser().resolve() if requested else Path.home()
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid path: {e}'}), 400
+
+    if not current.is_dir():
+        return jsonify({'success': False,
+                        'error': 'That folder does not exist.'}), 400
+
+    folders = []
+    try:
+        for entry in sorted(current.iterdir(), key=lambda p: p.name.lower()):
+            if entry.name.startswith('.') or not entry.is_dir():
+                continue
+            try:
+                names = {p.name for p in entry.iterdir() if p.is_file()}
+                holds_backups = backup.folder_holds_edgecase_backups(entry)
+            except (OSError, PermissionError):
+                names, holds_backups = set(), False
+
+            folders.append({
+                'name': entry.name,
+                'path': str(entry),
+                # Flagged in the listing so the user can see which folder
+                # to pick instead of opening each in turn.
+                'has_backups': holds_backups,
+                'other_app_backups': bool(
+                    not holds_backups
+                    and backup._looks_like_backup_folder(names)),
+            })
+    except PermissionError:
+        return jsonify({'success': False,
+                        'error': 'EdgeCase cannot read that folder.'}), 403
+
+    return jsonify({
+        'success': True,
+        'current_path': str(current),
+        'parent_path': str(current.parent) if current.parent != current else None,
+        'folders': folders,
+        'current_has_backups': backup.folder_holds_edgecase_backups(current),
+    })
+
+
+@auth_bp.route('/restore/prepare', methods=['POST'])
+def restore_prepare():
+    """Stage a restore found by a recovery scan.
+
+    Re-scans rather than trusting an id and a file list from the client.
+    The scan is cheap, and it means the paths that get opened are ones
+    this route derived itself from a folder the user named.
+    """
+    from flask import jsonify
+    gate = _recovery_gate_json()
+    if gate:
+        return gate
+
+    from utils import backup
+
+    data = request.get_json(silent=True) or {}
+    folder = (data.get('folder') or '').strip()
+    point_id = (data.get('restore_point_id') or '').strip()
+
+    if not point_id:
+        return jsonify({'success': False,
+                        'error': 'No restore point specified.'}), 400
+    if not folder:
+        return jsonify({'success': False, 'error': 'No folder specified.'}), 400
+
+    try:
+        resolved = Path(folder).expanduser().resolve()
+        points, _source = backup.discover_restore_points_in(resolved)
+    except Exception as e:
+        return jsonify({'success': False,
+                        'error': f'Could not read that folder: {e}'}), 400
+
+    point = next((p for p in points if p['id'] == point_id), None)
+    if not point:
+        return jsonify({'success': False,
+                        'error': 'That restore point is no longer there.'}), 404
+
+    if point.get('broken'):
+        return jsonify({
+            'success': False,
+            'error': (f"Cannot restore this backup: its chain is missing "
+                      f"'{point.get('missing_file', 'a backup file')}'. "
+                      f"Choose an earlier restore point.")}), 400
+
+    problems = backup.verify_restore_point_files(point)
+    if problems:
+        return jsonify({'success': False, 'error': '; '.join(problems)}), 400
+
+    try:
+        backup.prepare_restore_from_point(point)
+    except Exception as e:
+        return jsonify({'success': False,
+                        'error': f'Restore could not be staged: {e}'}), 500
+
+    return jsonify({
+        'success': True,
+        'message': ('Restore staged. Quit EdgeCase completely and start it '
+                    'again to finish — then log in with the password that '
+                    'was in use when this backup was made.'),
+    })
+
+
 @auth_bp.route('/recovery-key/verify', methods=['GET', 'POST'])
 @login_required
 def verify_recovery_key():

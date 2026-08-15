@@ -43,6 +43,25 @@ def isolate_keyinfo(tmp_path_factory, monkeypatch):
     encryption_v2._key_cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def isolate_backup_locations(tmp_path_factory, monkeypatch):
+    """No test may read or write the real install's backup-locations record.
+
+    The record deliberately lives OUTSIDE DATA_ROOT (see
+    core.config.get_state_dir), which means the suite's usual trick of
+    monkeypatching backup.DATA_ROOT / BACKUPS_DIR does not cover it —
+    save_manifest would happily write test folders into the developer's
+    real ~/Library/Preferences record, and disaster-recovery tests would
+    see the developer's real backup folders. Global isolation, same
+    reasoning as isolate_keyinfo above.
+    """
+    from utils import backup
+    state_dir = tmp_path_factory.mktemp("backup_state")
+    monkeypatch.setattr(backup, "_backup_locations_file",
+                        lambda: state_dir / "backup_locations.json")
+    yield
+
+
 @pytest.fixture
 def app_db():
     """A fresh temp-file Database per test (route-level analogue of the ``db``

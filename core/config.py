@@ -150,6 +150,40 @@ def get_data_root():
     return str(DATA_ROOT)
 
 
+def get_state_dir():
+    """Directory for small state files that must survive DATA_ROOT loss.
+
+    The backup-locations record lives here (see utils/backup.py). Its whole
+    purpose is disaster recovery — telling EdgeCase where its backups went
+    after the data root is gone — so storing it *inside* DATA_ROOT would
+    destroy it in exactly the situation it exists for.
+
+    Resolved at CALL time, not import time, so the EDGECASE_DATA override
+    keeps the testing instance's state separate from production even though
+    both processes import this module the same way.
+    """
+    custom_data_path = os.environ.get('EDGECASE_DATA')
+    if custom_data_path:
+        # Explicit data override (testing instance): keep state under it so
+        # test and production installs never share a locations record.
+        return Path(custom_data_path) / 'state'
+
+    if sys.platform == 'darwin':
+        return Path.home() / 'Library' / 'Preferences' / 'EdgeCase'
+    if sys.platform == 'win32':
+        base = Path(os.environ.get('LOCALAPPDATA',
+                                   Path.home() / 'AppData' / 'Local'))
+        return base / 'EdgeCase'
+    xdg = os.environ.get('XDG_CONFIG_HOME')
+    base = Path(xdg) if xdg else Path.home() / '.config'
+    return base / 'edgecase'
+
+
+def get_backup_locations_file():
+    """Where EdgeCase records the folders it has written backups to."""
+    return get_state_dir() / 'backup_locations.json'
+
+
 def resolve_attachment_path(filepath):
     """Resolve a stored attachment path against DATA_ROOT.
 
