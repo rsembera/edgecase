@@ -11,6 +11,7 @@ User-facing simplification:
 import os
 import json
 import hashlib
+import re
 import zipfile
 import shutil
 from datetime import datetime, timedelta
@@ -18,6 +19,29 @@ from pathlib import Path
 
 # Use config for all paths so EDGECASE_DATA override works
 from core.config import DATA_ROOT, DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+
+# Application identity, stamped into every manifest EdgeCase writes.
+# EdgeCase and MailRepo backups are byte-for-byte the same shape — same
+# filename convention, same `data/.salt` and `data/.secret_key` paths —
+# and the only structural difference is the database name inside a full
+# zip. Restoring one app's backups into the other would overwrite key
+# material while finding no database to go with it, so each app marks
+# what is its own rather than inferring it later. MailRepo already
+# refuses EdgeCase folders on this basis; the stamp and the checks below
+# are the mirror image.
+APP_ID = 'edgecase'
+
+# Backup filenames as written by generate_backup_filename:
+#   full_2026-08-15_143000.zip / incr_.../ pre_restore_...
+# The optional trailing group tolerates a future collision suffix.
+_BACKUP_FILENAME_RE = re.compile(
+    r'^(full|incr|pre_restore)_(\d{4}-\d{2}-\d{2})_(\d{6})(?:_(\d+))?\.zip$')
+
+_TYPE_FROM_PREFIX = {
+    'full': 'full',
+    'incr': 'incremental',
+    'pre_restore': 'pre_restore',
+}
 
 RESTORE_STAGING_DIR = DATA_ROOT / '.restore_staging'
 MANIFEST_FILE = BACKUPS_DIR / 'manifest.json'
@@ -165,22 +189,16 @@ def load_manifest():
     }
 
 
-def save_manifest(manifest):
-    """Save backup manifest to disk.
-
-    Writes to a temp file and atomically replaces the manifest
-    (os.replace), so a crash mid-write can't corrupt it — a corrupt
-    manifest would silently reset the entire backup catalog
-    (see load_manifest's fallback).
-    """
-    ensure_backup_dir()
-    tmp_path = f'{MANIFEST_FILE}.tmp'
+def _atomic_write_text(path, text):
+    """Write text to path via temp-file + os.replace (crash-safe)."""
+    path = Path(path)
+    tmp_path = f'{path}.tmp'
     try:
         with open(tmp_path, 'w') as f:
-            json.dump(manifest, f, indent=2)
+            f.write(text)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp_path, MANIFEST_FILE)
+        os.replace(tmp_path, path)
     except Exception:
         if os.path.exists(tmp_path):
             try:
@@ -188,6 +206,145 @@ def save_manifest(manifest):
             except OSError:
                 pass
         raise
+
+
+def save_manifest(manifest):
+    """Save backup manifest to disk (atomic, crash-safe write).
+
+    Also drops a copy into every directory the manifest's backups live
+    in. The canonical manifest sits under DATA_ROOT, so a loss that
+    takes the data root takes the index with it — leaving the zips
+    intact in iCloud and undiscoverable, because nothing remaining on
+    disk knows which zip belongs to which chain. A sidecar makes each
+    backup destination a self-describing unit: the folder plus its
+    manifest is everything needed to rebuild. Written here rather than
+    at each call site so anything mutating the manifest — new backup,
+    retention pruning — keeps the copies current without remembering to.
+
+    The manifest is stamped with this application's identity before it
+    is written anywhere, so every folder EdgeCase touches says whose it
+    is (see APP_ID).
+
+    Sidecar and location-record failures are logged, never raised. A
+    backup that succeeded must not be reported as failed because a cloud
+    folder was briefly unwritable; the canonical manifest is already
+    safely written by then.
+    """
+    ensure_backup_dir()
+
+    manifest = dict(manifest)
+    manifest['app'] = APP_ID
+
+    payload = json.dumps(manifest, indent=2)
+    _atomic_write_text(MANIFEST_FILE, payload)
+    record_backup_location(BACKUPS_DIR)
+
+    for destination in manifest_destinations(manifest):
+        try:
+            destination.mkdir(parents=True, exist_ok=True)
+            _atomic_write_text(destination / 'manifest.json', payload)
+            record_backup_location(destination)
+        except Exception as e:
+            print(f"Warning: could not write manifest sidecar to {destination}: {e}")
+
+
+def manifest_destinations(manifest):
+    """Every distinct directory this manifest's backups actually live in.
+
+    Excludes the canonical location, which save_manifest writes anyway.
+    """
+    canonical = BACKUPS_DIR.resolve()
+    destinations = {}
+
+    for entry in manifest.get('backups', []):
+        raw = entry.get('backup_dir')
+        if not raw:
+            continue
+        try:
+            resolved = Path(raw).resolve()
+        except Exception:
+            continue
+        if resolved == canonical:
+            continue
+        destinations[resolved] = True
+
+    return list(destinations)
+
+
+def _backup_locations_file():
+    """Path to the backup-locations record (kept outside DATA_ROOT)."""
+    from core.config import get_backup_locations_file
+    return get_backup_locations_file()
+
+
+def get_known_locations():
+    """Folders EdgeCase has recorded sending backups to.
+
+    Read on disaster recovery BEFORE any filesystem guesswork. Entries
+    whose folder no longer exists are dropped from the result but left
+    in the file — an external drive that is merely unplugged should not
+    be forgotten.
+    """
+    path = _backup_locations_file()
+    if not path.exists():
+        return []
+
+    try:
+        with open(path, 'r') as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, ValueError, OSError) as e:
+        print(f"Warning: could not read backup locations file: {e}")
+        return []
+
+    locations = []
+    for entry in data.get('locations', []):
+        raw = entry.get('path')
+        if not raw:
+            continue
+        try:
+            if Path(raw).is_dir():
+                locations.append(entry)
+        except OSError:
+            continue
+
+    locations.sort(key=lambda e: e.get('last_written', ''), reverse=True)
+    return locations
+
+
+def record_backup_location(folder):
+    """Remember that backups were written here.
+
+    Stored outside DATA_ROOT (see core.config.get_state_dir), because
+    the data root is gone in the situation this exists for. This is the
+    difference between EdgeCase knowing where its backups are and
+    scanning the disk hoping to recognise them.
+    """
+    folder = Path(folder)
+    path = _backup_locations_file()
+
+    try:
+        existing = {}
+        if path.exists():
+            with open(path, 'r') as f:
+                data = json.load(f)
+            for entry in data.get('locations', []):
+                if entry.get('path'):
+                    existing[entry['path']] = entry
+
+        existing[str(folder)] = {
+            'path': str(folder),
+            'last_written': datetime.now().isoformat(),
+            'app': APP_ID,
+        }
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write_text(
+            path,
+            json.dumps({'app': APP_ID, 'locations': list(existing.values())},
+                       indent=2))
+    except Exception as e:
+        # Never fail a backup over bookkeeping.
+        print(f"Warning: could not record backup location {folder}: {e}")
 
 
 def generate_backup_filename(backup_type):
@@ -585,12 +742,35 @@ def get_restore_points():
     Returns list of restore points with display info.
     """
     manifest = load_manifest()
-    backups = manifest['backups']
-    
+    return build_restore_points(manifest['backups'])
+
+
+def build_restore_points(backups, override_dir=None):
+    """Build restore points from a list of manifest entries.
+
+    Split out of get_restore_points so the disaster-recovery path can
+    reuse it against a manifest found IN a backup folder rather than the
+    local one. `override_dir` resolves every entry's file against that
+    folder instead of its recorded backup_dir — a recovered folder is
+    rarely at the path it was written from (different machine, different
+    home directory, iCloud mounted elsewhere).
+    """
+    def resolve(entry):
+        if override_dir is not None:
+            return Path(override_dir) / entry['filename']
+        return resolve_backup_dir(entry) / entry['filename']
+
     # Group by chain
     chains = {}
     for backup in backups:
-        chain_id = backup['chain_id']
+        # A manifest entry missing chain_id is malformed (hand-edited, or
+        # a foreign/damaged sidecar). Skip it rather than raising — a
+        # KeyError here would take down the whole restore screen.
+        chain_id = backup.get('chain_id')
+        if not chain_id:
+            print(f"Warning: skipping manifest entry without chain_id: "
+                  f"{backup.get('filename', '?')}")
+            continue
         if chain_id not in chains:
             chains[chain_id] = {'full': None, 'incrementals': [], 'pre_restore': []}
 
@@ -613,7 +793,7 @@ def get_restore_points():
         # chain_id so the UI's chain grouping renders every one of them.
         if chain_id == 'pre_restore':
             for backup in chain['pre_restore']:
-                backup_path = resolve_backup_dir(backup) / backup['filename']
+                backup_path = resolve(backup)
                 if backup_path.exists():
                     # Format date with time
                     created = datetime.fromisoformat(backup['created_at'])
@@ -643,7 +823,7 @@ def get_restore_points():
 
         # Full backup as restore point
         full_backup = chain['full']
-        backup_path = resolve_backup_dir(full_backup) / full_backup['filename']
+        backup_path = resolve(full_backup)
 
         # Track the first gap in the chain. A missing zip anywhere in the
         # chain breaks every LATER restore point: prepare_restore would
@@ -673,7 +853,7 @@ def get_restore_points():
         # Each incremental in the chain is also a restore point
         files_needed = [str(backup_path)]
         for i, incr in enumerate(chain['incrementals']):
-            incr_path = resolve_backup_dir(incr) / incr['filename']
+            incr_path = resolve(incr)
 
             if not incr_path.exists():
                 # Gap in the chain: this zip is gone, so it can't be a
@@ -740,46 +920,61 @@ def prepare_restore(restore_point_id, db=None):
             f"Choose an earlier restore point."
         )
 
+    return prepare_restore_from_point(point, db=db)
+
+
+def prepare_restore_from_point(point, db=None):
+    """Stage a restore from an already-resolved restore point.
+
+    Same work as prepare_restore, minus the manifest lookup. The
+    disaster-recovery path has its point in hand from a folder scan and
+    cannot look it up by id, because the local manifest that ids refer
+    to is exactly what is missing.
+    """
     # Create pre-restore backup first (safety net)
     create_pre_restore_backup(db=db)
-    
+
     # Clear any existing staging
     if RESTORE_STAGING_DIR.exists():
         shutil.rmtree(RESTORE_STAGING_DIR)
-    
+
     RESTORE_STAGING_DIR.mkdir(parents=True)
-    
-    # Track deleted files across incrementals
-    deleted_files = set()
-    
-    # Extract backups in order (full first, then incrementals)
+
+    # Replay the chain in order. Deletions are applied PER ZIP, straight
+    # after that zip's own extraction — not accumulated and applied at
+    # the end. Accumulating them loses delete-then-recreate: a file
+    # deleted in incremental N and recreated in N+1 gets extracted
+    # correctly by N+1 and then removed by N's stale tombstone, so the
+    # restore reports success while reconstructing a state that never
+    # existed. Real for EdgeCase: delete the practice logo, later upload
+    # a new one at the same `assets/logo.png` path, and the old sequence
+    # restored a practice with no logo at all. Per-zip ordering is
+    # unambiguous because a path cannot be both changed and deleted
+    # within a single backup.
     for backup_path in point['files_needed']:
         with zipfile.ZipFile(backup_path, 'r') as zf:
-            # Check for metadata about deleted files
-            if '_backup_metadata.json' in zf.namelist():
-                metadata = json.loads(zf.read('_backup_metadata.json'))
-                deleted_files.update(metadata.get('deleted_files', []))
-            
-            # Extract all other files (overwrites previous versions)
-            for name in zf.namelist():
+            names = zf.namelist()
+
+            for name in names:
                 if name != '_backup_metadata.json':
                     zf.extract(name, RESTORE_STAGING_DIR)
-    
-    # Remove files that were deleted in later backups
-    for rel_path in deleted_files:
-        staged_path = RESTORE_STAGING_DIR / rel_path
-        if staged_path.exists():
-            staged_path.unlink()
-    
+
+            if '_backup_metadata.json' in names:
+                metadata = json.loads(zf.read('_backup_metadata.json'))
+                for rel_path in metadata.get('deleted_files', []):
+                    staged_path = RESTORE_STAGING_DIR / rel_path
+                    if staged_path.exists():
+                        staged_path.unlink()
+
     # Write restore marker
     marker = {
-        'restore_point_id': restore_point_id,
+        'restore_point_id': point['id'],
         'prepared_at': datetime.now().isoformat(),
         'point_info': point
     }
     with open(RESTORE_STAGING_DIR / '.restore_marker', 'w') as f:
         json.dump(marker, f)
-    
+
     return str(RESTORE_STAGING_DIR)
 
 
@@ -1313,3 +1508,395 @@ def detect_cloud_folders():
         })
     
     return cloud_folders
+
+
+# ============================================================================
+# DISASTER RECOVERY
+#
+# Everything below exists for one situation: the database (and possibly
+# the whole data root) is gone, so the local manifest, the settings, and
+# the login itself are gone with it. These functions find backups from
+# nothing but a folder on disk — the record of known locations first,
+# EdgeCase's own default folder second, a user-chosen folder last —
+# and stage a restore that complete_restore() finishes at next startup.
+# ============================================================================
+
+
+def read_folder_stamp(folder):
+    """Read the application stamp from a backup folder's sidecar, or None."""
+    sidecar = Path(folder) / 'manifest.json'
+    if not sidecar.exists():
+        return None
+    try:
+        with open(sidecar, 'r') as f:
+            manifest = json.load(f)
+    except (json.JSONDecodeError, ValueError, OSError):
+        return None
+
+    if not isinstance(manifest, dict) or 'app' not in manifest:
+        return None
+    return manifest
+
+
+def _looks_like_backup_folder(names):
+    """True if this directory's file names look like a backup set
+    (EdgeCase's or a sibling application's — the two are identical by
+    name)."""
+    if 'manifest.json' in names:
+        return True
+    return any(_BACKUP_FILENAME_RE.match(name) for name in names)
+
+
+def folder_holds_edgecase_backups(folder):
+    """Confirm a folder holds THIS application's backups.
+
+    Checked in order of authority:
+
+    1. The stamp in the sidecar manifest. save_manifest marks every
+       folder EdgeCase writes to, so its own backups identify
+       themselves.
+    2. Failing that, the contents of a full backup. Folders written
+       before stamping existed carry no marker, and refusing those
+       would make recovery useless to the person who has been backing
+       up diligently all along — exactly the person it is for.
+
+    The fallback stays narrow: the database filename inside a full zip
+    is the only thing that separates an EdgeCase backup from a MailRepo
+    one (see APP_ID). Restoring a MailRepo backup here would overwrite
+    key material while providing no database.
+    """
+    folder = Path(folder)
+
+    stamp = read_folder_stamp(folder)
+    if stamp is not None:
+        return stamp.get('app') == APP_ID
+
+    try:
+        candidates = sorted(
+            (p for p in folder.iterdir()
+             if p.is_file() and p.name.startswith('full_')),
+            reverse=True,
+        )
+    except OSError:
+        return False
+
+    for candidate in candidates[:3]:
+        try:
+            with zipfile.ZipFile(candidate, 'r') as zf:
+                names = zf.namelist()
+        except Exception:
+            continue
+
+        if any(name.endswith('data/edgecase.db') or name == 'edgecase.db'
+               for name in names):
+            return True
+
+        # A readable full backup that is definitively something else.
+        # Stop rather than hoping an older one disagrees.
+        return False
+
+    return False
+
+
+def reconstruct_manifest_entries(folder):
+    """Rebuild manifest entries from the zips in a folder, by filename.
+
+    The last resort, for when a backup folder survived but its manifest
+    did not. Backup filenames carry type and a sortable timestamp, and
+    the writer only ever appends to the newest chain, so the structure
+    is recoverable: each `full_` opens a chain, every `incr_` after it
+    joins that chain, and `pre_restore_` files stand alone.
+
+    This is inference, not a record. It is wrong if two machines wrote
+    to one folder, since their chains would interleave by time and get
+    stitched into one. Entries are marked `reconstructed` so the caller
+    can say so plainly rather than presenting a guess as a fact.
+    """
+    folder = Path(folder)
+    entries = []
+
+    try:
+        names = [p.name for p in folder.iterdir() if p.is_file()]
+    except OSError as e:
+        print(f"Warning: could not read backup folder {folder}: {e}")
+        return entries
+
+    # Parse first, then sort CHRONOLOGICALLY. Sorting the filenames
+    # directly does not work: the type prefix leads, so every "full_"
+    # sorts ahead of every "incr_" regardless of date, and a folder
+    # holding two chains gets stitched into one with all the fulls at
+    # the front. Timestamp order is the whole basis for inferring which
+    # full an incremental belongs to.
+    parsed = []
+    for name in names:
+        match = _BACKUP_FILENAME_RE.match(name)
+        if not match:
+            continue
+
+        prefix, date_part, time_part, suffix = match.groups()
+        try:
+            created = datetime.strptime(
+                f"{date_part} {time_part}", '%Y-%m-%d %H%M%S')
+        except ValueError:
+            continue
+
+        parsed.append((created, suffix or '', name, _TYPE_FROM_PREFIX[prefix]))
+
+    parsed.sort(key=lambda item: (item[0], item[1], item[2]))
+
+    current_chain = None
+
+    for created, _suffix, name, backup_type in parsed:
+        if backup_type == 'pre_restore':
+            # EdgeCase's own manifests give every safety backup the
+            # literal chain_id 'pre_restore' (see create_pre_restore_backup),
+            # and build_restore_points keys its standalone handling on
+            # exactly that value. Reconstruction must match the writer.
+            chain_id = 'pre_restore'
+        elif backup_type == 'full':
+            current_chain = created.strftime('%Y%m%d_%H%M%S')
+            chain_id = current_chain
+        else:
+            if current_chain is None:
+                # Incremental with no preceding full: an orphan. Kept out
+                # rather than invented a chain for — build_restore_points
+                # drops orphaned incrementals anyway.
+                continue
+            chain_id = current_chain
+
+        size = 0
+        try:
+            size = (folder / name).stat().st_size
+        except OSError:
+            pass
+
+        entries.append({
+            'filename': name,
+            'type': backup_type,
+            'chain_id': chain_id,
+            'created_at': created.isoformat(),
+            'backup_size': size,
+            'backup_dir': str(folder),
+            'reconstructed': True,
+        })
+
+    return entries
+
+
+def discover_restore_points_in(folder):
+    """Find restore points in a folder that is not the local backups dir.
+
+    The recovery entry point: the user knows where their backups are,
+    and nothing on this machine does. Prefers the manifest sidecar
+    written alongside the zips; falls back to filename reconstruction
+    when there isn't one.
+
+    Returns (points, source) where source is "manifest", "reconstructed",
+    or "empty" — the caller needs to tell the user which, because a
+    reconstructed chain deserves a second look at the dates before
+    anyone overwrites anything with it.
+    """
+    folder = Path(folder)
+
+    if not folder.is_dir():
+        raise ValueError(f"Not a folder: {folder}")
+
+    # Refuse another application's backups outright. MailRepo's are
+    # byte-for-byte plausible here — same filenames, same key-file paths
+    # — and restoring one would overwrite this install's key files while
+    # finding no database to go with them. Checked on the manual path as
+    # well as the search path, or the folder picker becomes the hole the
+    # search was careful to close.
+    if not folder_holds_edgecase_backups(folder):
+        try:
+            names = {p.name for p in folder.iterdir() if p.is_file()}
+        except OSError:
+            names = set()
+        if _looks_like_backup_folder(names):
+            raise ValueError(
+                "That folder holds backups from a different application, "
+                "not EdgeCase.")
+        return [], 'empty'
+
+    sidecar = folder / 'manifest.json'
+    if sidecar.exists():
+        try:
+            with open(sidecar, 'r') as f:
+                manifest = json.load(f)
+            points = build_restore_points(
+                manifest.get('backups', []), override_dir=folder)
+            if points:
+                return points, 'manifest'
+            # A sidecar listing nothing that is actually present is worse
+            # than no sidecar — fall through and look at real files.
+            print(f"Warning: manifest in {folder} matched no files on disk; "
+                  f"reconstructing")
+        except (json.JSONDecodeError, ValueError, OSError) as e:
+            print(f"Warning: could not read manifest in {folder}: {e}")
+
+    entries = reconstruct_manifest_entries(folder)
+    if not entries:
+        return [], 'empty'
+
+    points = build_restore_points(entries, override_dir=folder)
+    for point in points:
+        point['reconstructed'] = True
+
+    return points, ('reconstructed' if points else 'empty')
+
+
+def verify_restore_point_files(restore_point):
+    """Verify every file a restore point depends on is actually usable.
+
+    A manifest entry is a claim, not evidence. This opens each file in
+    the chain, which is what proves the claim:
+
+      - exists() catches a deleted or moved backup
+      - a zero size catches a truncated write
+      - opening the zip forces cloud-storage materialization, so an
+        iCloud-evicted placeholder fails here instead of at restore time
+      - testzip() catches silent corruption
+
+    Returns a list of human-readable problems. Empty list means the
+    whole chain is verified good.
+    """
+    problems = []
+
+    for path_str in restore_point.get('files_needed', []):
+        path = Path(path_str)
+        name = path.name
+
+        if not path.exists():
+            problems.append(f"{name}: missing from disk")
+            continue
+
+        try:
+            size = path.stat().st_size
+        except OSError as e:
+            problems.append(f"{name}: cannot stat ({e})")
+            continue
+
+        if size == 0:
+            problems.append(f"{name}: zero bytes")
+            continue
+
+        try:
+            with zipfile.ZipFile(path, 'r') as zf:
+                bad_file = zf.testzip()
+        except zipfile.BadZipFile:
+            problems.append(f"{name}: not a readable zip (corrupt or truncated)")
+            continue
+        except OSError as e:
+            # Cloud-evicted files and permission failures land here.
+            problems.append(f"{name}: unreadable ({e})")
+            continue
+
+        if bad_file:
+            problems.append(f"{name}: fails integrity check ({bad_file})")
+
+    return problems
+
+
+def find_backup_locations():
+    """Where this install's backups are, without guessing.
+
+    Two checks, both certain:
+
+    1. The record. EdgeCase notes every folder it writes backups to, in
+       a file outside the data root (see record_backup_location), so it
+       survives the loss that makes it necessary.
+    2. EdgeCase's own default backups folder — the one place backups go
+       when the user never chose a location, and the one place worth
+       checking when the record itself is gone.
+
+    There is deliberately no filesystem search beyond these. Guessing at
+    cloud-provider paths surfaces MailRepo's byte-identical backup
+    folders and breaks when providers move their mount points. A user
+    who put backups somewhere of their own choosing knows where — the
+    folder picker on the recovery screen covers that case without a
+    single assumption.
+
+    Results carry `known=True` when they came from the record.
+    """
+    results = []
+    seen = set()
+
+    for entry in get_known_locations():
+        directory = Path(entry['path'])
+        try:
+            resolved = directory.resolve()
+        except OSError:
+            continue
+        if resolved in seen:
+            continue
+
+        if not folder_holds_edgecase_backups(directory):
+            continue
+
+        try:
+            points, source = discover_restore_points_in(directory)
+        except Exception as e:
+            print(f"Warning: recorded location {directory} could not be read: {e}")
+            continue
+
+        if not points:
+            continue
+
+        seen.add(resolved)
+        results.append({
+            'path': str(directory),
+            'label': _describe_location(directory),
+            'source': source,
+            'known': True,
+            'last_written': entry.get('last_written'),
+            'restore_point_count': len(points),
+            'newest': points[0]['created_at'],
+            'newest_display': points[0]['display_name'],
+            'restore_points': points,
+        })
+
+    if results:
+        return results
+
+    # No usable record. Check the one folder EdgeCase itself owns before
+    # giving up — an install that predates the location record, or a
+    # default setup whose backups folder survived, lands here.
+    try:
+        if BACKUPS_DIR.is_dir() and folder_holds_edgecase_backups(BACKUPS_DIR):
+            points, source = discover_restore_points_in(BACKUPS_DIR)
+            if points:
+                results.append({
+                    'path': str(BACKUPS_DIR),
+                    'label': _describe_location(BACKUPS_DIR),
+                    'source': source,
+                    'known': False,
+                    'restore_point_count': len(points),
+                    'newest': points[0]['created_at'],
+                    'newest_display': points[0]['display_name'],
+                    'restore_points': points,
+                })
+    except Exception as e:
+        print(f"Warning: default backups folder could not be read: {e}")
+
+    return results
+
+
+def _describe_location(path):
+    """A human label for where a backup folder lives."""
+    path = Path(path)
+    text = str(path)
+    home = str(Path.home())
+
+    if 'com~apple~CloudDocs' in text:
+        return f"iCloud Drive — {path.name}"
+    if '/Dropbox/' in text or text.endswith('/Dropbox'):
+        return f"Dropbox — {path.name}"
+    if '/OneDrive' in text:
+        return f"OneDrive — {path.name}"
+    if 'Google Drive' in text or 'GoogleDrive' in text:
+        return f"Google Drive — {path.name}"
+    if text.startswith('/Volumes/') or text.startswith('/media/') or text.startswith('/mnt/'):
+        return f"External drive — {path.name}"
+    if text.startswith(home):
+        return f"This computer — {path.name}"
+    return str(path)

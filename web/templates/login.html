@@ -232,6 +232,27 @@
             display: block;
             margin-bottom: 0.25rem;
         }
+
+        .data-loss-notice {
+            background: #FFFBEB;
+            border: 1px solid #FDE68A;
+            color: #92400E;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+        }
+
+        .data-loss-notice strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .data-loss-notice a {
+            color: #92400E;
+            font-weight: 600;
+        }
         
         .password-hint {
             font-size: 0.8125rem;
@@ -292,6 +313,12 @@
         <div class="first-run-notice">
             <strong>Welcome to EdgeCase!</strong>
             Create a master password to encrypt your database. This password protects all your client data.
+        </div>
+        <div class="data-loss-notice">
+            <strong>Already had a practice on this computer?</strong>
+            If this machine lost its data, don't create a new password —
+            <a href="{{ url_for('auth.restore_page') }}">restore from a backup</a>
+            instead. Creating a password here starts an empty practice.
         </div>
         <h2>Create Master Password</h2>
         <p class="subtitle">Choose a strong password you'll remember</p>

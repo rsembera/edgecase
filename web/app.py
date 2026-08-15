@@ -380,8 +380,15 @@ def require_login():
     # auth.recover / auth.recover_reset are unauthenticated by necessity: they
     # are the route for someone who cannot log in. They are gated instead by
     # the recovery key itself, plus the same rate limiter as /login.
+    # auth.restore_* are the disaster-recovery routes for someone whose
+    # database is GONE — the one person a login gate would lock out. They
+    # are gated inside the blueprint instead: dead once a database exists,
+    # and protected by a recovery CSRF token.
     allowed_endpoints = ['auth.login', 'auth.logout', 'auth.migrate_stream',
                          'auth.recover', 'auth.recover_reset',
+                         'auth.restore_page', 'auth.restore_search',
+                         'auth.restore_scan', 'auth.restore_browse',
+                         'auth.restore_prepare',
                          'static', 'session_status', 'keepalive', 'heartbeat']
     if request.endpoint in allowed_endpoints:
         return

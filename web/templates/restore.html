@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restore from Backup - EdgeCase Equalizer</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg') }}">
+    <meta name="recovery-csrf" content="{{ recovery_csrf }}">
+
+    <style>
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Lexend';
+            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype');
+            font-weight: 600;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .restore-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        h1 { font-size: 1.5rem; font-weight: 600; color: #1F2937; text-align: center; }
+
+        .subtitle {
+            text-align: center;
+            color: #6B7280;
+            margin: 0.5rem 0 1.75rem;
+            font-size: 0.9375rem;
+        }
+
+        .error {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #DC2626;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9375rem;
+        }
+
+        .location {
+            border: 1.5px solid #E2E8F0;
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .location-name { font-weight: 600; color: #1F2937; }
+
+        .location-path {
+            font-size: 0.8125rem;
+            color: #A0AEC0;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .helper-text { font-size: 0.8125rem; color: #6B7280; margin-bottom: 0.5rem; }
+
+        .warn-text { font-size: 0.8125rem; color: #B45309; margin-bottom: 0.5rem; }
+
+        .point {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.6rem 0;
+            border-top: 1px solid #F1F5F9;
+        }
+
+        .point-name { font-size: 0.9375rem; color: #1F2937; }
+
+        button {
+            font-family: 'Lexend', sans-serif;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #BFDCDC;
+            color: #115D4F;
+            padding: 0.6rem 1rem;
+            font-size: 0.875rem;
+        }
+        .btn-primary:hover { background: #A8CFCF; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: #F1F5F9;
+            color: #1F2937;
+            padding: 0.6rem 1rem;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover { background: #E2E8F0; }
+
+        .actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+
+        .picker {
+            border: 1.5px solid #E2E8F0;
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .picker-path {
+            font-size: 0.8125rem;
+            color: #6B7280;
+            word-break: break-all;
+            margin-bottom: 0.75rem;
+        }
+
+        .picker-list { max-height: 300px; overflow-y: auto; margin-bottom: 0.75rem; }
+
+        .picker-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: none;
+            text-align: left;
+            padding: 0.5rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            font-weight: 400;
+            color: #1F2937;
+        }
+        .picker-row:hover { background: #F1F5F9; }
+
+        .picker-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #115D4F;
+            background: #BFDCDC;
+            border-radius: 0.5rem;
+            padding: 0.1rem 0.5rem;
+        }
+
+        .picker-tag-muted { color: #6B7280; background: #E2E8F0; }
+
+        .footer {
+            text-align: center;
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #E2E8F0;
+            color: #6B7280;
+            font-size: 0.8125rem;
+        }
+
+        .footer a { color: #1F8F74; }
+    </style>
+</head>
+<body>
+    <div class="restore-container">
+        <h1>Restore from a backup</h1>
+        <p class="subtitle" id="restore-subtitle">Looking for your backups&hellip;</p>
+
+        <div id="restore-error" class="error" hidden></div>
+
+        <div id="restore-locations"></div>
+
+        <div class="actions" id="restore-actions" hidden>
+            <button type="button" id="restore-browse" class="btn-secondary">
+                Choose a folder myself
+            </button>
+            <button type="button" id="restore-rescan" class="btn-secondary">
+                Look again
+            </button>
+        </div>
+
+        <div id="restore-picker" class="picker" hidden>
+            <p class="picker-path" id="picker-path"></p>
+            <div class="picker-list" id="picker-list"></div>
+            <div class="actions">
+                <button type="button" id="picker-use" class="btn-primary">Use this folder</button>
+                <button type="button" id="picker-cancel" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Restoring replaces everything in this install with the contents
+            of the backup, and brings back the master password (and recovery
+            key, if any) that were in use when it was made.</p>
+            <p style="margin-top: 0.75rem;">
+                <a href="{{ url_for('auth.login') }}">Start a new practice instead</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        const subtitle = document.getElementById('restore-subtitle');
+        const locationsBox = document.getElementById('restore-locations');
+        const actions = document.getElementById('restore-actions');
+        const browseButton = document.getElementById('restore-browse');
+        const rescanButton = document.getElementById('restore-rescan');
+        const errorBox = document.getElementById('restore-error');
+
+        const picker = document.getElementById('restore-picker');
+        const pickerPath = document.getElementById('picker-path');
+        const pickerList = document.getElementById('picker-list');
+        const pickerUse = document.getElementById('picker-use');
+        const pickerCancel = document.getElementById('picker-cancel');
+
+        const CSRF_TOKEN =
+            document.querySelector('meta[name="recovery-csrf"]')?.content || '';
+
+        let pickerCurrent = '';
+
+        async function postJson(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ ...payload, csrf_token: CSRF_TOKEN }),
+            });
+            return response.json();
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.hidden = false;
+        }
+
+        function clearError() {
+            errorBox.hidden = true;
+            errorBox.textContent = '';
+        }
+
+        function plural(count, word) {
+            return count + ' ' + word + (count === 1 ? '' : 's');
+        }
+
+        function pointRow(point, folder) {
+            const row = document.createElement('div');
+            row.className = 'point';
+
+            const name = document.createElement('span');
+            name.className = 'point-name';
+            name.textContent = point.display_name;
+            row.appendChild(name);
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn-primary';
+            button.textContent = 'Restore this';
+            button.addEventListener('click', () => confirmRestore(point, folder, button));
+            row.appendChild(button);
+
+            return row;
+        }
+
+        function locationCard(location) {
+            const card = document.createElement('div');
+            card.className = 'location';
+
+            const title = document.createElement('div');
+            title.className = 'location-name';
+            title.textContent = location.label || location.path;
+            card.appendChild(title);
+
+            const path = document.createElement('p');
+            path.className = 'location-path';
+            path.textContent = location.path;
+            card.appendChild(path);
+
+            const meta = document.createElement('p');
+            meta.className = 'helper-text';
+            const bits = [plural(location.restore_point_count, 'restore point')];
+            if (location.newest_display) {
+                bits.push('newest ' + location.newest_display);
+            }
+            meta.textContent = bits.join(' \u00B7 ');
+            card.appendChild(meta);
+
+            if (location.source === 'reconstructed') {
+                const warn = document.createElement('p');
+                warn.className = 'warn-text';
+                warn.textContent =
+                    'No backup record in this folder \u2014 this list was worked ' +
+                    'out from the backup filenames. Check the dates look right ' +
+                    'before restoring.';
+                card.appendChild(warn);
+            }
+
+            (location.restore_points || []).forEach((point) => {
+                if (point.broken) { return; }
+                card.appendChild(pointRow(point, location.path));
+            });
+
+            return card;
+        }
+
+        function renderLocations(locations) {
+            locationsBox.replaceChildren();
+            actions.hidden = false;
+
+            if (!locations.length) {
+                subtitle.textContent =
+                    'EdgeCase has no record of backups on this machine. If you ' +
+                    'kept backups, choose their folder below. If they are on ' +
+                    'another computer, a network drive, or an external disk, ' +
+                    'connect it or copy the folder onto this machine first, ' +
+                    'then choose it.';
+                return;
+            }
+
+            const known = locations.some((location) => location.known);
+            subtitle.textContent = known
+                ? 'These are the backup folders EdgeCase has been writing to.'
+                : 'EdgeCase found these backups in its own backups folder.';
+
+            locations.forEach((location) =>
+                locationsBox.appendChild(locationCard(location)));
+        }
+
+        async function loadLocations(force) {
+            clearError();
+            subtitle.textContent = force
+                ? 'Looking again\u2026' : 'Looking for your backups\u2026';
+            rescanButton.disabled = true;
+
+            try {
+                const data = await postJson('/restore/search', { force: !!force });
+                if (!data.success) {
+                    showError(data.error || 'Could not look for backups.');
+                    actions.hidden = false;
+                    return;
+                }
+                renderLocations(data.locations || []);
+            } catch (err) {
+                showError('Could not look for backups: ' + err.message);
+                actions.hidden = false;
+            } finally {
+                rescanButton.disabled = false;
+            }
+        }
+
+        async function openPicker(path) {
+            clearError();
+            try {
+                const data = await postJson('/restore/browse', { path: path || '' });
+                if (!data.success) {
+                    showError(data.error || 'Could not open that folder.');
+                    return;
+                }
+
+                picker.hidden = false;
+                pickerCurrent = data.current_path;
+                pickerPath.textContent = data.current_path;
+                pickerUse.disabled = !data.current_has_backups;
+                pickerUse.textContent = data.current_has_backups
+                    ? 'Use this folder' : 'No backups in this folder';
+
+                pickerList.replaceChildren();
+
+                if (data.parent_path) {
+                    pickerList.appendChild(
+                        pickerRow('..', data.parent_path, false, false));
+                }
+
+                data.folders.forEach((folder) =>
+                    pickerList.appendChild(pickerRow(
+                        folder.name, folder.path,
+                        folder.has_backups, folder.other_app_backups)));
+            } catch (err) {
+                showError('Could not open that folder: ' + err.message);
+            }
+        }
+
+        function pickerRow(name, path, hasBackups, otherApp) {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'picker-row';
+            row.addEventListener('click', () => openPicker(path));
+
+            const label = document.createElement('span');
+            label.textContent = name;
+            row.appendChild(label);
+
+            if (hasBackups) {
+                const tag = document.createElement('span');
+                tag.className = 'picker-tag';
+                tag.textContent = 'backups';
+                row.appendChild(tag);
+            } else if (otherApp) {
+                // Named plainly rather than hidden. A folder of MailRepo
+                // backups looks exactly like a folder of EdgeCase backups
+                // from outside, and silently omitting it would read as
+                // EdgeCase failing to see a folder the user can plainly see.
+                const tag = document.createElement('span');
+                tag.className = 'picker-tag picker-tag-muted';
+                tag.textContent = 'another app';
+                row.appendChild(tag);
+            }
+
+            return row;
+        }
+
+        async function usePickedFolder() {
+            clearError();
+            pickerUse.disabled = true;
+
+            try {
+                const data = await postJson('/restore/scan', { folder: pickerCurrent });
+                if (!data.success) {
+                    showError(data.error || 'Could not read that folder.');
+                    pickerUse.disabled = false;
+                    return;
+                }
+
+                picker.hidden = true;
+                renderLocations([{
+                    path: data.folder,
+                    label: data.folder,
+                    source: data.source,
+                    known: false,
+                    restore_point_count: data.restore_points.length,
+                    newest_display: data.restore_points[0]?.display_name,
+                    restore_points: data.restore_points,
+                }]);
+            } catch (err) {
+                showError('Could not read that folder: ' + err.message);
+                pickerUse.disabled = false;
+            }
+        }
+
+        async function confirmRestore(point, folder, button) {
+            const warning =
+                'Restore the backup from ' + point.display_name + '?\n\n' +
+                'This replaces everything currently in this install, and ' +
+                'brings back the master password that was in use when the ' +
+                'backup was made.';
+
+            if (!window.confirm(warning)) { return; }
+
+            clearError();
+            button.disabled = true;
+            button.textContent = 'Restoring\u2026';
+
+            try {
+                const data = await postJson('/restore/prepare', {
+                    folder: folder,
+                    restore_point_id: point.id,
+                });
+
+                if (!data.success) {
+                    showError(data.error || 'Restore could not be staged.');
+                    button.disabled = false;
+                    button.textContent = 'Restore this';
+                    return;
+                }
+
+                // Deliberately terminal. The restore finishes on next
+                // startup, so there is nothing useful to do in this page
+                // afterwards, and a second Restore button would invite a
+                // second staging run over the first.
+                locationsBox.replaceChildren();
+                actions.hidden = true;
+                picker.hidden = true;
+                subtitle.textContent = data.message;
+            } catch (err) {
+                showError('Restore could not be staged: ' + err.message);
+                button.disabled = false;
+                button.textContent = 'Restore this';
+            }
+        }
+
+        browseButton.addEventListener('click', () => openPicker(''));
+        rescanButton.addEventListener('click', () => loadLocations(true));
+        pickerUse.addEventListener('click', usePickedFolder);
+        pickerCancel.addEventListener('click', () => { picker.hidden = true; });
+
+        loadLocations(false);
+    })();
+    </script>
+</body>
+</html>
