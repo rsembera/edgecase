@@ -269,10 +269,26 @@
             const row = document.createElement('div');
             row.className = 'point';
 
-            const name = document.createElement('span');
+            const left = document.createElement('div');
+
+            const name = document.createElement('div');
             name.className = 'point-name';
             name.textContent = point.display_name;
-            row.appendChild(name);
+            left.appendChild(name);
+
+            if (point.credential_note) {
+                // Which password (and recovery key) this backup will want
+                // once restored — said HERE, beside the specific backup it
+                // is true of, before anyone clicks Restore. Restoring a
+                // backup whose credentials you no longer hold locks you
+                // out of your own data.
+                const note = document.createElement('p');
+                note.className = 'warn-text';
+                note.textContent = point.credential_note;
+                left.appendChild(note);
+            }
+
+            row.appendChild(left);
 
             const button = document.createElement('button');
             button.type = 'button';
@@ -460,11 +476,14 @@
         }
 
         async function confirmRestore(point, folder, button) {
-            const warning =
+            let warning =
                 'Restore the backup from ' + point.display_name + '?\n\n' +
                 'This replaces everything currently in this install, and ' +
                 'brings back the master password that was in use when the ' +
                 'backup was made.';
+            if (point.credential_note) {
+                warning += '\n\n' + point.credential_note;
+            }
 
             if (!window.confirm(warning)) { return; }
 

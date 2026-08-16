@@ -62,6 +62,37 @@ def isolate_backup_locations(tmp_path_factory, monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def isolate_restore_unverified_marker(tmp_path_factory, monkeypatch):
+    """No test may read or clear the real install's unverified-restore marker.
+
+    The marker gates the disaster-recovery door and is DELETED on every
+    successful login — so an auth test logging in against a temp database
+    would silently unlink the real install's marker (and marker-presence
+    tests would see the developer's state). Same reasoning as the two
+    isolation fixtures above.
+    """
+    from utils import backup
+    marker_dir = tmp_path_factory.mktemp("restore_marker")
+    monkeypatch.setattr(backup, "_restore_unverified_marker",
+                        lambda: marker_dir / ".restore_unverified")
+    yield
+
+
+@pytest.fixture
+def bare_client(monkeypatch):
+    """Unauthenticated Flask client with no database in app config —
+    the state the disaster-recovery routes exist for. Shared by
+    test_disaster_recovery.py and test_restore_credentials.py."""
+    from web.app import app as flask_app
+    flask_app.config["TESTING"] = True
+    prev_db = flask_app.config.get("db")
+    flask_app.config["db"] = None
+    with flask_app.test_client() as c:
+        yield c
+    flask_app.config["db"] = prev_db
+
+
 @pytest.fixture
 def app_db():
     """A fresh temp-file Database per test (route-level analogue of the ``db``
