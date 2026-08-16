@@ -241,6 +241,47 @@ def is_first_run():
     db_path = Path(DATA_DIR) / "edgecase.db"
     return not db_path.exists()
 
+
+def _restore_login_context():
+    """What the login screen needs to say about a just-restored practice.
+
+    Two independent signals, both read WITHOUT consuming:
+      - RESTORE_COMPLETED (set at startup when a staged restore was
+        applied): carries the date and the credential note chosen with
+        the restore point. Peeked, not popped — the post-login code in
+        require_login owns popping it.
+      - the unverified-restore marker: still present means nobody has
+        opened the restored data yet, so the screen also offers the way
+        back ("restore a different backup").
+
+    Without this, a perfectly correct restore is indistinguishable from
+    a rejected password — the user types their current password, is
+    refused, and has no way to know the practice now wants an older one.
+    """
+    from utils import backup
+
+    restored = current_app.config.get('RESTORE_COMPLETED')
+    unverified = backup.restore_unverified()
+
+    if not restored and not unverified:
+        return {}
+
+    note = ''
+    date = ''
+    if restored:
+        note = restored.get('credential_note', '')
+        date = (restored.get('original_date') or '')[:10]
+    if not note:
+        note = ('It opens with the master password that was in use when '
+                'the backup was made — not necessarily your current one.')
+
+    return {
+        'restored_banner': True,
+        'restored_date': date,
+        'restored_note': note,
+        'restore_retry_available': unverified,
+    }
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Login page - unlock the encrypted database."""
@@ -257,13 +298,15 @@ def login():
         print(f"[Migration] recovery check error: {e}")
     
     first_run = is_first_run()
-    
+    restore_ctx = _restore_login_context()
+
     # Check rate limiting before processing POST
     is_blocked, seconds_remaining = _check_rate_limit()
     if is_blocked:
         return render_template('login.html', 
                              first_run=first_run, 
-                             lockout_seconds=seconds_remaining)
+                             lockout_seconds=seconds_remaining,
+                             **restore_ctx)
     
     if request.method == 'POST':
         password = request.form.get('password', '')
@@ -289,6 +332,12 @@ def login():
             # Test that password works by running a query
             conn = db.connect()
             conn.execute("SELECT count(*) FROM client_types")
+
+            # The password opened the database: whoever is here can
+            # vouch for the data on disk. If it arrived by restore, the
+            # unverified marker comes off and the recovery door closes.
+            from utils import backup as backup_utils
+            backup_utils.clear_restore_unverified()
 
             # Existing v1 or v2 install: upgrade encryption to the v3
             # envelope before completing login. Single pass from either
@@ -342,9 +391,10 @@ def login():
                 error = "Incorrect password"
             else:
                 error = f"Database error: {error_msg}"
-            return render_template('login.html', first_run=first_run, error=error)
+            return render_template('login.html', first_run=first_run,
+                                   error=error, **restore_ctx)
     
-    return render_template('login.html', first_run=first_run)
+    return render_template('login.html', first_run=first_run, **restore_ctx)
 
 
 @auth_bp.route('/migrate/stream')
@@ -624,12 +674,29 @@ def _check_recovery_csrf():
     return bool(supplied) and secrets.compare_digest(supplied, expected)
 
 
+def _recovery_door_open():
+    """May the disaster-recovery routes be used right now?
+
+    Two states qualify:
+      - true first run: no database at all (the door's original purpose)
+      - an UNVERIFIED restore: a database exists, but it arrived by
+        restore and nobody has logged into it yet. If the backup's
+        password turns out to be lost, login is a wall — and without
+        this, the recovery routes would be dead the moment the restore
+        landed, leaving no way to try a different backup. The first
+        successful login clears the marker and closes the door, so a
+        practice in normal use is never reachable this way.
+    """
+    from utils import backup
+    return is_first_run() or backup.restore_unverified()
+
+
 def _recovery_gate_json():
     """403 for the recovery JSON endpoints once a database exists, or when
     the CSRF token is missing/wrong. Returns a response to send, or None
     to proceed."""
     from flask import jsonify
-    if not is_first_run():
+    if not _recovery_door_open():
         return jsonify({'success': False,
                         'error': 'This practice is already set up.'}), 403
     if not _check_recovery_csrf():
@@ -641,7 +708,7 @@ def _recovery_gate_json():
 @auth_bp.route('/restore')
 def restore_page():
     """Restore from a backup when there is no database to log in to."""
-    if not is_first_run():
+    if not _recovery_door_open():
         return redirect(url_for('auth.login'))
 
     return render_template('restore.html',

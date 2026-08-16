@@ -891,6 +891,23 @@ def build_restore_points(backups, override_dir=None):
     
     # Sort by date, newest first
     restore_points.sort(key=lambda x: x['created_at'], reverse=True)
+
+    # Annotate which credentials each point would need (Daybook's fix).
+    # The live key-info is read ONCE here rather than per point.
+    try:
+        from core import encryption_v2
+        keyinfo_path = Path(encryption_v2.KEYINFO_FILE)
+        current_blob = (keyinfo_path.read_bytes()
+                        if keyinfo_path.exists() else None)
+    except Exception:
+        current_blob = None
+
+    for point in restore_points:
+        creds = describe_restore_point_credentials(
+            point.get('files_needed', []), current_blob)
+        point['credential_status'] = creds['status']
+        point['credential_note'] = creds['note']
+
     return restore_points
 
 
@@ -1108,12 +1125,75 @@ def complete_restore():
     
     # Clean up staging
     shutil.rmtree(RESTORE_STAGING_DIR)
-    
+
+    # Mark the restore UNVERIFIED until someone proves they can open it.
+    # From this moment the data on disk is data nobody has vouched for:
+    # if the backup's password turns out to be lost, the login screen is
+    # a wall and — without this marker — the recovery routes are dead
+    # too, because a database now exists. The marker keeps the recovery
+    # door open (see auth's _recovery_gate_json) so the user can go back
+    # and restore a DIFFERENT backup, including the pre-restore safety
+    # backup. The first successful login deletes it, which is also what
+    # closes the door — so a running practice, which by definition has
+    # logged in since its last restore, is never exposed by it.
+    #
+    # Neither sibling has this yet: Daybook and MailRepo stop at warning
+    # before the restore. The warning is right but not sufficient in the
+    # disaster case, where there is no live key material to fingerprint
+    # against and the note can only say "the password of the day" —
+    # which the user may sincerely believe they know until they type it.
+    set_restore_unverified()
+
     return {
         'restored_at': datetime.now().isoformat(),
         'restore_point': marker['restore_point_id'],
-        'original_date': marker['point_info']['created_at']
+        'original_date': marker['point_info']['created_at'],
+        # Carried from the point the user chose (Daybook's fix): the
+        # login screen after the restart is the one place that can say
+        # which password the restored practice wants — without it, a
+        # perfectly correct restore is indistinguishable from a rejected
+        # password. .get() because markers staged by older builds carry
+        # no note.
+        'credential_note': marker['point_info'].get('credential_note', ''),
     }
+
+
+def _restore_unverified_marker():
+    """Path of the unverified-restore marker. In DATA_DIR beside the key
+    files it describes; NOT in get_all_backup_files, so it never rides
+    into a backup."""
+    return DATA_DIR / '.restore_unverified'
+
+
+def set_restore_unverified():
+    """Record that the data on disk came from a restore no one has
+    opened yet. Failure is logged, never raised — refusing to finish a
+    restore over a bookkeeping file would be worse than the gap."""
+    try:
+        marker = _restore_unverified_marker()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(json.dumps({
+            'restored_at': datetime.now().isoformat(),
+        }))
+    except Exception as e:
+        print(f"Warning: could not write restore-unverified marker: {e}")
+
+
+def restore_unverified():
+    """True if the last restore has not yet been opened successfully."""
+    try:
+        return _restore_unverified_marker().exists()
+    except OSError:
+        return False
+
+
+def clear_restore_unverified():
+    """A successful login vouches for the restored data; the recovery
+    door closes behind it."""
+    try:
+        _restore_unverified_marker().unlink(missing_ok=True)
+    except OSError as e:
+        print(f"Warning: could not clear restore-unverified marker: {e}")
 
 
 def cancel_restore():
@@ -1795,6 +1875,186 @@ def verify_restore_point_files(restore_point):
             problems.append(f"{name}: fails integrity check ({bad_file})")
 
     return problems
+
+
+# ----------------------------------------------------------------------------
+# Which credentials will open a restore point (Daybook's fix, ported)
+#
+# A backup carries its key material as it stood, so a restored practice
+# opens with the master password (and recovery key) of the moment the
+# backup was TAKEN — not whatever is in use today. Restoring a backup
+# whose credentials you no longer hold locks you out of your own data,
+# and the login screen cannot tell that apart from a typo. Daybook's
+# ruling: say which credentials a backup needs BEFORE anyone clicks
+# Restore, beside the specific backup it is true of, and again on the
+# login screen after the restore lands.
+#
+# The fingerprint works without trying a single password. The ECC3
+# key-info file is two independent halves — (salt_pw + wrapped_pw) and
+# (salt_rk + wrapped_rk) — and every rewrap mints a fresh salt and
+# touches exactly one half (see core.encryption_v3.rewrap_password /
+# rewrap_recovery_key). So hashing the halves separately says which
+# credential has changed since the backup, byte-comparison only.
+# ----------------------------------------------------------------------------
+
+
+def keyinfo_fingerprint(blob):
+    """Identify which credentials a key-info file belongs to, without
+    using them. Returns {version, password_id, recovery_id} or None for
+    a blob that is not a recognisable key-info file."""
+    if not blob or len(blob) < 4:
+        return None
+
+    magic = blob[:4]
+
+    if magic == b'ECC2':
+        # v2: password wrap only, no recovery key, no split to hash.
+        return {'version': 2, 'password_id': None, 'recovery_id': None}
+
+    if magic != b'ECC3':
+        return None
+
+    # Offsets rebuilt from core.encryption_v3's public constants rather
+    # than importing its private _OFF_* names. Imported lazily so
+    # utils.backup keeps no module-scope crypto dependency — backup code
+    # runs in contexts where the archive is locked.
+    from core.encryption_v3 import (
+        KEYINFO_MAGIC_V3, KEYINFO_LEN_V3, SALT_LEN_V3, WRAPPED_LEN)
+
+    if len(blob) != KEYINFO_LEN_V3:
+        return None
+
+    off_pw = len(KEYINFO_MAGIC_V3)
+    off_rk = off_pw + SALT_LEN_V3 + WRAPPED_LEN
+
+    return {
+        'version': 3,
+        'password_id': hashlib.sha256(blob[off_pw:off_rk]).hexdigest()[:16],
+        'recovery_id': hashlib.sha256(blob[off_rk:]).hexdigest()[:16],
+    }
+
+
+def read_restore_point_key_material(files_needed):
+    """The key material a restore point would actually land on disk.
+
+    Incrementals only carry files that changed, so most contain no key
+    files at all. The effective key-info is the one from the LAST backup
+    in the chain that has it — that is what extraction leaves behind.
+
+    Returns (keyinfo_blob_or_None, saw_salt). `saw_salt` distinguishes a
+    v1-era backup (salt and secret key, but no key-info file existed
+    yet) from a chain carrying no key material at all.
+    """
+    keyinfo = None
+    saw_salt = False
+
+    for path_str in files_needed:
+        try:
+            with zipfile.ZipFile(path_str, 'r') as zf:
+                names = zf.namelist()
+                if 'data/.keyinfo' in names:
+                    keyinfo = zf.read('data/.keyinfo')
+                if 'data/.salt' in names:
+                    saw_salt = True
+        except Exception:
+            continue
+
+    return keyinfo, saw_salt
+
+
+def describe_restore_point_credentials(files_needed, current_blob=None):
+    """What credentials would open this restore point, versus today's.
+
+    Returns {'status': ..., 'note': ...}; the note is written for
+    someone about to click Restore. Never raises — a restore screen that
+    will not render because a fingerprint failed is worse than one that
+    says nothing, so every unknown collapses to a quiet empty note.
+    """
+    unknown = {'status': 'unknown', 'note': ''}
+
+    try:
+        if current_blob is None:
+            # The live key-info path is owned by core.encryption_v2 (v3
+            # defers to it); read at call time so test overrides hold.
+            from core import encryption_v2
+            keyinfo_path = Path(encryption_v2.KEYINFO_FILE)
+            current_blob = (keyinfo_path.read_bytes()
+                            if keyinfo_path.exists() else None)
+
+        current = keyinfo_fingerprint(current_blob)
+        backup_blob, saw_salt = read_restore_point_key_material(files_needed)
+        backed_up = keyinfo_fingerprint(backup_blob)
+
+        if backed_up is None:
+            if saw_salt:
+                # v1 vintage: key material but no key-info file. Still
+                # restorable — login auto-upgrades the encryption — but
+                # only the password of the day opens it.
+                return {
+                    'status': 'predates_recovery_keys',
+                    'note': ('Opens with the master password in use when '
+                             'this backup was made. It predates recovery '
+                             'keys, so no recovery key will open it.'),
+                }
+            return unknown
+
+        if backed_up['version'] == 2:
+            return {
+                'status': 'predates_recovery_keys',
+                'note': ('Opens with the master password in use when this '
+                         'backup was made. It predates recovery keys, so '
+                         'no recovery key will open it. EdgeCase will '
+                         'offer a new recovery key after you log in.'),
+            }
+
+        if current is None:
+            # No key-info on this machine at all — the disaster case,
+            # and the one place this matters most. Nothing to compare
+            # against, but silence is the wrong answer: the user is
+            # about to type a password and needs to know which one.
+            return {
+                'status': 'no_current_key',
+                'note': ('Opens with the master password or recovery key '
+                         'that were in use when this backup was made — '
+                         'not any you have set since. If you have '
+                         'neither, do not restore this one.'),
+            }
+
+        if current['version'] != 3:
+            return unknown
+
+        password_changed = backed_up['password_id'] != current['password_id']
+        recovery_rotated = backed_up['recovery_id'] != current['recovery_id']
+
+        if password_changed and recovery_rotated:
+            return {
+                'status': 'both_changed',
+                'note': ('Both your master password and your recovery key '
+                         'have changed since this backup. It opens ONLY '
+                         'with the ones in use at the time. If you have '
+                         'neither, do not restore this one — you would be '
+                         'locked out of it.'),
+            }
+        if password_changed:
+            return {
+                'status': 'password_changed',
+                'note': ('Your master password has changed since this '
+                         'backup. It opens with the password you used '
+                         'then, not your current one. Your current '
+                         'recovery key still works.'),
+            }
+        if recovery_rotated:
+            return {
+                'status': 'recovery_key_rotated',
+                'note': ('Your recovery key has been replaced since this '
+                         'backup. It opens with the earlier key, or with '
+                         'your current master password.'),
+            }
+
+        return {'status': 'current', 'note': ''}
+    except Exception as e:
+        print(f"Warning: could not fingerprint restore point credentials: {e}")
+        return unknown
 
 
 def find_backup_locations():

@@ -359,13 +359,23 @@ function renderSafetyBackup(point) {
 /**
  * Build an option object for the restore dropdown (for Choices.js)
  */
+
+// Which credentials each restore point will want once restored, keyed by
+// point id. Filled when the dropdown is built, read when the confirm
+// modal opens — the modal only knows the selected VALUE, and the note
+// has to be said before anyone clicks Restore. Restoring a backup whose
+// credentials you no longer hold locks you out of your own data.
+const restorePointNotes = {};
+
 function buildRestoreOption(point) {
     // Add type indicator to dropdown text
     let typeLabel = '';
     if (point.type === 'full') typeLabel = '[Full] ';
     else if (point.type === 'incremental') typeLabel = '[Incr] ';
     else if (point.type === 'pre_restore') typeLabel = '[Safety] ';
-    
+
+    restorePointNotes[point.id] = point.credential_note || '';
+
     return {
         value: point.id,
         label: typeLabel + point.display_name
@@ -509,6 +519,14 @@ function showRestoreModal() {
     }
     
     document.getElementById('modal-restore-point').textContent = selectedText;
+
+    // Say which credentials this specific backup will want, if the
+    // fingerprint has anything beyond the modal's standing warning.
+    const note = restorePointNotes[select.value] || '';
+    const noteBox = document.getElementById('modal-credential-note');
+    document.getElementById('modal-credential-note-text').textContent = note;
+    noteBox.classList.toggle('hidden', !note);
+
     const modal = document.getElementById('restore-modal');
     modal.classList.remove('hidden');
     modal.classList.add('visible');

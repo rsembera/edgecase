@@ -326,7 +326,19 @@
         <h2>Unlock Database</h2>
         <p class="subtitle">Enter your master password to continue</p>
         {% endif %}
-        
+
+        {% if restored_banner %}
+        <div class="data-loss-notice">
+            <strong>Your practice was restored from a backup{% if restored_date %} ({{ restored_date }}){% endif %}.</strong>
+            {{ restored_note }}
+            {% if restore_retry_available %}
+            <br>Can't open it?
+            <a href="{{ url_for('auth.restore_page') }}">Restore a different backup</a>
+            — including the safety backup of what was here before.
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if lockout_seconds %}
         <div class="error" id="lockout-error" style="text-align: center;">
             Too many failed attempts.<br>Try again in <span id="countdown">{{ lockout_seconds }}</span>

@@ -360,18 +360,8 @@ class TestVerifyFiles:
 # Routes: public on first run, dead once a database exists
 # ----------------------------------------------------------------------------
 
-@pytest.fixture
-def bare_client(monkeypatch):
-    """Unauthenticated Flask client with no database in app config —
-    the state the disaster-recovery routes exist for."""
-    from web.app import app as flask_app
-    flask_app.config["TESTING"] = True
-    prev_db = flask_app.config.get("db")
-    flask_app.config["db"] = None
-    with flask_app.test_client() as c:
-        yield c
-    flask_app.config["db"] = prev_db
-
+# bare_client (the unauthenticated no-db Flask client these routes exist
+# for) lives in conftest.py, shared with test_restore_credentials.py.
 
 HOST = {"Host": "localhost:8080"}
 
