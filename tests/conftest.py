@@ -7,6 +7,28 @@ derivation. Tests-only — nothing here touches the production checkout.
 """
 import os
 import tempfile
+
+# ============================================================================
+# THE TWO-VARIABLE KDF SWITCH — set BEFORE any project import, because
+# core.config computes DATA_ROOT the moment it loads.
+#
+# EDGECASE_DATA is overridden unconditionally, even if the shell already
+# had one: a suite run from inside the testing instance's environment must
+# not write into the testing instance's data, and the suite's own tmp dir
+# is the only value that guarantees isolation. This also config-sandboxes
+# the entire suite (DATA_ROOT, KEYINFO_FILE, state dir all land in tmp),
+# which the per-test fixtures below then narrow further.
+#
+# EDGECASE_FAST_KDF makes every Argon2id derivation run at 1 MiB / t=1
+# instead of 256 MiB / t=6 — same algorithm, same call site, nothing
+# mocked; see core.encryption_v2.argon2_parameters() for the doctrine.
+# The flag alone does nothing and the sandbox alone does nothing; both
+# facts are pinned in tests/test_kdf_cost.py, along with the production
+# numbers and a full-cost round trip. A real install sets neither.
+# ============================================================================
+os.environ["EDGECASE_DATA"] = tempfile.mkdtemp(prefix="edgecase-suite-")
+os.environ["EDGECASE_FAST_KDF"] = "1"
+
 import time
 
 import pytest

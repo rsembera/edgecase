@@ -24,9 +24,50 @@ KEYINFO_MAGIC = b"ECC2"   # EdgeCase Crypto v2 key-info file magic
 
 # Argon2id production parameters (match MailRepo): 256 MiB, t=6, p=1.
 # memory_cost is in KiB, so 256 MiB = 256 * 1024 KiB.
+# **THESE ARE THE PRODUCTION NUMBERS AND A TEST PINS THEM** (test_kdf_cost.py).
+# They are also most of the crypto tests' runtime, which is why
+# argon2_parameters() below exists.
 DEFAULT_MEMORY_COST = 256 * 1024
 DEFAULT_ITERATIONS = 6
 DEFAULT_LANES = 1
+
+# The cheap parameters the test suite runs under. Still real Argon2id,
+# still the same call site, still a genuinely encrypted install genuinely
+# reopened — only the work factor changes. Nothing is mocked. (Ported from
+# Daybook via MailRepo, August 16; 1 MiB / t=1 matches both siblings.)
+FAST_MEMORY_COST = 1_024  # 1 MiB
+FAST_ITERATIONS = 1
+
+
+def argon2_parameters():
+    """(memory_cost, iterations, lanes) for password derivation.
+
+    WHY THIS IS A FUNCTION. At production strength every hash costs most
+    of a second, and before this existed the cheap path was applied ad
+    hoc: six test files patched derive_master locally and every other
+    file paid full price — test_restore_credentials.py alone was 10s for
+    25 tests. One switch, read at every derivation, replaces all of it.
+
+    **NOT MOCKING, AND THE DISTINCTION MATTERS.** Same algorithm, same
+    call site, smaller work factor. What a low cost stops proving is that
+    derivation is SLOW — so test_kdf_cost.py pins the production numbers
+    as literals and runs one full-cost v3 round trip with a timing floor.
+
+    **BOTH VARIABLES ARE REQUIRED, AND THAT IS THE SAFETY.** The Argon2
+    parameters are not recorded in .keyinfo — ECC2 is magic+salt+token,
+    ECC3 is magic+salts+wraps, and unwrapping recomputes the KEK from
+    these constants — so an install created cheaply CANNOT be opened at
+    production strength, or the reverse. Getting this wrong does not
+    degrade security quietly; it locks a therapist out of their practice.
+    So EDGECASE_FAST_KDF alone does nothing: EDGECASE_DATA must also be
+    set, which throughout EdgeCase means "this is not the real install"
+    (the suite sets it to a temp dir in conftest; the testing instance
+    sets it; a real install never does). Checked at call time, not
+    import time, for the same reason get_state_dir() is.
+    """
+    if os.environ.get('EDGECASE_FAST_KDF') and os.environ.get('EDGECASE_DATA'):
+        return FAST_MEMORY_COST, FAST_ITERATIONS, DEFAULT_LANES
+    return DEFAULT_MEMORY_COST, DEFAULT_ITERATIONS, DEFAULT_LANES
 
 # HKDF domain-separation labels
 _DB_INFO = b"edgecase.db.v2"
@@ -38,18 +79,21 @@ _TOKEN_PLAINTEXT = b"edgecase-v2-keycheck"
 KEYINFO_FILE = DATA_DIR / ".keyinfo"
 
 
-def derive_master(password: str, salt: bytes, *,
-                  memory_cost: int = DEFAULT_MEMORY_COST,
-                  iterations: int = DEFAULT_ITERATIONS,
-                  lanes: int = DEFAULT_LANES) -> bytes:
+def derive_master(password: str, salt: bytes) -> bytes:
     """Derive the 32-byte master key from the password via Argon2id.
 
     Uses argon2-cffi (the optimised reference C implementation, same as
     MailRepo). cryptography's own Argon2id was measured ~5x slower for
     identical params on the M4 (~4s vs ~0.7s), so do not switch back to it.
-    Params are overridable so the test suite can use cheap settings;
-    production always uses the module defaults.
+
+    Work factor comes from argon2_parameters(): production strength
+    everywhere, cheap only under the two-variable test switch. The
+    per-call overrides this used to take are gone — nothing legitimate
+    ever passed them, and the six test files that did each carried their
+    own copy of the cheap numbers, which is exactly the drift the single
+    switch exists to end.
     """
+    memory_cost, iterations, lanes = argon2_parameters()
     return hash_secret_raw(
         secret=password.encode(),
         salt=salt,

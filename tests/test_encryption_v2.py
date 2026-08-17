@@ -9,13 +9,13 @@ import pytest
 
 from core import encryption_v2 as v2
 
-# Cheap KDF params for fast tests (production uses 256 MiB / t=6 / p=1)
-CHEAP = dict(memory_cost=64, iterations=1, lanes=1)
+# Cheap KDF now comes from the central two-variable switch in conftest
+# (EDGECASE_FAST_KDF + EDGECASE_DATA); see encryption_v2.argon2_parameters.
 
 
 def _keys(password="correct horse battery", salt=None):
     salt = salt if salt is not None else v2.new_salt()
-    master = v2.derive_master(password, salt, **CHEAP)
+    master = v2.derive_master(password, salt)
     return v2.derive_subkeys(master)
 
 
@@ -56,14 +56,14 @@ def test_tamper_detection():
 
 def test_derivation_deterministic():
     salt = v2.new_salt()
-    a = v2.derive_subkeys(v2.derive_master("pw", salt, **CHEAP))
-    b = v2.derive_subkeys(v2.derive_master("pw", salt, **CHEAP))
+    a = v2.derive_subkeys(v2.derive_master("pw", salt))
+    b = v2.derive_subkeys(v2.derive_master("pw", salt))
     assert a == b
 
 
 def test_salt_changes_keys():
-    m1 = v2.derive_master("pw", v2.new_salt(), **CHEAP)
-    m2 = v2.derive_master("pw", v2.new_salt(), **CHEAP)
+    m1 = v2.derive_master("pw", v2.new_salt())
+    m2 = v2.derive_master("pw", v2.new_salt())
     assert m1 != m2
 
 
