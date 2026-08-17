@@ -152,7 +152,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── favicons/
 │   └── img/                     # Background images
 ├── models/                      # AI model (git-ignored): gemma-4-12B-it-QAT-Q4_0.gguf
-├── tests/                       # 19 test files, 201 tests (pytest)
+├── tests/                       # 31 test files, 642 tests (pytest; cheap-KDF switch in conftest)
 ├── docs/                        # Navigation Map, Project Status, Architecture Decisions, etc.
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
