@@ -12,9 +12,8 @@ PW = "file-pw"
 
 @pytest.fixture(autouse=True)
 def setup(monkeypatch):
-    real = v2.derive_master
-    monkeypatch.setattr(v2, "derive_master",
-                        lambda pw, salt, **kw: real(pw, salt, memory_cost=64, iterations=1, lanes=1))
+    # Cheap KDF now comes from the central two-variable switch in
+    # conftest (EDGECASE_FAST_KDF + EDGECASE_DATA); no local patch.
     v2._key_cache.clear()
     monkeypatch.setattr(enc, "_get_salt", lambda: b"0123456789abcdef")  # stable v1 salt
     enc._fernet_cache.clear()

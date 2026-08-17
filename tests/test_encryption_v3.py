@@ -28,11 +28,8 @@ NEW_PW = "synth-rotated-pw"
 
 @pytest.fixture(autouse=True)
 def fast_kdf(monkeypatch):
-    real = v2.derive_master
-    monkeypatch.setattr(
-        v2, "derive_master",
-        lambda pw, salt, **kw: real(pw, salt, memory_cost=64, iterations=1, lanes=1),
-    )
+    # Cheap KDF now comes from the central two-variable switch in
+    # conftest (EDGECASE_FAST_KDF + EDGECASE_DATA); no local patch.
     v2._key_cache.clear()
 
 
