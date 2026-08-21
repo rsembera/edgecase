@@ -22,7 +22,7 @@ assets/
 
 dist/
 ├── EdgeCase Equalizer.app/   # Built application
-└── EdgeCase-1.0.0.dmg        # Final distributable
+└── EdgeCase-2.0.0.dmg        # Final distributable
 ```
 
 ## Signing Credentials
@@ -34,51 +34,39 @@ dist/
 
 ## Build Steps
 
-### 0. Crypto v2 migration — pre-build checklist (added 2026-06-14)
+### 0. Crypto migration — pre-build checklist (updated 2026-08-21)
 
-The attachment-encryption migration (Fernet → Argon2id / AES-256-GCM) runs
-automatically on each user's first launch after updating; their data in
-`~/Library/Application Support/EdgeCase/` is migrated in place, and the
-migration runner takes its own verified backup first. Before building, confirm
-in `setup_app.py`:
+Encryption migrations run automatically on each user's first launch after
+updating (v1 Fernet → v2 Argon2id/AES-GCM → v3 envelope with recovery keys);
+their data in `~/Library/Application Support/EdgeCase/` is migrated in place,
+and the migration runner takes its own verified backup first. Before building,
+confirm in `setup_app.py`:
 
-- **`includes` lists every new core module.** py2app does not auto-detect them.
-  `core.encryption` is listed; you must also add `core.encryption_v2` and the
-  migration-runner module (e.g. `core.migrate_crypto`) or packaged users hit an
-  ImportError at launch. (Linux does not need this — its build copies all of
-  `core/`.)
-- **Add `argon2-cffi` to py2app `packages`.** EdgeCase derives the Argon2id
-  master key with `argon2-cffi` (cryptography's own Argon2id measured ~5× slower
-  on the M4 — ~3.9s vs ~0.74s). Add `'argon2'` and `'_argon2_cffi_bindings'` to
-  the `packages` list in `setup_app.py`, or packaged users hit an ImportError.
-  (`cryptography` is still bundled — it handles HKDF and AES-GCM.)
+- **`includes` lists every crypto module** py2app can't auto-detect:
+  `core.encryption_v2`, `core.encryption_v3`, and `core.migrate_crypto`.
+  `tests/test_packaging_manifest.py` asserts this — a green suite is the check.
+- **`argon2` and `_argon2_cffi_bindings` are in `packages`.** EdgeCase derives
+  the Argon2id master key with `argon2-cffi` (cryptography's own Argon2id
+  measured ~5× slower on the M4). Missing them is an ImportError at *login*
+  in a packaged build that otherwise looks fine.
 - **Do not remove v1 (Fernet) read-compat** for at least a release cycle or two
-  after this ships — see `Architecture_Decisions.md`. A user slow to update, or
+  after v2 shipped — see `Architecture_Decisions.md`. A user slow to update, or
   one whose migration failed and stayed on v1, must still be able to read files.
 
-### 1. Prepare for build
-
-Temporarily rename `pyproject.toml` to prevent py2app conflicts:
+### 1. Build the .app bundle with py2app
 
 ```bash
 cd ~/Applications/edgecase
-mv pyproject.toml pyproject.toml.bak
-```
-
-### 2. Build the .app bundle with py2app
-
-```bash
 source venv/bin/activate
 python setup_app.py py2app
 ```
 
-### 3. Restore pyproject.toml
+Note: `pyproject.toml` no longer needs to be renamed before building. Modern
+setuptools feeds its `[project] dependencies` table into `install_requires`,
+which py2app refuses — `setup_app.py` now clears the attribute in a py2app
+subclass (see the comment there), so the build runs with the file in place.
 
-```bash
-mv pyproject.toml.bak pyproject.toml
-```
-
-### 4. Sign all binary files individually
+### 2. Sign all binary files individually
 
 **CRITICAL:** You must sign all `.so` and `.dylib` files individually BEFORE signing the app bundle, or notarization will fail.
 
@@ -93,7 +81,7 @@ find "dist/EdgeCase Equalizer.app" -type f \( -name "*.so" -o -name "*.dylib" \)
 done
 ```
 
-### 5. Sign the app bundle
+### 3. Sign the app bundle
 
 ```bash
 codesign --force --options runtime --timestamp \
@@ -101,7 +89,7 @@ codesign --force --options runtime --timestamp \
     --deep "dist/EdgeCase Equalizer.app"
 ```
 
-### 6. Verify signature
+### 4. Verify signature
 
 ```bash
 codesign --verify --deep --strict "dist/EdgeCase Equalizer.app"
@@ -163,7 +151,7 @@ cp ../packaging/dmg_background.png dmg_temp/.background.png
 hdiutil create -volname "EdgeCase Equalizer" \
     -srcfolder dmg_temp \
     -ov -format UDZO \
-    "EdgeCase-1.0.0.dmg"
+    "EdgeCase-2.0.0.dmg"
 ```
 
 ### 3. Clean up
