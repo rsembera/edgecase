@@ -216,22 +216,6 @@
             opacity: 0.7;
             cursor: not-allowed;
         }
-        
-        .first-run-notice {
-            background: #F0FDF9;
-            border: 1px solid #BFDCDC;
-            color: #115D4F;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.9375rem;
-            line-height: 1.5;
-        }
-        
-        .first-run-notice strong {
-            display: block;
-            margin-bottom: 0.25rem;
-        }
 
         .data-loss-notice {
             background: #FFFBEB;
@@ -310,10 +294,6 @@
         </div>
         
         {% if first_run %}
-        <div class="first-run-notice">
-            <strong>Welcome to EdgeCase!</strong>
-            Create a master password to encrypt your database. This password protects all your client data.
-        </div>
         <div class="data-loss-notice">
             <strong>Already had a practice on this computer?</strong>
             If this machine lost its data, don't create a new password —
@@ -321,7 +301,7 @@
             instead. Creating a password here starts an empty practice.
         </div>
         <h2>Create Master Password</h2>
-        <p class="subtitle">Choose a strong password you'll remember</p>
+        <p class="subtitle">This password encrypts everything — choose a strong one you'll remember</p>
         {% else %}
         <h2>Unlock Database</h2>
         <p class="subtitle">Enter your master password to continue</p>
