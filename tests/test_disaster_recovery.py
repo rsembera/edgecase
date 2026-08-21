@@ -464,5 +464,7 @@ class TestRecoveryRoutes:
         _set_first_run(monkeypatch, True)
         resp = bare_client.get("/login", headers=HOST)
         assert resp.status_code == 200
-        assert b"restore from a backup" in resp.data
+        # Case-insensitive: the offer is what matters, not the copy's casing
+        # (the notice moved below the Create button and got recapitalized).
+        assert b"restore from a backup" in resp.data.lower()
         assert b"/restore" in resp.data
