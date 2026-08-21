@@ -843,6 +843,10 @@ def restore_browse():
         'parent_path': str(current.parent) if current.parent != current else None,
         'folders': folders,
         'current_has_backups': backup.folder_holds_edgecase_backups(current),
+        # Places a backup plausibly lives — Home, Documents, iCloud, and
+        # every mounted external drive — so reaching them never requires
+        # knowing what /Volumes is or that '..' climbs a level.
+        'shortcuts': backup.picker_shortcuts(),
     })
 
 

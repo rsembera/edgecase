@@ -135,6 +135,35 @@
         }
         .rescan-status.fading { opacity: 0; }
 
+        .picker-hint {
+            font-size: 0.875rem;
+            color: #4A5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .picker-shortcuts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .picker-chip {
+            background: #EAF4F1;
+            color: #115D4F;
+            border: 1px solid #BFDCDC;
+            border-radius: 999px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8125rem;
+            cursor: pointer;
+        }
+        .picker-chip:hover { background: #DCEDE8; }
+        .picker-chip.active {
+            background: #115D4F;
+            color: #FFFFFF;
+            border-color: #115D4F;
+        }
+
         .picker {
             border: 1.5px solid #E2E8F0;
             border-radius: 0.75rem;
@@ -209,6 +238,8 @@
         <p class="rescan-status" id="rescan-status" hidden></p>
 
         <div id="restore-picker" class="picker" hidden>
+            <p class="picker-hint">Where to look: your backups are usually in one of these places.</p>
+            <div class="picker-shortcuts" id="picker-shortcuts"></div>
             <p class="picker-path" id="picker-path"></p>
             <div class="picker-list" id="picker-list"></div>
             <div class="actions">
@@ -240,6 +271,7 @@
         const errorBox = document.getElementById('restore-error');
 
         const picker = document.getElementById('restore-picker');
+        const pickerShortcuts = document.getElementById('picker-shortcuts');
         const pickerPath = document.getElementById('picker-path');
         const pickerList = document.getElementById('picker-list');
         const pickerUse = document.getElementById('picker-use');
@@ -448,11 +480,23 @@
                 pickerUse.textContent = data.current_has_backups
                     ? 'Use this folder' : 'No backups in this folder';
 
+                pickerShortcuts.replaceChildren();
+                (data.shortcuts || []).forEach((s) => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'picker-chip'
+                        + (s.path === data.current_path ? ' active' : '');
+                    chip.textContent = s.name;
+                    chip.addEventListener('click', () => openPicker(s.path));
+                    pickerShortcuts.appendChild(chip);
+                });
+
                 pickerList.replaceChildren();
 
                 if (data.parent_path) {
                     pickerList.appendChild(
-                        pickerRow('..', data.parent_path, false, false));
+                        pickerRow('\u2191 Up one level', data.parent_path,
+                                  false, false));
                 }
 
                 data.folders.forEach((folder) =>

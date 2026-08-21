@@ -468,3 +468,73 @@ class TestRecoveryRoutes:
         # (the notice moved below the Create button and got recapitalized).
         assert b"restore from a backup" in resp.data.lower()
         assert b"/restore" in resp.data
+
+
+class TestPickerShortcuts:
+    """The folder picker must be able to REACH an external drive — the
+    empty-state text promises it, and '..' navigation to /Volumes is not
+    something a stressed non-technical user will discover."""
+
+    def test_home_and_standard_folders(self, tmp_path):
+        home = tmp_path / "home"
+        (home / "Desktop").mkdir(parents=True)
+        (home / "Documents").mkdir()
+        result = backup.picker_shortcuts(home=home, volumes_root=tmp_path / "novol",
+                                         media_roots=[])
+        names = [s["name"] for s in result]
+        assert names == ["Home", "Desktop", "Documents"]
+        assert all((tmp_path / "home") in Path(s["path"]).parents
+                   or Path(s["path"]) == home for s in result)
+
+    def test_missing_folders_are_omitted_not_invented(self, tmp_path):
+        home = tmp_path / "home"
+        home.mkdir()
+        result = backup.picker_shortcuts(home=home, volumes_root=tmp_path / "novol",
+                                         media_roots=[])
+        assert [s["name"] for s in result] == ["Home"]
+
+    def test_icloud_drive_when_present(self, tmp_path):
+        home = tmp_path / "home"
+        icloud = home / "Library" / "Mobile Documents" / "com~apple~CloudDocs"
+        icloud.mkdir(parents=True)
+        result = backup.picker_shortcuts(home=home, volumes_root=tmp_path / "novol",
+                                         media_roots=[])
+        assert {"name": "iCloud Drive", "path": str(icloud)} in result
+
+    def test_external_volumes_listed_by_name(self, tmp_path):
+        home = tmp_path / "home"
+        home.mkdir()
+        volumes = tmp_path / "Volumes"
+        (volumes / "Backup HD").mkdir(parents=True)
+        (volumes / "USB Stick").mkdir()
+        (volumes / "somefile.txt").write_text("not a volume")
+        result = backup.picker_shortcuts(home=home, volumes_root=volumes,
+                                         media_roots=[])
+        names = [s["name"] for s in result]
+        assert "Backup HD" in names and "USB Stick" in names
+        assert "somefile.txt" not in names
+
+    def test_boot_volume_link_is_skipped(self, tmp_path):
+        home = tmp_path / "home"
+        home.mkdir()
+        volumes = tmp_path / "Volumes"
+        volumes.mkdir()
+        (volumes / "Real Drive").mkdir()
+        (volumes / "Macintosh HD").symlink_to("/")
+        result = backup.picker_shortcuts(home=home, volumes_root=volumes,
+                                         media_roots=[])
+        names = [s["name"] for s in result]
+        assert "Real Drive" in names
+        assert "Macintosh HD" not in names
+
+    def test_browse_response_carries_shortcuts(self, bare_client, monkeypatch,
+                                               tmp_path):
+        _wire_paths(tmp_path, monkeypatch)
+        headers = _csrf(bare_client)
+        resp = bare_client.post("/restore/browse", json={"path": str(tmp_path)},
+                                headers=headers)
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"]
+        assert isinstance(data["shortcuts"], list)
+        assert any(s["name"] == "Home" for s in data["shortcuts"])
