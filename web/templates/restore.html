@@ -126,6 +126,15 @@
 
         .actions { display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: center; }
 
+        .rescan-status {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #115D4F;
+            margin-top: 0.75rem;
+            transition: opacity 0.4s ease;
+        }
+        .rescan-status.fading { opacity: 0; }
+
         .picker {
             border: 1.5px solid #E2E8F0;
             border-radius: 0.75rem;
@@ -197,6 +206,7 @@
                 Rescan
             </button>
         </div>
+        <p class="rescan-status" id="rescan-status" hidden></p>
 
         <div id="restore-picker" class="picker" hidden>
             <p class="picker-path" id="picker-path"></p>
@@ -226,6 +236,7 @@
         const actions = document.getElementById('restore-actions');
         const browseButton = document.getElementById('restore-browse');
         const rescanButton = document.getElementById('restore-rescan');
+        const rescanStatus = document.getElementById('rescan-status');
         const errorBox = document.getElementById('restore-error');
 
         const picker = document.getElementById('restore-picker');
@@ -341,23 +352,17 @@
             return card;
         }
 
-        function renderLocations(locations, rescanned) {
+        function renderLocations(locations) {
             locationsBox.replaceChildren();
             actions.hidden = false;
 
             if (!locations.length) {
-                // A forced rescan on an empty machine finishes in
-                // milliseconds and re-renders this same text — which reads
-                // as the button doing nothing. Say the scan happened.
                 subtitle.textContent =
-                    (rescanned ? 'Scanned again \u2014 still no backups found ' +
-                                 'on this machine. '
-                               : 'EdgeCase has no record of backups on this ' +
-                                 'machine. ') +
-                    'If you kept backups, choose their folder below. If they ' +
-                    'are on another computer, a network drive, or an external ' +
-                    'disk, connect it or copy the folder onto this machine ' +
-                    'first, then choose it.';
+                    'EdgeCase has no record of backups on this machine. If you ' +
+                    'kept backups, choose their folder below. If they are on ' +
+                    'another computer, a network drive, or an external disk, ' +
+                    'connect it or copy the folder onto this machine first, ' +
+                    'then choose it.';
                 return;
             }
 
@@ -370,25 +375,60 @@
                 locationsBox.appendChild(locationCard(location)));
         }
 
+        let statusTimers = [];
+
+        function showRescanStatus(text) {
+            statusTimers.forEach(clearTimeout);
+            statusTimers = [];
+            rescanStatus.textContent = text;
+            rescanStatus.classList.remove('fading');
+            rescanStatus.hidden = false;
+            statusTimers.push(setTimeout(() => {
+                rescanStatus.classList.add('fading');
+                statusTimers.push(setTimeout(() => {
+                    rescanStatus.hidden = true;
+                    rescanStatus.classList.remove('fading');
+                }, 450));
+            }, 4000));
+        }
+
         async function loadLocations(force) {
             clearError();
             subtitle.textContent = force
                 ? 'Looking again\u2026' : 'Looking for your backups\u2026';
             rescanButton.disabled = true;
+            const restLabel = rescanButton.textContent;
+            if (force) { rescanButton.textContent = 'Scanning\u2026'; }
 
             try {
-                const data = await postJson('/restore/search', { force: !!force });
+                // The scan can finish in milliseconds, which reads as the
+                // button doing nothing. Hold the scanning state for a
+                // perceptible beat so the click visibly did something.
+                const [data] = await Promise.all([
+                    postJson('/restore/search', { force: !!force }),
+                    force ? new Promise((r) => setTimeout(r, 600))
+                          : Promise.resolve(),
+                ]);
                 if (!data.success) {
                     showError(data.error || 'Could not look for backups.');
                     actions.hidden = false;
                     return;
                 }
-                renderLocations(data.locations || [], !!force);
+                const locations = data.locations || [];
+                renderLocations(locations);
+                if (force) {
+                    showRescanStatus(locations.length
+                        ? 'Rescan complete \u2014 ' + locations.length +
+                          (locations.length === 1 ? ' backup folder found.'
+                                                  : ' backup folders found.')
+                        : 'Rescan complete \u2014 still no backups found.');
+                }
             } catch (err) {
                 showError('Could not look for backups: ' + err.message);
                 actions.hidden = false;
             } finally {
                 rescanButton.disabled = false;
+                rescanButton.textContent = restLabel;
             }
         }
 
