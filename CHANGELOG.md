@@ -8,6 +8,14 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-08-21
+
+Everything below, from 2026-06-29 onward, ships in 2.0.0. Headliners:
+crypto v3 envelope encryption with recovery keys, disaster recovery
+(restore when the database is gone, with the credentials named before and
+after), payment allocation (one deposit settles many statements, credit
+balances applied automatically), and the AI Scribe move to Gemma 4 12B QAT.
+
 ### 2026-08-16 (the suite stops paying the Argon2 tax — nothing about the app itself changed; production strength unchanged and pinned)
 - **One central KDF switch instead of six local patches.** `encryption_v2.argon2_parameters()` (ported from Daybook via MailRepo `596e4e8`) feeds every derivation: production strength (256 MiB / t=6 / p=1) everywhere, cheap (1 MiB / t=1 — still real Argon2id, same call site, nothing mocked) only when `EDGECASE_FAST_KDF` **and** `EDGECASE_DATA` are both set. Verified before building, not assumed: neither ECC2 (`magic+salt+token`) nor ECC3 (`magic+salts+wraps`, fixed 190 bytes) records the Argon2 parameters, so an install created cheaply cannot open at production strength — which is why the cheap path takes two variables, and why each alone must do nothing. A real install sets neither; the testing instance sets only `EDGECASE_DATA`.
 - **`derive_master` loses its per-call overrides.** Nothing legitimate ever passed them; six test files carried their own copies of the cheap numbers (five swallow-`**kw` lambdas plus a `CHEAP` dict), each one capable of silently shadowing a central switch. All removed; conftest now sets both variables before any project import — overriding `EDGECASE_DATA` unconditionally to a fresh tmp dir, so a suite run from the testing instance's shell can never write into its data — which config-sandboxes the entire suite as a side effect.
