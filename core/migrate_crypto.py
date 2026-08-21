@@ -646,7 +646,15 @@ def migrate_to_v3(password: str, root=None, backup_fn=None,
     # --- Resolve the source side. This is the ONLY place the two upgrade
     #     paths differ; everything below is shared. ---
     if version == 1:
-        old_fernet = _old_fernet(password, paths.salt_file.read_bytes())
+        # A v1 install normally has a .salt (the Fernet attachment key's
+        # salt). A FRESH install migrated on its very first login is also
+        # "v1" — database keyed with the raw passphrase — but has no .salt
+        # and nothing Fernet-encrypted. old_fernet=None is safe: with no
+        # v1-format files on disk, _reencrypt_file never consumes it.
+        if paths.salt_file.exists():
+            old_fernet = _old_fernet(password, paths.salt_file.read_bytes())
+        else:
+            old_fernet = None
         old_db_key_hex = None
         esc = password.replace("'", "''")
         checkpoint_key_sql = f"PRAGMA key = '{esc}'"

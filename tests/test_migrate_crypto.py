@@ -308,3 +308,57 @@ def test_recover_rekey_rolled_back(tmp_path):
     assert _opens_raw(tmp_path, dbk_A) == 2
     for rel, data in originals.items():
         assert v2.decrypt_bytes(fk_A, (tmp_path / rel).read_bytes()) == data
+
+
+# ---------------------------------------------------------------------------
+# Fresh installs: "v1" with nothing on disk but the just-created database
+# ---------------------------------------------------------------------------
+
+def _build_fresh_install(root: Path):
+    """What Database() leaves behind on a brand-new first run: a
+    passphrase-keyed DB with schema, and NOTHING else — no .salt (nothing
+    was ever Fernet-encrypted), no .secret_key, no attachments."""
+    (root / "data").mkdir(parents=True)
+    con = sqlite3.connect(str(root / "data" / "edgecase.db"))
+    con.execute(f"PRAGMA key = '{PW}'")
+    con.execute("CREATE TABLE client_types(id INTEGER PRIMARY KEY, name TEXT)")
+    con.execute("INSERT INTO client_types(name) VALUES('A')")
+    con.commit()
+    con.close()
+
+
+def test_fresh_install_counts_as_v1_and_needs_v3(tmp_path):
+    _build_fresh_install(tmp_path)
+    assert mc.install_crypto_version(root=tmp_path) == 1
+    assert mc.needs_v3_migration(root=tmp_path) is True
+
+
+def test_fresh_install_migrates_to_v3_without_salt(tmp_path):
+    """The first-run path: no .salt on disk. The v1 branch must tolerate its
+    absence instead of crashing on read_bytes — this is what hands a NEW
+    user their recovery key on day one instead of day two."""
+    _build_fresh_install(tmp_path)
+    result = mc.migrate_to_v3(PW, root=tmp_path)
+
+    assert result["status"] == "migrated_to_v3"
+    assert result["from_version"] == 1
+    assert result["files_migrated"] == 0
+    assert result["recovery_key"]
+    assert mc.install_crypto_version(root=tmp_path) == 3
+    assert (tmp_path / "data" / ".rk_pending").exists()
+    assert not (tmp_path / "data" / ".salt").exists()  # none invented
+
+    # Both fresh credentials open the wrapped master, and the master's
+    # derived key opens the database.
+    from core import encryption_v3 as v3
+    blob = (tmp_path / "data" / ".keyinfo").read_bytes()
+    master_pw = v3.unwrap_with_password(blob, PW)
+    master_rk = v3.unwrap_with_recovery_key(blob, result["recovery_key"])
+    assert master_pw == master_rk
+    db_key_hex, _ = v2.derive_subkeys(master_pw)
+    con = sqlite3.connect(str(tmp_path / "data" / "edgecase.db"))
+    try:
+        con.execute(f"PRAGMA key = \"x'{db_key_hex}'\"")
+        assert con.execute("SELECT COUNT(*) FROM client_types").fetchone()[0] == 1
+    finally:
+        con.close()

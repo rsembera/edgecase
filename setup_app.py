@@ -100,9 +100,22 @@ OPTIONS = {
 # exit the interpreter. py2app runs this file directly, so the build path is
 # unaffected.
 if __name__ == '__main__':
+    # Modern setuptools populates install_requires from pyproject.toml's
+    # [project] dependencies table even when this script is run directly —
+    # and py2app refuses to build when install_requires is set (it bundles
+    # from the live venv and never installs dependencies itself). Clear the
+    # attribute before py2app's check runs; the pyproject table stays
+    # authoritative for pip installs, which never touch this file.
+    from py2app.build_app import py2app as _py2app_cmd
+
+    class py2app_from_venv(_py2app_cmd):
+        def finalize_options(self):
+            self.distribution.install_requires = None
+            super().finalize_options()
+
     setup(
         app=APP,
         name=APP_NAME,
         options={'py2app': OPTIONS},
-        setup_requires=['py2app'],
+        cmdclass={'py2app': py2app_from_venv},
     )
