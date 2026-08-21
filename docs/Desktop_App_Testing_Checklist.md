@@ -140,5 +140,5 @@ Testing guide for EdgeCase Equalizer desktop packages (.app for macOS, .deb for 
 - **Date:** _______________
 - **macOS version:** _______________
 - **Linux distro/version:** _______________
-- **EdgeCase version:** 1.0.0
+- **EdgeCase version:** 2.0.0
 - **Tester:** _______________
