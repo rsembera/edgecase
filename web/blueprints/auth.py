@@ -339,26 +339,30 @@ def login():
             from utils import backup as backup_utils
             backup_utils.clear_restore_unverified()
 
-            # Existing v1 or v2 install: upgrade encryption to the v3
-            # envelope before completing login. Single pass from either
-            # version. The runner needs no DB handle open, so close ours;
-            # /migrate/stream re-opens the now-v3 DB and finishes the login.
-            if not first_run:
-                from core import migrate_crypto
-                if migrate_crypto.needs_v3_migration():
-                    db.close()
-                    _clear_failed_attempts()
-                    migrate_token = _store_migration_handoff(password)
-                    session.clear()
-                    session.permanent = True
-                    session['authenticated'] = True
-                    session['login_time'] = int(time.time())
-                    session['last_activity'] = time.time()
-                    session.modified = True
-                    return render_template(
-                        'upgrading.html',
-                        migrate_token=migrate_token,
-                        from_version=migrate_crypto.install_crypto_version())
+            # v1 or v2 install: upgrade encryption to the v3 envelope
+            # before completing login. Single pass from either version.
+            # A FRESH install takes this path too — the database was just
+            # created keyed with the raw passphrase (v1), and migrating it
+            # NOW is what hands a new user their recovery key on day one
+            # instead of on their second login. The runner needs no DB
+            # handle open, so close ours; /migrate/stream re-opens the
+            # now-v3 DB and finishes the login.
+            from core import migrate_crypto
+            if migrate_crypto.needs_v3_migration():
+                db.close()
+                _clear_failed_attempts()
+                migrate_token = _store_migration_handoff(password)
+                session.clear()
+                session.permanent = True
+                session['authenticated'] = True
+                session['login_time'] = int(time.time())
+                session['last_activity'] = time.time()
+                session.modified = True
+                return render_template(
+                    'upgrading.html',
+                    migrate_token=migrate_token,
+                    first_run=first_run,
+                    from_version=migrate_crypto.install_crypto_version())
 
             # Success! Store db in app config
             current_app.config['db'] = db

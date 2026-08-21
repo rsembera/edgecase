@@ -10,6 +10,11 @@ Format: Each entry includes date, version (if applicable), and description.
 
 ## [2.0.0] — 2026-08-21
 
+### 2026-08-21 (fresh installs get their recovery key on day one; release mechanics)
+- **A brand-new install now gets the v3 envelope — and its recovery key — on the FIRST login, not the second.** The v3 migration hook was guarded by `if not first_run`, so the login that created a database went straight into the app: the new practice ran its first session on v1 crypto (raw-passphrase SQLCipher, no Argon2id envelope), showed a confusing "upgrading your encryption" screen on launch two, and had no recovery key until then — in the release whose headline feature is recovery keys. The guard is gone: creation immediately routes through the existing, well-tested migration machinery, whose easiest-ever input is a seconds-old empty database. Two enabling changes: the v1 branch of `migrate_to_v3` now tolerates a missing `.salt` (a fresh install has none; nothing was ever Fernet-encrypted, so `old_fernet=None` is never consumed), and `upgrading.html` speaks first-run language ("Securing your practice", "Begin setup") instead of upgrade language when there is nothing to upgrade. End-to-end wiring test drives the real login POST through the migration stream to a v3 install with a key pending; both new tests verified to fail against the previous code.
+- **The py2app build rotted since March and is fixed:** modern setuptools populates `install_requires` from `pyproject.toml`'s `[project] dependencies` table even when `setup_app.py` runs directly, and py2app refuses to build with it set (it bundles from the live venv and never installs dependencies). A small py2app subclass clears the attribute before the check; the pyproject table stays authoritative for pip installs.
+- Version 2.0.0 everywhere it lives: `setup_app.py` plist, `pyproject.toml`, the testing checklist, and the About modal — **v2.0 Strugatsky**, coded by Claude Sonnet 4.5, Opus 4.5–4.8 & 5, and Fable 5.
+
 Everything below, from 2026-06-29 onward, ships in 2.0.0. Headliners:
 crypto v3 envelope encryption with recovery keys, disaster recovery
 (restore when the database is gone, with the credentials named before and

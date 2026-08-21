@@ -54,3 +54,47 @@ def test_login_page_still_renders(client):
     # a harmless no-op and the page renders normally.
     resp = client.get("/login", headers={"Host": "localhost"})
     assert resp.status_code == 200
+
+
+def test_first_run_login_routes_through_encryption_setup(
+        bare_client, monkeypatch, tmp_path):
+    """A brand-new install gets the v3 envelope (and its recovery key) on the
+    FIRST login: the POST that creates the database renders the setup screen
+    with first-run wording instead of redirecting into the app, and driving
+    the migration stream leaves the install on v3 with a key pending."""
+    import re
+    import core.config as config
+    from core import encryption_v2 as v2
+    from core import migrate_crypto as mc
+
+    data_dir = tmp_path / "data"
+    for name in ("data", "attachments", "assets", "backups"):
+        (tmp_path / name).mkdir()
+    monkeypatch.setattr(config, "DATA_ROOT", tmp_path)
+    monkeypatch.setattr(config, "DATA_DIR", data_dir)
+    monkeypatch.setattr(config, "ATTACHMENTS_DIR", tmp_path / "attachments")
+    monkeypatch.setattr(config, "ASSETS_DIR", tmp_path / "assets")
+    monkeypatch.setattr(config, "BACKUPS_DIR", tmp_path / "backups")
+    monkeypatch.setattr(v2, "KEYINFO_FILE", data_dir / ".keyinfo")
+    monkeypatch.setattr("flask_wtf.csrf.validate_csrf", lambda *a, **k: None)
+
+    resp = bare_client.post("/login", data={
+        "password": "fresh-install-pw!",
+        "confirm_password": "fresh-install-pw!",
+    }, headers={"Host": "localhost"})
+
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "Securing your practice" in body          # first-run wording
+    assert "One-time security upgrade" not in body   # not the legacy wording
+    assert (data_dir / "edgecase.db").exists()       # DB was created
+    assert mc.install_crypto_version() == 1          # ...as v1, pre-stream
+
+    token = re.search(r"token=([A-Za-z0-9_\-]+)", body).group(1)
+    stream = bare_client.get(f"/migrate/stream?token={token}",
+                             headers={"Host": "localhost"})
+    stream_body = stream.get_data(as_text=True)
+
+    assert "complete" in stream_body
+    assert mc.install_crypto_version() == 3
+    assert (data_dir / ".rk_pending").exists()

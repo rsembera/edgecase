@@ -293,7 +293,12 @@ class TestRecoveryDoorReopens:
             "confirm_password": "a-long-enough-password",
         }, headers=HOST)
 
-        assert resp.status_code == 302, resp.data
+        # First-run creation now routes through v3 encryption setup (the
+        # recovery-key screen) instead of redirecting straight in — but the
+        # vouch happens at the moment the password opens the database, so
+        # the marker is already cleared when the setup screen renders.
+        assert resp.status_code == 200, resp.data
+        assert b"Securing your practice" in resp.data
         assert not backup.restore_unverified()
 
         # Leave no db handle behind for other tests
