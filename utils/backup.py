@@ -2160,3 +2160,67 @@ def _describe_location(path):
     if text.startswith(home):
         return f"This computer — {path.name}"
     return str(path)
+
+
+def picker_shortcuts(home=None, volumes_root=None, media_roots=None):
+    """Places a backup plausibly lives, for the recovery folder picker.
+
+    The picker's empty-state text tells the user their backups may be on
+    "an external disk" — so the picker must be able to REACH one without
+    the user knowing that /Volumes exists or that '..' climbs a level.
+    Overridable roots keep this testable without a real mounted drive.
+
+    Returns a list of {'name', 'path'} dicts; every path exists.
+    """
+    home = Path(home) if home else Path.home()
+    shortcuts = []
+
+    def add(name, path):
+        try:
+            if path.is_dir():
+                shortcuts.append({'name': name, 'path': str(path)})
+        except OSError:
+            pass
+
+    add('Home', home)
+    add('Desktop', home / 'Desktop')
+    add('Documents', home / 'Documents')
+    add('iCloud Drive',
+        home / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs')
+
+    # External drives. macOS mounts under /Volumes (the boot volume appears
+    # there too, as a link back to / — skip it; "Macintosh HD" is not where
+    # anyone's backup drive lives). Linux mounts under /media/<user> and
+    # /run/media/<user>.
+    roots = []
+    if volumes_root is not None:
+        roots.append(Path(volumes_root))
+    elif os.path.isdir('/Volumes'):
+        roots.append(Path('/Volumes'))
+    if media_roots is not None:
+        roots.extend(Path(r) for r in media_roots)
+    else:
+        user = os.environ.get('USER', '')
+        for base in (f'/media/{user}', f'/run/media/{user}'):
+            if os.path.isdir(base):
+                roots.append(Path(base))
+
+    seen = {s['path'] for s in shortcuts}
+    for root in roots:
+        try:
+            entries = sorted(root.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            continue
+        for entry in entries:
+            try:
+                if not entry.is_dir():
+                    continue
+                if entry.resolve() == Path('/').resolve():
+                    continue  # the boot volume's link back to /
+            except OSError:
+                continue
+            if str(entry) not in seen:
+                add(entry.name, entry)
+                seen.add(str(entry))
+
+    return shortcuts
