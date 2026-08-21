@@ -194,7 +194,7 @@
                 Choose a folder myself
             </button>
             <button type="button" id="restore-rescan" class="btn-secondary">
-                Look again
+                Rescan
             </button>
         </div>
 
@@ -341,17 +341,23 @@
             return card;
         }
 
-        function renderLocations(locations) {
+        function renderLocations(locations, rescanned) {
             locationsBox.replaceChildren();
             actions.hidden = false;
 
             if (!locations.length) {
+                // A forced rescan on an empty machine finishes in
+                // milliseconds and re-renders this same text — which reads
+                // as the button doing nothing. Say the scan happened.
                 subtitle.textContent =
-                    'EdgeCase has no record of backups on this machine. If you ' +
-                    'kept backups, choose their folder below. If they are on ' +
-                    'another computer, a network drive, or an external disk, ' +
-                    'connect it or copy the folder onto this machine first, ' +
-                    'then choose it.';
+                    (rescanned ? 'Scanned again \u2014 still no backups found ' +
+                                 'on this machine. '
+                               : 'EdgeCase has no record of backups on this ' +
+                                 'machine. ') +
+                    'If you kept backups, choose their folder below. If they ' +
+                    'are on another computer, a network drive, or an external ' +
+                    'disk, connect it or copy the folder onto this machine ' +
+                    'first, then choose it.';
                 return;
             }
 
@@ -377,7 +383,7 @@
                     actions.hidden = false;
                     return;
                 }
-                renderLocations(data.locations || []);
+                renderLocations(data.locations || [], !!force);
             } catch (err) {
                 showError('Could not look for backups: ' + err.message);
                 actions.hidden = false;
