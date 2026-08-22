@@ -336,7 +336,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'btn-primary';
-            button.textContent = 'Restore this';
+            button.textContent = 'Restore';
             button.addEventListener('click', () => confirmRestore(point, folder, button));
             row.appendChild(button);
 
@@ -590,7 +590,7 @@
                 if (!data.success) {
                     showError(data.error || 'Restore could not be staged.');
                     button.disabled = false;
-                    button.textContent = 'Restore this';
+                    button.textContent = 'Restore';
                     return;
                 }
 
@@ -605,11 +605,14 @@
             } catch (err) {
                 showError('Restore could not be staged: ' + err.message);
                 button.disabled = false;
-                button.textContent = 'Restore this';
+                button.textContent = 'Restore';
             }
         }
 
-        browseButton.addEventListener('click', () => openPicker(''));
+        browseButton.addEventListener('click', () => {
+            // Second click closes the picker; otherwise the button looks dead once it is open.
+            if (picker.hidden) { openPicker(''); } else { picker.hidden = true; }
+        });
         rescanButton.addEventListener('click', () => loadLocations(true));
         pickerUse.addEventListener('click', usePickedFolder);
         pickerCancel.addEventListener('click', () => { picker.hidden = true; });
