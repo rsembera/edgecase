@@ -559,7 +559,7 @@ async function confirmRestore() {
         const data = await response.json();
         
         if (data.success) {
-            showMessage('Restore prepared. Please restart EdgeCase to complete the restore.', 'info');
+            showMessage('Restore prepared. Close EdgeCase and reopen it to finish.', 'info');
             loadBackupStatus();
         } else {
             showMessage('Failed to prepare restore: ' + (data.error || 'Unknown error'), 'error');

@@ -36,7 +36,7 @@
             <label for="session_offset">Starting Session Number</label>
             <input type="number" id="session_offset" name="session_offset" 
                 value="{{ form_data.get('session_offset', '0') if form_data else '0' }}" min="0">
-            <small class="helper-text">For new clients, leave at 0.<br />For migrated clients: if they've had 15 sessions elsewhere, enter 15 (next session will be #16)</small>
+            <small class="helper-text">For new clients, leave at 0.<br />For migrated clients, enter their most recent session count (e.g. 15 &rarr; next session is #16).</small>
         </div>
         
         <div class="form-group">

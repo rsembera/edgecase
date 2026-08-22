@@ -111,7 +111,7 @@
         {% if profile and profile.is_minor and profile.guardian1_name and profile.has_guardian2 and profile.guardian2_name %}
         <div class="guardian-split-section">
             <h4 class="section-heading">Guardian Billing Split</h4>
-            <p class="helper-text">Specify how this item should be split between guardians. Must equal the total above.</p>
+            <p class="helper-text">How this item splits between guardians &mdash; must total the amount above.</p>
             <div class="guardian-split-grid">
                 <div class="guardian-split-field">
                     <label for="guardian1_amount">{{ profile.guardian1_name }}</label>

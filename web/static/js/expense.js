@@ -249,6 +249,6 @@ function deleteEntry() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     })
-        .then(r => r.ok ? window.location.href = '/ledger' : alert('Error'))
-        .catch(() => alert('Error'));
+        .then(r => r.ok ? window.location.href = '/ledger' : alert('Could not delete this entry. Please try again.'))
+        .catch(() => alert('Could not delete this entry. Please try again.'));
 }
