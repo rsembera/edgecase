@@ -240,8 +240,13 @@ def save_manifest(manifest):
     record_backup_location(BACKUPS_DIR)
 
     for destination in manifest_destinations(manifest):
+        # A destination that no longer exists has lost its zips too;
+        # re-creating it would only resurrect an empty folder holding a
+        # manifest with nothing to describe (an old install path that
+        # still appears in the manifest history, for instance).
+        if not destination.is_dir():
+            continue
         try:
-            destination.mkdir(parents=True, exist_ok=True)
             _atomic_write_text(destination / 'manifest.json', payload)
             record_backup_location(destination)
         except Exception as e:
