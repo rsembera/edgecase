@@ -35,6 +35,7 @@ packaging/*
 !packaging/icons/
 !packaging/icons/*
 !packaging/dmg_background.png
+!packaging/build_deb.sh
 
 # Local data (not for distribution)
 data/
