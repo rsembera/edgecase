@@ -2,14 +2,33 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** August 9, 2026  
-**Status:** ALL PHASES COMPLETE ✅ - In Production Use Since January 3, 2026
+**Last Updated:** August 22, 2026  
+**Status:** v2.0.0 Strugatsky released August 22, 2026 - In Production Use Since January 3, 2026
+
+---
+
+## v2.0.0 STRUGATSKY — RELEASED 2026-08-22
+
+Signed/notarized `EdgeCase-2.0.0.dmg` (macOS) and `edgecase_2.0.0_amd64.deb`
+(Debian 13, built with the new `packaging/build_deb.sh`). Both installed and
+smoke-tested clean. Tag `v2.0.0` at `5100af3`. Website commit staged locally,
+**not yet pushed** pending a full website overhaul (story.html rewritten; index,
+features, technical, about still to review against code).
+
+Headline changes since 1.0 (March 2026): crypto v3 envelope encryption with
+recovery keys; payment allocation (one deposit → many statements, credit
+balances); disaster recovery reachable before login; restore-point credential
+notes; Gemma 4 12B QAT as the AI Scribe model; god-file refactors and ruff gate;
+suite 43 → 652.
+
+Open: MailRepo port of the `save_manifest` ghost-destination fix (prompt
+prepared 2026-08-22).
 
 ---
 
 ## RECENT POST-LAUNCH WORK (July-August 2026)
 
-Full detail in `CHANGELOG.md`; suite currently **454 passing**, `ruff check` clean.
+Full detail in `CHANGELOG.md`; suite currently **652 passing**, `ruff check` clean.
 
 - **Crypto v3 — envelope encryption + recovery keys (2026-08-09):** the master
   key is now 32 random bytes wrapped twice, under the password and under a
