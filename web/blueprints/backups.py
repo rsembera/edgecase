@@ -182,7 +182,7 @@ def prepare_restore():
         staging_path = backup.prepare_restore(restore_point, db=db)
         return jsonify({
             'success': True,
-            'message': 'Restore prepared. Close EdgeCase and reopen to complete.',
+            'message': 'Restore prepared. Close EdgeCase and reopen it to finish.',
             'staging_path': staging_path
         })
     except Exception as e:
