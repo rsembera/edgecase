@@ -26,7 +26,12 @@ find "$APP" -name __pycache__ -type d -prune -exec rm -rf {} +
 echo "== Building venv"
 python3 -m venv "$APP/venv"
 "$APP/venv/bin/pip" install -q --upgrade pip
-"$APP/venv/bin/pip" install -q -r "$APP/requirements.txt"
+# requirements.txt pins the source sqlcipher3 package built against the Mac's
+# local libsqlcipher; on Linux use the prebuilt wheels (same module, what
+# pyproject.toml declares) so the build needs no compiler or headers.
+sed 's/^sqlcipher3==.*/sqlcipher3-wheels/' "$APP/requirements.txt" > "$APP/requirements-linux.txt"
+"$APP/venv/bin/pip" install -q -r "$APP/requirements-linux.txt"
+rm "$APP/requirements-linux.txt"
 
 echo "== Copying PyGObject from system"
 cp -r /usr/lib/python3/dist-packages/gi "$APP/venv/lib/python$PYVER/site-packages/"
