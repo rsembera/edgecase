@@ -20,7 +20,7 @@ done
 
 echo "== Copying application"
 cd "$REPO"
-cp -r ai core pdf web utils assets desktop.py main.py requirements.txt "$APP/"
+cp -r ai core pdf web utils desktop.py main.py requirements.txt "$APP/"
 find "$APP" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 echo "== Building venv"
