@@ -2,6 +2,7 @@
 
 ### 2026-08-22 — Release polish and manifest-sidecar fix
 
+- **Linux packaging scripted**: `packaging/build_deb.sh VERSION` replaces the nine manual steps. Uses `sqlcipher3-wheels` on Linux, declares GTK/WebKit `Depends`, drops `assets/` from the copy. 2.0.0 `.deb` built and installed on Apollo (Debian 13).
 - **Restore screen**: "Restore this" → "Restore"; "Choose a folder myself" now toggles the picker closed on a second click.
 - **First-run notice** trimmed to heading + restore link.
 - **UI copy pass** (two commits): shorter credential notes, deduplicated per-point warnings, tightened recovery-key, upgrade, and settings text.

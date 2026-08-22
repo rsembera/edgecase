@@ -20,8 +20,8 @@ packaging/
 │   ├── edgecase-180x180.png
 │   └── edgecase-256x256.png
 └── deb/                      # Build directory (gitignored)
-    ├── edgecase_1.0.0_amd64/ # Package staging
-    └── edgecase_1.0.0_amd64.deb
+    ├── edgecase_2.0.0_amd64/ # Package staging
+    └── edgecase_2.0.0_amd64.deb
 ```
 
 ## Build Steps
@@ -30,12 +30,12 @@ packaging/
 
 ```bash
 cd ~/Applications/edgecase/packaging/deb
-rm -rf edgecase_1.0.0_amd64
-mkdir -p edgecase_1.0.0_amd64/DEBIAN
-mkdir -p edgecase_1.0.0_amd64/opt/edgecase
-mkdir -p edgecase_1.0.0_amd64/usr/bin
-mkdir -p edgecase_1.0.0_amd64/usr/share/applications
-mkdir -p edgecase_1.0.0_amd64/usr/share/icons/hicolor/{48x48,96x96,128x128,180x180,256x256}/apps
+rm -rf edgecase_2.0.0_amd64
+mkdir -p edgecase_2.0.0_amd64/DEBIAN
+mkdir -p edgecase_2.0.0_amd64/opt/edgecase
+mkdir -p edgecase_2.0.0_amd64/usr/bin
+mkdir -p edgecase_2.0.0_amd64/usr/share/applications
+mkdir -p edgecase_2.0.0_amd64/usr/share/icons/hicolor/{48x48,96x96,128x128,180x180,256x256}/apps
 ```
 
 ### 2. Copy application files
@@ -43,13 +43,13 @@ mkdir -p edgecase_1.0.0_amd64/usr/share/icons/hicolor/{48x48,96x96,128x128,180x1
 ```bash
 cd ~/Applications/edgecase
 cp -r ai core pdf web utils assets desktop.py main.py requirements.txt \
-    packaging/deb/edgecase_1.0.0_amd64/opt/edgecase/
+    packaging/deb/edgecase_2.0.0_amd64/opt/edgecase/
 ```
 
 ### 3. Create Python virtual environment and install dependencies
 
 ```bash
-cd packaging/deb/edgecase_1.0.0_amd64/opt/edgecase
+cd packaging/deb/edgecase_2.0.0_amd64/opt/edgecase
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -62,15 +62,15 @@ PyWebView requires GTK bindings which can't be installed via pip. Copy from syst
 
 ```bash
 cp -r /usr/lib/python3/dist-packages/gi \
-    packaging/deb/edgecase_1.0.0_amd64/opt/edgecase/venv/lib/python3.13/site-packages/
+    packaging/deb/edgecase_2.0.0_amd64/opt/edgecase/venv/lib/python3.13/site-packages/
 ```
 
 ### 5. Create DEBIAN/control file
 
 ```bash
-cat > packaging/deb/edgecase_1.0.0_amd64/DEBIAN/control << 'EOF'
+cat > packaging/deb/edgecase_2.0.0_amd64/DEBIAN/control << 'EOF'
 Package: edgecase
-Version: 1.0.0
+Version: 2.0.0
 Section: office
 Priority: optional
 Architecture: amd64
@@ -85,19 +85,19 @@ EOF
 ### 6. Create launcher script
 
 ```bash
-cat > packaging/deb/edgecase_1.0.0_amd64/usr/bin/edgecase << 'EOF'
+cat > packaging/deb/edgecase_2.0.0_amd64/usr/bin/edgecase << 'EOF'
 #!/bin/bash
 cd /opt/edgecase
 source venv/bin/activate
 exec python desktop.py "$@"
 EOF
-chmod +x packaging/deb/edgecase_1.0.0_amd64/usr/bin/edgecase
+chmod +x packaging/deb/edgecase_2.0.0_amd64/usr/bin/edgecase
 ```
 
 ### 7. Create desktop entry
 
 ```bash
-cat > packaging/deb/edgecase_1.0.0_amd64/usr/share/applications/edgecase.desktop << 'EOF'
+cat > packaging/deb/edgecase_2.0.0_amd64/usr/share/applications/edgecase.desktop << 'EOF'
 [Desktop Entry]
 Name=EdgeCase Equalizer
 Comment=Practice management for independent therapists
@@ -114,28 +114,28 @@ EOF
 
 ```bash
 cp packaging/icons/edgecase-48x48.png \
-    packaging/deb/edgecase_1.0.0_amd64/usr/share/icons/hicolor/48x48/apps/edgecase.png
+    packaging/deb/edgecase_2.0.0_amd64/usr/share/icons/hicolor/48x48/apps/edgecase.png
 cp packaging/icons/edgecase-96x96.png \
-    packaging/deb/edgecase_1.0.0_amd64/usr/share/icons/hicolor/96x96/apps/edgecase.png
+    packaging/deb/edgecase_2.0.0_amd64/usr/share/icons/hicolor/96x96/apps/edgecase.png
 cp packaging/icons/edgecase-128x128.png \
-    packaging/deb/edgecase_1.0.0_amd64/usr/share/icons/hicolor/128x128/apps/edgecase.png
+    packaging/deb/edgecase_2.0.0_amd64/usr/share/icons/hicolor/128x128/apps/edgecase.png
 cp packaging/icons/edgecase-180x180.png \
-    packaging/deb/edgecase_1.0.0_amd64/usr/share/icons/hicolor/180x180/apps/edgecase.png
+    packaging/deb/edgecase_2.0.0_amd64/usr/share/icons/hicolor/180x180/apps/edgecase.png
 cp packaging/icons/edgecase-256x256.png \
-    packaging/deb/edgecase_1.0.0_amd64/usr/share/icons/hicolor/256x256/apps/edgecase.png
+    packaging/deb/edgecase_2.0.0_amd64/usr/share/icons/hicolor/256x256/apps/edgecase.png
 ```
 
 ### 9. Build the .deb package
 
 ```bash
 cd ~/Applications/edgecase/packaging/deb
-dpkg-deb --build edgecase_1.0.0_amd64
+dpkg-deb --build edgecase_2.0.0_amd64
 ```
 
 ## Installation
 
 ```bash
-sudo dpkg -i edgecase_1.0.0_amd64.deb
+sudo dpkg -i edgecase_2.0.0_amd64.deb
 sudo gtk-update-icon-cache /usr/share/icons/hicolor/
 ```
 
