@@ -307,8 +307,7 @@
             {{ restored_note }}
             {% if restore_retry_available %}
             <br>Can't open it?
-            <a href="{{ url_for('auth.restore_page') }}">Restore a different backup</a>
-            — including the safety backup of what was here before.
+            <a href="{{ url_for('auth.restore_page') }}">Restore a different backup.</a>
             {% endif %}
         </div>
         {% endif %}

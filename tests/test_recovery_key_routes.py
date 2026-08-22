@@ -362,7 +362,7 @@ def test_settings_offers_key_verification(client, monkeypatch):
     monkeypatch.setattr("core.migrate_crypto.recovery_key_pending", lambda: False)
     resp = client.get("/settings", headers={"Host": "localhost"})
     assert b"/recovery-key/verify" in resp.data
-    assert b"Check My Recovery Key" in resp.data
+    assert b"Check Recovery Key" in resp.data
 
 
 def test_settings_hides_verification_when_no_key_recorded(client, monkeypatch):
