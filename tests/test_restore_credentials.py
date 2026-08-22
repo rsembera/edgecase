@@ -139,8 +139,8 @@ class TestDescribeCredentials:
         live = v3.rewrap_password(blob, master, "pw-changed-456")
         result = backup.describe_restore_point_credentials(files, live)
         assert result["status"] == "password_changed"
-        assert "password you used then" in result["note"]
-        assert "recovery key still works" in result["note"]
+        assert "Different password" in result["note"]
+        assert "recovery key" in result["note"]
 
     def test_both_changed_warns_of_lockout(self, tmp_path):
         _, backup_blob = _fresh_blob("pw-old")
@@ -148,14 +148,14 @@ class TestDescribeCredentials:
         files = self._chain_with(tmp_path, {"data/.keyinfo": backup_blob})
         result = backup.describe_restore_point_credentials(files, live_blob)
         assert result["status"] == "both_changed"
-        assert "locked out" in result["note"]
+        assert "both differ" in result["note"]
 
     def test_no_live_key_is_the_disaster_note(self, tmp_path):
         _, blob = _fresh_blob()
         files = self._chain_with(tmp_path, {"data/.keyinfo": blob})
         result = backup.describe_restore_point_credentials(files, None)
         assert result["status"] == "no_current_key"
-        assert "when this backup was made" in result["note"]
+        assert "backup's password" in result["note"]
 
     def test_v2_backup_predates_recovery_keys(self, tmp_path):
         files = self._chain_with(
@@ -163,7 +163,7 @@ class TestDescribeCredentials:
         _, live = _fresh_blob()
         result = backup.describe_restore_point_credentials(files, live)
         assert result["status"] == "predates_recovery_keys"
-        assert "no recovery key will open it" in result["note"]
+        assert "Password only" in result["note"]
 
     def test_v1_backup_predates_recovery_keys(self, tmp_path):
         files = self._chain_with(tmp_path, {"data/.salt": b"s"})
