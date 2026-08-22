@@ -1,5 +1,12 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-22 — Release polish and manifest-sidecar fix
+
+- **Restore screen**: "Restore this" → "Restore"; "Choose a folder myself" now toggles the picker closed on a second click.
+- **First-run notice** trimmed to heading + restore link.
+- **UI copy pass** (two commits): shorter credential notes, deduplicated per-point warnings, tightened recovery-key, upgrade, and settings text.
+- **Fix**: `save_manifest` no longer re-creates backup destinations that no longer exist. An old install path lingering in the manifest history (e.g. `~/apps/edgecase/backups` from Dec 2025) was being resurrected as an empty folder with a sidecar manifest on every backup. Sidecars are now only written to destinations that still exist; missing ones are skipped and not re-recorded in the locations file. Regression test verified red against prior code.
+
 All notable changes after the initial v1.0 release (March 2026) are documented here.
 
 Format: Each entry includes date, version (if applicable), and description.

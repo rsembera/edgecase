@@ -101,6 +101,23 @@ class TestManifestStamping:
         assert sidecar["app"] == "edgecase"
         assert sidecar["backups"][0]["filename"] == "full_2026-08-01_100000.zip"
 
+    def test_sidecar_does_not_resurrect_missing_destination(self, tmp_path, monkeypatch):
+        """An old install path lingering in the manifest history must not
+        be re-created on every backup. If the folder is gone, its zips are
+        gone, and a manifest there describes nothing."""
+        _wire_paths(tmp_path, monkeypatch)
+        ghost = tmp_path / "old-install" / "backups"
+        manifest = {"backups": [{
+            "filename": "full_2025-12-30_105307.zip",
+            "type": "full", "chain_id": "c0",
+            "created_at": "2025-12-30T10:53:07",
+            "backup_dir": str(ghost),
+        }]}
+        backup.save_manifest(manifest)
+        assert not ghost.exists()
+        recorded = {loc["path"] for loc in backup.get_known_locations()}
+        assert str(ghost) not in recorded
+
     def test_locations_recorded_and_read_back(self, tmp_path, monkeypatch):
         _wire_paths(tmp_path, monkeypatch)
         cloud = tmp_path / "cloud"
