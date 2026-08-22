@@ -79,16 +79,15 @@
        at any time from <strong>Settings &rsaquo; Security</strong>.</p>
     {% endif %}
     <div class="actions">
-        <a class="btn" href="{{ url_for('clients.index') }}">Continue to EdgeCase</a>
+        <a class="btn" href="{{ url_for('clients.index') }}">Continue</a>
     </div>
 {% else %}
     <h2>Write down your recovery key</h2>
     <p class="subtitle">This is the only time it will be shown</p>
 
     <p>If you ever forget your master password, this key is the only way back
-       into your records. It is not stored anywhere — not in EdgeCase, not in
-       your backups. If you lose both this and your password, the records
-       cannot be recovered by anyone.</p>
+       into your records. It is not stored anywhere — if you lose both this
+       and your password, no one can recover them.</p>
 
     <div class="keybox" id="recovery-key-value">{{ recovery_key }}</div>
 
@@ -99,14 +98,10 @@
     </div>
 
     <div class="warn">
-        <p style="margin-bottom:0.6rem;"><strong>This key is shown once and is
-        not stored anywhere.</strong> If you leave this page without saving it,
-        it cannot be shown again — you would need to issue a new one from
-        Settings, which requires your master password.</p>
-        <p style="margin-bottom:0;">Anyone who has this key can open your
-        practice file without the password. Store it the way you would store a
-        spare key to your office: somewhere physical, somewhere private, and
-        not in the same place as your password.</p>
+        <p style="margin-bottom:0;"><strong>Shown once, not stored.</strong>
+        If you leave without saving it, you'll need to issue a new one from
+        Settings (requires your master password). Store it somewhere physical,
+        private, and separate from your password.</p>
     </div>
     <p class="print-only">EdgeCase Equalizer recovery key — store securely.</p>
 

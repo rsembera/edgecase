@@ -47,9 +47,7 @@
     <p class="subtitle">Your records are unchanged</p>
     <p>Your new master password is now active. Sign in with it to continue.</p>
     <div class="note">
-        Your recovery key still works and has not changed — keep it where it is.
-        If you're concerned someone else may have seen it, you can issue a
-        replacement from Settings once you're signed in.
+        Your recovery key is unchanged — keep it where it is.
     </div>
     <div class="actions">
         <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
@@ -62,10 +60,8 @@
        opens them is changing.</p>
 
     <div class="note">
-        Setting a password here <strong>replaces your current one</strong>, and
-        the old password will stop working. If you've just remembered it, you
-        can back out — nothing has been changed yet. Your recovery key stays
-        valid either way.
+        This <strong>replaces your current password</strong>. If you've just
+        remembered it, you can cancel — nothing has changed yet.
     </div>
 
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
