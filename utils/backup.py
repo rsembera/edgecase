@@ -1992,19 +1992,14 @@ def describe_restore_point_credentials(files_needed, current_blob=None):
                 # only the password of the day opens it.
                 return {
                     'status': 'predates_recovery_keys',
-                    'note': ('Opens with the master password in use when '
-                             'this backup was made. It predates recovery '
-                             'keys, so no recovery key will open it.'),
+                    'note': 'Password only — predates recovery keys.',
                 }
             return unknown
 
         if backed_up['version'] == 2:
             return {
                 'status': 'predates_recovery_keys',
-                'note': ('Opens with the master password in use when this '
-                         'backup was made. It predates recovery keys, so '
-                         'no recovery key will open it. EdgeCase will '
-                         'offer a new recovery key after you log in.'),
+                'note': 'Password only — predates recovery keys.',
             }
 
         if current is None:
@@ -2014,10 +2009,7 @@ def describe_restore_point_credentials(files_needed, current_blob=None):
             # about to type a password and needs to know which one.
             return {
                 'status': 'no_current_key',
-                'note': ('Opens with the master password or recovery key '
-                         'that were in use when this backup was made — '
-                         'not any you have set since. If you have '
-                         'neither, do not restore this one.'),
+                'note': "Uses this backup's password and recovery key.",
             }
 
         if current['version'] != 3:
@@ -2029,26 +2021,20 @@ def describe_restore_point_credentials(files_needed, current_blob=None):
         if password_changed and recovery_rotated:
             return {
                 'status': 'both_changed',
-                'note': ('Both your master password and your recovery key '
-                         'have changed since this backup. It opens ONLY '
-                         'with the ones in use at the time. If you have '
-                         'neither, do not restore this one — you would be '
-                         'locked out of it.'),
+                'note': ('Password and recovery key both differ from '
+                         'current.'),
             }
         if password_changed:
             return {
                 'status': 'password_changed',
-                'note': ('Your master password has changed since this '
-                         'backup. It opens with the password you used '
-                         'then, not your current one. Your current '
-                         'recovery key still works.'),
+                'note': ('Different password. Current recovery key '
+                         'still works.'),
             }
         if recovery_rotated:
             return {
                 'status': 'recovery_key_rotated',
-                'note': ('Your recovery key has been replaced since this '
-                         'backup. It opens with the earlier key, or with '
-                         'your current master password.'),
+                'note': ('Different recovery key. Current password '
+                         'still works.'),
             }
 
         return {'status': 'current', 'note': ''}

@@ -278,7 +278,7 @@
 {% else %}
 <div class="empty-state">
     <h3>No Clients Yet</h3>
-    <p>Add your first client to get started.</p>
+    <p>Add your first client.</p>
     <p class="empty-state-actions">
         <a href="{{ url_for('clients.add_client') }}" class="btn">+ Add Client</a>
     </p>
@@ -305,7 +305,7 @@
             <button onclick="document.getElementById('backup-warning-modal').style.display='none'" class="btn btn-secondary">Dismiss</button>
             <a href="{{ url_for('settings.settings_page') }}#backups" class="btn btn-primary btn-with-icon">
                 <i data-lucide="settings" class="icon-sm"></i>
-                Check Settings
+                Settings
             </a>
         </div>
     </div>

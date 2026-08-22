@@ -148,7 +148,7 @@
     {# No profile - make it clickable to create one #}
     <div class="profile-entry profile-entry-empty" onclick="window.location.href='{{ url_for('entries.edit_profile', client_id=client.id) }}'">
         <strong class="profile-title">+ Create Profile</strong>
-        <p class="text-muted profile-empty-text">Click to add client contact information</p>
+        <p class="text-muted profile-empty-text">Add contact information</p>
     </div>
     {% endif %}
 

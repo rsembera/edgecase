@@ -229,7 +229,7 @@
 
         <div class="actions" id="restore-actions" hidden>
             <button type="button" id="restore-browse" class="btn-secondary">
-                Choose a folder myself
+                Browse
             </button>
             <button type="button" id="restore-rescan" class="btn-secondary">
                 Rescan
@@ -238,7 +238,7 @@
         <p class="rescan-status" id="rescan-status" hidden></p>
 
         <div id="restore-picker" class="picker" hidden>
-            <p class="picker-hint">Where to look: your backups are usually in one of these places.</p>
+            <p class="picker-hint">Common backup locations:</p>
             <div class="picker-shortcuts" id="picker-shortcuts"></div>
             <p class="picker-path" id="picker-path"></p>
             <div class="picker-list" id="picker-list"></div>
@@ -308,7 +308,7 @@
             return count + ' ' + word + (count === 1 ? '' : 's');
         }
 
-        function pointRow(point, folder) {
+        function pointRow(point, folder, suppressNote) {
             const row = document.createElement('div');
             row.className = 'point';
 
@@ -319,12 +319,7 @@
             name.textContent = point.display_name;
             left.appendChild(name);
 
-            if (point.credential_note) {
-                // Which password (and recovery key) this backup will want
-                // once restored — said HERE, beside the specific backup it
-                // is true of, before anyone clicks Restore. Restoring a
-                // backup whose credentials you no longer hold locks you
-                // out of your own data.
+            if (point.credential_note && !suppressNote) {
                 const note = document.createElement('p');
                 note.className = 'warn-text';
                 note.textContent = point.credential_note;
@@ -370,15 +365,29 @@
                 const warn = document.createElement('p');
                 warn.className = 'warn-text';
                 warn.textContent =
-                    'No backup record in this folder \u2014 this list was worked ' +
-                    'out from the backup filenames. Check the dates look right ' +
-                    'before restoring.';
+                    'No backup record found \u2014 reconstructed from ' +
+                    'filenames. Check dates before restoring.';
                 card.appendChild(warn);
             }
 
-            (location.restore_points || []).forEach((point) => {
-                if (point.broken) { return; }
-                card.appendChild(pointRow(point, location.path));
+            // If every visible point shares the same credential note,
+            // show it once on the card instead of repeating per-point.
+            const visible = (location.restore_points || []).filter(
+                (p) => !p.broken);
+            const notes = new Set(visible.map((p) => p.credential_note || ''));
+            notes.delete('');
+            const sharedNote = notes.size === 1 ? [...notes][0] : null;
+
+            if (sharedNote) {
+                const note = document.createElement('p');
+                note.className = 'warn-text';
+                note.textContent = sharedNote;
+                card.appendChild(note);
+            }
+
+            visible.forEach((point) => {
+                const suppress = sharedNote && point.credential_note === sharedNote;
+                card.appendChild(pointRow(point, location.path, suppress));
             });
 
             return card;
@@ -390,11 +399,8 @@
 
             if (!locations.length) {
                 subtitle.textContent =
-                    'EdgeCase has no record of backups on this machine. If you ' +
-                    'kept backups, choose their folder below. If they are on ' +
-                    'another computer, a network drive, or an external disk, ' +
-                    'connect it or copy the folder onto this machine first, ' +
-                    'then choose it.';
+                    'No backups found on this machine. Use Browse to ' +
+                    'choose a folder, or connect the drive they\u2019re on first.';
                 return;
             }
 
