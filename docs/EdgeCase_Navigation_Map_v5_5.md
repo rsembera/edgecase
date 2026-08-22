@@ -1,8 +1,8 @@
-# EdgeCase Equalizer - Navigation Map v5.6
+# EdgeCase Equalizer - Navigation Map v5.7
 
 **Purpose:** Quick reference for code location, current status, and project overview  
 **Created:** November 8, 2025  
-**Last Updated:** June 21, 2026
+**Last Updated:** August 22, 2026 (v2.0.0 Strugatsky)
 
 ---
 
@@ -13,7 +13,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 **Tech Stack:**
 - Backend: Python 3.13, Flask with 11 Blueprints
 - Frontend: HTML, External CSS/JS files, Vanilla JavaScript
-- Database: SQLite with SQLCipher encryption (13 tables)
+- Database: SQLite with SQLCipher encryption (14 tables)
 - PDF Generation: ReportLab 4.4.5
 - Encryption: cryptography (Fernet v1 + Argon2id/AES-256-GCM v2 for attachments)
 - AI: llama-cpp-python with Gemma 4 12B QAT model
@@ -58,20 +58,20 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 | Metric | Count |
 |--------|-------|
-| Python Lines (app) | ~17,000 |
-| HTML Lines | ~7,900 |
-| JavaScript Lines | ~9,900 |
-| CSS Lines | ~7,500 |
-| **Total Lines** | **~42,000** |
+| Python Lines (app) | ~21,000 |
+| HTML Lines | ~9,500 |
+| JavaScript Lines | ~10,500 |
+| CSS Lines | ~7,800 |
+| **Total Lines** | **~49,000** |
 | Blueprints | 11 |
-| Database Tables | 13 |
-| Templates | 33 |
+| Database Tables | 14 |
+| Templates | 28 |
 | CSS Files | 28 |
 | JS Files | 29 |
 | Python Files | 58 app (+ 19 test files) |
 | Entry Types | 8 (6 client + 2 ledger) |
-| Routes | 105 |
-| Automated Tests | 201 |
+| Routes | 112 |
+| Automated Tests | 652 |
 
 ---
 
