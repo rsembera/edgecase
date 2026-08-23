@@ -3,7 +3,7 @@
 {% block title %}{% if group %}Edit{% else %}Add{% endif %} Link - EdgeCase{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_link_group.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_link_group.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -116,5 +116,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/add_edit_link_group.js') }}"></script>
+<script src="{{ url_for('static', filename='js/add_edit_link_group.js', v=static_v) }}"></script>
 {% endblock %}

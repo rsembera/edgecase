@@ -7,86 +7,86 @@
     <title>{% block title %}EdgeCase Equalizer{% endblock %}</title>
     
     <!-- Shared styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css', v=static_v) }}">
     
     <!-- Choices.js for styled dropdowns -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/choices.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/choices.min.css', v=static_v) }}">
 
     <!-- Favicons-->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicons/apple-touch-icon.png') }}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicons/favicon-96x96.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico', v=static_v) }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg', v=static_v) }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicons/apple-touch-icon.png', v=static_v) }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicons/favicon-96x96.png', v=static_v) }}">
     
     <style>
         /* Self-hosted Lexend fonts */
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf', v=static_v) }}") format('truetype');
             font-weight: 300;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf', v=static_v) }}") format('truetype');
             font-weight: 400;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf', v=static_v) }}") format('truetype');
             font-weight: 500;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf', v=static_v) }}") format('truetype');
             font-weight: 600;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf', v=static_v) }}") format('truetype');
             font-weight: 700;
         }
         
         /* Self-hosted Inter fonts */
         @font-face {
             font-family: 'Inter';
-            src: url("{{ url_for('static', filename='fonts/Inter-Regular.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Inter-Regular.ttf', v=static_v) }}") format('truetype');
             font-weight: 400;
         }
         @font-face {
             font-family: 'Inter';
-            src: url("{{ url_for('static', filename='fonts/Inter-Medium.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Inter-Medium.ttf', v=static_v) }}") format('truetype');
             font-weight: 500;
         }
         @font-face {
             font-family: 'Inter';
-            src: url("{{ url_for('static', filename='fonts/Inter-SemiBold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Inter-SemiBold.ttf', v=static_v) }}") format('truetype');
             font-weight: 600;
         }
         @font-face {
             font-family: 'Inter';
-            src: url("{{ url_for('static', filename='fonts/Inter-Bold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Inter-Bold.ttf', v=static_v) }}") format('truetype');
             font-weight: 700;
         }
         
         /* Self-hosted Lora fonts (serif) */
         @font-face {
             font-family: 'Lora';
-            src: url("{{ url_for('static', filename='fonts/Lora-Regular.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lora-Regular.ttf', v=static_v) }}") format('truetype');
             font-weight: 400;
         }
         @font-face {
             font-family: 'Lora';
-            src: url("{{ url_for('static', filename='fonts/Lora-Medium.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lora-Medium.ttf', v=static_v) }}") format('truetype');
             font-weight: 500;
         }
         @font-face {
             font-family: 'Lora';
-            src: url("{{ url_for('static', filename='fonts/Lora-SemiBold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lora-SemiBold.ttf', v=static_v) }}") format('truetype');
             font-weight: 600;
         }
         @font-face {
             font-family: 'Lora';
-            src: url("{{ url_for('static', filename='fonts/Lora-Bold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lora-Bold.ttf', v=static_v) }}") format('truetype');
             font-weight: 700;
         }
 
@@ -288,16 +288,16 @@
     
 <!-- Shared utilities (escapeHtml, autoResizeTextarea, calculateThreeWayFee, color palette)
          Must load before page-specific scripts -->
-    <script src="{{ url_for('static', filename='js/shared_utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/shared_utils.js', v=static_v) }}"></script>
 
     <!-- Choices.js for styled dropdowns -->
-    <script src="{{ url_for('static', filename='js/choices.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/choices.min.js', v=static_v) }}"></script>
     
     <!-- Desktop PDF handler (for PyWebView) -->
-    <script src="{{ url_for('static', filename='js/desktop-pdf.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/desktop-pdf.js', v=static_v) }}"></script>
     
     <!-- Lucide Icons -->
-    <script src="{{ url_for('static', filename='js/lucide.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lucide.min.js', v=static_v) }}"></script>
     
     <!-- Session timeout warning system -->
     <script>

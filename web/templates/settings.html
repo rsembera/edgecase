@@ -3,7 +3,7 @@
 {% block title %}Settings - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v=static_v) }}">
 
 <style>
 /* Collapsible section styles */
@@ -563,6 +563,17 @@ details[open] .settings-section-header .arrow {
             
             <p class="text-muted text-sm mt-1">Access AI Scribe from the Session entry form using the <i data-lucide="feather" class="icon-sm icon-inline-no-mr"></i> button.</p>
         </div>
+
+        <div id="ai-retired" style="display: none;" class="mt-1">
+            <p class="status-paragraph text-muted">
+                <i data-lucide="archive" class="icon-sm icon-inline"></i>
+                <span id="ai-retired-info"></span>
+            </p>
+            <button onclick="deleteRetiredModels()" id="ai-retired-delete-btn" class="btn btn-sm btn-danger-light">
+                <i data-lucide="trash-2" class="icon-sm icon-inline"></i>
+                Delete Old Model
+            </button>
+        </div>
         
         </div>
     </details>
@@ -869,7 +880,7 @@ John Smith."></textarea>
     <!-- About Modal -->
     <div id="about-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10000; align-items: center; justify-content: center;">
         <div style="background: white; padding: 2rem; border-radius: 1rem; max-width: 450px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="EdgeCase Equalizer" style="width: 280px; margin-bottom: 1rem;">
+            <img src="{{ url_for('static', filename='assets/logo.png', v=static_v) }}" alt="EdgeCase Equalizer" style="width: 280px; margin-bottom: 1rem;">
             <p style="color: #00AA88; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600;">v2.0 Strugatsky</p>
             <p style="color: #6B7280; margin-bottom: 0.25rem; font-size: 0.875rem;">Designed by Richard Sembera</p>
             <p style="color: #6B7280; margin-bottom: 1.5rem; font-size: 0.875rem;">Coded by Claude Sonnet 4.5, Opus 4.5–4.8 & 5, and Fable 5</p>
@@ -939,5 +950,5 @@ John Smith."></textarea>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/settings.js', v=static_v) }}"></script>
 {% endblock %}

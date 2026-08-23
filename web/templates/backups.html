@@ -2,7 +2,7 @@
 {% block title %}Backups - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/backups.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/backups.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -170,7 +170,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/backups.js') }}"></script>
+<script src="{{ url_for('static', filename='js/backups.js', v=static_v) }}"></script>
 <script>
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {

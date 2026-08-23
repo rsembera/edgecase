@@ -3,12 +3,12 @@
 {% block title %}Ledger - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/ledger.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ledger.css', v=static_v) }}">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/card_drag.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ledger.js') }}"></script>
+<script src="{{ url_for('static', filename='js/card_drag.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/ledger.js', v=static_v) }}"></script>
 {% endblock %}
 
 {% block content %}

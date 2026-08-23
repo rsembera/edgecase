@@ -3,7 +3,7 @@
 {% block title %}{{ 'Edit' if type else 'Add' }} Client Type - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_type.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_edit_type.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -114,5 +114,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/add_edit_type.js') }}"></script>
+<script src="{{ url_for('static', filename='js/add_edit_type.js', v=static_v) }}"></script>
 {% endblock %}

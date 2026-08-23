@@ -6,35 +6,35 @@
     <title>{% if first_run %}Create Password{% else %}Login{% endif %} - EdgeCase Equalizer</title>
     
     <!-- Favicons-->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicons/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico', v=static_v) }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicons/favicon.svg', v=static_v) }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicons/apple-touch-icon.png', v=static_v) }}">
     
     <style>
         /* Self-hosted Lexend fonts */
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Light.ttf', v=static_v) }}") format('truetype');
             font-weight: 300;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf', v=static_v) }}") format('truetype');
             font-weight: 400;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf', v=static_v) }}") format('truetype');
             font-weight: 500;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf', v=static_v) }}") format('truetype');
             font-weight: 600;
         }
         @font-face {
             font-family: 'Lexend';
-            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf') }}") format('truetype');
+            src: url("{{ url_for('static', filename='fonts/Lexend-Bold.ttf', v=static_v) }}") format('truetype');
             font-weight: 700;
         }
 

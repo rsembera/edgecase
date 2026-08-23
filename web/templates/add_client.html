@@ -3,7 +3,7 @@
 {% block title %}Add Client - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/add_client.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_client.css', v=static_v) }}">
 
 {% endblock %}
 
@@ -91,5 +91,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/add_client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/add_client.js', v=static_v) }}"></script>
 {% endblock %}
