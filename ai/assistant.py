@@ -25,6 +25,14 @@ _model_loaded = False
 MODEL_REPO = "lmstudio-community/gemma-4-12B-it-QAT-GGUF"
 MODEL_FILENAME = "gemma-4-12B-it-QAT-Q4_0.gguf"
 MODEL_DIR = MODELS_DIR
+# Models EdgeCase used to ship and no longer references. A 1.0 install that
+# upgrades keeps the old file on disk; nothing loads it, and "Delete Model"
+# only targets MODEL_FILENAME, so it would sit there silently forever.
+# Settings offers to remove anything on this list. Filenames only — the
+# delete path never accepts an arbitrary path from the client.
+RETIRED_MODELS = {
+    "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf": "Hermes 3 Llama 3.1 8B (used by EdgeCase 1.0)",
+}
 # SHA-256 of the official QAT Q4_0 file. Verified two ways on 2026-07-19:
 # HuggingFace's LFS metadata for the repo, and an independent hash of a
 # locally downloaded copy. Downloads that don't match are deleted —
@@ -80,8 +88,35 @@ def get_model_info() -> dict:
     
     if model_path.exists():
         info['size_gb'] = round(model_path.stat().st_size / (1024**3), 2)
-    
+
+    info['retired'] = list_retired_models()
     return info
+
+
+def list_retired_models() -> list:
+    """Retired model files still present in MODEL_DIR, for Settings to offer deletion."""
+    found = []
+    for filename, label in RETIRED_MODELS.items():
+        path = MODEL_DIR / filename
+        if path.is_file():
+            found.append({
+                'filename': filename,
+                'label': label,
+                'size_gb': round(path.stat().st_size / (1024**3), 2),
+            })
+    return found
+
+
+def delete_retired_models() -> list:
+    """Delete every retired model file present. Returns the filenames removed."""
+    removed = []
+    for filename in RETIRED_MODELS:
+        path = MODEL_DIR / filename
+        if path.is_file():
+            path.unlink()
+            removed.append(filename)
+            print(f"[AI Scribe] Retired model deleted: {filename}")
+    return removed
 
 
 def _get_system_config() -> dict:

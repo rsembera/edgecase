@@ -1,5 +1,12 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-22 (evening) — Retired model cleanup; static asset versioning
+
+- **Retired model files**: a 1.0 install that upgrades keeps the Hermes GGUF on disk with nothing referencing it. `ai.assistant.RETIRED_MODELS` lists known old filenames; `/api/ai/status` reports any present, Settings › AI Scribe shows a notice with **Delete Old Model**, and `/api/ai/delete-retired` removes only files on that list (never a client-supplied path). Four regression tests, red against prior code.
+- **Unload from Memory** now hidden when the model isn't loaded (via the `.hidden` utility class — `.btn` sets `display` with `!important`, so `style.display` loses; same trap the AI Scribe page already documents).
+- **Static asset cache-busting**: `?v=static_v` was on a handful of CSS links only; the other 137 `url_for('static', …)` references had none, so WebKit could keep serving old JS/CSS across restarts and across app upgrades. All references now versioned.
+- Delete-model confirmation said ~5 GB; Gemma is ~7 GB.
+
 ### 2026-08-22 — Release polish and manifest-sidecar fix
 
 - **Linux packaging scripted**: `packaging/build_deb.sh VERSION` replaces the nine manual steps. Uses `sqlcipher3-wheels` on Linux, declares GTK/WebKit `Depends`, drops `assets/` from the copy. 2.0.0 `.deb` built and installed on Apollo (Debian 13).

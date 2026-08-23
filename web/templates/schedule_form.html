@@ -3,8 +3,8 @@
 {% block title %}Schedule Appointment - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/schedule_form.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/schedule_form.css', v=static_v) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -214,6 +214,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/schedule_form.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/schedule_form.js', v=static_v) }}"></script>
 {% endblock %}

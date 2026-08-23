@@ -3,7 +3,7 @@
 {% block title %}AI Scribe - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_scribe.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_scribe.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -119,5 +119,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/ai_scribe.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai_scribe.js', v=static_v) }}"></script>
 {% endblock %}

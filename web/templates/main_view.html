@@ -3,12 +3,12 @@
 {% block title %}Clients - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main_view.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main_view.css', v=static_v) }}">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/card_drag.js') }}"></script>
-<script src="{{ url_for('static', filename='js/main_view.js') }}"></script>
+<script src="{{ url_for('static', filename='js/card_drag.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/main_view.js', v=static_v) }}"></script>
 {% endblock %}
 
 {% block content %}

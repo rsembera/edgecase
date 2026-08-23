@@ -3,8 +3,8 @@
 {% block title %}{% if entry %}Edit{% else %}Create{% endif %} Item - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/item.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/item.css', v=static_v) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css', v=static_v) }}">
 {% endblock %}
 
 {% block content %}
@@ -275,10 +275,10 @@
 {% include 'components/unsaved_changes_modal.html' %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pickers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/file-upload.js') }}"></script>
-<script src="{{ url_for('static', filename='js/item.js') }}"></script>
-<script src="{{ url_for('static', filename='js/form-guard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/file-upload.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/item.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js', v=static_v) }}"></script>
 {% endblock %}
 
 {% endblock %}

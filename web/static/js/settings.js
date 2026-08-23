@@ -1259,6 +1259,12 @@ async function loadAIStatus() {
                 modelInfo.textContent = `${statusData.name} is installed (${statusData.size_gb}GB)`;
             }
             
+            const unloadBtn = document.getElementById('ai-unload-btn');
+            if (unloadBtn) {
+                // .btn sets display with !important, so inline style.display loses; use the utility class
+                unloadBtn.classList.toggle('hidden', !statusData.loaded);
+            }
+
             const modelStatus = document.getElementById('ai-model-status');
             if (modelStatus) {
                 if (statusData.loaded) {
@@ -1271,6 +1277,21 @@ async function loadAIStatus() {
             notDownloaded.style.display = 'block';
             downloaded.style.display = 'none';
         }
+
+        // Retired model files left behind by an earlier release
+        const retiredBox = document.getElementById('ai-retired');
+        const retiredInfo = document.getElementById('ai-retired-info');
+        if (retiredBox && retiredInfo) {
+            const retired = statusData.retired || [];
+            if (retired.length) {
+                retiredInfo.textContent = retired
+                    .map(m => `${m.label} is still on disk (${m.size_gb}GB) and no longer used.`)
+                    .join(' ');
+                retiredBox.style.display = 'block';
+            } else {
+                retiredBox.style.display = 'none';
+            }
+        }
         
         // Refresh Lucide icons
         if (typeof lucide !== 'undefined') {
@@ -1279,6 +1300,34 @@ async function loadAIStatus() {
     } catch (error) {
         console.error('Error loading AI status:', error);
     }
+}
+
+/**
+ * Delete retired model files (old releases' models that nothing loads any more)
+ */
+function deleteRetiredModels() {
+    showConfirmModal(
+        'Delete old model?',
+        'This removes the model file left behind by EdgeCase 1.0. It is no longer used and can be re-downloaded if you ever need it.',
+        async function() {
+            const btn = document.getElementById('ai-retired-delete-btn');
+            if (btn) btn.disabled = true;
+            try {
+                const resp = await fetch('/api/ai/delete-retired', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error || 'Delete failed');
+                await loadAIStatus();
+            } catch (error) {
+                console.error('Error deleting retired model:', error);
+                showConfirmModal('Could not delete the old model', error.message, null);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+    );
 }
 
 /**

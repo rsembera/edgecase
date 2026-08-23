@@ -170,6 +170,21 @@ def ai_delete():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@ai_bp.route('/api/ai/delete-retired', methods=['POST'])
+def ai_delete_retired():
+    """Delete retired model files left behind by an earlier release.
+
+    Only filenames on ai.assistant.RETIRED_MODELS are ever touched.
+    """
+    from ai import delete_retired_models
+
+    try:
+        removed = delete_retired_models()
+        return jsonify({'success': True, 'removed': removed})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @ai_bp.route('/api/ai/load', methods=['POST'])
 def ai_load():
     """Load the model into memory."""
