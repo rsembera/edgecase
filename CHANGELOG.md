@@ -1,6 +1,6 @@
 # EdgeCase Equalizer - Changelog
 
-### 2026-08-22 (evening) — Retired model cleanup; static asset versioning
+### 2026-08-22 (evening) — v2.0.1: retired model cleanup; static asset versioning
 
 - **Retired model files**: a 1.0 install that upgrades keeps the Hermes GGUF on disk with nothing referencing it. `ai.assistant.RETIRED_MODELS` lists known old filenames; `/api/ai/status` reports any present, Settings › AI Scribe shows a notice with **Delete Old Model**, and `/api/ai/delete-retired` removes only files on that list (never a client-supplied path). Four regression tests, red against prior code.
 - **Unload from Memory** now hidden when the model isn't loaded (via the `.hidden` utility class — `.btn` sets `display` with `!important`, so `style.display` loses; same trap the AI Scribe page already documents).
