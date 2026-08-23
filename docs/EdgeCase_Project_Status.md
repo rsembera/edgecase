@@ -3,7 +3,7 @@
 **Owner:** Richard  
 **Development Partner:** Claude  
 **Last Updated:** August 22, 2026  
-**Status:** v2.0.0 Strugatsky released August 22, 2026 - In Production Use Since January 3, 2026
+**Status:** v2.0.1 Strugatsky released August 22, 2026 (2.0.0 + retired-model cleanup and static asset versioning, same day) - In Production Use Since January 3, 2026
 
 ---
 
@@ -24,11 +24,6 @@ notes; Gemma 4 12B QAT as the AI Scribe model; god-file refactors and ruff gate;
 suite 43 → 652.
 
 Open:
-- **2.0.1 build** — post-release commits not in the shipped 2.0.0 bundles:
-  retired-model cleanup, Unload button hide, static asset `?v=` on all 137
-  references (cache-busting gap that could leave upgraders running old JS),
-  ~7 GB delete-confirm string. Rebuild Mac + Apollo, move tag, update website
-  downloads.
 - MailRepo port of the `save_manifest` ghost-destination fix (prompt prepared
   2026-08-22).
 
