@@ -1,5 +1,7 @@
 # EdgeCase Equalizer - Development Timeline (Git-Verified)
 
+> **Historical record** — the original November–December 2025 build, verified against git. Development since is in CHANGELOG.md.
+
 **Project:** EdgeCase Equalizer  
 **Owner:** Richard  
 **Development Partner:** Claude  

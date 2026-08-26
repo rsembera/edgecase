@@ -1,5 +1,7 @@
 # Payment Allocation — Design Plan
 
+> **Historical record** — design for the August 2026 payment allocation system, shipped in v2.0.0. The implementation matches this plan; see Architecture_Decisions.md for the rationale as built.
+
 **Status:** IMPLEMENTED 2026-08-09. Kept as the design record; the built
 behaviour is summarised in CHANGELOG.md and Architecture_Decisions.md.
 Where the build diverged from this plan, the plan is marked inline.

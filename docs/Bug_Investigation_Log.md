@@ -1,5 +1,7 @@
 # EdgeCase Equalizer - Bug Investigation Log
 
+> **Historical record** — pre-launch audit, December 2025. Everything below reflects the codebase of that date. For current state, see CHANGELOG.md and the test suite (656 tests at v2.0.1).
+
 **Purpose:** Record of systematic bug investigation before production launch  
 **Investigation Date:** December 5, 2025  
 **Status:** Complete - Ready for January 2026 launch

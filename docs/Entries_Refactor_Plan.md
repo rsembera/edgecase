@@ -1,5 +1,7 @@
 # entries.py Refactor Plan
 
+> **Historical record** — plan for the June 2026 god-file refactor, completed as described. The entries package structure it proposes is now the codebase.
+
 **Status:** DONE (2026-06-20) — executed exactly as planned. `entries.py` is now the
 `web/blueprints/entries/` package (`common.py` + 8 per-type modules + `__init__.py`).
 Endpoint set identical to baseline (16 `entries.*` routes), suite 195 green. Two
