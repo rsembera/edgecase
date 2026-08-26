@@ -69,8 +69,12 @@ new needed.
 
 ## UI
 
-**Nav card:** fifth button in the existing 2-col grid → 2×3 with one spare slot.
-Icon `graduation-cap`, label "Learning", one of the unused accent colours.
+**Entry point:** a "Learning Record" item in the **Manage ▾** dropdown (with Add
+Client / Edit Types / Edit Links). The nav card's 2×2 mirrors the dashboard
+grid's rhythm and its four buttons are the daily/weekly destinations; a learning
+log is touched a few times a month, which is dropdown frequency. If real use
+proves it deserves card placement, promoting it later is a five-minute template
+change made on evidence. Icon `graduation-cap`.
 
 **Page (`learning.html`):** Ledger layout recycled — year/month groups,
 expand/collapse, row = date · name · type badge (Didactic/Experiential) · hours ·
@@ -113,7 +117,7 @@ like every other form.
 
 1. Migration + model constants, tests red→green
 2. Blueprint + form + page, ruff/JS gates
-3. Nav card button
+3. Manage ▾ menu item
 4. Cycle summary + settings key, tests
 5. Docs + website touch-ups, commit per step
 
