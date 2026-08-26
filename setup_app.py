@@ -46,6 +46,7 @@ THIRD_PARTY_PACKAGES = [
     'argon2',
     'defusedxml',
     'reportlab',
+    'pypdf',
     'PIL',
     'markdown',
 ]

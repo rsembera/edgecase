@@ -1037,52 +1037,76 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
     for page in main_reader.pages:
         pdf_writer.add_page(page)
     
-    # Add each PDF attachment with a header page
+    # Add each PDF attachment with a header page. A promised attachment that
+    # cannot be included (file missing or unreadable at export time) still gets
+    # its header page, carrying an explicit notice: the narrative above says
+    # "attached at end of document", and a clinical record must state its own
+    # gaps rather than silently omitting them.
+    from datetime import date as _date
     for att_entry_type, att_title, att_date, att_filepath, att_original_name in pdf_attachments:
-        if os.path.exists(att_filepath):
+        # Try to read the attachment first, so the header can state the outcome
+        att_reader = None
+        failure = None
+        if not os.path.exists(att_filepath):
+            failure = "the file was missing at export time"
+        else:
             try:
-                # Create header page for this attachment
-                header_buffer = BytesIO()
-                header_doc = SimpleDocTemplate(
-                    header_buffer,
-                    pagesize=letter,
-                    rightMargin=0.75*inch,
-                    leftMargin=0.75*inch,
-                    topMargin=2*inch,
-                    bottomMargin=0.75*inch
-                )
-                header_elements = [
-                    Paragraph("Attachment", styles['EntryTitle']),
-                    Spacer(1, 12),
-                    Paragraph(f"<b>{esc(att_entry_type)}:</b> {esc(att_title)}", styles['FieldValue']),
-                    Spacer(1, 6),
-                    Paragraph(f"<b>Date:</b> {att_date}", styles['FieldValue']),
-                    Spacer(1, 24),
-                    Paragraph(f"<i>Original filename: {esc(att_original_name)}</i>", styles['FieldValue']),
-                ]
-                header_doc.build(header_elements)
-                header_buffer.seek(0)
-                
-                # Add header page
-                header_reader = PdfReader(header_buffer)
-                for page in header_reader.pages:
-                    pdf_writer.add_page(page)
-                
-                # Add attachment pages (decrypt if needed)
                 if db.password:
                     from core.encryption import decrypt_file_to_bytes
                     decrypted_data = decrypt_file_to_bytes(att_filepath, db.password)
-                    att_buffer = BytesIO(decrypted_data)
-                    att_reader = PdfReader(att_buffer)
+                    att_reader = PdfReader(BytesIO(decrypted_data))
                 else:
                     att_reader = PdfReader(att_filepath)
+            except Exception as e:
+                failure = "the file could not be read"
+                print(f"Warning: Could not include attachment {att_filepath}: {e}")
+
+        try:
+            # Create header page for this attachment
+            header_buffer = BytesIO()
+            header_doc = SimpleDocTemplate(
+                header_buffer,
+                pagesize=letter,
+                rightMargin=0.75*inch,
+                leftMargin=0.75*inch,
+                topMargin=2*inch,
+                bottomMargin=0.75*inch
+            )
+            header_elements = [
+                Paragraph("Attachment", styles['EntryTitle']),
+                Spacer(1, 12),
+                Paragraph(f"<b>{esc(att_entry_type)}:</b> {esc(att_title)}", styles['FieldValue']),
+                Spacer(1, 6),
+                Paragraph(f"<b>Date:</b> {att_date}", styles['FieldValue']),
+                Spacer(1, 24),
+                Paragraph(f"<i>Original filename: {esc(att_original_name)}</i>", styles['FieldValue']),
+            ]
+            if failure:
+                header_elements.extend([
+                    Spacer(1, 24),
+                    Paragraph(
+                        f"<b>This attachment could not be included in this export:</b> "
+                        f"{failure} ({_date.today().isoformat()}). "
+                        f"The record above still references it.",
+                        styles['FieldValue']),
+                ])
+            header_doc.build(header_elements)
+            header_buffer.seek(0)
+
+            # Add header page
+            header_reader = PdfReader(header_buffer)
+            for page in header_reader.pages:
+                pdf_writer.add_page(page)
+
+            # Add attachment pages if we have them
+            if att_reader is not None:
                 for page in att_reader.pages:
                     pdf_writer.add_page(page)
-                    
-            except Exception as e:
-                # If we can't read the PDF, skip it
-                print(f"Warning: Could not include attachment {att_filepath}: {e}")
-    
+
+        except Exception as e:
+            # Header generation itself failed — never lose the whole export
+            print(f"Warning: Could not build attachment section for {att_filepath}: {e}")
+
     # Write final merged PDF
     if output_path:
         with open(output_path, 'wb') as f:

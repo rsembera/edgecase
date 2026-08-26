@@ -1,5 +1,24 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-26 — Client export: missing attachments declared, not dropped
+
+- **Client file export**: a PDF attachment promised in the narrative ("attached
+  at end of document") but missing or unreadable at export time now still gets
+  its header page in the appendix, with an explicit notice ("could not be
+  included — file missing/could not be read as of <date>"). Previously a
+  missing file was skipped silently and a corrupt one left an orphaned header;
+  a clinical record must state its own gaps. Attachment is now read before the
+  header is built. Three tests (missing / corrupt / intact), red against prior
+  code.
+- **Packaging**: `pypdf` added to the py2app manifest. It shipped in 2.0.x only
+  because modulegraph traced a function-level import; the manifest guard now
+  sees it (the new test imports pypdf at module level) and it is declared
+  explicitly.
+- **Docs**: Future_Refinements rewritten against v2.0.1 (password-policy item
+  was already done; CE tracker recorded, then superseded by a full plan);
+  eight historical working docs stamped as records; Learning_Record_Plan.md
+  added (CRPO QA learning log, queued).
+
 ### 2026-08-22 (evening) — v2.0.1: retired model cleanup; static asset versioning
 
 - **Retired model files**: a 1.0 install that upgrades keeps the Hermes GGUF on disk with nothing referencing it. `ai.assistant.RETIRED_MODELS` lists known old filenames; `/api/ai/status` reports any present, Settings › AI Scribe shows a notice with **Delete Old Model**, and `/api/ai/delete-retired` removes only files on that list (never a client-supplied path). Four regression tests, red against prior code.
