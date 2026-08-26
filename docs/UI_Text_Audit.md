@@ -1,5 +1,7 @@
 # EdgeCase — UI Text Audit
 
+> **Historical record** — August 2026 copy audit, applied in the v2.0.0 release cycle.
+
 **Date:** 2026-08-22
 **Scope:** Helper text, hints, tooltips, empty states, confirmation dialogs, and error/status messages across `web/templates/`, `web/static/js/`, and the Flask blueprints (`web/blueprints/`, `core/`).
 **Method:** Targeted sweep for the classes and patterns EdgeCase actually uses for user-facing copy (`helper-text`, `help-text`, `hint`, `note`, `subtitle`, `empty-state`, `text-muted`, `title="…"`, `placeholder="…"`, `alert()`, `confirm()`, and the `'error'`/`'message'` keys returned by the JSON endpoints), then a close read of every hit.

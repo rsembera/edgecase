@@ -1,5 +1,7 @@
 # WAL Checkpoint and Backup Hash Baseline Issue
 
+> **Historical record** — February 2026 analysis. EdgeCase's frequency-first checking (described here) remains current; the external-state-file idea lives in Future_Refinements.md.
+
 ## Overview
 
 This document describes a subtle issue that can cause backup systems to create unnecessary backups when using SQLite in WAL (Write-Ahead Logging) mode. Different projects handle this differently.

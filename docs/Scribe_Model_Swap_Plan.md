@@ -1,5 +1,7 @@
 # AI Scribe Model Swap: Hermes 3 → Gemma 4 12B QAT
 
+> **Historical record** — the July 2026 Hermes-to-Gemma evaluation and swap, completed. Gemma 4 12B QAT has been the shipped model since.
+
 **Decided:** July 18, 2026, after a scored 4-model bake-off (see below).
 **Status:** Planned, not started. Hermes 3 remains in production until executed.
 

@@ -1,5 +1,7 @@
 # Flask Double-Login Issue on Safari/Firefox
 
+> **Historical record** — investigation and fix from December 2025, long since shipped. Kept as a debugging case study.
+
 **Problem Discovered:** December 5, 2025  
 **Project:** EdgeCase Equalizer  
 **Commit:** 1566279
