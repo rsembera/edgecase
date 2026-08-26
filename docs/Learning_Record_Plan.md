@@ -15,10 +15,21 @@ Reference: CRPO QA Program → Professional Development: Learning Record
 One new practice-level entry type (`learning`), a Learning Record page in the
 style of the Ledger, a nav-card button, and a cycle-hours summary. Nothing else.
 
-**Explicitly out of scope for v1:** PDF export in the CRPO layout (build when an
-audit or renewal actually asks); reminders/notifications; multiple historical
-cycles UI (old entries remain queryable by date; the summary shows the current
-cycle only).
+**In scope for v1: PDF export.** The record exists to be shown to CRPO — the
+QA program requires it in the portfolio, producible on request — so an
+unexportable tracker wouldn't fulfill its own use case. EdgeCase's own layout
+(ledger_report.py as the precedent), not a pixel copy of the College's fillable
+template: one block per activity (name, dates, hours, type badge, description,
+evidence/attachment list) with the reflection underneath, the cycle summary at
+the top, and a "prepared from EdgeCase records on <date>" footer. The
+requirement is the fields, not the formatting; the College's template revs
+(current one is dated December 2023) and our own layout ages better.
+Date-range option like the ledger report, defaulting to the current cycle.
+
+**Explicitly out of scope for v1:** reminders/notifications; multiple
+historical cycles UI (old entries remain queryable by date, and the export's
+date range covers past cycles; the on-page summary shows the current cycle
+only).
 
 ## Data model
 
@@ -59,6 +70,7 @@ becomes 12 — update the website generator note and technical.html when this
 ships):
 
 - `GET  /learning` — the page
+- `GET  /learning/export` — PDF export (date range params, default current cycle)
 - `GET/POST /learning/new` — create
 - `GET/POST /learning/<id>` — edit
 - `POST /learning/<id>/delete` — delete (confirm modal)
@@ -102,6 +114,8 @@ like every other form.
   Ledger page query (class filters — regression, red first, against a planted
   learning entry leaking into the Ledger)
 - Attachment on a learning entry encrypts/decrypts round-trip
+- Export contains every CRPO field (name, dates, hours, type, description,
+  evidence, reflection) and the cycle summary; date-range filter respected
 
 ## Documentation
 
@@ -119,7 +133,9 @@ like every other form.
 2. Blueprint + form + page, ruff/JS gates
 3. Manage ▾ menu item
 4. Cycle summary + settings key, tests
-5. Docs + website touch-ups, commit per step
+5. PDF export (ledger_report.py pattern), test asserts all CRPO fields and the
+   reflection appear in extracted text
+6. Docs + website touch-ups, commit per step
 
-**Estimate:** one focused session (~3–4 h), dominated by template work with
+**Estimate:** one focused session (~4–5 h), dominated by template work with
 seven precedents.
