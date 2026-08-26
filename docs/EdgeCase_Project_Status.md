@@ -23,9 +23,8 @@ balances); disaster recovery reachable before login; restore-point credential
 notes; Gemma 4 12B QAT as the AI Scribe model; god-file refactors and ruff gate;
 suite 43 → 652.
 
-Open:
-- MailRepo port of the `save_manifest` ghost-destination fix (prompt prepared
-  2026-08-22).
+Open: nothing scheduled. (MailRepo port of the `save_manifest` fix confirmed
+done — MailRepo commit `c9d35a9`.) Ideas live in Future_Refinements.md.
 
 ---
 
