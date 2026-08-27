@@ -415,8 +415,22 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     
     net_income = total_income - total_expenses
     
-    # Client mode reuses the same summary table with payment-record labels
+    # Client mode reuses the same summary table with payment-record labels,
+    # and opens with one quotable factual sentence: insurers asking for proof
+    # of payment want a statement from the practice, not just a table. This is
+    # a computable fact about the period — deliberately NOT "paid in full",
+    # which would be an attestation about account state that a date-range
+    # report cannot honestly make.
     if client:
+        n_payments = len(income_entries)
+        summary_elements.append(Paragraph(
+            f"Payments received from {esc(client['name'])} "
+            f"(file {esc(client['file_number'])}) between {esc(start_date_str)} "
+            f"and {esc(end_date_str)}: "
+            f"<b>{_format_currency(total_income, currency)}</b> across "
+            f"{n_payments} payment{'s' if n_payments != 1 else ''}.",
+            styles['Normal']))
+        summary_elements.append(Spacer(1, 12))
         lbl_income, lbl_expense, lbl_net = 'Payments Received', 'Refunds', 'Net Received'
         lbl_tax_in, lbl_tax_out = 'Tax Collected', 'Tax Refunded'
     else:

@@ -1,5 +1,16 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-27 — Payment Record: quotable received-total summary
+
+- The per-client Payment Record now opens its summary with one factual
+  sentence: "Payments received from <name> (file <n>) between <dates>:
+  $X across N payments." Insurers verifying proof of payment want a statement
+  from the practice, not just a table. Deliberately not "paid in full" — an
+  account-state attestation a date-range report cannot honestly make; that
+  wording belongs on a future per-statement receipt (noted in
+  Future_Refinements). Test asserts the sentence and the absence of
+  "paid in full", red against prior code.
+
 ### 2026-08-26 — Client export: missing attachments declared, not dropped
 
 - **Client file export**: a PDF attachment promised in the narrative ("attached
