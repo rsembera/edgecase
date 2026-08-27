@@ -872,6 +872,7 @@ def session_report(client_id):
         include_items = request.args.get('include_items') == 'on'
         include_absences = request.args.get('include_absences') == 'on'
         include_fees = request.args.get('include_fees') == 'on'
+        include_payment_status = request.args.get('include_payment_status') == 'on'
         
         # Convert to timestamps
         start_date = None
@@ -895,7 +896,8 @@ def session_report(client_id):
                 include_sessions=include_sessions,
                 include_items=include_items,
                 include_absences=include_absences,
-                include_fees=include_fees
+                include_fees=include_fees,
+                include_payment_status=include_payment_status
             )
             
             # Generate filename

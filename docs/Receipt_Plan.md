@@ -1,6 +1,20 @@
 # Per-Payment Receipt — Implementation Plan
 
-**Status:** Planned — build in a fresh session ("implement docs/Receipt_Plan.md")
+**Status:** RETIRED 2026-08-27, superseded — never built. Talking it through
+surfaced a flaw in the plan itself: the receipt's first entry point assumed a
+client-file payment history that does not exist, and a per-payment document
+answers "what did this transfer settle" when the insurer's actual question is
+"were these services paid for" — which can span several transfers. The Report
+(Client File › Report) is the identity-bearing document, and per-entry payment
+status is computable there: each line inherits its statement's portion state
+(Paid / Owing / Written off / Unbilled), and a paid-in-full line prints only
+when every fee-bearing entry is settled. Shipped as the "Include payment
+status" checkbox; see `pdf/generator.payment_status_label`,
+`tests/test_report_payment_status.py`, and CHANGELOG 2026-08-27. The
+"account-state attestation" objection below dissolved on inspection: anchored
+to the services listed and computed per statement, the claim is bounded and
+verifiable, unlike a bare received-total on the Payment Record.
+
 **Use case:** An insurer (Canada Life, August 2026) asked a client for proof of
 payment for an e-transfer claim. The Financial Report / Payment Record is a tax
 document — no letterhead, registration, or signature — and is the wrong vehicle

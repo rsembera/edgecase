@@ -1,5 +1,26 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-27 (evening) — Report gains payment status; Receipt plan retired
+
+- **Client File › Report: "Include payment status" checkbox.** Each entry
+  inherits its statement's portion state — Paid / Owing / Written off /
+  Unbilled — as a per-line column, and "All fees for the services listed
+  above have been paid in full." prints only when every fee-bearing entry
+  is fully settled. This is the insurer answer: the Report already carries
+  letterhead, registration info, and signature, and the claim is anchored
+  to the services listed, computed per statement, not asserted about the
+  account. Rules (`pdf/generator.payment_status_label`): money owed on any
+  portion wins over a write-off; a write-off wins over Paid (waived is
+  nothing-owing, not paid); guardian splits need every payer settled; $0
+  entries show a dash and don't affect the attestation; billing-error
+  write-offs read as Unbilled because the write-off unlinks the entries.
+  Eight tests in `tests/test_report_payment_status.py`, red against prior
+  code (import-level). Off by default — the existing report is unchanged.
+- **`docs/Receipt_Plan.md` retired unbuilt.** A per-payment receipt answers
+  "what did this transfer settle"; Canada Life's question is "were these
+  services paid for", which can span transfers — and the plan's first entry
+  point assumed a client-file payment history that doesn't exist.
+
 ### 2026-08-27 (later) — Payment Record summary line reverted; Receipt planned
 
 - Reverted the morning's received-total summary line: the Payment Record is a
