@@ -81,12 +81,18 @@ new needed.
 
 ## UI
 
-**Entry point:** a "Learning Record" item in the **Manage ▾** dropdown (with Add
-Client / Edit Types / Edit Links). The nav card's 2×2 mirrors the dashboard
-grid's rhythm and its four buttons are the daily/weekly destinations; a learning
-log is touched a few times a month, which is dropdown frequency. If real use
-proves it deserves card placement, promoting it later is a five-minute template
-change made on evidence. Icon `graduation-cap`.
+**Entry point: nav card goes 3×2.** Manage ▾ is supposed to be client
+operations, but Logout was wedged into it when the card ran out of room —
+adding Learning there too would grow the junk drawer. Instead: six text+icon
+buttons on the card (Settings, Backup, Ledger, Statements, Learning, Logout),
+three per row, and Manage ▾ shrinks back to purely client operations (Add
+Client / Edit Types / Edit Links). Keep text labels — the six words are short,
+"Ledger" vs "Statements" is ambiguous as icons alone, and hover-only labels
+would be the app's sole hidden-meaning UI. Icon-only 3×2 is the fallback if
+three-across doesn't fit the card at real sizes; judge on the testing instance.
+Logout takes the bottom-right slot, visually quieter (subdued colour), so the
+card doesn't read as six equal destinations when one is an exit. Learning icon
+`graduation-cap`.
 
 **Page (`learning.html`):** Ledger layout recycled — year/month groups,
 expand/collapse, row = date · name · type badge (Didactic/Experiential) · hours ·
@@ -131,7 +137,7 @@ like every other form.
 
 1. Migration + model constants, tests red→green
 2. Blueprint + form + page, ruff/JS gates
-3. Manage ▾ menu item
+3. Nav card 3×2 (Logout in, quieter styling; Manage ▾ reduced to client ops); review on the testing instance before proceeding
 4. Cycle summary + settings key, tests
 5. PDF export (ledger_report.py pattern), test asserts all CRPO fields and the
    reflection appear in extracted text
