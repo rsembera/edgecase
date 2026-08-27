@@ -84,9 +84,13 @@
                 <input type="checkbox" id="include_fees" checked>
                 <span>Include fees in report</span>
             </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="include_payment_status">
+                <span>Include payment status</span>
+            </label>
         </div>
         
-        <p class="checkbox-hint">Uncheck to generate an attendance record without financial information.</p>
+        <p class="checkbox-hint">Uncheck fees to generate an attendance record without financial information. Payment status marks each entry Paid, Owing, Written off, or Unbilled, and attests payment in full when every fee has been settled.</p>
     </div>
     
     <!-- Generate Button -->
@@ -196,6 +200,9 @@ document.getElementById('generate-btn').addEventListener('click', function() {
     }
     if (document.getElementById('include_fees').checked) {
         params.append('include_fees', 'on');
+    }
+    if (document.getElementById('include_payment_status').checked) {
+        params.append('include_payment_status', 'on');
     }
     
     const url = '{{ url_for("clients.session_report", client_id=client.id) }}?' + params.toString();

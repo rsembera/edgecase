@@ -31,6 +31,28 @@ def esc(value):
     return _xml_escape(str(value))
 
 
+def payment_status_label(portion_statuses):
+    """Collapse one statement's portion statuses into a per-entry label.
+
+    Used by the client report's payment-status column: an entry inherits
+    the state of the statement that billed it. A guardian-split statement
+    has two portions, and the entry is only 'Paid' when every payer's
+    share is settled. Money still owed anywhere wins over a write-off
+    ('Owing'), and a write-off wins over 'Paid' — waived/uncollectible is
+    nothing-owing, but it is not paid and must never support the report's
+    paid-in-full line. No portions at all means the statement reference is
+    dangling; 'Unbilled' is the honest fallback (billing-error write-offs
+    reach it naturally, because the write-off unlinks the entries).
+    """
+    if not portion_statuses:
+        return 'Unbilled'
+    if any(s in ('ready', 'sent', 'partial') for s in portion_statuses):
+        return 'Owing'
+    if any(s == 'written_off' for s in portion_statuses):
+        return 'Written off'
+    return 'Paid'
+
+
 class StatementPDFGenerator:
     """Generates PDF statements/invoices."""
     
@@ -795,7 +817,8 @@ def generate_statement_pdf(db, statement_portion_id, output_path, assets_path):
 
 def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
                                include_sessions=True, include_items=False, 
-                               include_absences=False, include_fees=True):
+                               include_absences=False, include_fees=True,
+                               include_payment_status=False):
     """
     Generate a client report PDF with sessions, items, and/or absences.
     
@@ -808,6 +831,9 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         include_items: Whether to include item entries
         include_absences: Whether to include absence entries
         include_fees: Whether to include fee column(s)
+        include_payment_status: Add a per-entry Paid/Owing/Written off/
+            Unbilled column, and a paid-in-full line when every fee-bearing
+            entry's statement is fully settled
     
     Returns:
         BytesIO buffer containing the PDF
@@ -878,7 +904,29 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         return 0
     
     entries.sort(key=get_entry_date)
-    
+
+    # Payment status per STATEMENT, inherited by every entry billed on it.
+    # One query over the statements the listed entries touch; each
+    # statement's portions collapse to a label via payment_status_label.
+    status_by_statement = {}
+    if include_payment_status:
+        statement_ids = sorted({e['statement_id'] for e in entries
+                                if e.get('statement_id')})
+        if statement_ids:
+            cursor = db.connect().cursor()
+            placeholders = ','.join('?' * len(statement_ids))
+            cursor.execute(f"""
+                SELECT statement_entry_id, status FROM statement_portions
+                WHERE client_id = ?
+                AND statement_entry_id IN ({placeholders})
+            """, [client_id, *statement_ids])
+            grouped = {}
+            for statement_id, status in cursor.fetchall():
+                grouped.setdefault(statement_id, []).append(status)
+            status_by_statement = {
+                statement_id: payment_status_label(statuses)
+                for statement_id, statuses in grouped.items()}
+
     # Get settings
     settings = {
         'practice_name': db.get_setting('practice_name', ''),
@@ -951,19 +999,34 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         if has_tax:
             # 5-column format with tax
             header_data = ['Date', 'Description', 'Duration', 'Amount', 'Tax']
-            col_widths = [1.0*inch, 2.4*inch, 1.0*inch, 1.3*inch, 1.3*inch]
+            if include_payment_status:
+                col_widths = [0.9*inch, 2.0*inch, 0.9*inch, 1.1*inch, 1.1*inch]
+            else:
+                col_widths = [1.0*inch, 2.4*inch, 1.0*inch, 1.3*inch, 1.3*inch]
         else:
             # 4-column format without tax
             header_data = ['Date', 'Description', 'Duration', 'Fee']
-            col_widths = [1.2*inch, 2.8*inch, 1.3*inch, 1.2*inch]
+            if include_payment_status:
+                col_widths = [1.0*inch, 2.3*inch, 1.1*inch, 1.1*inch]
+            else:
+                col_widths = [1.2*inch, 2.8*inch, 1.3*inch, 1.2*inch]
     else:
         header_data = ['Date', 'Description', 'Duration']
-        col_widths = [1.5*inch, 3.5*inch, 1.5*inch]
+        if include_payment_status:
+            col_widths = [1.3*inch, 3.0*inch, 1.2*inch]
+        else:
+            col_widths = [1.5*inch, 3.5*inch, 1.5*inch]
+
+    if include_payment_status:
+        header_data = header_data + ['Payment']
+        col_widths = col_widths + [1.0*inch]
     
     table_data = [header_data]
     total_base = 0
     total_tax = 0
     total_fees = 0
+    fee_bearing_count = 0
+    all_paid = True
     currency = db.get_setting('currency', 'CAD')
     
     for entry in entries:
@@ -1008,21 +1071,40 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         
         if include_fees:
             if has_tax:
-                table_data.append([date_str, description, duration_str, generator._format_currency(base_fee, currency), generator._format_currency(tax_amount, currency)])
+                row = [date_str, description, duration_str, generator._format_currency(base_fee, currency), generator._format_currency(tax_amount, currency)]
             else:
-                table_data.append([date_str, description, duration_str, generator._format_currency(fee, currency)])
+                row = [date_str, description, duration_str, generator._format_currency(fee, currency)]
         else:
-            table_data.append([date_str, description, duration_str])
+            row = [date_str, description, duration_str]
+
+        if include_payment_status:
+            # A $0 entry was never billable — it gets a dash and has no say
+            # in the paid-in-full line either way.
+            if to_cents(fee) == 0:
+                status_label = '—'
+            elif entry.get('statement_id'):
+                status_label = status_by_statement.get(
+                    entry['statement_id'], 'Unbilled')
+            else:
+                status_label = 'Unbilled'
+            if status_label != '—':
+                fee_bearing_count += 1
+                if status_label != 'Paid':
+                    all_paid = False
+            row.append(status_label)
+
+        table_data.append(row)
     
     # Add totals row if fees included
+    status_pad = [''] if include_payment_status else []
     if include_fees:
         if has_tax:
             # Add subtotal and tax rows, then total (matching statement format)
-            table_data.append(['', '', '', 'Subtotal', generator._format_currency(total_base, currency)])
-            table_data.append(['', '', '', 'Tax', generator._format_currency(total_tax, currency)])
-            table_data.append(['', '', '', 'TOTAL', generator._format_currency(total_fees, currency)])
+            table_data.append(['', '', '', 'Subtotal', generator._format_currency(total_base, currency)] + status_pad)
+            table_data.append(['', '', '', 'Tax', generator._format_currency(total_tax, currency)] + status_pad)
+            table_data.append(['', '', '', 'TOTAL', generator._format_currency(total_fees, currency)] + status_pad)
         else:
-            table_data.append(['', '', 'TOTAL', generator._format_currency(total_fees, currency)])
+            table_data.append(['', '', 'TOTAL', generator._format_currency(total_fees, currency)] + status_pad)
     
     # Create table
     table = Table(table_data, colWidths=col_widths)
@@ -1050,23 +1132,36 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     
     if include_fees:
         if has_tax:
-            # 5-column format
+            # 5-column format; summary lines stop before the status column
             table_style.extend([
                 ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Amount
                 ('ALIGN', (4, 0), (4, -1), 'RIGHT'),  # Tax
                 ('FONTNAME', (3, -3), (-1, -1), 'Helvetica-Bold'),  # Summary rows
-                ('LINEABOVE', (3, -3), (-1, -3), 1, colors.black),  # Line above Subtotal
+                ('LINEABOVE', (3, -3),
+                 (4 if include_payment_status else -1, -3),
+                 1, colors.black),  # Line above Subtotal
             ])
         else:
             # 4-column format
             table_style.extend([
                 ('ALIGN', (3, 0), (3, -1), 'RIGHT'),  # Fee
                 ('FONTNAME', (2, -1), (3, -1), 'Helvetica-Bold'),  # Total row
-                ('LINEABOVE', (2, -1), (-1, -1), 1, colors.black),  # Line above TOTAL
+                ('LINEABOVE', (2, -1),
+                 (3 if include_payment_status else -1, -1),
+                 1, colors.black),  # Line above TOTAL
             ])
     
     table.setStyle(TableStyle(table_style))
     story.append(table)
+
+    # The report's whole point when payment status was requested: a
+    # signed, computable claim, printed ONLY when every fee-bearing entry
+    # sits on a fully settled statement. Anything less and the per-line
+    # column already tells the precise truth on its own.
+    if include_payment_status and fee_bearing_count and all_paid:
+        story.append(Paragraph(
+            'All fees for the services listed above have been paid in full.',
+            generator.styles['Attestation']))
     
     story.append(Spacer(1, 0.4*inch))
     
