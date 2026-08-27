@@ -5,7 +5,7 @@ real practice workflow demands one, so this list is deliberately short; most of
 what lands in it either graduates into the CHANGELOG or gets declined. Completed
 items are moved to the bottom rather than deleted.
 
-**Last reviewed:** August 27, 2026, against v2.0.1.
+**Last reviewed:** August 26, 2026, against v2.0.1.
 
 ---
 
@@ -44,23 +44,6 @@ and could export a summary for a QA audit. It passes the "practice management,
 solo practitioner" test better than most ideas, but nobody has actually needed
 it yet — including the author. It stays here until a real renewal cycle makes
 the spreadsheet hurt.
-
----
-
-## Per-Payment Receipt
-
-**Priority:** Low
-**Effort:** Small (the data is all in `payment_allocations`)
-**Status:** Documented, not scheduled — one insurer query so far, answered by the Payment Record
-
-A "Receipt" action on a recorded payment: amount, date received, method note,
-which statements it settled (and there, per-statement, "settled in full" is a
-computable fact — unlike a date-range report, where such wording would be an
-attestation about account state). Registration info and signature from
-Settings. Trigger to build: a second proof-of-payment request, or a client
-asking for receipts routinely. First occurrence (August 2026, Canada Life
-e-transfer verification) was fully served by the per-client Payment Record,
-which since then opens with a quotable received-total summary line.
 
 ---
 
