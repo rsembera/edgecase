@@ -1153,21 +1153,24 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     
     table.setStyle(TableStyle(table_style))
     story.append(table)
-
-    # The report's whole point when payment status was requested: a
-    # signed, computable claim, printed ONLY when every fee-bearing entry
-    # sits on a fully settled statement. Anything less and the per-line
-    # column already tells the precise truth on its own.
-    if include_payment_status and fee_bearing_count and all_paid:
-        story.append(Paragraph(
-            'All fees for the services listed above have been paid in full.',
-            generator.styles['Attestation']))
     
     story.append(Spacer(1, 0.4*inch))
     
     # Attestation
     if settings['include_attestation'] and settings['attestation_text']:
         story.append(Paragraph(esc(settings['attestation_text']), generator.styles['Attestation']))
+
+    # Services rendered, then fees paid, one signature under both. The
+    # paid-in-full line prints ONLY when every fee-bearing entry sits on a
+    # fully settled statement; anything less and the per-line column
+    # already tells the precise truth on its own.
+    if include_payment_status and fee_bearing_count and all_paid:
+        paid_style = ParagraphStyle(
+            'PaidInFull', parent=generator.styles['Attestation'],
+            spaceBefore=0)
+        story.append(Paragraph(
+            'All fees for the services listed above have been paid in full.',
+            paid_style))
     
     story.append(Spacer(1, 0.3*inch))
     
