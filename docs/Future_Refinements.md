@@ -47,6 +47,15 @@ the spreadsheet hurt.
 
 ---
 
+## Per-Payment Receipt
+
+**Status:** Promoted to a full plan — see `Receipt_Plan.md`. (The August 2026
+Canada Life proof-of-payment request turned out not to be answerable by the
+Payment Record: that is a tax document with no letterhead or signature. A
+summary line added to it was reverted the same day.)
+
+---
+
 ## CSS Architecture Review
 
 **Priority:** Low

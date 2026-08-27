@@ -1,5 +1,15 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-27 (later) — Payment Record summary line reverted; Receipt planned
+
+- Reverted the morning's received-total summary line: the Payment Record is a
+  tax document (no letterhead, registration, or signature) and insurer-facing
+  language on it was the wrong direction. Proof of payment needs an
+  identity-bearing per-payment document — plan in `docs/Receipt_Plan.md`.
+- Also learned: the Financial Report filters on date *received*; a range
+  covering the service month misses payments that arrived the following month.
+  Documented in the billing guide.
+
 ### 2026-08-26 — Client export: missing attachments declared, not dropped
 
 - **Client file export**: a PDF attachment promised in the narrative ("attached
