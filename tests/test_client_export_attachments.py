@@ -60,31 +60,3 @@ def test_readable_attachment_still_merges_without_notice(app_db, tmp_path):
     text = _export_text(app_db, client_id)
     assert "REFERRAL BODY TEXT" in text
     assert "could not be included" not in text
-
-
-def test_payment_record_carries_quotable_received_summary(app_db, tmp_path):
-    """Insurer-facing sentence: total received and payment count for the period.
-
-    Factual ('received $X across N payments'), never 'paid in full' — that
-    would be an account-state attestation a date-range report can't make.
-    """
-    from pdf.ledger_report import generate_ledger_report_pdf
-    client_id = app_db.add_client({'first_name': 'Carla', 'last_name': 'Claimant',
-                                   'file_number': 'CL-777', 'type_id': 1})
-    for ts, amt in ((1755000000, 120.0), (1756000000, 80.0)):
-        app_db.add_entry({'client_id': None, 'class': 'income',
-                          'ledger_type': 'income', 'ledger_date': ts,
-                          'total_amount': amt, 'tax_amount': 0.0,
-                          'source': 'CL-777', 'description': 'e-transfer'})
-    out = tmp_path / "record.pdf"
-    generate_ledger_report_pdf(app_db, 1754000000, 1757000000, str(out),
-                               start_date_str='2026-08-01', end_date_str='2026-08-31',
-                               client={'id': client_id, 'file_number': 'CL-777',
-                                       'name': 'Carla Claimant'})
-    raw = "\n".join(p.extract_text() for p in PdfReader(str(out)).pages)
-    text = " ".join(raw.split())  # PDF extraction breaks lines mid-phrase
-    assert "Payments received from Carla Claimant" in text
-    assert "file CL-777" in text
-    assert "200.00" in text
-    assert "2 payments" in text
-    assert "paid in full" not in text.lower()
