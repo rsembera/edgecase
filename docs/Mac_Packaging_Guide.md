@@ -1,5 +1,9 @@
 # EdgeCase Equalizer - macOS Packaging Guide
 
+> This guide covers the **build** only. The full release ritual — gates, tag,
+> checksums, website, GitHub Release, docs — is `Release_Checklist.md`.
+
+
 This document describes how to build, sign, notarize, and package the macOS .app and .dmg for EdgeCase Equalizer.
 
 ## Prerequisites

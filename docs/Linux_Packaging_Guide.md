@@ -1,5 +1,9 @@
 # EdgeCase Equalizer - Linux .deb Packaging Guide
 
+> This guide covers the **build** only. The full release ritual — gates, tag,
+> checksums, website, GitHub Release, docs — is `Release_Checklist.md`.
+
+
 This document describes how to build the Linux .deb package for EdgeCase Equalizer.
 
 ## Prerequisites
