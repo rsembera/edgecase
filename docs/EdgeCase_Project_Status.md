@@ -23,13 +23,10 @@ balances); disaster recovery reachable before login; restore-point credential
 notes; Gemma 4 12B QAT as the AI Scribe model; god-file refactors and ruff gate;
 suite 43 → 652.
 
-Open:
-- **GitHub Releases** (release-day task): create Releases for v2.0.0/v2.0.1 with
-  the dmg/.deb attached — `gh release create v2.0.1 <files> --notes-file ...`.
-  `gh` is set up on the Linux build machine (2026-08-28); repo
-  description/homepage/topics set the same night. Fold into the next
-  release's checklist alongside the website download swap. (MailRepo port of the `save_manifest` fix confirmed
-done — MailRepo commit `c9d35a9`.) Ideas live in Future_Refinements.md.
+Open: nothing scheduled. GitHub Releases created 2026-08-29 (v2.0.0 notes-only,
+v2.0.1 latest with dmg/.deb/SHA256SUMS attached; sums match the website's
+"Verify your download" section). Release-day checklist gains one line:
+`gh release create vX.Y.Z <dmg> <deb> SHA256SUMS.txt --notes-file ...`.
 
 ---
 
