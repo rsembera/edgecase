@@ -48,10 +48,15 @@ docs beyond this line).
    `downloads/SHA256SUMS.txt` (two-space format: `<hash>  <filename>`) and
    update the website's "Verify your download" section. Recompute from the
    actual files being published — never copy hashes from an earlier transcript.
-7. **Website** — swap packages in `downloads/` (git rm the old, add the new),
-   update version strings (download page, hero), add the what's-new entry.
-   `git pull --rebase` FIRST (three clones drift), then push = live deploy.
-   Curl the download URLs and one changed page from outside to verify.
+7. **Website** — packages are NOT committed (2026-08-29: git history was
+   growing ~150 MB/release). `scp` both packages into the docroot
+   (`sentinel:/var/www/edgecaseequalizer.ca/downloads/`) and stage copies in
+   `~/releases/` on the server; the deploy hook's `checkout -f` leaves
+   untracked files alone. In git: update SHA256SUMS.txt, version strings,
+   what's-new. `git pull --rebase` FIRST (clones drift), push = live deploy.
+   Remove the prior release's binaries from the docroot when ready. Curl the
+   download URLs from outside and hash one full download against
+   SHA256SUMS.txt.
 8. **GitHub Release** —
    ```bash
    gh release create vX.Y.Z dist/App-X.Y.Z.dmg path/to/app_X.Y.Z_amd64.deb \
