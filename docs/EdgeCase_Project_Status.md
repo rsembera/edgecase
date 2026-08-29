@@ -23,7 +23,12 @@ balances); disaster recovery reachable before login; restore-point credential
 notes; Gemma 4 12B QAT as the AI Scribe model; god-file refactors and ruff gate;
 suite 43 → 652.
 
-Open: nothing scheduled. (MailRepo port of the `save_manifest` fix confirmed
+Open:
+- **GitHub Releases** (release-day task): create Releases for v2.0.0/v2.0.1 with
+  the dmg/.deb attached — `gh release create v2.0.1 <files> --notes-file ...`.
+  `gh` is installed and authenticated on Apollo (insecure-storage token,
+  2026-08-28); repo description/homepage/topics set the same night. Fold into
+  the next release's checklist alongside the website download swap. (MailRepo port of the `save_manifest` fix confirmed
 done — MailRepo commit `c9d35a9`.) Ideas live in Future_Refinements.md.
 
 ---
