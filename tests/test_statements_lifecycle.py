@@ -500,3 +500,31 @@ def test_send_applescript_email_cleans_up_temp_pdf(client, monkeypatch):
         assert not tmpdir.exists()
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def test_find_unbilled_reports_stragglers_before_range(client, app_db):
+    """An unbilled entry dated before the range start must be reported, not
+    silently omitted: the backdated-absence case (entered in September, dated
+    August 31, after August statements already went out)."""
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid, date=(2026, 5, 31))   # before RANGE start
+    in_range = app_db.add_client({
+        "file_number": "ST-002", "first_name": "June", "middle_name": "",
+        "last_name": "Billed", "type_id": 1,
+    })
+    _add_locked_session(app_db, in_range)                   # inside RANGE
+
+    payload = client.get("/statements/find-unbilled", query_string=RANGE).get_json()
+    assert payload["success"] is True
+    listed = {c["id"] for c in payload["clients"]}
+    assert cid not in listed and in_range in listed          # range still strict
+    assert payload["earlier_unbilled"] is not None
+    assert payload["earlier_unbilled"]["count"] == 1
+    assert payload["earlier_unbilled"]["earliest"] == "2026-05-31"
+
+
+def test_find_unbilled_no_straggler_note_when_none(client, app_db):
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    payload = client.get("/statements/find-unbilled", query_string=RANGE).get_json()
+    assert payload["earlier_unbilled"] is None
