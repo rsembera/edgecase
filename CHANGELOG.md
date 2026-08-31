@@ -7,10 +7,11 @@
   earliest YYYY-MM-DD — widen the range start to include them"). Range stays
   strict; nothing is auto-included — an old unbilled entry may be unbilled on
   purpose, and widening is a billing decision that stays with the
-  practitioner. Case that prompted it: an absence entered in September but
-  dated August 31, after August statements had gone out, would otherwise slip
-  behind every future default range (visible on the dashboard's date-unbounded
-  Unbilled stat, but never offered by the generator). Two regression tests,
+  practitioner. The scenario this guards against: an absence entered after
+  that month's statements have already gone out, backdated to the month's last
+  day, would otherwise slip behind every future default range (visible on the
+  dashboard's date-unbounded Unbilled stat, but never offered by the
+  generator). Two regression tests,
   red against prior code.
 
 ### 2026-08-31 — Minute-accurate time pickers for documentary entries
