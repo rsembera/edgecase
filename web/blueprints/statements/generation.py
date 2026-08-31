@@ -139,9 +139,43 @@ def find_unbilled():
         })
         clients[client_id]['unbilled_total'] += fee
     
+    # Stragglers: unbilled fee-bearing entries dated BEFORE the range start.
+    # Same predicate, earlier dates. Reported, never auto-included: an old
+    # unbilled entry may be unbilled on purpose (fee under discussion, pro
+    # bono pending), and widening the range is a billing decision that stays
+    # with the practitioner. The generator just refuses to be silently
+    # incomplete about it.
+    cursor.execute("""
+        SELECT COUNT(*) AS n,
+               MIN(CASE e.class
+                   WHEN 'session' THEN e.session_date
+                   WHEN 'absence' THEN e.absence_date
+                   ELSE e.item_date END) AS earliest
+        FROM entries e
+        JOIN clients c ON e.client_id = c.id
+        JOIN client_types ct ON c.type_id = ct.id
+        WHERE e.class IN ('session', 'absence', 'item')
+        AND e.statement_id IS NULL
+        AND e.locked = 1
+        AND ct.name != 'Inactive'
+        AND (
+            (e.class = 'session' AND e.session_date < ? AND e.fee > 0)
+            OR (e.class = 'absence' AND e.absence_date < ? AND (e.fee > 0 OR e.base_fee > 0))
+            OR (e.class = 'item' AND e.item_date < ? AND (e.fee != 0 OR e.base_price != 0))
+        )
+    """, (start_ts, start_ts, start_ts))
+    n_before, earliest_ts = cursor.fetchone()
+    earlier_unbilled = None
+    if n_before:
+        earlier_unbilled = {
+            'count': n_before,
+            'earliest': datetime.fromtimestamp(earliest_ts).strftime('%Y-%m-%d'),
+        }
+
     return jsonify({
         'success': True,
-        'clients': list(clients.values())
+        'clients': list(clients.values()),
+        'earlier_unbilled': earlier_unbilled
     })
 
 

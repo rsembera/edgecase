@@ -272,6 +272,16 @@ function findUnbilled() {
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('unbilled-results');
+            let beforeNote = '';
+            if (data.earlier_unbilled) {
+                const eu = data.earlier_unbilled;
+                const plural = eu.count === 1 ? 'entry' : 'entries';
+                beforeNote = `
+                    <div class="data-loss-notice" style="margin-bottom: 0.75rem;">
+                        ${eu.count} unbilled ${plural} from before this range (earliest ${eu.earliest}).
+                        Widen the range start to include ${eu.count === 1 ? 'it' : 'them'}.
+                    </div>`;
+            }
             
             if (data.clients && data.clients.length > 0) {
                 let html = `
@@ -303,9 +313,9 @@ function findUnbilled() {
                     </div>
                 `;
                 
-                container.innerHTML = html;
+                container.innerHTML = beforeNote + html;
             } else {
-                container.innerHTML = `
+                container.innerHTML = beforeNote + `
                     <div class="unbilled-results">
                         <p style="color: #718096; padding: 1rem 0;">No unbilled sessions found for the selected date range.</p>
                     </div>

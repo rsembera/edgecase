@@ -1,5 +1,18 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-31 (later) — Find Unbilled reports stragglers before the range
+
+- Find Unbilled now counts unbilled fee-bearing entries dated *before* the
+  range start and shows a notice ("N unbilled entries from before this range,
+  earliest YYYY-MM-DD — widen the range start to include them"). Range stays
+  strict; nothing is auto-included — an old unbilled entry may be unbilled on
+  purpose, and widening is a billing decision that stays with the
+  practitioner. Case that prompted it: an absence entered in September but
+  dated August 31, after August statements had gone out, would otherwise slip
+  behind every future default range (visible on the dashboard's date-unbounded
+  Unbilled stat, but never offered by the generator). Two regression tests,
+  red against prior code.
+
 ### 2026-08-31 — Minute-accurate time pickers for documentary entries
 
 - Communication and Upload time pickers now record to the minute: the minutes
