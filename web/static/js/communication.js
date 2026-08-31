@@ -74,6 +74,7 @@ async function initCommunicationPickers() {
     
     // Initialize time picker
     const timePicker = initTimePicker('comm-time-picker', {
+        minuteStep: 1,
         format: timeFormat,
         initialTime: timeInput.value || null,
         onSelect: (timeStr) => {

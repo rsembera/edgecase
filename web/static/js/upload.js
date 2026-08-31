@@ -68,6 +68,7 @@ async function initUploadPickers() {
     
     // Initialize time picker
     const timePicker = initTimePicker('upload-time-picker', {
+        minuteStep: 1,
         format: timeFormat,
         initialTime: timeInput.value || null,
         onSelect: (timeStr) => {

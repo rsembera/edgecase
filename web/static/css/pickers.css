@@ -154,6 +154,16 @@
     grid-template-columns: repeat(4, 1fr);
 }
 
+/* Minute-accurate picker: tens row above ones row */
+.picker-grid-minute-tens {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.picker-grid-minute-ones {
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: 6px;
+}
+
 .picker-grid-ampm {
     grid-template-columns: repeat(2, 1fr);
     max-width: 200px;

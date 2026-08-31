@@ -1,5 +1,17 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-08-31 — Minute-accurate time pickers for documentary entries
+
+- Communication and Upload time pickers now record to the minute: the minutes
+  screen shows a tens row (:00–:50) and a ones row (0–9); tapping a ones cell
+  confirms. These entries mirror an artifact's own timestamp (an email header,
+  a fax line) and must match it — a chart that says 3:55 beside an email that
+  says 3:58 is a discrepancy waiting for an audit. Session, Absence, Item, and
+  Appointment pickers keep 5-minute steps: scheduled time, not documentary.
+- Implemented as a `minuteStep` option on the shared picker (default 5);
+  parse/floor paths respect the step. Existing communications remain as
+  recorded — accurate to the resolution the tool offered at the time.
+
 ### 2026-08-27 (evening) — Report gains payment status; Receipt plan retired
 
 - **Client File › Report: "Include payment status" checkbox.** Each entry
