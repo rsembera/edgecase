@@ -449,7 +449,11 @@ class TimePicker {
         this.options = {
             format: options.format || '12h', // '12h' or '24h'
             onSelect: options.onSelect || (() => {}),
-            initialTime: options.initialTime || null
+            initialTime: options.initialTime || null,
+            // 5 = scheduled-time pickers (sessions, appointments); 1 = documentary
+            // pickers (communication, upload) where the entry mirrors an artifact's
+            // own timestamp and must not be rounded.
+            minuteStep: options.minuteStep || 5
         };
         
         // Parse initial time or use current
@@ -490,7 +494,7 @@ class TimePicker {
             if (ampm === 'AM' && h === 12) h = 0;
             
             this.hour = h;
-            this.minute = Math.floor(m / 5) * 5;
+            this.minute = Math.floor(m / this.options.minuteStep) * this.options.minuteStep;
             return;
         }
         
@@ -498,14 +502,14 @@ class TimePicker {
         const match24 = timeStr.match(/^(\d{1,2}):(\d{2})$/);
         if (match24) {
             this.hour = parseInt(match24[1]);
-            this.minute = Math.floor(parseInt(match24[2]) / 5) * 5;
+            this.minute = Math.floor(parseInt(match24[2]) / this.options.minuteStep) * this.options.minuteStep;
             return;
         }
         
         // Fallback to current time
         const now = new Date();
         this.hour = now.getHours();
-        this.minute = Math.floor(now.getMinutes() / 5) * 5;
+        this.minute = Math.floor(now.getMinutes() / this.options.minuteStep) * this.options.minuteStep;
     }
     
     /**
@@ -620,13 +624,30 @@ class TimePicker {
                 <div></div>
             </div>
             <div class="time-picker-section">
-                <div class="picker-grid picker-grid-minutes">
+                <div class="picker-grid ${this.options.minuteStep === 1 ? 'picker-grid-minute-tens' : 'picker-grid-minutes'}">
         `;
         
-        for (let m = 0; m < 60; m += 5) {
-            const isSelected = this.minute === m;
-            const classes = isSelected ? 'picker-cell selected' : 'picker-cell';
-            html += `<div class="${classes}" data-minute="${m}">:${m.toString().padStart(2, '0')}</div>`;
+        if (this.options.minuteStep === 1) {
+            // Minute-accurate: tens row (00-50) + ones row (0-9). Tapping a tens
+            // cell updates in place; tapping a ones cell confirms and advances,
+            // matching the top-to-bottom reading order.
+            const tens = Math.floor(this.minute / 10);
+            const ones = this.minute % 10;
+            for (let t = 0; t < 6; t++) {
+                const classes = t === tens ? 'picker-cell selected' : 'picker-cell';
+                html += `<div class="${classes}" data-minute-tens="${t}">:${t}0</div>`;
+            }
+            html += '</div><div class="picker-grid picker-grid-minute-ones">';
+            for (let o = 0; o < 10; o++) {
+                const classes = o === ones ? 'picker-cell selected' : 'picker-cell';
+                html += `<div class="${classes}" data-minute-ones="${o}">${o}</div>`;
+            }
+        } else {
+            for (let m = 0; m < 60; m += this.options.minuteStep) {
+                const isSelected = this.minute === m;
+                const classes = isSelected ? 'picker-cell selected' : 'picker-cell';
+                html += `<div class="${classes}" data-minute="${m}">:${m.toString().padStart(2, '0')}</div>`;
+            }
         }
         
         html += '</div></div>';
@@ -674,7 +695,7 @@ class TimePicker {
         
         this.dropdown.addEventListener('click', (e) => {
             e.stopPropagation();
-            const target = e.target.closest('[data-action], [data-hour], [data-minute], [data-ampm]');
+            const target = e.target.closest('[data-action], [data-hour], [data-minute], [data-minute-tens], [data-minute-ones], [data-ampm]');
             if (!target) return;
             
             const action = target.dataset.action;
@@ -701,6 +722,25 @@ class TimePicker {
                     }
                     this.currentView = 'minutes';
                     this.renderView();
+                }
+                return;
+            }
+            
+            // Minute digit selection (minuteStep 1): tens re-renders, ones confirms
+            if (target.dataset.minuteTens !== undefined) {
+                this.minute = parseInt(target.dataset.minuteTens) * 10 + (this.minute % 10);
+                this.renderView();
+                return;
+            }
+            if (target.dataset.minuteOnes !== undefined) {
+                this.minute = Math.floor(this.minute / 10) * 10 + parseInt(target.dataset.minuteOnes);
+                if (this.options.format === '12h') {
+                    this.currentView = 'ampm';
+                    this.renderView();
+                } else {
+                    this.updateDisplay();
+                    this.close();
+                    this.options.onSelect(this.formatTime());
                 }
                 return;
             }
