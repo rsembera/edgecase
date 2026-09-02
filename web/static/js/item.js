@@ -76,6 +76,7 @@ async function initItemPickers() {
     
     // Initialize time picker
     const timePicker = initTimePicker('item-time-picker', {
+        minuteStep: 1,
         format: timeFormat,
         initialTime: timeInput.value || null,
         onSelect: (timeStr) => {
