@@ -80,6 +80,9 @@ docs beyond this line).
   (caught a stale-JS dmg, 2.0.0 build day).
 - Static assets must carry `?v=` cache-busting or upgraders run old JS
   (2.0.1's reason for existing).
+- Line counts in docs, website, or anywhere public come from `cloc`
+  (code only), never `wc -l` — the difference was 34k vs 49k when checked
+  (2026-09-01), and a visitor who clones the repo will run cloc.
 - The packaging-manifest test only sees imports that happen at import time;
   a module-level import in any test file is what surfaces a function-local
   dependency (how pypdf's undeclared status was caught).
