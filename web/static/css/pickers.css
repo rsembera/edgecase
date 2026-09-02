@@ -154,13 +154,18 @@
     grid-template-columns: repeat(4, 1fr);
 }
 
-/* Minute-accurate picker: tens row above ones row */
+/* Minute-accurate picker: tens row above ones row.
+   The dropdown shrink-wraps its content, so bare 1fr columns size to the
+   widest cell — and the selected (bold) label is wider than the others.
+   A tens tap re-renders in place, which made the dropdown jitter by a few
+   px depending on which cell was bold. A floor width larger than any bold
+   label keeps the measurement constant. */
 .picker-grid-minute-tens {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(2.75rem, 1fr));
 }
 
 .picker-grid-minute-ones {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(2.75rem, 1fr));
     margin-top: 6px;
 }
 
