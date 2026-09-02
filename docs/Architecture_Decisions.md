@@ -289,6 +289,29 @@ Fee: $100.00 → $120.00
 Date: 2025-11-15 → 2025-11-16
 ```
 
+### Time Picker Granularity
+
+**To the minute** — Session, Communication, Absence, Item, Upload (all
+client-file entries).
+**5-minute steps** — Scheduler appointments only.
+
+The rule: **client-file entries are records; appointments are plans.** A record
+holds the actual time — the email header's 3:58, the session that started at
+3:07 — and rounding it creates a chart that disagrees with a checkable
+artifact, or with itself. A plan has no true minute to betray; 5-minute steps
+are its natural resolution.
+
+History, because this was decided twice: the first cut (2026-08-31) split
+documentary entries (Communication, Upload: minute) from scheduled ones
+(Session, Absence, Item: 5-minute). It didn't survive contact with the data —
+new entries auto-populate with the actual clock minute, so sessions were
+already stored minute-accurate while the 5-minute picker floored them on every
+reopen, silently rewriting the time on re-save. The boundary was redrawn
+(2026-09-02) at client-file vs scheduler, which is where it belongs.
+Implementation: `minuteStep` option on the shared TimePicker (default 5);
+minute-accurate mode renders a tens row (:00–:50) over a ones row (0–9), ones
+tap confirms.
+
 ### Locking Behavior
 
 **Lock immediately:**
