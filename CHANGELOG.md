@@ -1,5 +1,14 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-02 — Minute picker no longer resizes on tens selection
+
+- The minute-accurate picker's dropdown shrink-wraps its content, so its
+  `1fr` grid columns sized to the widest cell — and the selected cell is
+  bold, which is a few px wider. Tapping a tens cell re-renders in place with
+  a different cell bold, so the dropdown width shifted with each tap. Both
+  minute-grid rows now use `minmax(2.75rem, 1fr)` columns; the floor is wider
+  than any bold label, so the measurement is constant. CSS only.
+
 ### 2026-08-31 (later) — Find Unbilled reports stragglers before the range
 
 - Find Unbilled now counts unbilled fee-bearing entries dated *before* the
