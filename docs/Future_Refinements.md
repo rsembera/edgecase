@@ -56,6 +56,26 @@ summary line added to it was reverted the same day.)
 
 ---
 
+## SVG Icon Pipeline (queued for 2.1.0)
+
+**Priority:** Ride along with the next release build
+**Effort:** Small
+**Status:** Artwork done (2026-09-01); plumbing deliberately deferred to a release week
+
+Canonical vector artwork now lives in `packaging/icons/svg/` — `edgecase-mark.svg`
+(the three-bar icon, colours sampled from the original raster: #00A1B3 /
+#02B5C1 / #FEA00B) and `edgecase-wordmark.svg` (mark + type; note the wordmark
+uses `<text>`, so convert to paths before using it anywhere font-unpredictable).
+
+At 2.1.0 build time: regenerate the five hicolor PNGs from the mark
+(`inkscape -w N`), install the SVG to `hicolor/scalable/apps/` in
+`build_deb.sh`, use the mark as the website favicon, and note in the packaging
+guides that the SVG is the master and rasters are generated. Deferred rather
+than done now because packaging changes are only tested by building and
+installing a package, which release week does anyway.
+
+---
+
 ## CSS Architecture Review
 
 **Priority:** Low

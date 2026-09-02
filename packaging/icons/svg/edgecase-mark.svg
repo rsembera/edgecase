@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- EdgeCase Equalizer mark: three rounded bars, colours sampled from the
+       original raster icon (top #00A1B3, middle #02B5C1, bottom #FEA00B). -->
+  <rect x="34" y="22"  width="188" height="56" rx="28" fill="#00A1B3"/>
+  <rect x="34" y="100" width="188" height="56" rx="28" fill="#02B5C1"/>
+  <rect x="34" y="178" width="188" height="56" rx="28" fill="#FEA00B"/>
+</svg>
