@@ -1,5 +1,18 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-02 (later) — Minute-accurate pickers on all client-file entries
+
+- Session, Absence, and Item time pickers now use the tens/ones minute grid,
+  joining Communication and Upload. The Aug 31 split (documentary entries to
+  the minute, scheduled entries at 5) didn't survive contact with the data: a
+  session opened and saved without touching the time is auto-populated with
+  the actual clock minute (e.g. 7:21), so the record was already
+  minute-accurate while the 5-minute picker floored it to 7:20 on every
+  reopen — the list said one thing and the form another, and any re-pick
+  silently rounded. The rule is now: client-file entries record the actual
+  time; only scheduler appointments (plans, not records) keep 5-minute steps.
+- Existing entries are unchanged; the form now displays them as stored.
+
 ### 2026-09-02 — Minute picker no longer resizes on tens selection
 
 - The minute-accurate picker's dropdown shrink-wraps its content, so its

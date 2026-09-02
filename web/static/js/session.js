@@ -353,6 +353,7 @@ async function initSessionPickers() {
     const timeContainer = document.getElementById('session-time-picker');
     if (timeContainer) {
         const timePicker = new TimePicker(timeContainer, {
+            minuteStep: 1,
             format: timeFormat,
             initialTime: timeInput.value || null,
             onSelect: (time) => {

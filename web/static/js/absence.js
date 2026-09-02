@@ -76,6 +76,7 @@ async function initAbsencePickers() {
     
     // Initialize time picker
     const timePicker = initTimePicker('absence-time-picker', {
+        minuteStep: 1,
         format: timeFormat,
         initialTime: timeInput.value || null,
         onSelect: (timeStr) => {

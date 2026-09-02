@@ -450,9 +450,9 @@ class TimePicker {
             format: options.format || '12h', // '12h' or '24h'
             onSelect: options.onSelect || (() => {}),
             initialTime: options.initialTime || null,
-            // 5 = scheduled-time pickers (sessions, appointments); 1 = documentary
-            // pickers (communication, upload) where the entry mirrors an artifact's
-            // own timestamp and must not be rounded.
+            // 1 = client-file entries (session, absence, item, communication,
+            // upload): the record must hold the actual time, not a rounded one.
+            // 5 = scheduler appointments, which are plans rather than records.
             minuteStep: options.minuteStep || 5
         };
         
