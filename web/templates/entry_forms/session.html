@@ -11,10 +11,12 @@
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/session.js', v=static_v) }}"></script>
 <script>
-// Auto-size session notes textarea on load (Safari-compatible)
+// Auto-size the notes textareas on load (Safari-compatible)
 document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.getElementById('content');
-    if (textarea && textarea.value) {
+    ['content', 'reflections'].forEach(function(id) {
+        const textarea = document.getElementById(id);
+        if (!textarea || !textarea.value) return;
+
         function resizeTextarea() {
             textarea.style.height = 'auto';
             // Force browser to recalculate layout
@@ -26,11 +28,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ensure scrollable if content exceeds max
             textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
         }
-        
+
         // Run immediately, then again after Safari settles
         requestAnimationFrame(resizeTextarea);
         setTimeout(resizeTextarea, 100);
-    }
+    });
 });
 </script>
 {% endblock %}
@@ -261,14 +263,24 @@ document.addEventListener('DOMContentLoaded', function() {
            the route leaves entries.reflections untouched, so switching off
            hides without overwriting. Never included in any export. #}
         {% if two_note_system %}
-        <div class="form-section">
+        <div class="form-row-full">
             <div class="form-group">
-                <label for="reflections">Reflections</label>
+                <div class="notes-label-row">
+                    <label for="reflections">Reflections</label>
+                    {% if not is_locked %}
+                    <button type="submit" name="ai_scribe" value="reflections"
+                            class="btn-ai-scribe"
+                            title="AI Scribe - Expand, proofread, or refine your reflections">
+                        <i data-lucide="feather"></i>
+                        <span>AI Scribe</span>
+                    </button>
+                    {% endif %}
+                </div>
                 <textarea id="reflections" name="reflections"
-                          placeholder="Process notes — not included in exports...">{% if is_edit %}{{ session.reflections or '' }}{% endif %}</textarea>
+                          placeholder="Process notes...">{% if is_edit %}{{ session.reflections or '' }}{% endif %}</textarea>
                 <p class="help-text">
-                    Your own process notes. Kept with the session and excluded
-                    from client file exports and reports.
+                    Your own process notes. Excluded from client file exports
+                    and reports.
                 </p>
             </div>
         </div>

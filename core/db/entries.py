@@ -178,6 +178,23 @@ class EntryMixin:
         
         return True
     
+    def set_reflections(self, entry_id: int, text) -> bool:
+        """Write entries.reflections alone, without touching modified_at.
+
+        Reflections are not part of the exported record, so a change to them
+        must not appear in the amendment trail — that would disclose the
+        field's existence on a locked entry's edit history. And because there
+        is no trail entry, modified_at must not move either: bumping it would
+        assert an edit the trail doesn't show, which is exactly what the
+        locked-entry no-op guard in the session route exists to prevent.
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE entries SET reflections = ? WHERE id = ?",
+                       (text or None, entry_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
     def get_attachments(self, entry_id):
         """Get all attachments for an entry."""
         conn = self.connect()

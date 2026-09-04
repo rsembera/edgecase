@@ -416,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content: content })
+                body: JSON.stringify({ content: content,
+                                       field: window.SCRIBE_FIELD || 'content' })
             });
             
             const data = await response.json();
