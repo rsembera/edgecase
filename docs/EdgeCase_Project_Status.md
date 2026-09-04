@@ -2,8 +2,57 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** August 22, 2026  
-**Status:** v2.0.1 Strugatsky released August 22, 2026 (2.0.0 + retired-model cleanup and static asset versioning, same day) - In Production Use Since January 3, 2026
+**Last Updated:** September 4, 2026  
+**Status:** v2.0.2 released September 4, 2026 - In Production Use Since January 3, 2026
+
+---
+
+## v2.0.2 — RELEASED 2026-09-04
+
+Signed/notarized `EdgeCase-2.0.2.dmg` (notarization Accepted, stapled, `spctl`
+reports Notarized Developer ID) and `edgecase_2.0.2_amd64.deb` (built on
+Apollo). Tag `v2.0.2`. Website deployed and verified from outside; GitHub
+Release published with both packages and `SHA256SUMS.txt`. 2.0.1 binaries
+removed from the Sentinel docroot, archived copies retained in
+`~/releases/` and hash-verified before removal.
+
+Codebase (cloc, code only): **50,596 lines** — Python 21,375 / HTML 8,689 /
+JS 7,108 / CSS 5,961. **123 routes. 806 tests.**
+
+**Two privacy fixes, disclosed in the release notes.** Generated statement
+PDFs were stored under filenames containing the client file number (contents
+always encrypted; the filename travelled into backup indexes and cloud
+folders). Financial reports and payment records were written unencrypted into
+the shared system temp dir under a predictable name and never deleted.
+
+**Retention disposal was broken** since 2026-08-09: `archive_and_delete_client`
+never deleted `payment_allocations`, and with `PRAGMA foreign_keys=ON` (which
+`core/database.py:57` enables on any healthy install) the constraint failure
+rolled back the whole disposal for every client who had ever paid.
+
+New: two-note system (`entries.reflections`, excluded from every export,
+toggle hides rather than deletes); insurance provider numbers (many networks,
+per-client assignment, per-insurer print format); master-key rotation
+(at login, forward-resume, export-and-verify DB rebuild) — **verified
+end-to-end against a copy of the live install**: 80 files re-encrypted,
+plaintext byte-identical, old key opens nothing, new recovery key works.
+
+Also: `ledger_date` normalized to local midnight across all six writers;
+attachment reports say their piece once rather than every launch.
+
+**Open items.**
+- Desktop testing checklist was not run in full against the packaged 2.0.2
+  build. Rick installed the dmg but runs from source day to day.
+- `verify_backup()` deletes a zip that fails its CRC, and the rotation gate
+  calls it — existing contract, but undecided whether it should say so.
+- The v1→v3 upgrade could get a real progress bar from rotation's
+  worker/queue plumbing. One call site. Nobody is waiting for it.
+- Website clones elsewhere (Apollo, `~/Applications/websites/`) need a
+  `git pull`.
+- Three attachment rows on the live install were traced to a filesystem-level
+  deletion on 2026-06-15, outside any EdgeCase code path; files restored from
+  the 2026-06-14 backup. Evidence preserved in
+  `~/EdgeCase_Incident_2026-06-15/`, deletable once Rick is satisfied.
 
 ---
 
