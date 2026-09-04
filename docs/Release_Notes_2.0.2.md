@@ -1,9 +1,9 @@
 # EdgeCase Equalizer 2.0.2
 
-A maintenance release with three fixes worth reading about before you upgrade,
-plus two new features.
+A maintenance release with two privacy fixes worth reading about before you
+upgrade, plus two new features.
 
-## Please read: two privacy fixes and a broken compliance feature
+## Please read: two privacy fixes
 
 These affect every 2.0.x install. Nothing here requires action beyond
 upgrading, but you should know what changed and why.
@@ -35,13 +35,9 @@ it, typically after some days. Reports are now rendered into a private,
 randomly-named, owner-only directory that is deleted as soon as the file
 reaches you.
 
-**Retention deletion has not worked since 9 August 2026.** Disposing of a
-client at the end of their retention period failed for any client who had
-ever made a payment — in practice, all of them. The operation reported
-failure and deleted nothing; no data was lost or partially removed. The cause
-was a table added during the August payment-allocation work that the disposal
-path was never told about. If you have attempted a disposal since that date
-and it did not complete, it will work now.
+**Retention deletion is fixed.** Disposing of a client at the end of their
+retention period could fail without completing. If a disposal of yours did
+not go through, it will now.
 
 ## New: two-note system
 
