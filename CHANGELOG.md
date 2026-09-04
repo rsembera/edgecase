@@ -1,5 +1,34 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-04 (later) — Financial reports stop landing in the shared temp dir
+
+- **`ledger.py:generate_report_pdf` wrote unencrypted PDFs to
+  `tempfile.gettempdir()` under a predictable name and never deleted them.**
+  `Payment_Record_<file_number>_<start>_to_<end>.pdf` — client name, file
+  number and payment history, in the clear. On this machine `gettempdir()` is
+  `/tmp`, mode `drwxrwxrwt`, so each report stayed world-readable until the OS
+  reaper took it, which can be days. A wider exposure than the same day's
+  filename disclosure: there the contents stayed encrypted, here the whole
+  document did not.
+- **Fix:** the route renders into a private (0700, randomized) mkdtemp
+  directory and removes it with `@after_this_request`, and on the failure path
+  — the treatment `delivery.py` gained for statements on 2026-06-07. The
+  user-facing filename is unchanged; it survives as `send_file`'s
+  `download_name`.
+- **`private_pdf_dir()` moved to `web/utils.py`** and is now shared. It had
+  lived privately in `delivery.py`, which is precisely how the ledger route
+  came to do the wrong thing while the statement routes did the right one —
+  the same one-writer-fixed-one-writer-missed shape as the `ledger_date` and
+  statement-filename defects. `delivery.py` keeps a thin alias so its call
+  sites are untouched.
+- `tests/test_report_temp_privacy.py` (3 tests, 2 red first — the leak
+  reproduced as `/tmp/Payment_Record_20250901-JH_…pdf`). The third pins the
+  download name so the fix cannot quietly change what the user sees. The
+  fixture removes anything a red run leaves behind rather than seeding the
+  temp dir with PHI-shaped files. 739 → 742.
+- Found in the "not acted on" list of `docs/Overnight_Run_2026-09-04.md`;
+  the remaining items there are still open.
+
 ### 2026-09-04 — Master-key rotation (Settings › Security › Rotate Master Key)
 
 - Changing your password or issuing a new recovery key replaces a *wrapper*;

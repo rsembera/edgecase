@@ -4,8 +4,10 @@ EdgeCase Ledger Blueprint
 Handles income and expense tracking
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, send_file
-from web.utils import parse_date_from_form, get_today_date_parts, save_uploaded_files
+from flask import (Blueprint, render_template, request, redirect, url_for,
+                   jsonify, send_file, after_this_request)
+from web.utils import (parse_date_from_form, get_today_date_parts,
+                       save_uploaded_files, private_pdf_dir)
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import sqlcipher3 as sqlite3
@@ -15,7 +17,6 @@ import time
 from core.database import Database
 from core.config import ATTACHMENTS_DIR, ASSETS_DIR
 from core.money import money_float
-import tempfile
 from pathlib import Path
 
 ledger_bp = Blueprint('ledger', __name__)
@@ -682,8 +683,11 @@ def generate_report_pdf():
         filename = f"Payment_Record_{c['file_number']}_{start_date}_to_{end_date}.pdf"
     else:
         filename = f"Financial_Report_{start_date}_to_{end_date}.pdf"
-    temp_dir = tempfile.gettempdir()
-    output_path = Path(temp_dir) / filename
+    # Private (0700, randomized) dir: this PDF holds PHI in the clear and
+    # must not sit in the shared temp dir under a predictable name. Removed
+    # once the response has been sent; the browser still sees `filename`
+    # via send_file's download_name.
+    output_path = private_pdf_dir() / filename
     
     try:
         generate_ledger_report_pdf(
@@ -699,6 +703,11 @@ def generate_report_pdf():
             client=client
         )
         
+        @after_this_request
+        def cleanup(response):
+            shutil.rmtree(output_path.parent, ignore_errors=True)
+            return response
+        
         return send_file(
             output_path,
             mimetype='application/pdf',
@@ -706,4 +715,5 @@ def generate_report_pdf():
             download_name=filename
         )
     except Exception as e:
+        shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500
