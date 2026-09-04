@@ -75,15 +75,25 @@ def _payer_scope(cursor, portion_id):
     return scope
 
 
+def _midnight(ts):
+    """Local midnight of the day `ts` falls in.
+
+    Every writer of entries.ledger_date normalizes through here or through
+    web.utils.parse_date_from_form, so the column means one thing.
+    """
+    d = datetime.fromtimestamp(ts)
+    return int(datetime(d.year, d.month, d.day).timestamp())
+
+
 def _parse_payment_date(date_str):
-    """'YYYY-MM-DD' -> midnight timestamp. None/empty -> now.
+    """'YYYY-MM-DD' -> midnight timestamp. None/empty -> today's midnight.
 
     Midnight rather than the time of entry: the ledger date is the day the
     money arrived, and the financial report's range filter runs to
     23:59:59, so any time within the day falls in the same period.
     """
     if not date_str:
-        return int(time.time())
+        return _midnight(int(time.time()))
     parts = str(date_str).split('-')
     year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
     day = min(day, calendar.monthrange(year, month)[1])
@@ -474,7 +484,7 @@ def write_off_statement():
             now,
             expense_description,
             expense_content,
-            now,
+            _midnight(now),
             category_id,
             payee_id,
             money_float(amount_owing),

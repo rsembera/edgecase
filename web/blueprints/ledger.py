@@ -127,7 +127,9 @@ def ledger():
     for year in entries_by_year_month:
         for month in entries_by_year_month[year]:
             entries_by_year_month[year][month]['entries'].sort(
-                key=lambda e: (e.get('ledger_date', 0), e.get('created_at', 0)),
+                key=lambda e: (e.get('ledger_date') or 0,
+                               e.get('created_at') or 0,
+                               e['id']),
                 reverse=True
             )
     
@@ -154,11 +156,10 @@ def create_income():
     """Create new income entry."""
     
     if request.method == 'POST':
+        # ledger_date is a DATE: local midnight, always. Newest-first within
+        # a day comes from created_at (see get_all_ledger_entries), not from
+        # smuggling the time of data entry into the transaction date.
         ledger_date_timestamp = parse_date_from_form(request.form)
-        # If date is today, use current time so new entries appear at top
-        today_midnight = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
-        if ledger_date_timestamp == today_midnight:
-            ledger_date_timestamp = int(time.time())
         source = request.form.get('source', '').strip()
         
         # Add payor to suggestions if new
@@ -211,17 +212,11 @@ def edit_income(entry_id):
         if source:
             db.add_income_payor_if_new(source)
         
-        # Preserve original timestamp if date hasn't changed
-        new_date_midnight = parse_date_from_form(request.form)
-        original_midnight = int(datetime.fromtimestamp(income['ledger_date']).replace(
-            hour=0, minute=0, second=0, microsecond=0).timestamp()) if income.get('ledger_date') else 0
-        
-        if new_date_midnight == original_midnight:
-            # Same day - keep original timestamp for sort order
-            ledger_date_timestamp = income['ledger_date']
-        else:
-            # Different day - use midnight of new date
-            ledger_date_timestamp = new_date_midnight
+        # Midnight, always. The old code preserved the row's original
+        # timestamp when the day was unchanged, to stop an edit from moving
+        # the entry in the list; with created_at doing the ordering there is
+        # nothing left to preserve, and re-saving an old row normalizes it.
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         income_data = {
             'ledger_date': ledger_date_timestamp,
@@ -313,11 +308,8 @@ def create_expense():
         if payee_name:
             payee_id = db.add_payee_if_new(payee_name)
         
+        # ledger_date is a DATE: local midnight, always. See create_income.
         ledger_date_timestamp = parse_date_from_form(request.form)
-        # If date is today, use current time so new entries appear at top
-        today_midnight = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
-        if ledger_date_timestamp == today_midnight:
-            ledger_date_timestamp = int(time.time())
         
         expense_data = {
             'client_id': None,
@@ -382,17 +374,9 @@ def edit_expense(entry_id):
         if payee_name:
             payee_id = db.add_payee_if_new(payee_name)
         
-        # Preserve original timestamp if date hasn't changed
-        new_date_midnight = parse_date_from_form(request.form)
-        original_midnight = int(datetime.fromtimestamp(expense['ledger_date']).replace(
-            hour=0, minute=0, second=0, microsecond=0).timestamp()) if expense.get('ledger_date') else 0
-        
-        if new_date_midnight == original_midnight:
-            # Same day - keep original timestamp for sort order
-            ledger_date_timestamp = expense['ledger_date']
-        else:
-            # Different day - use midnight of new date
-            ledger_date_timestamp = new_date_midnight
+        # Midnight, always. See edit_income for why the old preserve-the-
+        # original-timestamp dance is gone.
+        ledger_date_timestamp = parse_date_from_form(request.form)
         
         expense_data = {
             'ledger_date': ledger_date_timestamp,

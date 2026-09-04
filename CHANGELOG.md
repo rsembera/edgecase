@@ -1,5 +1,42 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-03 — `ledger_date` is a date: one meaning, every writer
+
+- Symptom: an expense keyed manually at 19:00 sat *above* a client payment
+  recorded at 20:00 on the same day, as though the payment had happened
+  first.
+- Cause: three writers, three conventions for one column. The manual ledger
+  forms stored local midnight *except* when the date was today, in which case
+  they stored the moment of data entry ("so new entries appear at top"); the
+  payment path stored midnight always; the uncollectible write-off path
+  stored the moment of entry always. `ORDER BY ledger_date DESC` then
+  separated same-day entries by nineteen hours before `created_at` was ever
+  consulted, so every payment-generated entry sank below every manually-keyed
+  one made the same day.
+- Fix: `ledger_date` is now local midnight from every writer —
+  `create_income`, `create_expense`, `edit_income`, `edit_expense`,
+  `_parse_payment_date` (including the no-date default), and the write-off
+  expense, which now normalizes through a shared `_midnight()`. The
+  newest-first-within-a-day behaviour the old hack was reaching for comes
+  from `created_at`, which is what it's for and was already the second sort
+  key.
+- The edit routes' "preserve the original timestamp if the day hasn't
+  changed" dance is gone with it; re-saving an old row now normalizes it.
+- `id` added as the final sort key in `get_all_ledger_entries`,
+  `get_ledger_entries_by_date_range`, the `ledger()` view's re-sort, and the
+  four ledger-report queries. `created_at` collides at one-second resolution,
+  and with every row now at midnight, ties in the report queries (which had
+  no tiebreaker at all) went from rare to universal. Ordering is now total.
+- Also fixed in passing: the `ledger()` re-sort used `e.get('ledger_date', 0)`,
+  which returns `None` — not `0` — for a NULL column, and would have raised
+  `TypeError` comparing `None` to `int`. `or 0` now.
+- Rows written before today keep their baked-in times; no migration. The only
+  visible consequence is on 2026-09-03 itself, where old and new conventions
+  coexist.
+- `tests/test_ledger_date_normalization.py` (7 tests, red first).
+  `test_payment_date_defaults_to_today` updated — it pinned the old
+  moment-of-entry default. 676 passing.
+
 ### 2026-09-02 (later) — Minute-accurate pickers on all client-file entries
 
 - Session, Absence, and Item time pickers now use the tens/ones minute grid,

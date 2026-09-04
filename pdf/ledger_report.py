@@ -96,7 +96,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             AND ledger_date >= ? AND ledger_date <= ?
             AND (source = ? OR statement_id IN {stmt_subq}
                  OR id IN {alloc_subq})
-            ORDER BY ledger_date
+            ORDER BY ledger_date, created_at, id
         """, (start_ts, end_ts, client['file_number'], client['id'],
               client['id']))
     else:
@@ -105,7 +105,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             FROM entries
             WHERE class = 'income' AND ledger_type = 'income'
             AND ledger_date >= ? AND ledger_date <= ?
-            ORDER BY ledger_date
+            ORDER BY ledger_date, created_at, id
         """, (start_ts, end_ts))
     income_entries = cursor.fetchall()
     
@@ -123,7 +123,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             WHERE e.class = 'expense' AND e.ledger_type = 'expense'
             AND e.ledger_date >= ? AND e.ledger_date <= ?
             AND (e.statement_id IN {stmt_subq} OR p.name = ?)
-            ORDER BY e.ledger_date
+            ORDER BY e.ledger_date, e.created_at, e.id
         """, (start_ts, end_ts, client['id'], client['file_number']))
     else:
         cursor.execute("""
@@ -136,7 +136,7 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             LEFT JOIN payees p ON e.payee_id = p.id
             WHERE e.class = 'expense' AND e.ledger_type = 'expense'
             AND e.ledger_date >= ? AND e.ledger_date <= ?
-            ORDER BY e.ledger_date
+            ORDER BY e.ledger_date, e.created_at, e.id
         """, (start_ts, end_ts))
     expense_entries = cursor.fetchall()
     
