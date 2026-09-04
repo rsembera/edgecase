@@ -22,10 +22,11 @@ from core.db.allocations import AllocationMixin
 from core.db.entries import EntryMixin
 from core.db.ledger import LedgerMixin
 from core.db.retention import RetentionMixin
+from core.db.providers import ProviderMixin
 from core.db.errors import EntryLockedError  # re-exported; defined in a leaf module to avoid an import cycle with EntryMixin
 
 
-class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin):
+class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin, ProviderMixin):
     """
     Database interface for EdgeCase.
     Manages all SQLite operations using Entry-based architecture.
@@ -552,6 +553,32 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
         if 'is_credit' not in alloc_columns:
             cursor.execute("ALTER TABLE payment_allocations "
                            "ADD COLUMN is_credit INTEGER DEFAULT 0")
+
+        # Insurance providers (networks the practitioner has joined). The
+        # number is the practitioner's, but WHICH number prints on a document
+        # is a property of the client, because the insurer is: see
+        # clients.provider_id. `number_format` is the line as the insurer
+        # wants it, with {number} substituted — insurers differ and the app
+        # should not impose a house style.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS insurance_providers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                provider_number TEXT NOT NULL,
+                number_format TEXT NOT NULL DEFAULT '{name} — Provider No. {number}',
+                created_at INTEGER NOT NULL,
+                modified_at INTEGER NOT NULL
+            )
+        """)
+
+        # clients.provider_id: nullable, so "no insurer" is the default and
+        # changing or dropping an insurer is just reselecting.
+        cursor.execute("PRAGMA table_info(clients)")
+        client_columns = {row[1] for row in cursor.fetchall()}
+        if 'provider_id' not in client_columns:
+            cursor.execute("ALTER TABLE clients "
+                           "ADD COLUMN provider_id INTEGER REFERENCES "
+                           "insurance_providers(id)")
 
         # Indexes for the most common query patterns (CODE_REVIEW.md M3).
         # IF NOT EXISTS makes this idempotent, so running at every startup
