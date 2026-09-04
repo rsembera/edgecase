@@ -104,10 +104,10 @@
                 <select id="provider_id" name="provider_id">
                     <option value="">None</option>
                     {% for p in insurance_providers %}
-                    <option value="{{ p.id }}"
-                        {% if current_provider and current_provider.id == p.id %}selected{% endif %}>
-                        {{ p.name }} ({{ p.provider_number }})
-                    </option>
+                    {# Option text must stay on one line: Choices.js renders the
+                       label verbatim, so Jinja's indentation would show up as
+                       vertical space inside each item. #}
+                    <option value="{{ p.id }}"{% if current_provider and current_provider.id == p.id %} selected{% endif %}>{{ p.name }} ({{ p.provider_number }})</option>
                     {% endfor %}
                 </select>
                 <small class="helper-text">
