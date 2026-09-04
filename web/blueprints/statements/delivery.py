@@ -12,20 +12,15 @@ import uuid
 from flask import send_file
 from pdf.generator import generate_statement_pdf
 from core.config import ASSETS_DIR, ATTACHMENTS_DIR, DATA_ROOT
+from web.utils import private_pdf_dir
 from web.blueprints.statements.common import statements_bp, get_db
 
 
 def _private_pdf_dir() -> Path:
-    """Create a private (0700, randomized name) temp dir for a generated PDF.
-
-    Statement PDFs contain PHI, so they must not be written to the shared
-    system temp dir under predictable names. mkdtemp gives an
-    unguessable, owner-only directory; the user-facing filename
-    (Statement_<file#>_<date>.pdf) is kept for the file inside it and for
-    send_file's download_name. Callers are responsible for cleanup
-    (shutil.rmtree of the returned dir).
-    """
-    return Path(tempfile.mkdtemp(prefix='edgecase-'))
+    """Kept as a local alias; the definition lives in web.utils so the ledger
+    report route shares it (a second copy is how ledger.py came to be writing
+    PHI into the shared temp dir under a predictable name until 2026-09-04)."""
+    return private_pdf_dir()
 
 
 def _load_portion_and_profile(cursor, portion_id):

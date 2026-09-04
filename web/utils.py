@@ -11,11 +11,27 @@ import re
 import time
 import difflib
 import calendar
+import tempfile
 import uuid
 import sqlcipher3
 from markupsafe import escape
 from core.encryption import encrypt_file
 from core.config import DATA_ROOT, ATTACHMENTS_DIR
+
+
+def private_pdf_dir() -> Path:
+    """Create a private (0700, randomized name) temp dir for a generated PDF.
+
+    Generated PDFs — statements, financial reports, payment records — hold
+    PHI in the clear, so they must never be written to the shared system temp
+    dir under a predictable name (`gettempdir()` is world-readable /tmp on
+    some systems). mkdtemp gives an unguessable, owner-only directory; the
+    user-facing filename is kept for the file inside it and for send_file's
+    download_name. Callers are responsible for cleanup (shutil.rmtree of the
+    returned dir), normally via @after_this_request.
+    """
+    return Path(tempfile.mkdtemp(prefix='edgecase-'))
+
 
 
 def get_link_group_fees(db, client_id, include_duration=False):
