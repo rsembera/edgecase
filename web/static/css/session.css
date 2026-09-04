@@ -88,10 +88,18 @@
    SESSION-SPECIFIC OVERRIDES
    ============================================ */
 
-/* Make Session Notes textarea taller */
+/* Starting heights. The clinical note is the shorter field and Reflections
+   the longer one: under a two-note system the file entry is the distillate
+   and the process notes carry the length. Both grow with their content —
+   the resizer in session.html reads these values rather than assuming one,
+   so changing a number here is all that's needed. */
 #id_content,
 textarea[name="content"] {
-    min-height: 300px !important;
+    min-height: 150px !important;
+}
+
+textarea[name="reflections"] {
+    min-height: 220px !important;
 }
 
 /* Date fields should extend halfway across - but NOT when inside .form-row grid */
