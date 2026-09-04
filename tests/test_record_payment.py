@@ -527,15 +527,24 @@ def test_payment_date_is_recorded_as_the_ledger_date(client, app_db):
 
 
 def test_payment_date_defaults_to_today(client, app_db):
+    """Today's MIDNIGHT, not the moment of entry: ledger_date is a date.
+
+    Was `before <= ledger_date <= now`, which pinned the moment-of-entry
+    behaviour that made payment entries sort against manually-keyed ones by
+    time of day. See tests/test_ledger_date_normalization.py.
+    """
+    from datetime import datetime
+
     cid = _make_client(app_db)
     july, _ = _two_statements(app_db, cid)
-    before = int(time.time())
+    today = datetime.now()
 
     resp = client.post('/statements/record-payment', json={
         'portion_id': july, 'payment_amount': 100.0})
     entry = _entry(app_db, resp.get_json()['entry_id'])
 
-    assert before <= entry['ledger_date'] <= int(time.time())
+    assert entry['ledger_date'] == int(
+        datetime(today.year, today.month, today.day).timestamp())
 
 
 def test_invalid_payment_date_is_rejected(client, app_db):

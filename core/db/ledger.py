@@ -262,7 +262,8 @@ class LedgerMixin:
                 LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type = ?
                 GROUP BY entries.id
-                ORDER BY entries.ledger_date DESC, entries.created_at DESC
+                ORDER BY entries.ledger_date DESC, entries.created_at DESC,
+                         entries.id DESC
             """, (ledger_type,))
         else:
             cursor.execute("""
@@ -276,7 +277,8 @@ class LedgerMixin:
                 LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type IN ('income', 'expense')
                 GROUP BY entries.id
-                ORDER BY entries.ledger_date DESC, entries.created_at DESC
+                ORDER BY entries.ledger_date DESC, entries.created_at DESC,
+                         entries.id DESC
             """)
         
         entries = [dict(row) for row in cursor.fetchall()]
@@ -314,7 +316,8 @@ class LedgerMixin:
                 LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type = ?
                 AND entries.ledger_date BETWEEN ? AND ?
-                ORDER BY entries.ledger_date ASC, entries.created_at ASC
+                ORDER BY entries.ledger_date ASC, entries.created_at ASC,
+                         entries.id ASC
             """, (ledger_type, start_date, end_date))
         else:
             cursor.execute("""
@@ -326,7 +329,8 @@ class LedgerMixin:
                 LEFT JOIN expense_categories ON expense_categories.id = entries.category_id
                 WHERE entries.ledger_type IN ('income', 'expense')
                 AND entries.ledger_date BETWEEN ? AND ?
-                ORDER BY entries.ledger_date ASC, entries.created_at ASC
+                ORDER BY entries.ledger_date ASC, entries.created_at ASC,
+                         entries.id ASC
             """, (start_date, end_date))
         
         entries = [dict(row) for row in cursor.fetchall()]
