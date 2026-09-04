@@ -247,6 +247,50 @@ def migrate_stream()
 
 **Returns:** SSE stream with migration progress events
 
+### Rotate Stream
+
+```python
+@auth_bp.route('/rotate/stream')
+def rotate_stream()
+```
+**Purpose:** SSE endpoint that performs (or resumes) a master-key rotation
+during login and then completes the login, driving `rotating.html`. Reached
+only when `core.master_rotation.rotation_pending()` is true at login (armed
+from Settings, or a run was interrupted); the login POST verifies the
+password against the key file — not by opening the database — and hands it
+over through the same single-use server-side token as `/migrate/stream`.
+The rotation runs on a worker thread with `progress_cb=queue.put`; this
+generator drains the queue, so the screen gets a real per-file bar. Its own
+`complete` event is emitted only after the rotated database is open and the
+new recovery key is parked in the handoff; the redirect goes to
+`/recovery-key`.
+
+**Returns:** SSE stream — `backing_up` / `counting` / `checking` /
+`encrypting` (current/total) / `database` / `finalizing` / `complete`, or
+`error` with `in_progress` saying whether the run will resume at next login.
+
+### Rotate Master Key (arm)
+```python
+@auth_bp.route('/rotate-master-key', methods=['GET', 'POST'])
+@login_required
+def rotate_master_key():
+```
+Settings → Security. **Requires the master password.** Arms a rotation for
+the next login by writing `.rotate_pending`; nothing else changes now. The
+screen states what rotation revokes and that it does not protect
+pre-rotation backups. v3 installs only (redirects to Settings otherwise).
+
+### Cancel Master-Key Rotation
+```python
+@auth_bp.route('/rotate-master-key/cancel', methods=['POST'])
+@login_required
+def cancel_master_key_rotation():
+```
+Withdraws an armed rotation. Refused once a run has started (state file or
+`rotate_master` marker present): the state may already describe files under
+the new master, and forgetting it would strand them. Settings shows the
+resulting state either way.
+
 ---
 
 ## BACKUPS BLUEPRINT

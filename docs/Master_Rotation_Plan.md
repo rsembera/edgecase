@@ -1,6 +1,6 @@
 # Master-Key Rotation — Implementation Plan
 
-**Status:** PLANNED 2026-09-03. Design settled, not yet built.
+**Status:** IMPLEMENTED 2026-09-04 on branch `filename-fix-and-master-rotation`, awaiting review (see `Overnight_Run_2026-09-04.md`). Designed 2026-09-03.
 
 Reference implementation: MailRepo `core/master_rotation.py`,
 `tests/test_master_rotation.py`, and the helpers in `core/password_change.py`
