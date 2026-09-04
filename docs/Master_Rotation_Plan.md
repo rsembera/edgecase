@@ -1,7 +1,6 @@
 # Master-Key Rotation — Implementation Plan
 
-**Status:** PLANNED 2026-09-03, deliberately NOT BUILT. Design settled; build
-when a trigger appears. See "When to build this" before starting.
+**Status:** PLANNED 2026-09-03. Design settled, not yet built.
 
 Reference implementation: MailRepo `core/master_rotation.py`,
 `tests/test_master_rotation.py`, and the helpers in `core/password_change.py`
@@ -27,29 +26,6 @@ revoke against an attacker who already has a copy of the data.**
 Rotation is the only remedy: mint a fresh master, re-encrypt every attachment,
 rebuild the database under a new key, and write a new key file. Afterwards
 every earlier key file, password and recovery key opens nothing current.
-
-## When to build this
-
-Not on general principle. Build it when one of these appears:
-
-- A lost or stolen machine, or a suspected compromise.
-- A real password disclosure (shoulder-surfed, reused, phished).
-- A security review conducted for a wider user base than one practitioner.
-
-Rationale for waiting, recorded 2026-09-03: EdgeCase stores no live
-credentials, so a compromise yields a *snapshot* of records as of the
-attacker's copy — bounded, and not much improved by rotating afterwards, since
-they already hold that snapshot. The scenario rotation genuinely helps is
-narrow: someone holds an old backup *and* the password, has not used it yet,
-and you rotate first.
-
-**Do the documentation instead, now.** The limitation should be stated plainly
-in the security docs and on the change-password screen: changing your password
-protects against future disclosure; it does not lock out anyone who already
-has both an old backup and your old password. VeraCrypt and Cryptomator both
-document exactly this rather than implementing rotation. Bitwarden does
-implement it ("rotate account encryption key"). One hour of work, and it makes
-the app honest about what it does today.
 
 ## Where it runs — at login, not live
 
