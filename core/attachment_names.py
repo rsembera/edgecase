@@ -26,11 +26,21 @@ Safety rules, in order of importance:
     which row it belongs to is exactly the kind of cleverness that loses
     clinical records.
   * Never touch a row whose file is missing. Reported, left as is.
+  * Never touch a file OUTSIDE this install's attachments folder, however
+    the row points at it. A database restored from another install on the
+    same machine carries that install's absolute paths.
   * Dotfiles (.DS_Store) are ignored everywhere.
 
-Only the basename changes. A row that stored an absolute path keeps an
-absolute path; a relative one stays relative. Resolution behaviour is
-therefore unchanged for every reader.
+Only the basename changes for a row whose file is where the row says. A
+row that stored an absolute path keeps an absolute path; a relative one
+stays relative, so resolution behaviour is unchanged for every reader.
+
+The one exception is a row whose absolute path points at a PREVIOUS install
+location (the old statement writer stored absolute paths, so a restore onto
+another machine or a renamed folder broke every generated statement). If the
+same attachments/<client>/<entry>/<name> tail exists under the current tree,
+the row is re-pointed at it, relative to DATA_ROOT from then on. Exact tail
+match only; nothing is adopted on a guess.
 """
 import os
 import re
@@ -54,6 +64,31 @@ def _resolve(filepath: str, data_root: Path) -> Path:
     return Path(data_root) / filepath
 
 
+def _under(path: Path, tree: Path) -> bool:
+    try:
+        path.resolve().relative_to(tree.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def _relocation_candidate(stored: str, attachments_dir: Path):
+    """For a stored path that does not exist: the same file under the
+    current attachments tree, if the tail after the last 'attachments/'
+    segment resolves there. Exact tail match only — client id, entry id
+    and name all have to agree — so this cannot adopt a different row's
+    file. None when there is no such file."""
+    parts = Path(stored).parts
+    hits = [i for i, part in enumerate(parts) if part == "attachments"]
+    if not hits:
+        return None
+    tail = parts[hits[-1] + 1:]
+    if not tail:
+        return None
+    candidate = attachments_dir.joinpath(*tail)
+    return candidate if candidate.is_file() else None
+
+
 def _renamed_value(stored: str, new_name: str) -> str:
     """The new filepath column value: same directory part, new basename,
     same absolute/relative style, same separator convention."""
@@ -70,15 +105,19 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
     `attachments_dir` / `data_root` default to the live config paths and
     exist for tests against a temporary tree.
 
-    Returns a summary dict: renamed, already_anonymized, missing (rows
-    whose file is not on disk), orphans (readable-named files with no row),
-    failed (rename or commit errors, with the reason).
+    Returns a summary dict: renamed, already_anonymized, relocated (rows
+    whose absolute path pointed at a previous install location and were
+    re-pointed at the same file under the current tree), missing (rows
+    whose file is not on disk), outside_tree (rows whose absolute path
+    points at an existing file OUTSIDE this install's attachments folder —
+    never touched), orphans (readable-named files with no row), failed
+    (rename or commit errors, with the reason).
     """
     attachments_dir = Path(attachments_dir or config.ATTACHMENTS_DIR)
     data_root = Path(data_root or config.DATA_ROOT)
 
-    summary = {"renamed": 0, "already_anonymized": 0,
-               "missing": [], "orphans": [], "failed": []}
+    summary = {"renamed": 0, "already_anonymized": 0, "relocated": 0,
+               "missing": [], "outside_tree": [], "orphans": [], "failed": []}
 
     rows = conn.execute("SELECT id, filepath FROM attachments").fetchall()
     known_paths = set()
@@ -87,13 +126,57 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
         if not stored:
             continue
         current = _resolve(stored, data_root)
+        relocated = False
+        if not _under(current, attachments_dir):
+            # NEVER rename a file outside this install's attachments tree,
+            # even if the row's absolute path points at one that exists
+            # (a restore of another install's database onto this machine
+            # would otherwise reach into that other install and rename
+            # its files while updating only this database). Rows like
+            # that are either relocatable — see below — or left alone.
+            candidate = _relocation_candidate(stored, attachments_dir)
+            if candidate is None:
+                (summary["outside_tree"] if current.is_file()
+                 else summary["missing"]).append(stored)
+                continue
+            current = candidate
+            try:
+                stored = str(candidate.relative_to(data_root))
+            except ValueError:
+                stored = str(candidate)
+            relocated = True
+        elif not current.is_file():
+            # The old statement writer stored ABSOLUTE paths, which break
+            # the moment the install moves (a restore onto another
+            # machine, a renamed folder). If the same attachments/<client>/
+            # <entry>/<name> tail exists under the current tree, that is
+            # this row's file: adopt it and store the path relative to
+            # DATA_ROOT from now on, as web/utils.py always has.
+            candidate = _relocation_candidate(stored, attachments_dir)
+            if candidate is None:
+                summary["missing"].append(stored)
+                continue
+            current = candidate
+            try:
+                stored = str(candidate.relative_to(data_root))
+            except ValueError:
+                stored = str(candidate)
+            relocated = True
         name = current.name
         if is_anonymized_name(name):
             known_paths.add(current.resolve())
-            summary["already_anonymized"] += 1
-            continue
-        if not current.is_file():
-            summary["missing"].append(stored)
+            if relocated:
+                try:
+                    conn.execute("UPDATE attachments SET filepath = ? WHERE id = ?",
+                                 (stored, row_id))
+                    conn.commit()
+                    summary["relocated"] += 1
+                except Exception as e:
+                    conn.rollback()
+                    summary["failed"].append((stored, str(e)))
+                    log(f"[Attachments] could not relocate {name}: {e}")
+            else:
+                summary["already_anonymized"] += 1
             continue
 
         new_name = f"{uuid.uuid4()}.enc"
@@ -125,6 +208,8 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
 
         known_paths.add(target.resolve())
         summary["renamed"] += 1
+        if relocated:
+            summary["relocated"] += 1
 
     # Readable-named files on disk that no row points at. Reported only.
     if attachments_dir.exists():
@@ -139,8 +224,14 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
 
     if summary["renamed"]:
         log(f"[Attachments] anonymized {summary['renamed']} filename(s)")
+    if summary["relocated"]:
+        log(f"[Attachments] re-pointed {summary['relocated']} row(s) from a "
+            f"previous install location to the current one")
     for stored in summary["missing"]:
         log(f"[Attachments] row points at a missing file, left as is: {stored}")
+    for stored in summary["outside_tree"]:
+        log(f"[Attachments] row points outside this install's attachments "
+            f"folder, left as is: {stored}")
     for orphan in summary["orphans"]:
         log(f"[Attachments] readable filename with no attachment row, "
             f"left as is: {orphan}")

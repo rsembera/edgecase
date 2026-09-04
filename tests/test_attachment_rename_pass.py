@@ -289,3 +289,99 @@ def test_login_runs_the_rename_pass(bare_client, monkeypatch, tmp_path):
     assert Path(stored).exists()
     assert not old.exists()
     flask_app.config["db"].close()
+
+
+# --- Relocation: absolute paths from a previous install location ------------
+
+def test_absolute_path_from_an_old_install_location_is_adopted_and_renamed(tree):
+    """Found in the fictional test install: rows written as
+    /Users/x/apps/edgecase-testing/attachments/8/97/Statement_….pdf after the
+    folder had moved. The file is right there under the current tree; the
+    row must be re-pointed (relative from now on) AND anonymized."""
+    root, con = tree
+    here = _plant(root, "attachments/8/97/Statement_20251209-HG_20260103.pdf",
+                  b"\x02moved")
+    row = _add_row(con, "Statement_20251209-HG_20260103.pdf",
+                   "/Users/x/apps/old-install/attachments/8/97/Statement_20251209-HG_20260103.pdf")
+
+    summary = _run(root, con)
+
+    assert summary["relocated"] == 1 and summary["renamed"] == 1
+    assert summary["missing"] == [] and summary["orphans"] == []
+    new_value = _filepath(con, row)
+    assert not os.path.isabs(new_value)
+    assert new_value.startswith("attachments/8/97/")
+    assert an.is_anonymized_name(Path(new_value).name)
+    assert (root / new_value).read_bytes() == b"\x02moved"
+    assert not here.exists()
+
+
+def test_relocated_uuid_row_is_repointed_without_renaming(tree):
+    root, con = tree
+    name = "5e08ddf6-4ba0-488b-aedd-44d768b5e111.enc"
+    here = _plant(root, f"attachments/9/118/{name}")
+    row = _add_row(con, "note.pdf", f"/old/place/attachments/9/118/{name}")
+
+    summary = _run(root, con)
+
+    assert summary["relocated"] == 1 and summary["renamed"] == 0
+    assert _filepath(con, row) == f"attachments/9/118/{name}"
+    assert here.exists()
+
+
+def test_relocation_requires_an_exact_tail_match(tree):
+    """A file for a different client/entry with the same name must not be
+    adopted; the row stays 'missing'."""
+    root, con = tree
+    _plant(root, "attachments/3/40/Statement_X.pdf")
+    row = _add_row(con, "Statement_X.pdf", "/old/place/attachments/2/40/Statement_X.pdf")
+
+    summary = _run(root, con)
+
+    assert summary["relocated"] == 0
+    assert summary["missing"] == ["/old/place/attachments/2/40/Statement_X.pdf"]
+    assert summary["orphans"] == [str(root / "attachments/3/40/Statement_X.pdf")]
+    assert _filepath(con, row) == "/old/place/attachments/2/40/Statement_X.pdf"
+
+
+def test_never_renames_a_file_outside_this_installs_tree(tree, tmp_path_factory):
+    """A database restored from ANOTHER install on the same machine carries
+    that install's absolute paths. Following them would rename the other
+    install's files while updating only this database. Found the hard way
+    against a copy of the fictional test install."""
+    root, con = tree
+    other = tmp_path_factory.mktemp("other-install")
+    theirs = other / "attachments" / "2" / "117" / "Statement_20251209-BB_20260309.pdf"
+    theirs.parent.mkdir(parents=True)
+    theirs.write_bytes(b"\x02theirs")
+    row = _add_row(con, "Statement_20251209-BB_20260309.pdf", str(theirs))
+
+    summary = _run(root, con)
+
+    assert theirs.exists(), "renamed a file outside the install"
+    assert theirs.read_bytes() == b"\x02theirs"
+    assert summary["renamed"] == 0
+    assert summary["outside_tree"] == [str(theirs)]
+    assert _filepath(con, row) == str(theirs)
+
+
+def test_outside_tree_row_is_relocated_when_the_file_is_also_here(tree, tmp_path_factory):
+    """Same shape as above, but the file also exists under the current tree
+    at the same tail — the install was moved and the old location still
+    exists. Adopt ours, leave theirs alone."""
+    root, con = tree
+    other = tmp_path_factory.mktemp("other-install")
+    theirs = other / "attachments" / "2" / "117" / "Statement_X.pdf"
+    theirs.parent.mkdir(parents=True)
+    theirs.write_bytes(b"\x02theirs")
+    ours = _plant(root, "attachments/2/117/Statement_X.pdf", b"\x02ours")
+    row = _add_row(con, "Statement_X.pdf", str(theirs))
+
+    summary = _run(root, con)
+
+    assert theirs.exists() and theirs.read_bytes() == b"\x02theirs"
+    assert summary["relocated"] == 1 and summary["renamed"] == 1
+    new_value = _filepath(con, row)
+    assert new_value.startswith("attachments/2/117/")
+    assert (root / new_value).read_bytes() == b"\x02ours"
+    assert not ours.exists()
