@@ -11,7 +11,7 @@ import tempfile
 import uuid
 from flask import send_file
 from pdf.generator import generate_statement_pdf
-from core.config import ASSETS_DIR, ATTACHMENTS_DIR
+from core.config import ASSETS_DIR, ATTACHMENTS_DIR, DATA_ROOT
 from web.blueprints.statements.common import statements_bp, get_db
 
 
@@ -224,6 +224,16 @@ def mark_sent(portion_id):
         from core.encryption import encrypt_file
         encrypt_file(str(final_pdf_path), db.password)
     
+    # Store the path relative to DATA_ROOT, as web.utils does, so the row
+    # survives the install moving (a restore onto another machine, a folder
+    # rename). Absolute paths written by the old code broke exactly that
+    # way; the startup rename pass heals them. Absolute only as a fallback
+    # when the attachments dir is not under DATA_ROOT (tests redirect it).
+    try:
+        stored_path = str(final_pdf_path.relative_to(DATA_ROOT))
+    except ValueError:
+        stored_path = str(final_pdf_path)
+
     cursor.execute("""
         INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -231,7 +241,7 @@ def mark_sent(portion_id):
         comm_entry_id,
         pdf_filename,
         f"Statement for {billing_period}",
-        str(final_pdf_path),
+        stored_path,
         final_pdf_path.stat().st_size,
         now
     ))

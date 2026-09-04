@@ -33,6 +33,7 @@ def attachments_root(tmp_path, monkeypatch):
     monkeypatch.setattr(wu, "DATA_ROOT", root)
     monkeypatch.setattr(wu, "ATTACHMENTS_DIR", root / "attachments")
     monkeypatch.setattr(ent_common, "DATA_ROOT", root)
+    monkeypatch.setattr(delivery, "DATA_ROOT", root)
     monkeypatch.setattr(delivery, "ATTACHMENTS_DIR", root / "attachments")
 
     def _fake_pdf(database, portion_id, out_path, assets_dir):
@@ -143,7 +144,11 @@ def test_statement_display_name_is_kept_in_the_database(client, app_db, attachme
     assert filename.startswith(f"Statement_{FILE_NUMBER}_")
     assert filename.endswith(".pdf")
     assert UUID_ENC.match(Path(filepath).name), filepath
-    assert Path(filepath).exists()
+    # Relative to DATA_ROOT, as uploads always were: the row survives the
+    # install moving. (The old writer stored absolute paths.)
+    assert not Path(filepath).is_absolute(), filepath
+    assert filepath.startswith("attachments/")
+    assert (attachments_root / filepath).exists()
 
 
 def test_statement_attachment_still_downloads_under_its_display_name(
