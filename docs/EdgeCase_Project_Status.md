@@ -47,8 +47,10 @@ attachment reports say their piece once rather than every launch.
   calls it — existing contract, but undecided whether it should say so.
 - The v1→v3 upgrade could get a real progress bar from rotation's
   worker/queue plumbing. One call site. Nobody is waiting for it.
-- Website clones elsewhere (Apollo, `~/Applications/websites/`) need a
-  `git pull`.
+- Website clone on Apollo needs a `git pull` (Apollo was asleep at release
+  time). The `~/Applications/websites/edgecase-website` entry is a dangling
+  symlink to the pre-move Desktop path, not a clone — `~/Websites/
+  edgecase-website` is the only working copy on the Mac, and it is current.
 - Three attachment rows on the live install were traced to a filesystem-level
   deletion on 2026-06-15, outside any EdgeCase code path; files restored from
   the 2026-06-14 backup. Evidence preserved in
