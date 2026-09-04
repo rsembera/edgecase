@@ -17,6 +17,7 @@ from xml.sax.saxutils import escape as _xml_escape
 from core.encryption import decrypt_file_to_bytes
 from core.money import dec, quantize_cents, format_currency
 from core.config import resolve_attachment_path
+from core.db.providers import provider_line
 
 
 def esc(value):
@@ -215,6 +216,11 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
             f"PAYMENT RECORD — {esc(client['name'])} ({esc(client['file_number'])})",
             subtitle_style))
         story.append(Paragraph(range_str, subtitle_style))
+        # Insurer line, when this client has one. Only in client mode: the
+        # business report is a tax document with no insurer audience.
+        line = provider_line(db.get_client_provider(client['id']))
+        if line:
+            story.append(Paragraph(esc(line), subtitle_style))
     else:
         story.append(Paragraph(f"INCOME AND EXPENSE RECORD ({range_str})", subtitle_style))
     

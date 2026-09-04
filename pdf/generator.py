@@ -16,6 +16,7 @@ from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
 from core.config import get_assets_path
 from core.money import dec, quantize_cents, to_cents, get_currency_symbol, format_currency
+from core.db.providers import provider_line
 from io import BytesIO
 from xml.sax.saxutils import escape as _xml_escape
 
@@ -147,9 +148,18 @@ class StatementPDFGenerator:
             alignment=TA_LEFT
         ))
     
-    def _get_settings(self):
-        """Get all relevant settings for the statement."""
+    def _get_settings(self, client_id=None):
+        """Get all relevant settings for the statement.
+
+        `client_id` adds the insurance provider line, which is per-client:
+        the number is the practitioner's, but whether it prints depends on
+        whether THIS client has an insurer.
+        """
+        provider = None
+        if client_id is not None:
+            provider = self.db.get_client_provider(client_id)
         return {
+            'provider_line': provider_line(provider),
             'practice_name': self.db.get_setting('practice_name', ''),
             'therapist_name': self.db.get_setting('therapist_name', ''),
             'credentials': self.db.get_setting('credentials', ''),
@@ -288,6 +298,13 @@ class StatementPDFGenerator:
         # Registration info
         if settings['registration_info']:
             info_parts.append(Paragraph(esc(settings['registration_info']), self.styles['HeaderInfo']))
+        
+        # Insurance provider number, when THIS client has an insurer. Sits
+        # under the registration line because it is the same kind of claim:
+        # who the practitioner is, to the party reading the document.
+        if settings.get('provider_line'):
+            info_parts.append(Paragraph(esc(settings['provider_line']),
+                                        self.styles['HeaderInfo']))
         
         # Address - preserve line breaks
         if settings['address']:
@@ -746,7 +763,7 @@ class StatementPDFGenerator:
         entries = [dict(row) for row in cursor.fetchall()]
         
         # Get settings
-        settings = self._get_settings()
+        settings = self._get_settings(portion['client_id'])
         
         # Determine bill-to info
         guardian_number = portion['guardian_number']  # None, 1, or 2

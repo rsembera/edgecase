@@ -316,11 +316,19 @@ def edit_profile(client_id):
         if client_updates:
             client_updates['modified_at'] = int(time.time())
             db.update_client(client_id, client_updates)
-        
+
+        # Insurance provider. Absent field means "no change"; an empty value
+        # means "no insurer", which is how a client drops or changes cover.
+        if 'provider_id' in request.form:
+            db.set_client_provider(client_id,
+                                   request.form.get('provider_id') or None)
+
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET request - show form
     all_types = db.get_all_client_types()
+    insurance_providers = db.get_insurance_providers()
+    current_provider = db.get_client_provider(client_id)
     
     # Get edit history if profile exists and is locked
     is_locked = db.is_entry_locked(profile['id']) if profile else False
@@ -352,4 +360,6 @@ def edit_profile(client_id):
                          all_types=all_types,
                          is_locked=is_locked,
                          edit_history=edit_history,
+                         insurance_providers=insurance_providers,
+                         current_provider=current_provider,
                          retention_info=retention_info)
