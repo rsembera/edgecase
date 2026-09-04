@@ -526,6 +526,58 @@ def statement_settings():
 
 
 # ============================================================================
+# INSURANCE PROVIDERS
+# ============================================================================
+
+@settings_bp.route('/api/insurance_providers', methods=['GET', 'POST'])
+def insurance_providers():
+    """List providers, or add one."""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        try:
+            pid = db.add_insurance_provider(
+                data.get('name'),
+                data.get('provider_number'),
+                data.get('number_format'))
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': True, 'id': pid})
+
+    return jsonify({'providers': db.get_insurance_providers()})
+
+
+@settings_bp.route('/api/insurance_providers/<int:provider_id>',
+                   methods=['POST', 'DELETE'])
+def insurance_provider(provider_id):
+    """Edit or remove one provider."""
+    if request.method == 'DELETE':
+        ok, in_use = db.delete_insurance_provider(provider_id)
+        if not ok:
+            # Refused rather than cascaded: unassigning silently would strip
+            # the number from these clients' statements with no visible cause.
+            plural = 's' if in_use != 1 else ''
+            return jsonify({
+                'success': False,
+                'error': f'{in_use} client{plural} still use{"" if in_use != 1 else "s"} '
+                         f'this provider. Change their insurer first.'
+            }), 409
+        return jsonify({'success': True})
+
+    data = request.get_json() or {}
+    try:
+        ok = db.update_insurance_provider(
+            provider_id,
+            data.get('name'),
+            data.get('provider_number'),
+            data.get('number_format'))
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    if not ok:
+        return jsonify({'success': False, 'error': 'Provider not found'}), 404
+    return jsonify({'success': True})
+
+
+# ============================================================================
 # SECURITY SETTINGS
 # ============================================================================
 
