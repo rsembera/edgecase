@@ -1,5 +1,55 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-04 (evening) — Two-note system; insurance provider numbers
+
+**Two-note system** (Settings › Note-Taking, off by default)
+
+- Session entries gain a **Reflections** field for the practitioner's own
+  process notes, alongside the clinical Notes field. CRPO permits a two-note
+  system; the prompt was a training analyst's practice and the observation
+  that near-verbatim session notes put speculation and third-party material
+  into a record the client can request under PHIPA.
+- Stored as `entries.reflections` — a column on the existing entry, not a new
+  entry class, so retention, disposal, backup and encryption cover it with no
+  path needing to be told about it. That choice is a direct response to the
+  three defects found earlier the same day, all of which were an old path not
+  hearing about a new thing.
+- **Never included in any export.** `core/db/private_columns.strip_private()`
+  removes the column at the data boundary in both `generate_client_export_pdf`
+  and `generate_client_report_pdf`. The renderers also never ask for it, so
+  the exclusion holds at two layers; the test was verified to fail only when
+  both are disabled.
+- The toggle **hides, it does not delete**. With the field absent from the
+  form the session routes leave `reflections` untouched, so switching off
+  cannot blank what is stored, and switching back on restores the view.
+  Reflections remain in the database and in backups throughout.
+- No indication of the field's existence appears in exports. Recorded plainly
+  because it is a deliberate decision: these notes are **not** privileged in
+  Canada the way the US psychotherapy-notes carve-out works. A PHIPA access
+  request, a CRPO investigation or a production order can reach them, and the
+  duty to disclose that a second set exists sits with the practitioner. The
+  app behaves as the paper notebook it replaces; it does not decide the
+  disclosure question.
+- 11 tests.
+
+**Insurance provider numbers** (Settings › Insurance Providers)
+
+- Arbitrarily many networks, each with a name, provider number, and the
+  printed line as the insurer wants it (`{name}`/`{number}`; a malformed
+  format falls back rather than breaking a statement). Assigned per client on
+  their profile, defaulting to None.
+- The number is the practitioner's, but *which* number prints belongs to the
+  client, because the insurer does: a single always-on Settings field would
+  put a Blue Cross identifier on documents for clients with no Blue Cross
+  relationship, and would have no answer once a second network is joined.
+- Prints on statements and the per-client Payment Record — the documents an
+  insurer reads — and never on the business Financial Report, which is a tax
+  document covering every client at once.
+- Removing a provider still assigned to clients is refused with a count
+  rather than cascading: a silent unassign would strip the number from those
+  clients' statements with no visible cause.
+- 33 tests. 786 → 797.
+
 ### 2026-09-04 (later still) — Retention disposal was failing outright
 
 - **`archive_and_delete_client` never deleted `payment_allocations`.** The

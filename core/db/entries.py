@@ -35,6 +35,7 @@ class EntryMixin:
             'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
             'duration', 'base_fee', 'tax_rate', 'fee', 'is_consultation', 'is_pro_bono',  # ← ADDED base_fee, tax_rate, is_pro_bono here
             'mood', 'affect', 'risk_assessment',
+            'reflections',  # two-note system; never exported (see database.py)
             'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
             'absence_date', 'absence_time',
             'item_date', 'item_time', 'base_price',  # ← removed tax_rate from here (it's now above)
