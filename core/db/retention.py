@@ -234,6 +234,21 @@ class RetentionMixin:
                     entry_ids + entry_ids
                 )
 
+            # Delete payment allocations before the rows they reference.
+            # Allocations point at entries, statement portions AND the client,
+            # so with PRAGMA foreign_keys=ON (core/database.py:57 turns it on
+            # whenever the database passes its integrity check) deleting the
+            # portions or entries first fails the whole disposal. The table
+            # arrived with the payment-allocation work on 2026-08-09; this
+            # function predates it and was never updated.
+            cursor.execute("DELETE FROM payment_allocations WHERE client_id = ?",
+                           (client_id,))
+            if entry_ids:
+                cursor.execute(
+                    f"DELETE FROM payment_allocations WHERE entry_id IN ({placeholders})",
+                    entry_ids
+                )
+
             # Delete statement portions (orphans would permanently inflate
             # count_pending_invoices)
             cursor.execute("DELETE FROM statement_portions WHERE client_id = ?", (client_id,))
