@@ -1,5 +1,34 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-04 (later still) — Retention disposal was failing outright
+
+- **`archive_and_delete_client` never deleted `payment_allocations`.** The
+  table arrived with the payment-allocation work on 2026-08-09; the disposal
+  path predates it and was never updated.
+- **This was not a leftover-rows problem — disposal was broken.** Foreign-key
+  enforcement is not off: `core/database.py:57` turns `PRAGMA foreign_keys=ON`
+  whenever the database passes its integrity check at startup, which any
+  healthy install does. Allocation rows reference the client, an entry and a
+  statement portion, so deleting portions and entries with allocations still
+  present failed the constraint, the whole transaction rolled back, and
+  `archive_and_delete_client` returned `False`. Any client who had ever made a
+  payment — in practice, all of them — could not be disposed of at the end of
+  their retention period.
+- **Fix:** allocations are deleted before the rows they reference, by
+  `client_id` and by the client's `entry_id`s. Ordering matters here and the
+  comment says so.
+- `tests/test_retention_disposal_sweep.py` (4 tests, all four red first,
+  sealing verified by reverting the fix and re-running). One pins the known
+  gap; one asserts the *whole* sweep — clients, entries, portions,
+  allocations, orphaned attachments — so a newly added table fails here rather
+  than silently joining the leftovers; one checks disposal doesn't reach into
+  another client's records; one checks the archive row is still written.
+  742 → 746.
+- Corrected in passing: an earlier reading of this function suggested three
+  attachment rows would survive a disposal. They would not — statement
+  delivery creates its communication entry with `client_id` set, so its
+  attachments are caught. Allocations were the real gap.
+
 ### 2026-09-04 (later) — Financial reports stop landing in the shared temp dir
 
 - **`ledger.py:generate_report_pdf` wrote unencrypted PDFs to
