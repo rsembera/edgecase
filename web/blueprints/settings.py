@@ -36,7 +36,17 @@ def settings_page():
     """Settings page."""
     import sys
     platform = sys.platform  # 'darwin', 'linux', 'win32'
-    return render_template('settings.html', platform=platform)
+    # Master-key rotation state for the Security section. Fails closed:
+    # a state that cannot be read must not break the page.
+    try:
+        from core import master_rotation
+        rotation_armed = master_rotation.rotation_armed()
+        rotation_in_progress = master_rotation.rotation_in_progress()
+    except Exception:
+        rotation_armed = rotation_in_progress = False
+    return render_template('settings.html', platform=platform,
+                           rotation_armed=rotation_armed,
+                           rotation_in_progress=rotation_in_progress)
 
 
 # ============================================================================

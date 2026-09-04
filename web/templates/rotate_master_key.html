@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotate Master Key - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico', v=static_v) }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf', v=static_v) }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf', v=static_v) }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf', v=static_v) }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 520px;
+        }
+        h2 { color: #1F2937; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        p { color: #374151; font-size: 0.95rem; margin-bottom: 1rem; }
+        ul { color: #374151; font-size: 0.9rem; margin: 0 0 1rem 1.25rem; }
+        li { margin-bottom: 0.35rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.4rem; }
+        input[type=password] {
+            width: 100%; padding: 0.7rem 0.85rem; border: 1px solid #D1D5DB;
+            border-radius: 0.5rem; font-family: inherit; font-size: 0.95rem;
+        }
+        input[type=password]:focus { outline: none; border-color: #115D4F; }
+        .error {
+            background: #FDE2E1; border-left: 3px solid #C0453C; border-radius: 0.4rem;
+            padding: 0.75rem 1rem; font-size: 0.875rem; color: #8A2F28; margin-bottom: 1rem;
+        }
+        .note {
+            background: #F3F4F6; border-left: 3px solid #9CA3AF; border-radius: 0.4rem;
+            padding: 0.75rem 1rem; font-size: 0.85rem; color: #4B5563; margin-bottom: 1.25rem;
+        }
+        {% include 'components/_auth_buttons.html' %}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Rotate the master key</h2>
+    <p class="subtitle">Runs at your next login</p>
+
+    <p>Changing your password or issuing a new recovery key replaces the
+       <em>wrapper</em> around your master key — the key itself stays the same.
+       Rotation replaces the key itself. Everything in your practice file is
+       re-encrypted under a brand-new master key, and a new recovery key is
+       issued.</p>
+
+    <p>Afterwards, none of these can open your current records any more:</p>
+    <ul>
+        <li>an old copy of your key file (from a lost laptop, an old backup, or a synced folder) together with the password of the day;</li>
+        <li>any previous password;</li>
+        <li>your current recovery key — you will be given a new one to write down.</li>
+    </ul>
+
+    <div class="note">
+        <strong>This does not protect old backups.</strong> A backup made before
+        the rotation is a complete snapshot that still opens with the password
+        and recovery key from that time. If you are rotating because something
+        may have been copied, also decide what to do about backups made before
+        the copy — rotation is not a substitute for backup hygiene.
+    </div>
+
+    <p>Nothing changes now. The rotation runs the next time you log in, behind
+       a progress screen, and takes a safety backup first if there is none from
+       the last 24 hours. Have somewhere secure to write before you start that
+       login — the new recovery key is shown once.</p>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <form method="POST" action="{{ url_for('auth.rotate_master_key') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="password">Confirm your master password</label>
+        <input type="password" id="password" name="password" required autofocus
+               autocomplete="current-password">
+        <div class="actions">
+            <button type="submit">Rotate at next login</button>
+            <a class="btn btn-secondary" href="{{ url_for('settings.settings_page') }}">Cancel</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>
