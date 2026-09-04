@@ -8,6 +8,7 @@ from datetime import datetime
 import shutil
 import time
 import tempfile
+import uuid
 from flask import send_file
 from pdf.generator import generate_statement_pdf
 from core.config import ASSETS_DIR, ATTACHMENTS_DIR
@@ -204,11 +205,18 @@ def mark_sent(portion_id):
     
     comm_entry_id = cursor.lastrowid
     
-    # Copy PDF to attachments folder and create attachment record
+    # Copy PDF to attachments folder and create attachment record.
+    #
+    # Stored under a UUID, exactly as web.utils.save_uploaded_files does
+    # (privacy: no client info in the filesystem). pdf_filename carries the
+    # file number and date, and stays the DISPLAY name in attachments.filename
+    # — never the on-disk name, which a directory listing or a backup zip's
+    # central directory would expose without decrypting anything. Pinned by
+    # tests/test_attachment_filename_privacy.py.
     attachment_dir = ATTACHMENTS_DIR / str(portion['client_id']) / str(comm_entry_id)
     attachment_dir.mkdir(parents=True, exist_ok=True)
     
-    final_pdf_path = attachment_dir / pdf_filename
+    final_pdf_path = attachment_dir / f"{uuid.uuid4()}.enc"
     shutil.copy2(temp_pdf_path, final_pdf_path)
     
     # Encrypt the attachment if database is encrypted
