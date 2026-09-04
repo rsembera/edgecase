@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating Master Key - EdgeCase Equalizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicons/favicon.ico', v=static_v) }}">
+    <style>
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Regular.ttf', v=static_v) }}") format('truetype'); font-weight: 400; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-Medium.ttf', v=static_v) }}") format('truetype'); font-weight: 500; }
+        @font-face { font-family: 'Lexend'; src: url("{{ url_for('static', filename='fonts/Lexend-SemiBold.ttf', v=static_v) }}") format('truetype'); font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #C5CDD3; min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px; line-height: 1.6;
+        }
+        .card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2.5rem; width: 100%; max-width: 440px; text-align: center;
+        }
+        .ring {
+            width: 56px; height: 56px; margin: 0 auto 1.25rem; border-radius: 50%;
+            background: #BFDCDC; display: flex; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 28px; height: 28px; border: 3px solid rgba(17,93,79,0.25);
+            border-top-color: #115D4F; border-radius: 50%; animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h2 { color: #1F2937; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .subtitle { color: #6B7280; font-size: 0.875rem; font-weight: 400; margin-bottom: 1.25rem; }
+        #message { color: #374151; font-size: 0.95rem; min-height: 3rem; }
+        .note { color: #6B7280; font-size: 0.85rem; margin-top: 0.75rem; text-align: left; }
+        .begin { margin-top: 1.5rem; }
+        .bar { display: none; margin: 1rem auto 0; width: 100%; height: 8px;
+               background: #E5E7EB; border-radius: 4px; overflow: hidden; }
+        .bar.shown { display: block; }
+        .bar > div { height: 100%; width: 0; background: #115D4F; transition: width 0.15s linear; }
+        .count { display: none; color: #6B7280; font-size: 0.8rem; margin-top: 0.4rem; }
+        .count.shown { display: block; }
+        .error .ring { background: #FDE2E1; }
+        .error .spinner { display: none; }
+        .waiting .spinner { display: none; }
+        .waiting .ring::after { content: '\1F511'; font-size: 1.4rem; }
+        {% include 'components/_auth_buttons.html' %}
+        .actions { display: none; }
+        .actions.shown { display: flex; justify-content: center; gap: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="card" id="card">
+        <div class="ring"><div class="spinner" id="spinner"></div></div>
+        <h2 id="title">{% if resuming %}Finishing the master-key rotation{% else %}Rotating the master key{% endif %}</h2>
+        <p class="subtitle">{% if resuming %}Picking up where it left off{% else %}One-time security operation{% endif %}</p>
+        <div id="intro">
+            {% if resuming %}
+            <p id="message">A previous rotation was interrupted. EdgeCase will
+            finish re-encrypting your practice file under the new master key
+            and then show your <strong>new recovery key</strong>.</p>
+            {% else %}
+            <p id="message">EdgeCase is about to re-encrypt your practice file
+            under a brand-new master key and issue a <strong>new recovery
+            key</strong>. Old key files, old passwords and your current
+            recovery key will no longer open your current records.</p>
+            {% endif %}
+            <p class="note">This can take a few minutes for a large practice
+            and starts with a safety backup if there is none from the last 24
+            hours. <strong>Have somewhere secure to write before you start</strong>
+            — the new key is shown once and is never stored. Do not close
+            the app while it runs.</p>
+            <p class="note">Backups made before today still open with the
+            password and recovery key of that time; rotation does not change
+            them.</p>
+            <div class="begin"><button id="beginBtn" type="button" class="btn">{% if resuming %}Finish rotation{% else %}Begin rotation{% endif %}</button></div>
+        </div>
+        <div class="bar" id="bar"><div id="fill"></div></div>
+        <div class="count" id="count"></div>
+        <div class="actions" id="actions">
+            <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Back to login</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var card = document.getElementById('card');
+            var title = document.getElementById('title');
+            var intro = document.getElementById('intro');
+            var messageEl = document.getElementById('message');
+            var actions = document.getElementById('actions');
+            var beginBtn = document.getElementById('beginBtn');
+            var bar = document.getElementById('bar');
+            var fill = document.getElementById('fill');
+            var count = document.getElementById('count');
+
+            // Wait for an explicit start: the operation ends with a secret
+            // the user has to physically record.
+            card.classList.add('waiting');
+
+            function fail(text) {
+                card.classList.add('error');
+                card.classList.remove('waiting');
+                bar.classList.remove('shown');
+                count.classList.remove('shown');
+                title.textContent = 'Rotation not completed';
+                messageEl.textContent = text;
+                actions.classList.add('shown');
+            }
+
+            function begin() {
+                beginBtn.style.display = 'none';
+                card.classList.remove('waiting');
+                title.textContent = 'Rotating the master key';
+                messageEl.textContent = 'Preparing…';
+                Array.prototype.forEach.call(
+                    intro.querySelectorAll('.note'),
+                    function (n) { n.style.display = 'none'; });
+
+                var es = new EventSource('{{ url_for("auth.rotate_stream", token=rotate_token) }}');
+
+                es.onmessage = function (event) {
+                    var data = JSON.parse(event.data);
+                    if (data.status === 'encrypting') {
+                        // Real progress: the walk reports every file.
+                        bar.classList.add('shown');
+                        count.classList.add('shown');
+                        var pct = data.total ? Math.round(100 * data.current / data.total) : 0;
+                        fill.style.width = pct + '%';
+                        count.textContent = data.current + ' of ' + data.total + ' files';
+                        messageEl.textContent = 'Re-encrypting your files…';
+                    } else if (data.status === 'complete') {
+                        es.close();
+                        fill.style.width = '100%';
+                        count.classList.remove('shown');
+                        title.textContent = 'Master key rotated';
+                        messageEl.textContent = 'Opening your new recovery key…';
+                        setTimeout(function () { window.location.href = data.redirect; }, 900);
+                    } else if (data.status === 'error') {
+                        es.close();
+                        fail(data.message);
+                    } else {
+                        // backing_up / counting / checking / database /
+                        // finalizing: no honest percentage for these, so the
+                        // spinner and a plain label, nothing animated.
+                        if (data.status === 'database' || data.status === 'finalizing') {
+                            count.classList.remove('shown');
+                        }
+                        messageEl.textContent = data.message;
+                    }
+                };
+
+                es.onerror = function () {
+                    es.close();
+                    fail('The connection was interrupted. If the rotation had started it will finish at your next login; otherwise nothing has changed. Please go back and log in again.');
+                };
+            }
+
+            beginBtn.addEventListener('click', begin);
+        });
+    </script>
+</body>
+</html>

@@ -485,6 +485,40 @@ details[open] .settings-section-header .arrow {
                 new key retires the previous one.
             </small>
         </div>
+
+        <div class="form-group">
+            <label>Master Key</label>
+            {% if rotation_in_progress %}
+            <p class="status-paragraph">
+                <i data-lucide="loader" class="icon-sm icon-inline"></i>
+                A master-key rotation is under way and will finish the next
+                time you log in.
+            </p>
+            {% elif rotation_armed %}
+            <p class="status-paragraph">
+                <i data-lucide="clock" class="icon-sm icon-inline"></i>
+                A master-key rotation will run the next time you log in.
+            </p>
+            <form method="POST" action="{{ url_for('auth.cancel_master_key_rotation') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm">
+                    <i data-lucide="x-circle" class="icon-sm icon-inline"></i>
+                    Cancel Rotation
+                </button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('auth.rotate_master_key') }}" class="btn btn-sm">
+                <i data-lucide="refresh-cw" class="icon-sm icon-inline"></i>
+                Rotate Master Key
+            </a>
+            <small class="helper-text">
+                Re-encrypts everything under a brand-new key at your next
+                login, so old copies of your key file, old passwords and old
+                recovery keys can no longer open your current records. Use it
+                after a laptop is lost or a password may have leaked.
+            </small>
+            {% endif %}
+        </div>
         {% endif %}
 
         <div class="form-row-half">
