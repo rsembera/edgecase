@@ -431,17 +431,20 @@ function validateForAiScribe() {
     return true;
 }
 
-// Add click handler to AI Scribe button
+// Add click handler to the AI Scribe buttons.
+// querySelectorAll, not querySelector: the two-note system adds a second
+// Scribe button for Reflections, and binding only the first left it with no
+// validation — it submitted, the browser blocked it on a Choices-hidden
+// required select, and nothing appeared. A dead button.
 document.addEventListener('DOMContentLoaded', function() {
-    const aiScribeBtn = document.querySelector('button[name="ai_scribe"]');
-    if (aiScribeBtn) {
-        aiScribeBtn.addEventListener('click', function(e) {
+    document.querySelectorAll('button[name="ai_scribe"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
             if (!validateForAiScribe()) {
                 e.preventDefault();
                 showAiScribeValidationMessage();
             }
         });
-    }
+    });
 });
 
 
