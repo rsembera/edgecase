@@ -11,6 +11,15 @@ from web.utils import parse_date_from_form, get_today_date_parts, get_link_group
 from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int, renumber_sessions
 
 
+def _two_note_enabled():
+    """Whether the Reflections field is offered.
+
+    Off hides the control; it does not delete anything. Existing reflections
+    stay in the database and reappear when it is switched back on.
+    """
+    return get_db().get_setting('two_note_system', 'false') == 'true'
+
+
 @entries_bp.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
 def create_session(client_id):
     """Create a new session entry for a client."""
@@ -52,6 +61,11 @@ def create_session(client_id):
             'risk_assessment': request.form.get('risk_assessment') or None,
             
             'content': request.form.get('content') or None,
+            # Two-note system. Absent field means no change / not enabled;
+            # the toggle hides the control, so a hidden field must never
+            # overwrite what is already stored.
+            **({'reflections': request.form.get('reflections') or None}
+               if 'reflections' in request.form else {}),
         }
         
         # Set session number and description based on consultation status
@@ -152,6 +166,7 @@ def create_session(client_id):
                         **date_parts,
                         next_session_number=preview_session_number,
                         is_edit=False,
+                        two_note_system=_two_note_enabled(),
                         prev_session_id=prev_session_id,
                         next_session_id=next_session_id)
 
@@ -221,6 +236,8 @@ def edit_session(client_id, entry_id):
             
             # Content (always editable)
             'content': request.form.get('content') or None,
+            **({'reflections': request.form.get('reflections') or None}
+               if 'reflections' in request.form else {}),
         }
         
         # Update description based on consultation/pro bono status
@@ -435,6 +452,7 @@ def edit_session(client_id, entry_id):
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
     return render_template('entry_forms/session.html',
+                         two_note_system=_two_note_enabled(),
                          client=client,
                          client_type=client_type,
                          session=session_entry,

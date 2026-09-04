@@ -257,6 +257,23 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
 
+        {# Two-note system. Rendered only when enabled: with the field absent
+           the route leaves entries.reflections untouched, so switching off
+           hides without overwriting. Never included in any export. #}
+        {% if two_note_system %}
+        <div class="form-section">
+            <div class="form-group">
+                <label for="reflections">Reflections</label>
+                <textarea id="reflections" name="reflections"
+                          placeholder="Process notes — not included in exports...">{% if is_edit %}{{ session.reflections or '' }}{% endif %}</textarea>
+                <p class="help-text">
+                    Your own process notes. Kept with the session and excluded
+                    from client file exports and reports.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Edit History (only in edit mode) -->
         {% if is_edit %}
             {% include 'components/edit_history.html' %}

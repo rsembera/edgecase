@@ -578,6 +578,30 @@ def insurance_provider(provider_id):
 
 
 # ============================================================================
+# NOTE-TAKING SETTINGS
+# ============================================================================
+
+@settings_bp.route('/api/note_settings', methods=['GET', 'POST'])
+def note_settings():
+    """Two-note system: whether session entries offer a Reflections field.
+
+    Off hides the field everywhere. Reflections already written stay in the
+    database (and in backups) and reappear when it is switched back on —
+    hiding is a display decision, not a deletion. A toggle in Settings that
+    destroyed clinical notes would be a dangerous control to have.
+    """
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        db.set_setting('two_note_system',
+                       'true' if data.get('two_note_system') else 'false')
+        return jsonify({'success': True})
+
+    return jsonify({
+        'two_note_system': db.get_setting('two_note_system', 'false') == 'true'
+    })
+
+
+# ============================================================================
 # SECURITY SETTINGS
 # ============================================================================
 

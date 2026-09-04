@@ -1505,6 +1505,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadSecuritySettings();
         loadCalendarSettings();
         loadInsuranceProviders();
+        loadNoteSettings();
         loadStatementSettings();
         loadTimeFormat();
         loadAIStatus();
@@ -1792,4 +1793,41 @@ async function removeProvider(providerId) {
             }
         }
     );
+}
+
+
+// ============================================================
+// NOTE-TAKING (TWO-NOTE SYSTEM)
+// ============================================================
+
+async function loadNoteSettings() {
+    const box = document.getElementById('two_note_system');
+    if (!box) return;
+    try {
+        const response = await fetch('/api/note_settings');
+        const data = await response.json();
+        box.checked = !!data.two_note_system;
+    } catch (error) {
+        console.error('Failed to load note settings:', error);
+    }
+}
+
+async function saveNoteSettings() {
+    const box = document.getElementById('two_note_system');
+    if (!box) return;
+    try {
+        // Content-Type must be application/json — that is what exempts a
+        // fetch from CSRF (web/app.py:198).
+        const response = await fetch('/api/note_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ two_note_system: box.checked })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showSectionStatus('note-settings-status');
+        }
+    } catch (error) {
+        console.error('Failed to save note settings:', error);
+    }
 }

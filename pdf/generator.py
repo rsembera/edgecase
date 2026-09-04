@@ -14,6 +14,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from core.encryption import decrypt_file_to_bytes
+from core.db.private_columns import strip_private
 from core.config import get_assets_path
 from core.money import dec, quantize_cents, to_cents, get_currency_symbol, format_currency
 from core.db.providers import provider_line
@@ -866,7 +867,8 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     profile = db.get_profile_entry(client_id)
     
     # Get all entries and filter by type
-    all_entries = db.get_client_entries(client_id)
+    # Reflections never leave in an export (core/db/private_columns.py).
+    all_entries = strip_private(db.get_client_entries(client_id))
     entries = []
     
     for e in all_entries:
