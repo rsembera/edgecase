@@ -21,7 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
             textarea.style.height = 'auto';
             // Force browser to recalculate layout
             textarea.offsetHeight;
-            const minHeight = 300;
+            // Each field's floor comes from its own CSS min-height, not a
+            // shared constant — a hardcoded 300 here padded Reflections out
+            // to twice the height its content needed.
+            const minHeight = parseInt(
+                window.getComputedStyle(textarea).minHeight, 10) || 100;
             const maxHeight = 600;
             const scrollHeight = textarea.scrollHeight;
             textarea.style.height = Math.max(minHeight, Math.min(scrollHeight + 4, maxHeight)) + 'px';
