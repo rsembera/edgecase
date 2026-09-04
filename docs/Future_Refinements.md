@@ -49,10 +49,26 @@ the spreadsheet hurt.
 
 ## Per-Payment Receipt
 
-**Status:** Promoted to a full plan — see `Receipt_Plan.md`. (The August 2026
-Canada Life proof-of-payment request turned out not to be answerable by the
-Payment Record: that is a tax document with no letterhead or signature. A
-summary line added to it was reverted the same day.)
+**Status:** CLOSED 2026-08-27 — superseded, not deferred. Do not revive from
+this entry; `Receipt_Plan.md` is retired and describes a document that was
+never built.
+
+The August 2026 Canada Life request was proof of payment for a client. The
+Payment Record couldn't answer it (a tax document, no letterhead or
+signature) and a summary line added to it was reverted the same day. The
+receipt plan that replaced it was then retired too, for a better reason: a
+per-payment receipt answers "what did this transfer settle," while the
+insurer is asking "were these services paid for" — a question that can span
+several transfers. Wrong unit.
+
+**What ships instead:** Client File › Report, "Include payment status"
+checkbox. Per-entry Paid / Owing / Written off / Unbilled inherited from
+statement portions, on letterhead with registration and signature, and a
+paid-in-full line only when every fee-bearing entry is settled. See
+`pdf/generator.payment_status_label` and `tests/test_report_payment_status.py`.
+
+**What would reopen this:** a third party asking about a single payment
+rather than a period of services. Nothing has.
 
 ---
 
