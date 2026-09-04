@@ -242,6 +242,26 @@ def is_first_run():
     return not db_path.exists()
 
 
+def _post_open_maintenance(db):
+    """Housekeeping that needs an OPEN database and must run before the app
+    is handed to the user. Called from every path that completes a login
+    (plain login, the encryption upgrade stream, the rotation stream).
+
+    Currently: the one-time attachment-filename rename pass
+    (core.attachment_names). Idempotent and cheap once done — one SELECT —
+    so it simply runs at every login rather than tracking a "done" flag
+    that could drift from what is actually on disk.
+
+    Never raises: a maintenance failure is logged, and the login proceeds.
+    A practice must not be locked out because a rename was refused.
+    """
+    try:
+        from core import attachment_names
+        attachment_names.rename_readable_attachments(db.connect())
+    except Exception as e:
+        print(f"[Attachments] rename pass error: {e}")
+
+
 def _restore_login_context():
     """What the login screen needs to say about a just-restored practice.
 
@@ -365,6 +385,7 @@ def login():
                     from_version=migrate_crypto.install_crypto_version())
 
             # Success! Store db in app config
+            _post_open_maintenance(db)
             current_app.config['db'] = db
             
             # Clear failed login attempts on success
@@ -437,6 +458,7 @@ def migrate_stream():
             # database and complete the login exactly as auth.login does.
             db = Database(db_path, password=password)
             db.connect().execute("SELECT count(*) FROM client_types")
+            _post_open_maintenance(db)
             app_obj.config['db'] = db
             init_all_blueprints(db)
 
