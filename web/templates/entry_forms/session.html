@@ -11,11 +11,14 @@
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/session.js', v=static_v) }}"></script>
 <script>
-// Auto-size the notes textareas on load (Safari-compatible)
+// Auto-size the notes textareas: grow to fit, never scroll.
+// Both fields expand to their content with no ceiling — a long note pushes
+// the page down rather than trapping text in a scrolling box. They also grow
+// while you type, not only on load.
 document.addEventListener('DOMContentLoaded', function() {
     ['content', 'reflections'].forEach(function(id) {
         const textarea = document.getElementById(id);
-        if (!textarea || !textarea.value) return;
+        if (!textarea) return;
 
         function resizeTextarea() {
             textarea.style.height = 'auto';
@@ -26,12 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // to twice the height its content needed.
             const minHeight = parseInt(
                 window.getComputedStyle(textarea).minHeight, 10) || 100;
-            const maxHeight = 600;
             const scrollHeight = textarea.scrollHeight;
-            textarea.style.height = Math.max(minHeight, Math.min(scrollHeight + 4, maxHeight)) + 'px';
-            // Ensure scrollable if content exceeds max
-            textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+            textarea.style.height = Math.max(minHeight, scrollHeight + 4) + 'px';
+            textarea.style.overflowY = 'hidden';
         }
+
+        // Grow as the note is written, not just when it is reopened.
+        textarea.addEventListener('input', resizeTextarea);
 
         // Run immediately, then again after Safari settles
         requestAnimationFrame(resizeTextarea);
