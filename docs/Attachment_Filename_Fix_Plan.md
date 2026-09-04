@@ -1,6 +1,6 @@
 # Attachment Filenames — Privacy Fix Plan
 
-**Status:** PLANNED 2026-09-03. Not started. Do this before the master-key
+**Status:** IMPLEMENTED 2026-09-04 on branch `filename-fix-and-master-rotation`, awaiting review (see `Overnight_Run_2026-09-04.md`). Planned 2026-09-03. Do this before the master-key
 rotation work — it is smaller, it addresses a live disclosure rather than a
 hardening measure, and doing it first means the rotation walk runs once over
 correctly-named files.
