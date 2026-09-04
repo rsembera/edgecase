@@ -42,6 +42,7 @@ same attachments/<client>/<entry>/<name> tail exists under the current tree,
 the row is re-pointed at it, relative to DATA_ROOT from then on. Exact tail
 match only; nothing is adopted on a guess.
 """
+import hashlib
 import os
 import re
 import uuid
@@ -227,6 +228,59 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
     if summary["relocated"]:
         log(f"[Attachments] re-pointed {summary['relocated']} row(s) from a "
             f"previous install location to the current one")
+
+    _report_unresolved(summary, attachments_dir, log)
+    return summary
+
+
+def _unresolved_fingerprint(summary):
+    """A hash of what could not be resolved, so an unchanged situation can be
+    reported once rather than at every launch.
+
+    Only the digest is stored — never the paths themselves, which carry client
+    file numbers on any install that predates the 2026-09-04 rename.
+    """
+    items = (sorted(summary["missing"])
+             + sorted(summary["outside_tree"])
+             + sorted(summary["orphans"]))
+    if not items:
+        return None
+    return hashlib.sha256("\n".join(items).encode()).hexdigest()
+
+
+def _report_unresolved(summary, attachments_dir, log):
+    """Report rows and files that could not be resolved.
+
+    In full the first time, and again whenever the set changes; otherwise a
+    single counted line. Repeating seventeen identical lines at every launch
+    teaches the reader to skip startup output, which is how the next real one
+    gets missed.
+    """
+    counts = {k: len(summary[k])
+              for k in ("missing", "outside_tree", "orphans")}
+    total = sum(counts.values())
+    if not total:
+        # Resolved since last time: drop the record so a recurrence is news.
+        _state_file(attachments_dir).unlink(missing_ok=True)
+        return
+
+    fingerprint = _unresolved_fingerprint(summary)
+    state = _state_file(attachments_dir)
+    try:
+        seen = state.read_text().strip()
+    except OSError:
+        seen = ""
+
+    if seen == fingerprint:
+        parts = [f"{n} {label}" for label, n in (
+            ("row(s) point at a missing file", counts["missing"]),
+            ("row(s) point outside this install", counts["outside_tree"]),
+            ("file(s) have no attachment row", counts["orphans"]),
+        ) if n]
+        log(f"[Attachments] unchanged since last check: {', '.join(parts)}. "
+            f"Run tools/audit_orphans.py for detail.")
+        return
+
     for stored in summary["missing"]:
         log(f"[Attachments] row points at a missing file, left as is: {stored}")
     for stored in summary["outside_tree"]:
@@ -235,4 +289,13 @@ def rename_readable_attachments(conn, attachments_dir=None, data_root=None,
     for orphan in summary["orphans"]:
         log(f"[Attachments] readable filename with no attachment row, "
             f"left as is: {orphan}")
-    return summary
+
+    try:
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.write_text(fingerprint)
+    except OSError:
+        pass  # Reporting state is not worth failing a login over.
+
+
+def _state_file(attachments_dir):
+    return Path(attachments_dir) / ".unresolved_report"
