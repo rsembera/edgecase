@@ -10,39 +10,10 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/session.js', v=static_v) }}"></script>
-<script>
-// Auto-size the notes textareas: grow to fit, never scroll.
-// Both fields expand to their content with no ceiling — a long note pushes
-// the page down rather than trapping text in a scrolling box. They also grow
-// while you type, not only on load.
-document.addEventListener('DOMContentLoaded', function() {
-    ['content', 'reflections'].forEach(function(id) {
-        const textarea = document.getElementById(id);
-        if (!textarea) return;
-
-        function resizeTextarea() {
-            textarea.style.height = 'auto';
-            // Force browser to recalculate layout
-            textarea.offsetHeight;
-            // Each field's floor comes from its own CSS min-height, not a
-            // shared constant — a hardcoded 300 here padded Reflections out
-            // to twice the height its content needed.
-            const minHeight = parseInt(
-                window.getComputedStyle(textarea).minHeight, 10) || 100;
-            const scrollHeight = textarea.scrollHeight;
-            textarea.style.height = Math.max(minHeight, scrollHeight + 4) + 'px';
-            textarea.style.overflowY = 'hidden';
-        }
-
-        // Grow as the note is written, not just when it is reopened.
-        textarea.addEventListener('input', resizeTextarea);
-
-        // Run immediately, then again after Safari settles
-        requestAnimationFrame(resizeTextarea);
-        setTimeout(resizeTextarea, 100);
-    });
-});
-</script>
+{# Textarea auto-sizing lives in session.js and covers both notes fields.
+   A second, load-only copy used to sit here (added 2026-02-25 for a Safari
+   sizing inconsistency); it overlapped with session.js on #content and the
+   two disagreed once the height cap was lifted. #}
 {% endblock %}
 
 {% block content %}

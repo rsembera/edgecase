@@ -278,16 +278,24 @@ baseFeeInput.addEventListener('blur', formatFeeOnBlur);
 taxRateInput.addEventListener('blur', formatFeeOnBlur);
 totalFeeInput.addEventListener('blur', formatFeeOnBlur);
 
-// Auto-expanding textarea
-const textarea = document.getElementById('content');
-const maxHeight = 600; // About 30-35 lines
+// Auto-expanding textareas: the clinical note and, when the two-note system
+// is on, reflections. Both grow to fit with no ceiling — Infinity makes the
+// shared helper's Math.min a no-op and leaves overflowY hidden, so a long
+// note pushes the page down instead of scrolling inside a fixed box.
+//
+// The floor is each field's CSS min-height (session.css: content 150px,
+// reflections 300px), which the browser applies over an inline height, so
+// the JS does not need to know about it.
+//
+// This is the ONLY resizer for these fields. session.html used to carry a
+// second, load-only copy added for a Safari fix; the two overlapped on
+// #content and disagreed once the cap was lifted here.
+const sessionTextareas = ['content', 'reflections']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
 
-/**
- * Auto-resize textarea to fit content up to maxHeight
- * (delegates to shared_utils.js)
- */
 function autoResize() {
-    autoResizeTextarea(textarea, maxHeight);
+    sessionTextareas.forEach((el) => autoResizeTextarea(el, Infinity));
 }
 
 // Run on page load (for edit mode with existing content)
@@ -295,13 +303,18 @@ function autoResize() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(autoResize);
+        // Safari can report a stale scrollHeight on first paint.
+        setTimeout(autoResize, 100);
     });
 } else {
     requestAnimationFrame(autoResize);
+    setTimeout(autoResize, 100);
 }
 
 // Run on input
-textarea.addEventListener('input', autoResize);
+sessionTextareas.forEach((el) => {
+    el.addEventListener('input', () => autoResizeTextarea(el, Infinity));
+});
 
 /**
  * Close the missing link group modal
