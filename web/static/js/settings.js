@@ -1665,23 +1665,30 @@ async function loadInsuranceProviders() {
         }
 
         list.innerHTML = providers.map(p => `
-            <div class="form-row-half" data-provider-id="${p.id}" style="align-items: flex-end;">
-                <div class="form-group">
+            <div data-provider-id="${p.id}"
+                 style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color, #E5E7EB);">
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
                     <input type="text" value="${escProvider(p.name)}"
-                           data-field="name" aria-label="Insurer">
-                </div>
-                <div class="form-group">
+                           data-field="name" aria-label="Insurer"
+                           style="flex: 2 1 12rem;">
                     <input type="text" value="${escProvider(p.provider_number)}"
-                           data-field="provider_number" aria-label="Provider number">
-                </div>
-                <div class="form-group">
-                    <input type="text" value="${escProvider(p.number_format)}"
-                           data-field="number_format" aria-label="Printed line">
-                </div>
-                <div class="form-group">
+                           data-field="provider_number" aria-label="Provider number"
+                           style="flex: 1 1 8rem;">
                     <button class="btn" onclick="saveProvider(${p.id})">Save</button>
                     <button class="btn btn-secondary" onclick="removeProvider(${p.id})">Remove</button>
                 </div>
+                <details style="margin-top: 0.5rem;">
+                    <summary class="helper-text" style="cursor: pointer;">Customise how this prints</summary>
+                    <input type="text" value="${escProvider(p.number_format)}"
+                           data-field="number_format" aria-label="Printed line"
+                           style="margin-top: 0.5rem; width: 100%;">
+                    <small class="helper-text">
+                        Prints as: ${escProvider(
+                            (p.number_format || '')
+                                .replace('{name}', p.name)
+                                .replace('{number}', p.provider_number))}
+                    </small>
+                </details>
             </div>
         `).join('');
     } catch (error) {
@@ -1758,8 +1765,16 @@ async function removeProvider(providerId) {
         'Any clients assigned to this provider must be changed first.',
         async function() {
             try {
+                // Content-Type MUST be application/json: web/app.py:198
+                // exempts JSON fetches from CSRF and nothing else. A bodyless
+                // DELETE has no content type, gets CSRF-protected, and fails
+                // with an HTML error page that response.json() chokes on.
                 const response = await fetch(
-                    `/api/insurance_providers/${providerId}`, { method: 'DELETE' });
+                    `/api/insurance_providers/${providerId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
                 const result = await response.json();
                 if (result.success) {
                     showSectionStatus('provider-status', '✓ Removed');
