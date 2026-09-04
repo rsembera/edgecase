@@ -446,7 +446,8 @@ def _recover_migrate_v3(paths: _Paths, marker: dict) -> str:
 
 def recover_if_interrupted(root=None) -> str:
     """At startup: finalize a completed-but-uncleaned transition, or roll back an
-    interrupted one. Password-free. Returns 'finalized', 'rolled_back', or 'none'.
+    interrupted one. Password-free. Returns 'finalized', 'rolled_back', 'none',
+    or 'rotation_pending' (a rotate_master marker, deliberately left alone).
 
     v1->v2 migration: .keyinfo is written only after the DB swap, so its presence
     proves commit. v2 password change (kind 'rekey_v2'): .keyinfo exists in both
@@ -455,6 +456,16 @@ def recover_if_interrupted(root=None) -> str:
     if not paths.marker.exists():
         return "none"
     marker = json.loads(paths.marker.read_text())
+
+    if marker.get("kind") == "rotate_master":
+        # A master-key rotation (core.master_rotation) ROLLS FORWARD, not
+        # back: its backup may be up to a day old, and restoring it could
+        # discard a day of clinical notes to fix a key problem. Its state
+        # file carries the new master; the next login resumes the run and
+        # finishes it. Touching nothing here — not the marker, not the
+        # files, not the database — is the whole contract. Falling through
+        # to _rollback would undo a rotation halfway through.
+        return "rotation_pending"
 
     if marker.get("kind") == "migrate_v3":
         return _recover_migrate_v3(paths, marker)
