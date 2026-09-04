@@ -68,8 +68,9 @@ _migration_handoff = {}
 
 
 def _store_migration_handoff(password):
-    """Store the verified password server-side for the migration SSE route;
-    returns a single-use token. Never the session cookie (CODE_REVIEW.md H2)."""
+    """Store the verified password server-side for the migration (or
+    master-key rotation) SSE route; returns a single-use token. Never the
+    session cookie (CODE_REVIEW.md H2)."""
     _migration_handoff.clear()
     token = secrets.token_urlsafe(32)
     _migration_handoff[token] = {'password': password, 'created': time.time()}
@@ -242,6 +243,26 @@ def is_first_run():
     return not db_path.exists()
 
 
+def _post_open_maintenance(db):
+    """Housekeeping that needs an OPEN database and must run before the app
+    is handed to the user. Called from every path that completes a login
+    (plain login, the encryption upgrade stream, the rotation stream).
+
+    Currently: the one-time attachment-filename rename pass
+    (core.attachment_names). Idempotent and cheap once done — one SELECT —
+    so it simply runs at every login rather than tracking a "done" flag
+    that could drift from what is actually on disk.
+
+    Never raises: a maintenance failure is logged, and the login proceeds.
+    A practice must not be locked out because a rename was refused.
+    """
+    try:
+        from core import attachment_names
+        attachment_names.rename_readable_attachments(db.connect())
+    except Exception as e:
+        print(f"[Attachments] rename pass error: {e}")
+
+
 def _restore_login_context():
     """What the login screen needs to say about a just-restored practice.
 
@@ -326,6 +347,18 @@ def login():
         # Try to open/create database with this password
         from core.config import DATA_DIR
         db_path = Path(DATA_DIR) / "edgecase.db"
+
+        # An armed or interrupted master-key rotation runs HERE, before the
+        # database is constructed (Master_Rotation_Plan: login-time, not
+        # live). The password is verified against the key file rather than
+        # by opening the database, because in the narrowest crash window
+        # the rebuilt database is already under the new key while the key
+        # file still holds the old one — opening it would report "Incorrect
+        # password" and the rotation could never be resumed.
+        if not first_run:
+            rotation_response = _route_into_rotation(password, restore_ctx)
+            if rotation_response is not None:
+                return rotation_response
         
         try:
             db = Database(str(db_path), password=password)
@@ -365,6 +398,7 @@ def login():
                     from_version=migrate_crypto.install_crypto_version())
 
             # Success! Store db in app config
+            _post_open_maintenance(db)
             current_app.config['db'] = db
             
             # Clear failed login attempts on success
@@ -437,6 +471,7 @@ def migrate_stream():
             # database and complete the login exactly as auth.login does.
             db = Database(db_path, password=password)
             db.connect().execute("SELECT count(*) FROM client_types")
+            _post_open_maintenance(db)
             app_obj.config['db'] = db
             init_all_blueprints(db)
 
@@ -473,6 +508,195 @@ def migrate_stream():
             yield "data: " + json.dumps({'status': 'error', 'message': message}) + "\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
+
+
+# ============================================================================
+# MASTER-KEY ROTATION (login-time; see core.master_rotation)
+# ============================================================================
+
+def _route_into_rotation(password, restore_ctx):
+    """If a rotation is armed or was interrupted, verify the password against
+    the key file and hand the login over to the rotation screen. Returns a
+    response, or None when no rotation is pending (the normal login continues).
+    """
+    from core import master_rotation
+    from core import migrate_crypto
+
+    try:
+        pending = master_rotation.rotation_pending()
+    except Exception as e:
+        print(f"[Rotation] pending check error: {e}")
+        return None
+    if not pending:
+        return None
+    if migrate_crypto.install_crypto_version() != 3:
+        # Cannot happen through Settings (which only arms on v3); a stray
+        # flag on an older install must not block the normal login.
+        master_rotation.disarm_rotation()
+        return None
+
+    from core import encryption_v3 as v3
+    try:
+        v3.unwrap_with_password(v3.read_keyinfo(), password)
+    except Exception:
+        _record_failed_attempt()
+        return render_template('login.html', first_run=False,
+                               error="Incorrect password", **restore_ctx)
+
+    _clear_failed_attempts()
+    token = _store_migration_handoff(password)
+    session.clear()
+    session.permanent = True
+    session['authenticated'] = True
+    session['login_time'] = int(time.time())
+    session['last_activity'] = time.time()
+    session.modified = True
+    return render_template(
+        'rotating.html', rotate_token=token,
+        resuming=master_rotation.rotation_in_progress())
+
+
+@auth_bp.route('/rotate/stream')
+def rotate_stream():
+    """SSE endpoint that performs (or resumes) the master-key rotation and
+    then completes the login. Same gating as migrate_stream: reachable
+    without config['db'], protected by the single-use token from the
+    verified login POST.
+
+    The work runs on a worker thread with progress_cb=queue.put and this
+    generator drains the queue — a generator cannot yield from inside a
+    blocking call, which is why the upgrade screen has no bar even though
+    migrate() reports progress. The worker's own 'complete' event is NOT
+    forwarded: the screen redirects on 'complete', and that must not happen
+    until the rotated database is open and the recovery key is parked.
+    """
+    import queue
+    import threading
+    from core.config import DATA_DIR
+
+    password = _pop_migration_handoff(request.args.get('token'))
+    db_path = str(Path(DATA_DIR) / "edgecase.db")
+    app_obj = current_app._get_current_object()
+    # Resolved here, not inside the generator (see migrate_stream).
+    recovery_key_url = url_for('auth.recovery_key')
+
+    def generate():
+        if not password:
+            yield "data: " + json.dumps({'status': 'error', 'message': 'Your session expired. Please log in again.'}) + "\n\n"
+            return
+
+        from core import master_rotation
+        from core.database import Database
+        from web.app import init_all_blueprints
+
+        q = queue.Queue()
+        outcome = {}
+
+        def work():
+            try:
+                outcome['result'] = master_rotation.rotate_master(
+                    password, progress_cb=q.put)
+            except Exception as e:  # noqa: BLE001 — reported to the screen
+                outcome['error'] = e
+            finally:
+                q.put(None)
+
+        worker = threading.Thread(target=work, name='master-rotation', daemon=True)
+        worker.start()
+        while True:
+            try:
+                event = q.get(timeout=15)
+            except queue.Empty:
+                yield ": keepalive\n\n"
+                continue
+            if event is None:
+                break
+            if event.get('status') == 'complete':
+                continue
+            yield "data: " + json.dumps(event) + "\n\n"
+        worker.join()
+
+        if 'error' in outcome:
+            err = outcome['error']
+            try:
+                in_progress = master_rotation.rotation_in_progress()
+            except Exception:
+                in_progress = False
+            if in_progress:
+                message = ('The rotation was interrupted: ' + str(err) + '. '
+                           'Nothing has been lost — it will pick up where it '
+                           'left off the next time you log in. Your password '
+                           'is unchanged.')
+            else:
+                message = ('The rotation did not start: ' + str(err) + '. '
+                           'Your data and password are unchanged.')
+            yield "data: " + json.dumps({'status': 'error', 'message': message,
+                                         'in_progress': in_progress}) + "\n\n"
+            return
+
+        result = outcome['result']
+        try:
+            db = Database(db_path, password=password)
+            db.connect().execute("SELECT count(*) FROM client_types")
+            _post_open_maintenance(db)
+            app_obj.config['db'] = db
+            init_all_blueprints(db)
+            rk_token = _store_recovery_handoff(result.get('recovery_key'))
+            destination = f"{recovery_key_url}?token={rk_token}"
+            yield "data: " + json.dumps({'status': 'complete', 'message': 'Master key rotated.', 'files': result.get('files_rekeyed', 0), 'redirect': destination}) + "\n\n"
+        except Exception as e:
+            # Committed, but the app could not be opened on it. Say so
+            # honestly: the rotation is done and the password still works.
+            message = ('Your master key was rotated, but EdgeCase could not '
+                       'finish opening the practice: ' + str(e) + '. Your '
+                       'records are safe and your password is unchanged — '
+                       'please log in again. You will be prompted to set up '
+                       'your new recovery key.')
+            yield "data: " + json.dumps({'status': 'error', 'message': message}) + "\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+
+@auth_bp.route('/rotate-master-key', methods=['GET', 'POST'])
+@login_required
+def rotate_master_key():
+    """Arm a master-key rotation for the next login (Settings > Security).
+
+    Requires the master password: arming schedules the issue of a new
+    full-access credential and the retirement of every old one, so an
+    unattended session must not be able to do it. The rotation itself runs
+    at the next login, behind the progress screen.
+    """
+    from core import migrate_crypto
+    from core import master_rotation
+
+    if migrate_crypto.install_crypto_version() != 3:
+        return redirect(url_for('settings.settings_page'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        db = current_app.config.get('db')
+        if not db or not db.verify_password(password):
+            return render_template('rotate_master_key.html',
+                                   error="That password is incorrect.")
+        master_rotation.arm_rotation()
+        # Settings shows the armed state (and the cancel button) itself.
+        return redirect(url_for('settings.settings_page'))
+
+    return render_template('rotate_master_key.html')
+
+
+@auth_bp.route('/rotate-master-key/cancel', methods=['POST'])
+@login_required
+def cancel_master_key_rotation():
+    """Withdraw an armed rotation. Refused once a run has started, because
+    the state file may already describe files under the new master."""
+    from core import master_rotation
+
+    # Refused or not, Settings renders the resulting state: an in-progress
+    # run shows as "will finish at your next login" with no cancel button.
+    master_rotation.disarm_rotation()
+    return redirect(url_for('settings.settings_page'))
 
 
 @auth_bp.route('/recovery-key', methods=['GET', 'POST'])

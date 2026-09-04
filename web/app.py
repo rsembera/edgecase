@@ -385,6 +385,7 @@ def require_login():
     # are gated inside the blueprint instead: dead once a database exists,
     # and protected by a recovery CSRF token.
     allowed_endpoints = ['auth.login', 'auth.logout', 'auth.migrate_stream',
+                         'auth.rotate_stream',
                          'auth.recover', 'auth.recover_reset',
                          'auth.restore_page', 'auth.restore_search',
                          'auth.restore_scan', 'auth.restore_browse',

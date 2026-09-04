@@ -8,23 +8,19 @@ from datetime import datetime
 import shutil
 import time
 import tempfile
+import uuid
 from flask import send_file
 from pdf.generator import generate_statement_pdf
-from core.config import ASSETS_DIR, ATTACHMENTS_DIR
+from core.config import ASSETS_DIR, ATTACHMENTS_DIR, DATA_ROOT
+from web.utils import private_pdf_dir
 from web.blueprints.statements.common import statements_bp, get_db
 
 
 def _private_pdf_dir() -> Path:
-    """Create a private (0700, randomized name) temp dir for a generated PDF.
-
-    Statement PDFs contain PHI, so they must not be written to the shared
-    system temp dir under predictable names. mkdtemp gives an
-    unguessable, owner-only directory; the user-facing filename
-    (Statement_<file#>_<date>.pdf) is kept for the file inside it and for
-    send_file's download_name. Callers are responsible for cleanup
-    (shutil.rmtree of the returned dir).
-    """
-    return Path(tempfile.mkdtemp(prefix='edgecase-'))
+    """Kept as a local alias; the definition lives in web.utils so the ledger
+    report route shares it (a second copy is how ledger.py came to be writing
+    PHI into the shared temp dir under a predictable name until 2026-09-04)."""
+    return private_pdf_dir()
 
 
 def _load_portion_and_profile(cursor, portion_id):
@@ -204,11 +200,18 @@ def mark_sent(portion_id):
     
     comm_entry_id = cursor.lastrowid
     
-    # Copy PDF to attachments folder and create attachment record
+    # Copy PDF to attachments folder and create attachment record.
+    #
+    # Stored under a UUID, exactly as web.utils.save_uploaded_files does
+    # (privacy: no client info in the filesystem). pdf_filename carries the
+    # file number and date, and stays the DISPLAY name in attachments.filename
+    # — never the on-disk name, which a directory listing or a backup zip's
+    # central directory would expose without decrypting anything. Pinned by
+    # tests/test_attachment_filename_privacy.py.
     attachment_dir = ATTACHMENTS_DIR / str(portion['client_id']) / str(comm_entry_id)
     attachment_dir.mkdir(parents=True, exist_ok=True)
     
-    final_pdf_path = attachment_dir / pdf_filename
+    final_pdf_path = attachment_dir / f"{uuid.uuid4()}.enc"
     shutil.copy2(temp_pdf_path, final_pdf_path)
     
     # Encrypt the attachment if database is encrypted
@@ -216,6 +219,16 @@ def mark_sent(portion_id):
         from core.encryption import encrypt_file
         encrypt_file(str(final_pdf_path), db.password)
     
+    # Store the path relative to DATA_ROOT, as web.utils does, so the row
+    # survives the install moving (a restore onto another machine, a folder
+    # rename). Absolute paths written by the old code broke exactly that
+    # way; the startup rename pass heals them. Absolute only as a fallback
+    # when the attachments dir is not under DATA_ROOT (tests redirect it).
+    try:
+        stored_path = str(final_pdf_path.relative_to(DATA_ROOT))
+    except ValueError:
+        stored_path = str(final_pdf_path)
+
     cursor.execute("""
         INSERT INTO attachments (entry_id, filename, description, filepath, filesize, uploaded_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -223,7 +236,7 @@ def mark_sent(portion_id):
         comm_entry_id,
         pdf_filename,
         f"Statement for {billing_period}",
-        str(final_pdf_path),
+        stored_path,
         final_pdf_path.stat().st_size,
         now
     ))
