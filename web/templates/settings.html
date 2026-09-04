@@ -431,6 +431,57 @@ details[open] .settings-section-header .arrow {
         </div>
     </details>
     
+    <!-- Insurance Providers Section -->
+    <details class="settings-section-collapsible">
+        <summary class="settings-section-header">
+            <span class="arrow">▶</span>
+            <div>
+                <h3>Insurance Providers</h3>
+                <p>Provider numbers for networks you've joined</p>
+            </div>
+        </summary>
+        <div class="settings-section-content">
+
+        <p class="helper-text mb-half">
+            Add each network you're registered with. Assign a provider to a
+            client on their profile — statements and payment records for that
+            client will carry the number.
+        </p>
+
+        <div id="provider-list"></div>
+
+        <div class="form-row-half">
+            <div class="form-group">
+                <label for="provider_name">Insurer</label>
+                <input type="text" id="provider_name" placeholder="e.g., Blue Cross">
+            </div>
+            <div class="form-group">
+                <label for="provider_number">Provider number</label>
+                <input type="text" id="provider_number" placeholder="e.g., 123456">
+            </div>
+        </div>
+
+        <details class="mb-half">
+            <summary class="helper-text" style="cursor: pointer;">Customise how this prints</summary>
+            <div class="form-group" style="margin-top: 0.5rem;">
+                <label for="provider_format">Printed line</label>
+                <input type="text" id="provider_format"
+                       placeholder="{name} — Provider No. {number}">
+                <small class="helper-text">
+                    Use <code>{name}</code> and <code>{number}</code>. Leave blank
+                    for the default. If your insurer specifies a format, type
+                    theirs here.
+                </small>
+            </div>
+        </details>
+
+        <div class="section-save-row">
+            <button onclick="addProvider()" class="btn">Add provider</button>
+            <span id="provider-status" class="section-status">✓ Saved!</span>
+        </div>
+        </div>
+    </details>
+
     <!-- Security Section -->
     <details class="settings-section-collapsible">
         <summary class="settings-section-header">

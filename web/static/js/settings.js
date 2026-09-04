@@ -1504,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadFileNumberSettings();
         loadSecuritySettings();
         loadCalendarSettings();
+        loadInsuranceProviders();
         loadStatementSettings();
         loadTimeFormat();
         loadAIStatus();
@@ -1633,3 +1634,144 @@ document.getElementById('delete-ai-modal')?.addEventListener('click', function(e
         closeDeleteAIModal();
     }
 });
+
+
+// ============================================================
+// INSURANCE PROVIDERS
+// ============================================================
+
+/**
+ * Escape text destined for innerHTML. Insurer names and formats are
+ * user-entered and land in the provider list markup.
+ */
+function escProvider(value) {
+    const d = document.createElement('div');
+    d.textContent = value == null ? '' : String(value);
+    return d.innerHTML;
+}
+
+async function loadInsuranceProviders() {
+    const list = document.getElementById('provider-list');
+    if (!list) return;
+
+    try {
+        const response = await fetch('/api/insurance_providers');
+        const data = await response.json();
+        const providers = data.providers || [];
+
+        if (!providers.length) {
+            list.innerHTML = '<p class="helper-text mb-half">No providers yet.</p>';
+            return;
+        }
+
+        list.innerHTML = providers.map(p => `
+            <div class="form-row-half" data-provider-id="${p.id}" style="align-items: flex-end;">
+                <div class="form-group">
+                    <input type="text" value="${escProvider(p.name)}"
+                           data-field="name" aria-label="Insurer">
+                </div>
+                <div class="form-group">
+                    <input type="text" value="${escProvider(p.provider_number)}"
+                           data-field="provider_number" aria-label="Provider number">
+                </div>
+                <div class="form-group">
+                    <input type="text" value="${escProvider(p.number_format)}"
+                           data-field="number_format" aria-label="Printed line">
+                </div>
+                <div class="form-group">
+                    <button class="btn" onclick="saveProvider(${p.id})">Save</button>
+                    <button class="btn btn-secondary" onclick="removeProvider(${p.id})">Remove</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load insurance providers:', error);
+    }
+}
+
+async function addProvider() {
+    const name = document.getElementById('provider_name').value.trim();
+    const number = document.getElementById('provider_number').value.trim();
+    const format = document.getElementById('provider_format').value.trim();
+
+    if (!name || !number) {
+        showSectionStatus('provider-status', 'Insurer and number are required');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/insurance_providers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                provider_number: number,
+                number_format: format
+            })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            document.getElementById('provider_name').value = '';
+            document.getElementById('provider_number').value = '';
+            document.getElementById('provider_format').value = '';
+            showSectionStatus('provider-status');
+            loadInsuranceProviders();
+        } else {
+            showSectionStatus('provider-status', result.error || 'Failed');
+        }
+    } catch (error) {
+        console.error('Failed to add provider:', error);
+    }
+}
+
+async function saveProvider(providerId) {
+    const row = document.querySelector(`[data-provider-id="${providerId}"]`);
+    if (!row) return;
+    const field = (n) => row.querySelector(`[data-field="${n}"]`).value.trim();
+
+    try {
+        const response = await fetch(`/api/insurance_providers/${providerId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: field('name'),
+                provider_number: field('provider_number'),
+                number_format: field('number_format')
+            })
+        });
+        const result = await response.json();
+        showSectionStatus('provider-status',
+                          result.success ? '✓ Saved!' : (result.error || 'Failed'));
+        if (result.success) loadInsuranceProviders();
+    } catch (error) {
+        console.error('Failed to save provider:', error);
+    }
+}
+
+async function removeProvider(providerId) {
+    const row = document.querySelector(`[data-provider-id="${providerId}"]`);
+    const name = row ? row.querySelector('[data-field="name"]').value : 'this provider';
+
+    showConfirmModal(
+        `Remove ${name}?`,
+        'Any clients assigned to this provider must be changed first.',
+        async function() {
+            try {
+                const response = await fetch(
+                    `/api/insurance_providers/${providerId}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showSectionStatus('provider-status', '✓ Removed');
+                    loadInsuranceProviders();
+                } else {
+                    // In use: the server refuses rather than cascading, so a
+                    // number cannot vanish from a client's statements silently.
+                    showSectionStatus('provider-status', result.error);
+                }
+            } catch (error) {
+                console.error('Failed to remove provider:', error);
+            }
+        }
+    );
+}
