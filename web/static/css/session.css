@@ -99,7 +99,7 @@ textarea[name="content"] {
 }
 
 textarea[name="reflections"] {
-    min-height: 220px !important;
+    min-height: 300px !important;
 }
 
 /* Date fields should extend halfway across - but NOT when inside .form-row grid */
