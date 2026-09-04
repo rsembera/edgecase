@@ -83,7 +83,12 @@ def create_session(client_id):
         entry_id = db.add_entry(session_data)
 
         # Check if this is a draft save (or AI Scribe - treat as draft)
-        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
+        # Any ai_scribe value counts: the Notes button posts '1', the
+        # Reflections button posts 'reflections'. Missing the second
+        # would lock the entry on the way to a Scribe that refuses
+        # locked entries.
+        is_draft_save = (request.form.get('save_draft') == '1'
+                         or bool(request.form.get('ai_scribe')))
 
         # Only lock if NOT a draft save
         if not is_draft_save:
@@ -94,7 +99,13 @@ def create_session(client_id):
         
         # Check if AI Scribe button was clicked - redirect there instead
         if request.form.get('ai_scribe'):
-            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
+            # The Reflections button posts ai_scribe=reflections; the Notes
+            # button posts 1.
+            scribe_field = ('reflections'
+                            if request.form.get('ai_scribe') == 'reflections'
+                            else 'content')
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id,
+                                    field=scribe_field))
                 
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -259,7 +270,12 @@ def edit_session(client_id, entry_id):
             session_data['description'] = f"Session {session_entry['session_number']}"
         
         # Check if this is a draft save (or AI Scribe - treat as draft)
-        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
+        # Any ai_scribe value counts: the Notes button posts '1', the
+        # Reflections button posts 'reflections'. Missing the second
+        # would lock the entry on the way to a Scribe that refuses
+        # locked entries.
+        is_draft_save = (request.form.get('save_draft') == '1'
+                         or bool(request.form.get('ai_scribe')))
 
         # Only lock and track history if NOT a draft save
         if not is_draft_save:
@@ -366,6 +382,18 @@ def edit_session(client_id, entry_id):
                     change_desc = "; ".join(changes)
                     db.add_to_edit_history(entry_id, change_desc)
                 else:
+                    # Reflections are deliberately NOT compared above: logging
+                    # them would put process notes, and the fact that the
+                    # field is in use, into an edit history that appears in
+                    # exports. So a reflections-only edit produces no changes
+                    # and would otherwise be discarded by the no-op guard
+                    # below. Write it on its own path instead.
+                    if 'reflections' in session_data:
+                        old_ref = old_session.get('reflections') or None
+                        new_ref = session_data.get('reflections') or None
+                        if old_ref != new_ref:
+                            db.set_reflections(entry_id, new_ref)
+
                     # No-change save on a locked entry: make it a true no-op.
                     # Writing would bump modified_at past the last amendment,
                     # asserting an edit the amendment trail doesn't show.
@@ -381,7 +409,13 @@ def edit_session(client_id, entry_id):
         
         # Check if AI Scribe button was clicked - redirect there instead
         if request.form.get('ai_scribe'):
-            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
+            # The Reflections button posts ai_scribe=reflections; the Notes
+            # button posts 1.
+            scribe_field = ('reflections'
+                            if request.form.get('ai_scribe') == 'reflections'
+                            else 'content')
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id,
+                                    field=scribe_field))
         
         return redirect(url_for('clients.client_file', client_id=client_id))
     

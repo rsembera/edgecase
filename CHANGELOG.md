@@ -4,6 +4,24 @@
 
 **Two-note system** (Settings › Note-Taking, off by default)
 
+- **Fix, same day:** reflections could not be edited on a locked entry. The
+  locked path builds a list of amendment-trail changes and returns early when
+  it is empty; reflections are deliberately not in that list, so a
+  reflections-only edit produced no changes and was silently discarded.
+  `set_reflections()` now writes the column alone. It does not log to the
+  edit history — that would put process notes, and the fact that the field is
+  in use, into a history that appears in exports — and it does not move
+  `modified_at`, since bumping it would assert an edit the amendment trail
+  doesn't show.
+- Reflections gained the AI Scribe. The Scribe now takes a `field` parameter
+  and saves back to the field it opened; it refuses `reflections` when the
+  toggle is off, so a stale link cannot reach a hidden field, and rejects any
+  field name outside the two.
+- The field auto-expands like Session Notes, and lost the section border.
+- Caught while testing: three of the earlier tests posted to
+  `/client/entry/<id>/edit`, a URL that does not exist. They passed against a
+  404. The real route is `/client/<client_id>/session/<entry_id>`.
+
 - Session entries gain a **Reflections** field for the practitioner's own
   process notes, alongside the clinical Notes field. CRPO permits a two-note
   system; the prompt was a training analyst's practice and the observation

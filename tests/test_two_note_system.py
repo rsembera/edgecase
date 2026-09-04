@@ -42,7 +42,7 @@ def _session_with_reflections(db, client_id, reflections=MARKER):
         "description": "Session 1",
         "content": "Clinical note: presented with low mood.",
         "reflections": reflections,
-        "session_date": "2026-03-01",
+        "session_date": int(time.mktime((2026, 3, 1, 0, 0, 0, 0, 0, -1))),
         "created_at": now,
         "modified_at": now,
     })
@@ -146,8 +146,8 @@ def test_saving_a_session_with_the_field_hidden_preserves_reflections(
     eid = _session_with_reflections(app_db, cid)
     app_db.set_setting('two_note_system', 'false')
 
-    client.post(f'/client/entry/{eid}/edit', data={
-        'session_date': '2026-03-01',
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
         'content': 'Clinical note, amended.',
     })
 
@@ -158,3 +158,139 @@ def test_the_toggle_round_trips_through_the_api(client, app_db):
     assert client.get('/api/note_settings').get_json()['two_note_system'] is False
     client.post('/api/note_settings', json={'two_note_system': True})
     assert client.get('/api/note_settings').get_json()['two_note_system'] is True
+
+
+# ----------------------------------------------------------------------
+# Locked entries
+# ----------------------------------------------------------------------
+
+def _locked_session(db, client_id):
+    eid = _session_with_reflections(db, client_id)
+    db.update_entry(eid, {'locked': 1, 'locked_at': int(time.time())})
+    return eid
+
+
+def test_reflections_can_be_edited_on_a_locked_entry(client, app_db):
+    """The bug: the locked-entry path builds a list of amendment-trail
+    changes and returns early when it is empty. Reflections are deliberately
+    not in that list, so a reflections-only edit was silently discarded."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-LOCK")
+    eid = _locked_session(app_db, cid)
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Clinical note: presented with low mood.',   # unchanged
+        'reflections': 'revised reflection',
+    })
+
+    assert app_db.get_entry(eid)['reflections'] == 'revised reflection'
+
+
+def test_a_reflections_only_edit_leaves_no_amendment_trail(client, app_db):
+    """Logging it would put process notes — and the fact that the field is in
+    use — into an edit history that appears in exports."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-TRAIL")
+    eid = _locked_session(app_db, cid)
+    before = len(app_db.get_edit_history(eid))
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Clinical note: presented with low mood.',
+        'reflections': 'revised reflection',
+    })
+
+    assert len(app_db.get_edit_history(eid)) == before
+
+
+def test_a_reflections_only_edit_does_not_move_modified_at(client, app_db):
+    """No trail entry means modified_at must not move either — bumping it
+    would assert an edit the amendment trail doesn't show."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-MTIME")
+    eid = _locked_session(app_db, cid)
+    before = app_db.get_entry(eid)['modified_at']
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Clinical note: presented with low mood.',
+        'reflections': 'revised reflection',
+    })
+
+    assert app_db.get_entry(eid)['modified_at'] == before
+
+
+def test_a_clinical_edit_on_a_locked_entry_still_logs(client, app_db):
+    """The guard above must not have disabled normal amendment logging."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-CLIN")
+    eid = _locked_session(app_db, cid)
+    before = len(app_db.get_edit_history(eid))
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Clinical note, amended.',
+        'reflections': MARKER,
+    })
+
+    assert len(app_db.get_edit_history(eid)) > before
+
+
+# ----------------------------------------------------------------------
+# AI Scribe knows which field it was invoked for
+# ----------------------------------------------------------------------
+
+def test_scribe_opens_the_reflections_text_when_asked(client, app_db):
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-AI")
+    eid = _session_with_reflections(app_db, cid)
+
+    html = client.get(f'/ai/scribe/{eid}',
+                      query_string={'field': 'reflections'}).get_data(as_text=True)
+    assert MARKER in html
+
+
+def test_scribe_defaults_to_the_clinical_note(client, app_db):
+    cid = _client(app_db, "TWO-AI2")
+    eid = _session_with_reflections(app_db, cid)
+
+    html = client.get(f'/ai/scribe/{eid}').get_data(as_text=True)
+    assert "Clinical note" in html
+    assert MARKER not in html
+
+
+def test_scribe_refuses_reflections_when_the_toggle_is_off(client, app_db):
+    """A stale link must not open a field the practitioner has hidden."""
+    app_db.set_setting('two_note_system', 'false')
+    cid = _client(app_db, "TWO-AI3")
+    eid = _session_with_reflections(app_db, cid)
+
+    html = client.get(f'/ai/scribe/{eid}',
+                      query_string={'field': 'reflections'}).get_data(as_text=True)
+    assert MARKER not in html
+    assert "Clinical note" in html
+
+
+def test_scribe_saves_back_to_the_field_it_edited(client, app_db):
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-AI4")
+    eid = _session_with_reflections(app_db, cid)
+
+    resp = client.post(f'/ai/scribe/{eid}/save',
+                       json={'content': 'scribed reflection',
+                             'field': 'reflections'})
+    assert resp.status_code == 200
+
+    entry = app_db.get_entry(eid)
+    assert entry['reflections'] == 'scribed reflection'
+    assert entry['content'] == "Clinical note: presented with low mood."
+
+
+def test_scribe_rejects_an_unknown_field(client, app_db):
+    cid = _client(app_db, "TWO-AI5")
+    eid = _session_with_reflections(app_db, cid)
+
+    resp = client.post(f'/ai/scribe/{eid}/save',
+                       json={'content': 'x', 'field': 'file_number'})
+    assert resp.status_code == 400
