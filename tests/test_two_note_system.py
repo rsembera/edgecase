@@ -294,3 +294,77 @@ def test_scribe_rejects_an_unknown_field(client, app_db):
     resp = client.post(f'/ai/scribe/{eid}/save',
                        json={'content': 'x', 'field': 'file_number'})
     assert resp.status_code == 400
+
+
+# ----------------------------------------------------------------------
+# The AI Scribe button is a form submit: nothing typed may be lost
+# ----------------------------------------------------------------------
+
+def test_scribe_button_saves_both_fields_before_redirecting(client, app_db):
+    """Clicking Scribe on Reflections submits the whole form. Text typed into
+    Session Notes in the same sitting must survive the trip."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-TRIP")
+    eid = _session_with_reflections(app_db, cid)
+
+    resp = client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Typed into notes just now, not yet saved elsewhere.',
+        'reflections': 'Typed into reflections just now.',
+        'ai_scribe': 'reflections',
+    })
+    assert resp.status_code in (200, 302)
+
+    entry = app_db.get_entry(eid)
+    assert entry['content'] == 'Typed into notes just now, not yet saved elsewhere.'
+    assert entry['reflections'] == 'Typed into reflections just now.'
+
+
+def test_scribe_button_on_notes_also_saves_reflections(client, app_db):
+    """The mirror case."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-TRIP2")
+    eid = _session_with_reflections(app_db, cid)
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Notes text.',
+        'reflections': 'Reflections text that must not be dropped.',
+        'ai_scribe': '1',
+    })
+
+    entry = app_db.get_entry(eid)
+    assert entry['reflections'] == 'Reflections text that must not be dropped.'
+    assert entry['content'] == 'Notes text.'
+
+
+def test_scribe_save_writes_only_its_own_field(client, app_db):
+    """Accepting the Scribe's rewrite of one field must not disturb the other."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-TRIP3")
+    eid = _session_with_reflections(app_db, cid)
+    original_note = app_db.get_entry(eid)['content']
+
+    client.post(f'/ai/scribe/{eid}/save',
+                json={'content': 'Scribe rewrote the reflection.',
+                      'field': 'reflections'})
+
+    entry = app_db.get_entry(eid)
+    assert entry['reflections'] == 'Scribe rewrote the reflection.'
+    assert entry['content'] == original_note
+
+
+def test_scribe_button_does_not_lock_the_entry(client, app_db):
+    """A Scribe trip is a draft save; locking would strand the user at a
+    Scribe that refuses locked entries."""
+    app_db.set_setting('two_note_system', 'true')
+    cid = _client(app_db, "TWO-TRIP4")
+    eid = _session_with_reflections(app_db, cid)
+
+    client.post(f'/client/{cid}/session/{eid}', data={
+        'year': '2026', 'month': '03', 'day': '01',
+        'content': 'Notes.', 'reflections': 'Reflections.',
+        'ai_scribe': 'reflections',
+    })
+
+    assert not app_db.is_entry_locked(eid)
