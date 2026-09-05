@@ -25,6 +25,10 @@ from core.db.retention import RetentionMixin
 from core.db.providers import ProviderMixin
 from core.db.errors import EntryLockedError  # re-exported; defined in a leaf module to avoid an import cycle with EntryMixin
 
+# 2.0.3: the two-note system (2.0.2) was withdrawn. Text written into
+# entries.reflections is folded into content under this divider on open.
+REFLECTIONS_DIVIDER = "\n\n--- Reflections (moved from the withdrawn Reflections field) ---\n"
+
 
 class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin, ProviderMixin):
     """
@@ -554,22 +558,24 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
             cursor.execute("ALTER TABLE payment_allocations "
                            "ADD COLUMN is_credit INTEGER DEFAULT 0")
 
-        # entries.reflections: the practitioner's own process notes, kept
-        # alongside the clinical record under a two-note system (permitted by
-        # CRPO). A column on the existing entry rather than a new entry class,
-        # so it inherits retention, disposal, backup and encryption without
-        # each of those paths having to be told about it — the failure mode
-        # that produced three separate defects on 2026-09-04.
-        #
-        # Excluded from every export. Note that these are NOT privileged in
-        # Canada the way the US psychotherapy-notes carve-out works: a PHIPA
-        # access request, a CRPO investigation or a production order can reach
-        # them, and the duty to disclose their existence sits with the
-        # practitioner, not with this software.
+        # entries.reflections was added by 2.0.2 (two-note system) and the
+        # feature withdrawn in 2.0.3 before it had been lived with. The
+        # column is left in place on databases that have it — dropping a
+        # column on an encrypted database is not worth the risk — but any
+        # text in it is folded into content so nothing is stranded in a
+        # field the UI no longer shows. A migration is not an amendment:
+        # modified_at is left alone and no edit-history row is written.
+        # Fresh databases never gain the column.
         cursor.execute("PRAGMA table_info(entries)")
         entry_columns = {row[1] for row in cursor.fetchall()}
-        if 'reflections' not in entry_columns:
-            cursor.execute("ALTER TABLE entries ADD COLUMN reflections TEXT")
+        if 'reflections' in entry_columns:
+            cursor.execute("SELECT id, content, reflections FROM entries "
+                           "WHERE reflections IS NOT NULL AND reflections != ''")
+            for eid, content, reflections in cursor.fetchall():
+                folded = (content + REFLECTIONS_DIVIDER + reflections if content
+                          else REFLECTIONS_DIVIDER.lstrip() + reflections)
+                cursor.execute("UPDATE entries SET content = ?, reflections = NULL "
+                               "WHERE id = ?", (folded, eid))
 
         # Insurance providers (networks the practitioner has joined). The
         # number is the practitioner's, but WHICH number prints on a document

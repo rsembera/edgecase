@@ -1,5 +1,34 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
+
+The Reflections field shipped in 2.0.2 the same day it was built, was used
+for two entries, and was withdrawn. It violated the project's own rule — no
+features without real use-case pressure — and it taught a second one:
+**nothing ships in a public release until it has been lived with in
+production for weeks.** 2.0.2 was on the website for about four hours; the
+site log shows no downloads except the release verification, and the
+GitHub asset counters (1 dmg, 2 deb) are within the range of scanner and
+mirror traffic. 2.0.3 is built as if someone has it anyway.
+
+- Every two-note change since `5c0e8a8` reverted to that state: the field,
+  the Settings toggle and `/api/note_settings`, `set_reflections()`,
+  `strip_private()` and `core/db/private_columns.py`, the Scribe's `field`
+  parameter, the per-field textarea sizing and the "grow to fit" resizer.
+  The resizer went with the rest because it was written against two fields
+  and never tested against one; if auto-grow for Notes is wanted, it comes
+  back on its own, after a few weeks.
+- **Fold migration** (`core/database.py`): on open, any non-empty
+  `entries.reflections` is appended to `content` under a divider and the
+  column blanked. Idempotent; `modified_at` untouched and no edit-history
+  row, because a migration is not an amendment. The column itself stays,
+  inert, on databases that have it — `DROP COLUMN` on an encrypted database
+  is not a risk worth taking to remove a NULL column. Fresh databases never
+  gain it.
+- `tests/test_two_note_system.py` (11) removed; `tests/test_reflections_fold.py`
+  (6) added, seeding a 2.0.2-shaped database and reopening it. 797 → 792.
+- Version 2.0.3; release notes in `docs/Release_Notes_2.0.3.md`.
+
 ### 2026-09-04 (evening) — Two-note system; insurance provider numbers
 
 **Two-note system** (Settings › Note-Taking, off by default)

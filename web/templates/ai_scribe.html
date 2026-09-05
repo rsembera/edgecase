@@ -112,9 +112,6 @@
 <!-- Store entry ID for JavaScript -->
 <script>
     window.ENTRY_ID = {{ entry.id }};
-    // Which entry field the Scribe is editing ('content' or
-    // 'reflections'); the save must go back to the same one.
-    window.SCRIBE_FIELD = {{ field|tojson }};
     window.CLIENT_ID = {{ client.id }};
     window.MODEL_DOWNLOADED = {{ 'true' if model_downloaded else 'false' }};
     window.MODEL_LOADED = {{ 'true' if model_loaded else 'false' }};

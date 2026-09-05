@@ -10,10 +10,29 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/session.js', v=static_v) }}"></script>
-{# Textarea auto-sizing lives in session.js and covers both notes fields.
-   A second, load-only copy used to sit here (added 2026-02-25 for a Safari
-   sizing inconsistency); it overlapped with session.js on #content and the
-   two disagreed once the height cap was lifted. #}
+<script>
+// Auto-size session notes textarea on load (Safari-compatible)
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    if (textarea && textarea.value) {
+        function resizeTextarea() {
+            textarea.style.height = 'auto';
+            // Force browser to recalculate layout
+            textarea.offsetHeight;
+            const minHeight = 300;
+            const maxHeight = 600;
+            const scrollHeight = textarea.scrollHeight;
+            textarea.style.height = Math.max(minHeight, Math.min(scrollHeight + 4, maxHeight)) + 'px';
+            // Ensure scrollable if content exceeds max
+            textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+        }
+        
+        // Run immediately, then again after Safari settles
+        requestAnimationFrame(resizeTextarea);
+        setTimeout(resizeTextarea, 100);
+    }
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -237,33 +256,6 @@
                 <p class="help-text">Supports Markdown formatting</p>
             </div>
         </div>
-
-        {# Two-note system. Rendered only when enabled: with the field absent
-           the route leaves entries.reflections untouched, so switching off
-           hides without overwriting. Never included in any export. #}
-        {% if two_note_system %}
-        <div class="form-row-full">
-            <div class="form-group">
-                <div class="notes-label-row">
-                    <label for="reflections">Reflections</label>
-                    {% if not is_locked %}
-                    <button type="submit" name="ai_scribe" value="reflections"
-                            class="btn-ai-scribe"
-                            title="AI Scribe - Expand, proofread, or refine your reflections">
-                        <i data-lucide="feather"></i>
-                        <span>AI Scribe</span>
-                    </button>
-                    {% endif %}
-                </div>
-                <textarea id="reflections" name="reflections"
-                          placeholder="Process notes...">{% if is_edit %}{{ session.reflections or '' }}{% endif %}</textarea>
-                <p class="help-text">
-                    Your own process notes. Excluded from client file exports
-                    and reports.
-                </p>
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Edit History (only in edit mode) -->
         {% if is_edit %}

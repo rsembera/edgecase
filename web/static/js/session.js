@@ -278,24 +278,16 @@ baseFeeInput.addEventListener('blur', formatFeeOnBlur);
 taxRateInput.addEventListener('blur', formatFeeOnBlur);
 totalFeeInput.addEventListener('blur', formatFeeOnBlur);
 
-// Auto-expanding textareas: the clinical note and, when the two-note system
-// is on, reflections. Both grow to fit with no ceiling — Infinity makes the
-// shared helper's Math.min a no-op and leaves overflowY hidden, so a long
-// note pushes the page down instead of scrolling inside a fixed box.
-//
-// The floor is each field's CSS min-height (session.css: content 150px,
-// reflections 300px), which the browser applies over an inline height, so
-// the JS does not need to know about it.
-//
-// This is the ONLY resizer for these fields. session.html used to carry a
-// second, load-only copy added for a Safari fix; the two overlapped on
-// #content and disagreed once the cap was lifted here.
-const sessionTextareas = ['content', 'reflections']
-    .map((id) => document.getElementById(id))
-    .filter(Boolean);
+// Auto-expanding textarea
+const textarea = document.getElementById('content');
+const maxHeight = 600; // About 30-35 lines
 
+/**
+ * Auto-resize textarea to fit content up to maxHeight
+ * (delegates to shared_utils.js)
+ */
 function autoResize() {
-    sessionTextareas.forEach((el) => autoResizeTextarea(el, Infinity));
+    autoResizeTextarea(textarea, maxHeight);
 }
 
 // Run on page load (for edit mode with existing content)
@@ -303,18 +295,13 @@ function autoResize() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(autoResize);
-        // Safari can report a stale scrollHeight on first paint.
-        setTimeout(autoResize, 100);
     });
 } else {
     requestAnimationFrame(autoResize);
-    setTimeout(autoResize, 100);
 }
 
 // Run on input
-sessionTextareas.forEach((el) => {
-    el.addEventListener('input', () => autoResizeTextarea(el, Infinity));
-});
+textarea.addEventListener('input', autoResize);
 
 /**
  * Close the missing link group modal
@@ -444,20 +431,17 @@ function validateForAiScribe() {
     return true;
 }
 
-// Add click handler to the AI Scribe buttons.
-// querySelectorAll, not querySelector: the two-note system adds a second
-// Scribe button for Reflections, and binding only the first left it with no
-// validation — it submitted, the browser blocked it on a Choices-hidden
-// required select, and nothing appeared. A dead button.
+// Add click handler to AI Scribe button
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('button[name="ai_scribe"]').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
+    const aiScribeBtn = document.querySelector('button[name="ai_scribe"]');
+    if (aiScribeBtn) {
+        aiScribeBtn.addEventListener('click', function(e) {
             if (!validateForAiScribe()) {
                 e.preventDefault();
                 showAiScribeValidationMessage();
             }
         });
-    });
+    }
 });
 
 
