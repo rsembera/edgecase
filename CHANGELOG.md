@@ -28,6 +28,10 @@ mirror traffic. 2.0.3 is built as if someone has it anyway.
 - `tests/test_two_note_system.py` (11) removed; `tests/test_reflections_fold.py`
   (6) added, seeding a 2.0.2-shaped database and reopening it. 797 → 792.
 - Version 2.0.3; release notes in `docs/Release_Notes_2.0.3.md`.
+- `tools/drop_reflections_column.py`: one-off for the practitioner's own
+  database, after 2.0.3 has folded the text. Refuses if any reflections
+  remain; `DROP COLUMN` (SQLite 3.53 under SQLCipher 4.18), then
+  `integrity_check`. Deliberately a tool, not an app migration.
 
 ### 2026-09-04 (evening) — Two-note system; insurance provider numbers
 
