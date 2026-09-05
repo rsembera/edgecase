@@ -1709,3 +1709,32 @@ as packages rather than an enumerated module list, and
 *For database details, see Database_Schema.md*  
 *For route details, see Route_Reference.md*  
 *Last Updated: August 9, 2026*
+
+## 2026-09-04 — Two-note system withdrawn (2.0.2 → 2.0.3); the lived-with rule
+
+**What happened.** A Reflections field (`entries.reflections`, hidden from
+exports, toggle in Settings) was designed, built, tested and released in
+2.0.2 within a single day, then withdrawn in 2.0.3 the same night after two
+entries had been written with it. Not because it was broken — the tests were
+sound — but because it was never going to survive contact with actual
+note-taking, and there was no way to know that without doing the note-taking.
+
+**Decision: nothing new ships in a public release until it has been used in
+production for several weeks.** New features land in git and run on the
+practice's own database first. Public releases carry fixes, and features that
+have already been lived with. This sits alongside "no features without real
+use-case pressure" and is the other half of it: the use case justifies
+building; only use justifies shipping.
+
+**What the withdrawal looks like.** Reverted to the pre-two-note state of every
+touched file rather than editing around the feature; a partial removal would
+have left the resizer, the Scribe's `field` parameter and the settings route as
+unexplained residue. The column is *not* dropped: `DROP COLUMN` on a SQLCipher
+database that a stranger may hold is a risk with no payoff, whereas an unused
+nullable column costs nothing. Text in it is folded into `content` on open
+(idempotent, `modified_at` untouched, no edit-history row — a migration is not
+an amendment). The fold is written for the hypothetical external 2.0.2 user
+as much as for the two local entries: a release that hides a column with
+clinical text in it would be a defect, and deleting the GitHub release would
+strand that user with no upgrade path. So 2.0.2 stays published, 2.0.3 is
+Latest, and its notes say plainly what moved and where.

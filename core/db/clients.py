@@ -104,10 +104,6 @@ class ClientMixin:
         'modality', 'format', 'session_number', 'service', 'session_date', 'session_time',
         'duration', 'base_fee', 'tax_rate', 'fee', 'is_consultation', 'is_pro_bono',
         'mood', 'affect', 'risk_assessment',
-        # Two-note system: the practitioner's own process notes. Stored with
-        # the entry so retention, disposal, backup and encryption cover it
-        # automatically; excluded from every export path.
-        'reflections',
         # Communication fields
         'comm_recipient', 'comm_type', 'comm_date', 'comm_time',
         # Absence fields

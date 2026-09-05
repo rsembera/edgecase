@@ -88,17 +88,9 @@
    SESSION-SPECIFIC OVERRIDES
    ============================================ */
 
-/* Starting heights. The clinical note is the shorter field and Reflections
-   the longer one: under a two-note system the file entry is the distillate
-   and the process notes carry the length. Both grow with their content —
-   the resizer in session.html reads these values rather than assuming one,
-   so changing a number here is all that's needed. */
+/* Make Session Notes textarea taller */
 #id_content,
 textarea[name="content"] {
-    min-height: 150px !important;
-}
-
-textarea[name="reflections"] {
     min-height: 300px !important;
 }
 

@@ -336,21 +336,11 @@ def scribe_page(entry_id):
 
     # Get client info for display
     client = _db.get_client(entry.get('client_id'))
-
-    # Which field the Scribe was invoked for. 'reflections' only when the
-    # two-note system is on — a stale link must not open a hidden field.
-    field = request.args.get('field', 'content')
-    if field == 'reflections' and (
-            _db.get_setting('two_note_system', 'false') != 'true'):
-        field = 'content'
-    if field not in ('content', 'reflections'):
-        field = 'content'
-
+    
     return render_template('ai_scribe.html',
         entry=entry,
         client=client,
-        field=field,
-        original_text=entry.get(field) or '',
+        original_text=entry.get('content', ''),
         actions=get_actions(),
         model_downloaded=is_model_downloaded(),
         model_loaded=is_model_loaded(),
@@ -369,9 +359,6 @@ def scribe_save(entry_id):
     if not isinstance(data, dict):
         return jsonify({'error': 'No JSON data'}), 400
     new_content = data.get('content', '').strip()
-    field = data.get('field', 'content')
-    if field not in ('content', 'reflections'):
-        return jsonify({'error': 'Unknown field'}), 400
     
     if not new_content:
         return jsonify({'error': 'No content provided'}), 400
@@ -390,7 +377,7 @@ def scribe_save(entry_id):
         return jsonify({'error': 'AI Scribe is not available for locked sessions'}), 403
 
     try:
-        _db.update_entry(entry_id, {field: new_content})
+        _db.update_entry(entry_id, {'content': new_content})
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

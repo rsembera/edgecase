@@ -3,9 +3,22 @@
 **Owner:** Richard  
 **Development Partner:** Claude  
 **Last Updated:** September 4, 2026  
-**Status:** v2.0.2 released September 4, 2026 - In Production Use Since January 3, 2026
+**Status:** v2.0.3 released September 4, 2026 - In Production Use Since January 3, 2026
 
 ---
+
+## v2.0.3 — RELEASED 2026-09-04 (same night)
+
+A same-day correction: the two-note system shipped in 2.0.2 is withdrawn.
+It was built, released and used for two entries within one day, which is the
+wrong order. Every two-note change is reverted to `5c0e8a8`; on open, any
+text in `entries.reflections` is folded into `content` under a divider (column
+left inert, `modified_at` untouched); 792 tests. 2.0.2 stays published on
+GitHub, 2.0.3 is Latest — its unaccounted-for downloads (1 dmg, 1 deb) may be
+scanners, but the fold is built as if they are a person.
+
+**New rule, recorded in Architecture Decisions:** nothing ships in a public
+release until it has been used in production for several weeks.
 
 ## v2.0.2 — RELEASED 2026-09-04
 
@@ -30,8 +43,7 @@ never deleted `payment_allocations`, and with `PRAGMA foreign_keys=ON` (which
 `core/database.py:57` enables on any healthy install) the constraint failure
 rolled back the whole disposal for every client who had ever paid.
 
-New: two-note system (`entries.reflections`, excluded from every export,
-toggle hides rather than deletes); insurance provider numbers (many networks,
+New: ~~two-note system~~ (withdrawn in 2.0.3); insurance provider numbers (many networks,
 per-client assignment, per-insurer print format); master-key rotation
 (at login, forward-resume, export-and-verify DB rebuild) — **verified
 end-to-end against a copy of the live install**: 80 files re-encrypted,

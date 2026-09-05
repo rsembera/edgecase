@@ -11,15 +11,6 @@ from web.utils import parse_date_from_form, get_today_date_parts, get_link_group
 from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int, renumber_sessions
 
 
-def _two_note_enabled():
-    """Whether the Reflections field is offered.
-
-    Off hides the control; it does not delete anything. Existing reflections
-    stay in the database and reappear when it is switched back on.
-    """
-    return get_db().get_setting('two_note_system', 'false') == 'true'
-
-
 @entries_bp.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
 def create_session(client_id):
     """Create a new session entry for a client."""
@@ -61,11 +52,6 @@ def create_session(client_id):
             'risk_assessment': request.form.get('risk_assessment') or None,
             
             'content': request.form.get('content') or None,
-            # Two-note system. Absent field means no change / not enabled;
-            # the toggle hides the control, so a hidden field must never
-            # overwrite what is already stored.
-            **({'reflections': request.form.get('reflections') or None}
-               if 'reflections' in request.form else {}),
         }
         
         # Set session number and description based on consultation status
@@ -83,12 +69,7 @@ def create_session(client_id):
         entry_id = db.add_entry(session_data)
 
         # Check if this is a draft save (or AI Scribe - treat as draft)
-        # Any ai_scribe value counts: the Notes button posts '1', the
-        # Reflections button posts 'reflections'. Missing the second
-        # would lock the entry on the way to a Scribe that refuses
-        # locked entries.
-        is_draft_save = (request.form.get('save_draft') == '1'
-                         or bool(request.form.get('ai_scribe')))
+        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
 
         # Only lock if NOT a draft save
         if not is_draft_save:
@@ -99,13 +80,7 @@ def create_session(client_id):
         
         # Check if AI Scribe button was clicked - redirect there instead
         if request.form.get('ai_scribe'):
-            # The Reflections button posts ai_scribe=reflections; the Notes
-            # button posts 1.
-            scribe_field = ('reflections'
-                            if request.form.get('ai_scribe') == 'reflections'
-                            else 'content')
-            return redirect(url_for('ai.scribe_page', entry_id=entry_id,
-                                    field=scribe_field))
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
                 
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -177,7 +152,6 @@ def create_session(client_id):
                         **date_parts,
                         next_session_number=preview_session_number,
                         is_edit=False,
-                        two_note_system=_two_note_enabled(),
                         prev_session_id=prev_session_id,
                         next_session_id=next_session_id)
 
@@ -247,8 +221,6 @@ def edit_session(client_id, entry_id):
             
             # Content (always editable)
             'content': request.form.get('content') or None,
-            **({'reflections': request.form.get('reflections') or None}
-               if 'reflections' in request.form else {}),
         }
         
         # Update description based on consultation/pro bono status
@@ -270,12 +242,7 @@ def edit_session(client_id, entry_id):
             session_data['description'] = f"Session {session_entry['session_number']}"
         
         # Check if this is a draft save (or AI Scribe - treat as draft)
-        # Any ai_scribe value counts: the Notes button posts '1', the
-        # Reflections button posts 'reflections'. Missing the second
-        # would lock the entry on the way to a Scribe that refuses
-        # locked entries.
-        is_draft_save = (request.form.get('save_draft') == '1'
-                         or bool(request.form.get('ai_scribe')))
+        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
 
         # Only lock and track history if NOT a draft save
         if not is_draft_save:
@@ -382,18 +349,6 @@ def edit_session(client_id, entry_id):
                     change_desc = "; ".join(changes)
                     db.add_to_edit_history(entry_id, change_desc)
                 else:
-                    # Reflections are deliberately NOT compared above: logging
-                    # them would put process notes, and the fact that the
-                    # field is in use, into an edit history that appears in
-                    # exports. So a reflections-only edit produces no changes
-                    # and would otherwise be discarded by the no-op guard
-                    # below. Write it on its own path instead.
-                    if 'reflections' in session_data:
-                        old_ref = old_session.get('reflections') or None
-                        new_ref = session_data.get('reflections') or None
-                        if old_ref != new_ref:
-                            db.set_reflections(entry_id, new_ref)
-
                     # No-change save on a locked entry: make it a true no-op.
                     # Writing would bump modified_at past the last amendment,
                     # asserting an edit the amendment trail doesn't show.
@@ -409,13 +364,7 @@ def edit_session(client_id, entry_id):
         
         # Check if AI Scribe button was clicked - redirect there instead
         if request.form.get('ai_scribe'):
-            # The Reflections button posts ai_scribe=reflections; the Notes
-            # button posts 1.
-            scribe_field = ('reflections'
-                            if request.form.get('ai_scribe') == 'reflections'
-                            else 'content')
-            return redirect(url_for('ai.scribe_page', entry_id=entry_id,
-                                    field=scribe_field))
+            return redirect(url_for('ai.scribe_page', entry_id=entry_id))
         
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -486,7 +435,6 @@ def edit_session(client_id, entry_id):
     edit_history = db.get_edit_history(entry_id) if is_locked else []
     
     return render_template('entry_forms/session.html',
-                         two_note_system=_two_note_enabled(),
                          client=client,
                          client_type=client_type,
                          session=session_entry,

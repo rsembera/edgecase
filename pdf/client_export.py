@@ -24,7 +24,6 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from xml.sax.saxutils import escape as _xml_escape
 
 from core.encryption import decrypt_file_to_bytes
-from core.db.private_columns import strip_private
 from core.config import get_assets_path, DATA_ROOT, resolve_attachment_path
 from core.money import get_currency_symbol
 
@@ -913,8 +912,7 @@ def generate_client_export_pdf(db, client_id, entry_types, start_date=None, end_
             elements.append(PageBreak())
     
     # Get all other entries
-    # Reflections never leave in an export (core/db/private_columns.py).
-    all_entries = strip_private(db.get_client_entries(client_id))
+    all_entries = db.get_client_entries(client_id)
     
     # Filter by date range if specified
     if start_date or end_date:
