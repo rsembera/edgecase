@@ -13,7 +13,12 @@ A same-day correction: the two-note system shipped in 2.0.2 is withdrawn.
 It was built, released and used for two entries within one day, which is the
 wrong order. Every two-note change is reverted to `5c0e8a8`; on open, any
 text in `entries.reflections` is folded into `content` under a divider (column
-left inert, `modified_at` untouched); 792 tests. 2.0.2 stays published on
+left inert, `modified_at` untouched); 792 tests. Signed/notarized
+`EdgeCase-2.0.3.dmg` (Notarized Developer ID, stapled), `edgecase_2.0.3_amd64.deb`
+(Apollo). Tag `v2.0.3`. Website deployed, download hashed from outside
+against SHA256SUMS.txt; 2.0.2 binaries removed from the docroot, all
+releases archived in `~/releases/` on Sentinel. Site reference pages
+regenerated (15 tables, 122 routes). 2.0.2 stays published on
 GitHub, 2.0.3 is Latest — its unaccounted-for downloads (1 dmg, 1 deb) may be
 scanners, but the fold is built as if they are a person.
 
@@ -30,7 +35,7 @@ removed from the Sentinel docroot, archived copies retained in
 `~/releases/` and hash-verified before removal.
 
 Codebase (cloc, code only): **50,596 lines** — Python 21,375 / HTML 8,689 /
-JS 7,108 / CSS 5,961. **123 routes. 806 tests.**
+JS 7,108 / CSS 5,961. **122 routes. 792 tests.**
 
 **Two privacy fixes, disclosed in the release notes.** Generated statement
 PDFs were stored under filenames containing the client file number (contents
@@ -59,8 +64,7 @@ attachment reports say their piece once rather than every launch.
   calls it — existing contract, but undecided whether it should say so.
 - The v1→v3 upgrade could get a real progress bar from rotation's
   worker/queue plumbing. One call site. Nobody is waiting for it.
-- Website clone on Apollo needs a `git pull` (Apollo was asleep at release
-  time). The `~/Applications/websites/edgecase-website` entry is a dangling
+- Website clone on Apollo pulled at 2.0.3. The `~/Applications/websites/edgecase-website` entry is a dangling
   symlink to the pre-move Desktop path, not a clone — `~/Websites/
   edgecase-website` is the only working copy on the Mac, and it is current.
 - Three attachment rows on the live install were traced to a filesystem-level
