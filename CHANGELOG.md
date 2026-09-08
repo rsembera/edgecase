@@ -1,5 +1,26 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-08 — Absence and Item forms: date/time pickers rendered empty
+
+`absence.html` and `item.html` had `{% block extra_js %}` nested inside
+`{% block content %}`; every other entry form declares it as a sibling.
+Jinja renders a nested block twice — in place, and again where `base.html`
+places `extra_js` — so `absence.js`/`item.js` loaded twice. The mid-page
+copy ran before `shared_utils.js` and died at `autoResizeTextarea` (a
+dependency introduced by the June L10 consolidation) before reaching the
+picker init; the bottom copy re-declared the file's top-level consts and
+was rejected wholesale as a SyntaxError. Net effect: Date and Time labels
+with nothing under them. The nesting is older than L10; it was harmless
+until L10 gave the scripts a dependency on load order, and Safari's cache
+then served the pre-L10 `absence.js` until the August `?v=` cache-busting
+forced a fresh copy.
+
+- Both templates: `extra_js` moved out of `content`, matching the others.
+- `tests/test_entry_form_scripts.py` (4): each entry form's own script
+  loads exactly once, `pickers.js` at most once, and after
+  `shared_utils.js`. Red against the old templates (2 == 1), green after.
+  792 → 796.
+
 ### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
 
 The Reflections field shipped in 2.0.2 the same day it was built, was used
