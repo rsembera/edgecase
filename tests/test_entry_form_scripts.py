@@ -7,6 +7,7 @@ the picker init), and the bottom copy re-declared top-level consts and died
 with a SyntaxError. Net effect: date/time pickers rendered as empty divs.
 """
 
+import pathlib
 import re
 
 SCRIPT_RE = re.compile(r'<script src="/static/js/([^"?]+)')
@@ -54,3 +55,42 @@ def test_communication_form_scripts_load_once_after_shared_utils(client, app_db)
     cid = _make_client(app_db)
     html = client.get(f"/client/{cid}/communication").data.decode()
     _assert_scripts_ok(html, "communication.js")
+
+
+# --- Template-level sweep: covers every page, not just the entry forms ---
+
+TEMPLATES = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
+BLOCK_RE = re.compile(r"{%-?\s*(block\s+(\w+)|endblock)\b|<script[^>]*src=")
+
+
+def _template_layout(path):
+    """Return (nested_blocks, scripts_in_content) for one template."""
+    stack, nested, in_content = [], [], 0
+    for m in BLOCK_RE.finditer(path.read_text()):
+        if m.group(1) == "endblock":
+            if stack:
+                stack.pop()
+        elif m.group(1):
+            if stack:
+                nested.append(f"{m.group(2)} inside {'>'.join(stack)}")
+            stack.append(m.group(2))
+        elif "content" in stack:
+            in_content += 1
+    return nested, in_content
+
+
+def test_no_template_nests_blocks():
+    """A block inside another block renders twice; Jinja does not warn."""
+    bad = {str(p.relative_to(TEMPLATES)): n
+           for p in TEMPLATES.rglob("*.html")
+           for n in [_template_layout(p)[0]] if n}
+    assert not bad, bad
+
+
+def test_no_template_loads_scripts_inside_content():
+    """content renders before base.html loads shared_utils.js; page scripts
+    belong in extra_js, which renders after it."""
+    bad = {str(p.relative_to(TEMPLATES)): n
+           for p in TEMPLATES.rglob("*.html")
+           for n in [_template_layout(p)[1]] if n}
+    assert not bad, bad

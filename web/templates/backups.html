@@ -5,6 +5,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/backups.css', v=static_v) }}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/backups.js', v=static_v) }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="card">
     <div class="page-header">
@@ -169,12 +173,4 @@
         </div>
     </div>
 </div>
-
-<script src="{{ url_for('static', filename='js/backups.js', v=static_v) }}"></script>
-<script>
-    // Initialize Lucide icons
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-</script>
 {% endblock %}
