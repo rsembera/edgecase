@@ -29,6 +29,7 @@ forced a fresh copy.
 - Two template-level tests added to the same file: no block nested in
   another, and no `<script src>` inside `content`. Red against the old
   `backups.html` and `absence.html`, green after. 796 → 798.
+- Version 2.0.4; release notes in `docs/Release_Notes_2.0.4.md`.
 
 ### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
 
