@@ -7,6 +7,12 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pickers.css', v=static_v) }}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/absence.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/form-guard.js', v=static_v) }}"></script>
+{% endblock %}
+
 {% block content %}
 
 <div class="card absence-card">
@@ -177,11 +183,4 @@
 </script>
 
 {% include 'components/unsaved_changes_modal.html' %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
-<script src="{{ url_for('static', filename='js/absence.js', v=static_v) }}"></script>
-<script src="{{ url_for('static', filename='js/form-guard.js', v=static_v) }}"></script>
-{% endblock %}
-
 {% endblock %}
