@@ -20,6 +20,15 @@ forced a fresh copy.
   loads exactly once, `pickers.js` at most once, and after
   `shared_utils.js`. Red against the old templates (2 == 1), green after.
   792 → 796.
+- Sweep of all 28 templates: no other nested blocks. `backups.html` was the
+  one page loading its script directly inside `content` — working only
+  because `backups.js` touches `escapeHtml` solely inside handlers that
+  fire after the page has loaded. Moved to `extra_js`; the accompanying
+  inline `lucide.createIcons()` guard went too, since `lucide` is never
+  defined at that point and `base.html` makes the real call.
+- Two template-level tests added to the same file: no block nested in
+  another, and no `<script src>` inside `content`. Red against the old
+  `backups.html` and `absence.html`, green after. 796 → 798.
 
 ### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
 
