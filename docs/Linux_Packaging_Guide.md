@@ -80,8 +80,8 @@ Priority: optional
 Architecture: amd64
 Maintainer: Richard Sembera <richard@lightinextension.ca>
 Description: EdgeCase Equalizer - Practice management for independent therapists
- A local-first, PHIPA-compliant practice management application
- for solo therapy practitioners. Features client management,
+ A local-first practice management application, designed to support
+ PHIPA compliance, for solo therapy practitioners. Client management,
  session notes, billing, and encrypted data storage.
 EOF
 ```
