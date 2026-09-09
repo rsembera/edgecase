@@ -48,8 +48,8 @@ Architecture: amd64
 Depends: python3 (>= 3.11), python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1
 Maintainer: Richard Sembera <richard@lightinextension.ca>
 Description: EdgeCase Equalizer - Practice management for independent therapists
- A local-first, PHIPA-compliant practice management application
- for solo therapy practitioners. Features client management,
+ A local-first practice management application, designed to support
+ PHIPA compliance, for solo therapy practitioners. Client management,
  session notes, billing, and encrypted data storage.
 EOF
 

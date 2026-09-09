@@ -30,6 +30,15 @@ forced a fresh copy.
   another, and no `<script src>` inside `content`. Red against the old
   `backups.html` and `absence.html`, green after. 796 → 798.
 - Version 2.0.4; release notes in `docs/Release_Notes_2.0.4.md`.
+- **Later the same night:** the .deb's `control` description said
+  "PHIPA-compliant" — the phrase the site's new PHIPA page explains EdgeCase
+  does not use. Reworded to "designed to support PHIPA compliance"
+  (`build_deb.sh`, Linux packaging guide). The 2.0.4 .deb was rebuilt on
+  Apollo from the moved tag and republished under the same version — the
+  package contents are byte-identical apart from that one metadata string,
+  but the SHA-256 changed, so SHA256SUMS.txt on the site and the GitHub
+  release asset and notes were all replaced together. The dmg contains no
+  `control` file and is unchanged.
 
 ### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
 
