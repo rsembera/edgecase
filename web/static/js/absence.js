@@ -108,7 +108,6 @@ const feeSources = feeSourcesScript ? JSON.parse(feeSourcesScript.textContent) :
 
 // Get data attributes
 const absenceData = document.getElementById('absence-data');
-const isEdit = absenceData ? absenceData.dataset.isEdit === 'true' : false;
 const isBilled = absenceData ? absenceData.dataset.isBilled === 'true' : false;
 
 // Format dropdown fee logic
@@ -123,8 +122,10 @@ const feeSourceSpan = document.getElementById('fee-source');
  * @param {string} format - Session format: 'individual', 'couples', 'family', or 'group'
  */
 function updateFeesForFormat(format) {
-    // Don't auto-update fees when editing existing absences or if billed
-    if (isEdit || isBilled) {
+    // Never touch the fee fields of a billed absence. Editing an existing
+    // absence is fine: this only runs on an explicit format change, never
+    // on page load, so saved fees are shown until the user picks a format.
+    if (isBilled) {
         return;
     }
     
@@ -173,7 +174,7 @@ function closeMissingLinkModal() {
 }
 
 // Add event listener for format dropdown
-if (formatDropdown && !isEdit && !isBilled) {
+if (formatDropdown && !isBilled) {
     formatDropdown.addEventListener('change', function() {
         updateFeesForFormat(this.value);
     });

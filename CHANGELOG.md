@@ -1,5 +1,27 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-09 — Absence and Session forms: changing the format on an existing entry did nothing
+
+`updateFeesForFormat()` in both `absence.js` and `session.js` returned early
+whenever the page was in edit mode, and `absence.js` didn't even attach the
+change listener. The guard was written for page load — an existing entry
+should open showing the fees that were saved, not a recomputation — but it
+was applied to the `change` event too, so picking a format on an existing
+entry silently left the fee fields alone. Real workflow that exposed it:
+record a no-show with the format blank until the client has been reached,
+then come back and choose Individual; the $0 fee stayed $0.
+
+- Both files: the edit-mode check removed from `updateFeesForFormat()`; the
+  billed check stays (billed fee fields are disabled anyway). Page-load
+  auto-fill in `session.js` was already gated to new sessions by the caller
+  and is unchanged; `absence.js` has no page-load auto-fill.
+- Verified in jsdom against the rendered edit pages: old JS leaves base_fee
+  at 0.00 after a change to Individual on both forms; new JS loads 120.00
+  from the profile. A session saved with a custom $80 fee and format
+  already set still opens at $80 — the page-load behaviour the original
+  guard protected is intact.
+- `isEdit` in `absence.js` is now unused and removed.
+
 ### 2026-09-08 — Absence and Item forms: date/time pickers rendered empty
 
 `absence.html` and `item.html` had `{% block extra_js %}` nested inside

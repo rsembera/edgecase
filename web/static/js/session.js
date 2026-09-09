@@ -40,12 +40,9 @@ if (formatDropdown) {
  * @param {string} format - Session format: 'individual', 'couples', 'family', or 'group'
  */
 function updateFeesForFormat(format) {
-    // DON'T auto-update fees when editing existing sessions
-    // User should see the fees that were saved, not auto-calculated values
-    if (isEdit) {
-        return;
-    }
-    
+    // Runs on an explicit format change, and on page load for NEW sessions
+    // only (see the caller), so an existing session opens showing the fees
+    // that were saved and only recomputes when the user picks a format.
     // Don't update fees if consultation or pro bono is checked
     const consultationCheckbox = document.getElementById('is_consultation');
     const proBonoCheckbox = document.getElementById('is_pro_bono');
