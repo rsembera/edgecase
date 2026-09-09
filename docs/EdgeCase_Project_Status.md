@@ -2,10 +2,27 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 4, 2026  
-**Status:** v2.0.3 released September 4, 2026 - In Production Use Since January 3, 2026
+**Last Updated:** September 8, 2026  
+**Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
+
+## v2.0.4 — RELEASED 2026-09-08
+
+Fix release. The Absence and Item entry forms rendered their date/time
+pickers as empty divs: `{% block extra_js %}` nested inside `content`, so
+Jinja emitted the form script twice — once before `shared_utils.js` (died at
+`autoResizeTextarea`, a dependency since June's L10 consolidation) and once
+after (top-level `const` redeclared, SyntaxError). Old fault, masked by
+Safari's cache until 2.0.1's `?v=` busting. Both templates fixed;
+`backups.html` (script inside `content`, working by luck) moved to `extra_js`;
+template-sweep tests forbid nested blocks and scripts inside `content`.
+798 tests. Signed/notarized `EdgeCase-2.0.4.dmg` (Accepted, stapled, `spctl`
+ok), `edgecase_2.0.4_amd64.deb` (Apollo). Tag `v2.0.4`. Website deployed,
+external download hashed against SHA256SUMS.txt; 2.0.3 binaries removed from
+the docroot, archived in `~/releases/`. GitHub: 2.0.4 Latest.
+
+Consistent with the lived-with rule: fix only, no feature content.
 
 ## v2.0.3 — RELEASED 2026-09-04 (same night)
 
