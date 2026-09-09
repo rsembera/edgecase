@@ -37,7 +37,13 @@ echo "== Copying PyGObject from system"
 cp -r /usr/lib/python3/dist-packages/gi "$APP/venv/lib/python$PYVER/site-packages/"
 
 echo "== Smoke import"
-( cd "$APP" && venv/bin/python -c "import gi, sqlcipher3, argon2, cryptography, webview; import web.cli; print('imports ok')" )
+# Point the import at a throwaway data dir: importing web.app creates
+# data/.secret_key under APP_ROOT, and before 2.0.4's rebuild every .deb
+# shipped one (unused at runtime -- installed mode uses ~/.local/share).
+SMOKE_DATA="$(mktemp -d)"
+( cd "$APP" && EDGECASE_DATA="$SMOKE_DATA" venv/bin/python -c "import gi, sqlcipher3, argon2, cryptography, webview; import web.cli; print('imports ok')" )
+rm -rf "$SMOKE_DATA"
+if [ -e "$APP/data" ]; then echo "ERROR: data/ leaked into the package" >&2; exit 1; fi
 
 cat > "$STAGE/DEBIAN/control" << EOF
 Package: edgecase

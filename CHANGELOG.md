@@ -39,6 +39,14 @@ forced a fresh copy.
   but the SHA-256 changed, so SHA256SUMS.txt on the site and the GitHub
   release asset and notes were all replaced together. The dmg contains no
   `control` file and is unchanged.
+- Found while diffing the two .debs: every .deb since 1.0 carried
+  `/opt/edgecase/data/.secret_key`, a random 24-byte Flask secret created by
+  the build's smoke import (the staged tree isn't under `/opt/` yet, so the
+  app thought it was in development mode). Never read at runtime — installed
+  mode uses the user's data directory — but a shipped secret is a shipped
+  secret, and it made builds non-reproducible. The smoke import now runs
+  with a throwaway `EDGECASE_DATA`, and the script fails if `data/` exists
+  in the staging tree. The republished 2.0.4 .deb is the first without it.
 
 ### 2026-09-04 (night) — 2.0.3: two-note system withdrawn
 
