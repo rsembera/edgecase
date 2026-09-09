@@ -224,6 +224,16 @@ Different billing scenarios need different fee structures:
 
 **Client types have NO fee fields** - they're purely for organization and workflow (Active/Inactive status, retention periods, color coding).
 
+**When fees auto-load (Session and Absence forms).** The format dropdown
+loads fees from the matching source on two occasions only: when the user
+explicitly changes the format, and — for Session only — on page load of a
+*new* entry that opens with a format preselected. An existing entry always
+opens showing the fees that were saved, never a recomputation, because the
+saved figures are the record. Fee fields of a billed entry are disabled and
+never auto-loaded. (Until 2026-09-09 the edit-mode guard was mistakenly
+applied to the change event as well, so picking a format on a saved entry
+did nothing.)
+
 ### Guardian Billing
 
 Guardian billing is separate from fee definition—it determines **who pays**, not **how much**.
