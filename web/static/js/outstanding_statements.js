@@ -874,10 +874,17 @@ function confirmPayment() {
     const leftover = Math.round((amount - allocationTotal()) * 100) / 100;
     if (leftover > 0 && !creditAcknowledged) {
         creditAcknowledged = true;
-        showError(`This records $${amount.toFixed(2)} received and holds `
-                + `$${leftover.toFixed(2)} as credit on the client's account. `
-                + `If the client actually paid $${allocationTotal().toFixed(2)}, `
-                + `change "Amount received" instead. Press Confirm again to hold the credit.`);
+        const applied = allocationTotal();
+        // Numbers only — safe as HTML.
+        errorBox.innerHTML =
+            `<strong>Amount received is $${amount.toFixed(2)}, but only $${applied.toFixed(2)} `
+            + `is applied to statements.</strong> The other $${leftover.toFixed(2)} would be held `
+            + `as credit on the client's account.<br><br>`
+            + `If the client paid $${applied.toFixed(2)}: change <em>Amount received</em> to `
+            + `$${applied.toFixed(2)}.<br>`
+            + `If the client really paid $${amount.toFixed(2)}: press Confirm again to hold `
+            + `$${leftover.toFixed(2)} as credit.`;
+        errorBox.style.display = 'block';
         return;
     }
 
