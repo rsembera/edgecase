@@ -19,7 +19,7 @@ reason to, or once these have a few weeks of daily use behind them.
   as of that entry, hands off to the Statements page highlighted. Paid
   statement PDFs now render the client report's paid-in-full sentence and
   drop payment instructions — the receipt. Statements page keeps paid rows
-  behind a `Paid (receipts)` filter. Same day: **"Paid now"** checkbox for pay-at-desk — generate → sent → paid in one transaction via the shared `write_payment()`. 811 tests. **This is a feature, so
+  behind a `Paid (receipts)` filter. 808 tests. **This is a feature, so
   the lived-with rule applies in full:** Rick is using it with one client
   now; ships in 2.1 once it has weeks of real use behind it.
 - **2026-09-09 — Format change on an existing Absence/Session auto-loads the

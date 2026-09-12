@@ -166,87 +166,6 @@ def payment_proposal():
     })
 
 
-def write_payment(db, cursor, scope, cleaned, payment_amount, notes,
-                  ledger_date, now):
-    """Write one payment: the income entry, every allocation, every portion
-    update. On the caller's cursor; does NOT commit.
-
-    The single write path for money arriving — Record Payment and Bill
-    Now's "Paid now" both come through here. `cleaned` is a list of
-    (portion, amount) pairs already validated against what each portion
-    is owed; anything above their sum is held as credit.
-
-    Returns (entry_id, results, remainder).
-    """
-    description = "Client Payment"
-    if scope['guardian_number']:
-        description += f" (Guardian {scope['guardian_number']})"
-
-    # Tax is pro-rated PER allocation: the statements settled by one
-    # payment can carry different tax rates. The entry's tax_amount is the
-    # sum of those, not one call against the payment total.
-    tax_total = dec(0)
-    for portion, amount in cleaned:
-        tax_total += prorata_tax(amount, portion['statement_tax_total'],
-                                 portion['statement_total'])
-
-    allocated_total = sum((amount for _, amount in cleaned), dec(0))
-    remainder = quantize_cents(payment_amount - allocated_total)
-
-    # entries.statement_id stays populated for the first (or only)
-    # statement settled, so everything that reads it keeps working;
-    # payment_allocations is authoritative when present.
-    primary_statement_id = cleaned[0][0]['statement_entry_id'] if cleaned else None
-
-    cursor.execute("""
-        INSERT INTO entries (
-            client_id, class, ledger_type, created_at, modified_at,
-            description, content, ledger_date, source, total_amount,
-            tax_amount, statement_id
-        ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        None, now, now, description, notes if notes else None,
-        ledger_date, scope['file_number'], money_float(payment_amount),
-        money_float(tax_total), primary_statement_id
-    ))
-    entry_id = cursor.lastrowid
-
-    results = []
-    for portion, amount in cleaned:
-        new_amount_paid, amount_owing, new_status = apply_payment(
-            portion['amount_due'], portion['amount_paid'], amount)
-
-        cursor.execute("""
-            UPDATE statement_portions
-            SET amount_paid = ?, status = ?
-            WHERE id = ?
-        """, (money_float(new_amount_paid), new_status, portion['id']))
-
-        db.insert_allocation(
-            cursor, entry_id, portion['id'], scope['client_id'],
-            scope['guardian_number'], amount,
-            prorata_tax(amount, portion['statement_tax_total'],
-                        portion['statement_total']),
-            now)
-
-        results.append({
-            'portion_id': portion['id'],
-            'amount': money_float(amount),
-            'status': new_status,
-            'amount_owing': money_float(amount_owing),
-        })
-
-    # Anything left over is held as credit rather than forced onto the
-    # last statement. The NULL-portion row keeps the invariant
-    # SUM(allocations) == entry.total_amount true.
-    if to_cents(remainder) > 0:
-        db.insert_allocation(
-            cursor, entry_id, None, scope['client_id'],
-            scope['guardian_number'], remainder, None, now)
-
-    return entry_id, results, remainder
-
-
 @statements_bp.route('/record-payment', methods=['POST'])
 def record_payment():
     """Record ONE payment against one payer, settling one or more statements.
@@ -354,9 +273,71 @@ def record_payment():
 
     # ---- write ----------------------------------------------------------
     now = int(time.time())
+
+    description = "Client Payment"
+    if scope['guardian_number']:
+        description += f" (Guardian {scope['guardian_number']})"
+
+    # Tax is pro-rated PER allocation: the statements settled by one
+    # payment can carry different tax rates. The entry's tax_amount is the
+    # sum of those, not one call against the payment total.
+    tax_total = dec(0)
+    for portion, amount in cleaned:
+        tax_total += prorata_tax(amount, portion['statement_tax_total'],
+                                 portion['statement_total'])
+
+    # entries.statement_id stays populated for the first (or only)
+    # statement settled, so everything that reads it keeps working;
+    # payment_allocations is authoritative when present.
+    primary_statement_id = cleaned[0][0]['statement_entry_id'] if cleaned else None
+
     try:
-        entry_id, results, remainder = write_payment(
-            db, cursor, scope, cleaned, payment_amount, notes, ledger_date, now)
+        cursor.execute("""
+            INSERT INTO entries (
+                client_id, class, ledger_type, created_at, modified_at,
+                description, content, ledger_date, source, total_amount,
+                tax_amount, statement_id
+            ) VALUES (?, 'income', 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            None, now, now, description, notes if notes else None,
+            ledger_date, scope['file_number'], money_float(payment_amount),
+            money_float(tax_total), primary_statement_id
+        ))
+        entry_id = cursor.lastrowid
+
+        results = []
+        for portion, amount in cleaned:
+            new_amount_paid, amount_owing, new_status = apply_payment(
+                portion['amount_due'], portion['amount_paid'], amount)
+
+            cursor.execute("""
+                UPDATE statement_portions
+                SET amount_paid = ?, status = ?
+                WHERE id = ?
+            """, (money_float(new_amount_paid), new_status, portion['id']))
+
+            db.insert_allocation(
+                cursor, entry_id, portion['id'], scope['client_id'],
+                scope['guardian_number'], amount,
+                prorata_tax(amount, portion['statement_tax_total'],
+                            portion['statement_total']),
+                now)
+
+            results.append({
+                'portion_id': portion['id'],
+                'amount': money_float(amount),
+                'status': new_status,
+                'amount_owing': money_float(amount_owing),
+            })
+
+        # Anything left over is held as credit rather than forced onto the
+        # last statement. The NULL-portion row keeps the invariant
+        # SUM(allocations) == entry.total_amount true.
+        if to_cents(remainder) > 0:
+            db.insert_allocation(
+                cursor, entry_id, None, scope['client_id'],
+                scope['guardian_number'], remainder, None, now)
+
         conn.commit()
     except Exception as e:
         conn.rollback()

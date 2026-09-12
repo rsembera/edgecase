@@ -252,16 +252,7 @@ The period starts at the earliest such entry so the month label is honest.
 **Generation records nothing about payment.** A statement marked paid on
 the strength of a promise puts income in the ledger that hasn't arrived.
 The state machine is unchanged: ready → sent (View PDF or Email) → paid
-(Record Payment writes the income line).
-
-**"Paid now" compresses the chain; it does not skip it.** When the money
-is in hand at the moment of clicking (e-transfer at the end of the
-session), the modal's checkbox runs generate → sent → paid in one
-transaction, with the payment going through `write_payment()` — the same
-helper Record Payment uses — so the income entry, allocation, tax
-pro-rating and date are exactly what the long way produces. The user
-affirms receipt with a note; the system never presumes it. Refused for
-guardian splits: two payers, two payments.
+(Record Payment writes the income line). Pay-at-desk is two clicks.
 
 **The paid statement is the receipt.** A portion in `paid` renders the
 client report's exact sentence — *All fees for the services listed above

@@ -6,7 +6,7 @@ from flask import request, jsonify
 from datetime import datetime
 import calendar
 import time
-from core.money import money_float, to_cents, dec, quantize_cents
+from core.money import money_float, to_cents
 from core.billing import compute_statement_totals, split_guardian_amounts
 from web.blueprints.statements.common import statements_bp, get_db
 
@@ -527,27 +527,13 @@ def bill_now(entry_id):
     """Generate a statement for this entry's client, on demand.
 
     Same generator as the month-end run — just a period that ends on this
-    entry's date. By itself records nothing about payment: that is Record
-    Payment's job, and the statement PDF becomes the receipt once done.
-
-    JSON body `{"paid_now": true, "note": "e-transfer"}` is the pay-at-desk
-    shortcut: the money is in hand as the user clicks, so the same
-    transaction also marks the statement sent (handed over) and records the
-    full payment through write_payment — the identical path Record Payment
-    takes, income entry and allocation included. Refused for guardian-split
-    statements: two payers, two payments, recorded individually.
+    entry's date. Records nothing about payment: that is Record Payment's
+    job, and the statement PDF becomes the receipt once it has been done.
     """
-    from web.blueprints.statements.payments import (
-        write_payment, _payer_scope, _parse_payment_date)
-
     db = get_db()
     entry = db.get_entry(entry_id)
     if not entry:
         return jsonify({'success': False, 'error': 'Entry not found'}), 404
-    body = request.get_json(silent=True) or {}
-    paid_now = bool(body.get('paid_now'))
-    note = (body.get('note') or '').strip()
-
     conn = db.connect()
     cursor = conn.cursor()
     scope = _bill_now_scope(cursor, entry)
@@ -555,11 +541,10 @@ def bill_now(entry_id):
         return jsonify({'success': False,
                         'error': 'This entry cannot be billed'}), 400
     start_ts, end_ts, start_dt, end_dt, _ = scope
-    now = int(time.time())
 
     outcome, info = generate_statement_for_client(
         db, cursor, entry['client_id'], start_ts, end_ts,
-        start_dt, end_dt, now)
+        start_dt, end_dt, int(time.time()))
     if outcome != 'generated':
         conn.rollback()
         if outcome == 'skipped':
@@ -569,48 +554,6 @@ def bill_now(entry_id):
                 'the credit carries forward.')}), 400
         return jsonify({'success': False,
                         'error': 'Nothing to bill'}), 400
-
-    payment = None
-    if paid_now:
-        cursor.execute("""
-            SELECT sp.id, sp.statement_entry_id, sp.client_id,
-                   sp.guardian_number, sp.amount_due, sp.amount_paid,
-                   sp.status, e.statement_total, e.statement_tax_total
-            FROM statement_portions sp
-            JOIN entries e ON sp.statement_entry_id = e.id
-            WHERE sp.statement_entry_id = ?
-        """, (info['statement_id'],))
-        cols = [c[0] for c in cursor.description]
-        portions = [dict(zip(cols, r)) for r in cursor.fetchall()]
-        if len(portions) != 1:
-            conn.rollback()
-            return jsonify({'success': False, 'error': (
-                'This statement splits between two guardians; generate it '
-                'without "Paid now" and record each payment separately.'
-            )}), 400
-        portion = portions[0]
-        owing = quantize_cents(dec(portion['amount_due']) - dec(portion['amount_paid']))
-        if to_cents(owing) > 0:
-            # Handed over at the desk: sent as of now, with no email.
-            cursor.execute("""
-                UPDATE statement_portions SET status = 'sent', date_sent = ?
-                WHERE id = ? AND status = 'ready'
-            """, (now, portion['id']))
-            payer = _payer_scope(cursor, portion['id'])
-            try:
-                entry_id_income, results, _ = write_payment(
-                    db, cursor, payer, [(portion, owing)], owing, note,
-                    _parse_payment_date(None), now)
-            except Exception as e:
-                conn.rollback()
-                return jsonify({'success': False,
-                                'error': f'Database error: {e}'}), 500
-            payment = {'income_entry_id': entry_id_income,
-                       'status': results[0]['status']}
-        else:
-            # Credit covered the whole statement at generation; already paid.
-            payment = {'income_entry_id': None, 'status': 'paid'}
-
     try:
         conn.commit()
     except Exception as e:
@@ -619,5 +562,4 @@ def bill_now(entry_id):
                         'error': f'Database error: {e}'}), 500
     return jsonify({'success': True, 'statement_id': info['statement_id'],
                     'total': info['total'],
-                    'entry_count': info['entry_count'],
-                    'payment': payment})
+                    'entry_count': info['entry_count']})
