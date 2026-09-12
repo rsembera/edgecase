@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 9, 2026  
+**Last Updated:** September 12, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -13,6 +13,10 @@ Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 
+- **2026-09-12 — Bill Now built, used, withdrawn the same day; production
+  restored to the 11:43 backup.** See CHANGELOG. Open gaps it exposed, now
+  on the list below: no reversal path for a mis-recorded payment; Restore's
+  two-stage apply-at-restart needs a dialog, not just a banner.
 - **2026-09-09 — Format change on an existing Absence/Session auto-loads the
   fee again.** Both forms' fee logic bailed out in edit mode, so choosing a
   format on a saved entry did nothing. Page-load behaviour (saved fees shown,
