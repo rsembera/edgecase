@@ -55,12 +55,12 @@ def _make_portion(db, statement_entry_id, client_id, amount_due=180.0,
     return cur.lastrowid
 
 
-def _make_session(db, client_id, fee=180.0, statement_id=None):
+def _make_session(db, client_id, fee=180.0, statement_id=None, date=None):
     entry_id = db.add_entry({
         "client_id": client_id,
         "class": "session",
         "description": "Session",
-        "session_date": int(time.time()),
+        "session_date": date or int(time.time()),
         "duration": 50,
         "base_fee": fee,
         "fee": fee,
@@ -138,9 +138,9 @@ def test_paid_statement_shows_paid_and_the_paid_in_full_line(app_db):
 
 
 def test_partial_statement_shows_partial_and_the_balance_line(app_db):
-    """$50 against a $180 statement: the row says Partial (the payment was
-    made against the statement, not a session), and the balance line
-    gives the figures at the level where they are true. No paid-in-full."""
+    """$50 against a $180 single-session statement: the one session is
+    partly covered, so it says Partial; the balance line gives the
+    statement-level figures. No paid-in-full."""
     cid = _make_client(app_db)
     stmt = _make_statement(app_db, cid)
     _make_portion(app_db, stmt, cid, status='partial', amount_paid=50.0)
@@ -167,23 +167,62 @@ def test_sent_statement_shows_owing_and_the_balance_line(app_db):
     assert PAID_IN_FULL not in text
 
 
-def test_two_statements_one_paid_one_partial_totals_across_both(app_db):
-    """Today's case: August paid, September two-session statement half
-    paid. Rows: Paid / Partial / Partial. Balance line sums both."""
+def test_half_paid_two_session_statement_pays_the_older_session_first(app_db):
+    """Today's case: August paid; September statement carries Sep 5 and
+    Sep 12, $150 paid against it. Oldest-first: Sep 5 Paid, Sep 12 Owing —
+    not two Partials. Balance line sums both statements."""
+    from datetime import datetime
     cid = _make_client(app_db)
     aug = _make_statement(app_db, cid, total=150.0, description="Statement August 2026")
     _make_portion(app_db, aug, cid, amount_due=150.0, status='paid', amount_paid=150.0)
-    _make_session(app_db, cid, statement_id=aug, fee=150.0)
+    _make_session(app_db, cid, statement_id=aug, fee=150.0,
+                  date=int(datetime(2026, 8, 15).timestamp()))
     sep = _make_statement(app_db, cid, total=300.0, description="Statement September 2026")
     _make_portion(app_db, sep, cid, amount_due=300.0, status='partial', amount_paid=150.0)
-    _make_session(app_db, cid, statement_id=sep, fee=150.0)
-    _make_session(app_db, cid, statement_id=sep, fee=150.0)
+    _make_session(app_db, cid, statement_id=sep, fee=150.0,
+                  date=int(datetime(2026, 9, 5).timestamp()))
+    _make_session(app_db, cid, statement_id=sep, fee=150.0,
+                  date=int(datetime(2026, 9, 12).timestamp()))
 
     text = _report_text(app_db, cid)
+    lines = [ln for ln in text.split('\n') if ln in ('Paid', 'Partial', 'Owing')]
 
-    assert text.count('Partial') == 2
+    assert lines == ['Paid', 'Paid', 'Owing']
     assert 'billed $450.00, paid $300.00, balance owing $150.00' in text
     assert PAID_IN_FULL not in text
+
+
+def test_oldest_first_convention_is_pure_and_deterministic():
+    from pdf.generator import entry_payment_labels
+    ents = [(3, 300, 150.0), (1, 100, 150.0), (2, 200, 150.0), (4, 400, 0.0)]
+    # $150: oldest paid, rest owing; $0 entry gets a dash
+    assert entry_payment_labels(ents, 150.0) == {1: 'Paid', 2: 'Owing', 3: 'Owing', 4: '\u2014'}
+    # $200: one paid, next partial, last owing
+    assert entry_payment_labels(ents, 200.0) == {1: 'Paid', 2: 'Partial', 3: 'Owing', 4: '\u2014'}
+    # $450: all paid
+    assert entry_payment_labels(ents, 450.0) == {1: 'Paid', 2: 'Paid', 3: 'Paid', 4: '\u2014'}
+    # nothing: all owing
+    assert entry_payment_labels(ents, 0) == {1: 'Owing', 2: 'Owing', 3: 'Owing', 4: '\u2014'}
+
+
+def test_older_entry_outside_report_range_absorbs_money_first(app_db):
+    """The convention runs over the whole statement, not the report's
+    window: $150 on a statement whose older session is outside the range
+    covers THAT one, so the in-range session still reads Owing."""
+    from datetime import datetime
+    cid = _make_client(app_db)
+    sep = _make_statement(app_db, cid, total=300.0, description="Statement September 2026")
+    _make_portion(app_db, sep, cid, amount_due=300.0, status='partial', amount_paid=150.0)
+    _make_session(app_db, cid, statement_id=sep, fee=150.0,
+                  date=int(datetime(2026, 9, 5).timestamp()))
+    _make_session(app_db, cid, statement_id=sep, fee=150.0,
+                  date=int(datetime(2026, 9, 12).timestamp()))
+
+    text = _report_text(app_db, cid,
+                        start_date=int(datetime(2026, 9, 10).timestamp()),
+                        end_date=int(datetime(2026, 9, 30).timestamp()))
+    lines = [ln for ln in text.split('\n') if ln in ('Paid', 'Partial', 'Owing')]
+    assert lines == ['Owing']
 
 
 def test_written_off_is_its_own_state_and_blocks_paid_in_full(app_db):

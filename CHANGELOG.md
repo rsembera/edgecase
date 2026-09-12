@@ -17,9 +17,22 @@ says what it can:
   services: billed $450.00, paid $300.00, balance owing $150.00.* The
   paid-in-full sentence prints exactly as before when everything is
   settled; the two never appear together.
-- Tests: label collapse updated; partial → Partial + balance line; sent →
-  Owing + balance line; today's exact shape (August paid, September half
-  paid) → Paid / Partial / Partial and a $450 / $300 / $150 line. 798 → 800.
+- **Then, same night: per-entry labels by the oldest-first convention.**
+  Two Partials on a half-paid two-session statement was honest but
+  useless — the Sep 5 session IS paid in every sense that matters. The
+  system records no fact about which service a payment covered, so the
+  report now applies the convention every receivables ledger uses and
+  the payment modal already applies across statements: money covers the
+  oldest service first. `entry_payment_labels()` walks ALL fee-bearing
+  entries on a single-payer statement in date order (an older entry
+  outside the report window still absorbs money first) and yields
+  Paid / Partial / Owing per entry, at most one Partial. Guardian-split
+  statements keep the statement-level label. Written into the report's
+  docstring as a convention, not a fact.
+- Tests: label collapse; single-session partial → Partial + balance line;
+  sent → Owing + balance line; today's shape (Aug paid; Sep 5, Sep 12 with
+  $150 paid) → Paid / Paid / Owing and the $450 / $300 / $150 line; pure
+  helper cases; older out-of-window entry absorbs the money. 798 → 802.
 
 ### 2026-09-12 (evening) — Record Payment: two defects that produced a phantom $300 payment
 
