@@ -5,18 +5,18 @@
 Mis-recorded payments previously required restoring from backup. A new
 `POST /statements/reverse-payment` route unwinds everything
 `record_payment` wrote: deletes the allocation rows, recalculates each
-affected statement portion's `amount_paid` and status (back to `sent` or
-`ready` depending on whether the statement was ever sent), and deletes
-the income entry — all in one transaction.
+affected statement portion's `amount_paid` and status (back to `sent`),
+and deletes the income entry — all in one transaction.
 
 If credit from the payment has already been consumed by a later
-statement, the reversal is refused with an explanation.
+statement, the reversal is refused and names the specific statement.
 
-On the income edit page, payment entries (those with `statement_id`)
-now show "Reverse Payment" instead of "Delete Entry." Manual income
-entries still show "Delete Entry" as before.
+On the income edit page, payment entries (those with allocation rows)
+show "Reverse Payment" instead of "Delete Entry," and the amount and tax
+fields are read-only to prevent breaking the allocation invariant.
+`delete_income_entry` now refuses entries that have allocations (409).
 
-8 tests in `tests/test_reverse_payment.py`. 804 → 812.
+10 tests in `tests/test_reverse_payment.py`. 804 → 814.
 
 ### 2026-09-12 (latest) — `Cache-Control: no-store` on every non-static response
 
