@@ -35,7 +35,10 @@
                 </div>
             </div>
         </div>
-        {% include 'components/redact_button.html' %}
+        <div class="entry-header-actions">
+            {% if is_edit %}{% set bill_now_entry = entry %}{% include 'components/bill_now.html' %}{% endif %}
+            {% include 'components/redact_button.html' %}
+        </div>
     </div>
     
     <form method="POST" enctype="multipart/form-data" data-dirty-guard>
@@ -240,7 +243,6 @@
         <div class="entry-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
             {% if is_edit %}
-            {% set bill_now_entry = entry %}{% include 'components/bill_now.html' %}
             <button type="submit" class="btn" data-dirty-save data-dirty-label="Save Item" disabled>No Changes</button>
             {% else %}
             <button type="submit" class="btn">Save Item</button>

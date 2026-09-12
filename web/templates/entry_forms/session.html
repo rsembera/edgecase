@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         {% set entry = session %}
         <div class="entry-header-actions">
+            {% if is_edit %}{% set bill_now_entry = session %}{% include 'components/bill_now.html' %}{% endif %}
             {% include 'components/redact_button.html' %}
         </div>
     </div>
@@ -267,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="entry-form-actions">
             <!-- Cancel/Back (Hard Left) — "Back" when reviewing a locked entry, "Cancel" when there's work to abandon -->
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">{% if is_edit and is_locked %}Back{% else %}Cancel{% endif %}</a>
-            {% if is_edit %}{% set bill_now_entry = session %}{% include 'components/bill_now.html' %}{% endif %}
             
             <!-- Previous/Next (Center) - only in edit mode -->
             {% if is_edit %}
