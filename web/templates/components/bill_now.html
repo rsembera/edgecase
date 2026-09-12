@@ -4,9 +4,9 @@
    fee-bearing entry. Requires bill_now.js. #}
 {% if bill_now_entry and bill_now_entry.locked and bill_now_entry.statement_id is none
       and ((bill_now_entry.fee or 0) > 0 or (bill_now_entry.base_fee or 0) > 0 or (bill_now_entry.base_price or 0) > 0) %}
-<button type="button" class="btn btn-secondary" id="bill-now-btn"
-        data-entry-id="{{ bill_now_entry.id }}" onclick="openBillNow()">
-    <i data-lucide="receipt" class="icon-sm icon-inline"></i>Bill Now
+<button type="button" class="btn btn-sm btn-secondary bill-now-btn" id="bill-now-btn"
+        data-entry-id="{{ bill_now_entry.id }}" onclick="openBillNow()" title="Generate a statement for this client now">
+    <i data-lucide="receipt" class="icon-sm"></i> Bill Now
 </button>
 
 <div id="bill-now-modal" class="modal">
