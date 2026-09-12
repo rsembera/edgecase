@@ -99,10 +99,13 @@ def test_label_collapses_portion_statuses():
     assert payment_status_label([]) == 'Unbilled'
     assert payment_status_label(['paid']) == 'Paid'
     assert payment_status_label(['paid', 'paid']) == 'Paid'
-    # Money still owed anywhere wins over everything
+    # Money still owed anywhere wins over everything; some of it having
+    # arrived is its own word
     assert payment_status_label(['paid', 'sent']) == 'Owing'
-    assert payment_status_label(['written_off', 'partial']) == 'Owing'
+    assert payment_status_label(['written_off', 'partial']) == 'Partial'
     assert payment_status_label(['ready']) == 'Owing'
+    assert payment_status_label(['partial']) == 'Partial'
+    assert payment_status_label(['paid', 'partial']) == 'Partial'
     # A write-off is nothing-owing but NOT paid
     assert payment_status_label(['written_off']) == 'Written off'
     assert payment_status_label(['paid', 'written_off']) == 'Written off'
@@ -134,7 +137,10 @@ def test_paid_statement_shows_paid_and_the_paid_in_full_line(app_db):
     assert PAID_IN_FULL in text
 
 
-def test_owing_statement_shows_owing_and_no_paid_in_full(app_db):
+def test_partial_statement_shows_partial_and_the_balance_line(app_db):
+    """$50 against a $180 statement: the row says Partial (the payment was
+    made against the statement, not a session), and the balance line
+    gives the figures at the level where they are true. No paid-in-full."""
     cid = _make_client(app_db)
     stmt = _make_statement(app_db, cid)
     _make_portion(app_db, stmt, cid, status='partial', amount_paid=50.0)
@@ -142,7 +148,41 @@ def test_owing_statement_shows_owing_and_no_paid_in_full(app_db):
 
     text = _report_text(app_db, cid)
 
+    assert 'Partial' in text
+    assert 'Owing' not in text
+    assert 'billed $180.00, paid $50.00, balance owing $130.00' in text
+    assert PAID_IN_FULL not in text
+
+
+def test_sent_statement_shows_owing_and_the_balance_line(app_db):
+    cid = _make_client(app_db)
+    stmt = _make_statement(app_db, cid)
+    _make_portion(app_db, stmt, cid, status='sent')
+    _make_session(app_db, cid, statement_id=stmt)
+
+    text = _report_text(app_db, cid)
+
     assert 'Owing' in text
+    assert 'billed $180.00, paid $0.00, balance owing $180.00' in text
+    assert PAID_IN_FULL not in text
+
+
+def test_two_statements_one_paid_one_partial_totals_across_both(app_db):
+    """Today's case: August paid, September two-session statement half
+    paid. Rows: Paid / Partial / Partial. Balance line sums both."""
+    cid = _make_client(app_db)
+    aug = _make_statement(app_db, cid, total=150.0, description="Statement August 2026")
+    _make_portion(app_db, aug, cid, amount_due=150.0, status='paid', amount_paid=150.0)
+    _make_session(app_db, cid, statement_id=aug, fee=150.0)
+    sep = _make_statement(app_db, cid, total=300.0, description="Statement September 2026")
+    _make_portion(app_db, sep, cid, amount_due=300.0, status='partial', amount_paid=150.0)
+    _make_session(app_db, cid, statement_id=sep, fee=150.0)
+    _make_session(app_db, cid, statement_id=sep, fee=150.0)
+
+    text = _report_text(app_db, cid)
+
+    assert text.count('Partial') == 2
+    assert 'billed $450.00, paid $300.00, balance owing $150.00' in text
     assert PAID_IN_FULL not in text
 
 
