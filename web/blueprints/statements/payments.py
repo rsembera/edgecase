@@ -417,8 +417,7 @@ def reverse_payment():
         return jsonify({
             'success': False,
             'error': 'Cannot reverse: credit from this payment has already '
-                     'been applied to a later statement. Reverse or void '
-                     'that statement first.'
+                     'been applied to a later statement.'
         }), 409
 
     # ---- unwind portions ---------------------------------------------------
