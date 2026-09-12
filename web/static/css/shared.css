@@ -2208,9 +2208,14 @@ tbody tr:hover {
    ============================================ */
 .choices {
     font-family: var(--font-ui);
-    /* choices.min.css adds 24px below every wrapper; a native select has
-       none, so help text under a styled select sat 24px too low. Spacing
-       between fields is the form-group's job. */
+}
+
+/* choices.min.css adds 24px below every wrapper; a native select has
+   none, so help text under a styled select sat 24px too low. Spacing
+   between fields is the form-group's job. choices.min.css is linked
+   AFTER this file, so a bare `.choices` rule loses on cascade order —
+   hence the extra specificity. */
+div.choices[data-type] {
     margin-bottom: 0;
 }
 
