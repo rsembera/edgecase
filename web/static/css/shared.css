@@ -2208,6 +2208,10 @@ tbody tr:hover {
    ============================================ */
 .choices {
     font-family: var(--font-ui);
+    /* choices.min.css adds 24px below every wrapper; a native select has
+       none, so help text under a styled select sat 24px too low. Spacing
+       between fields is the form-group's job. */
+    margin-bottom: 0;
 }
 
 .choices__item {
