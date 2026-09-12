@@ -2,17 +2,26 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 9, 2026  
+**Last Updated:** September 12, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
 
-## QUEUED FOR 2.0.5 (in git, not yet released)
+## QUEUED FOR NEXT RELEASE (in git, not yet released)
 
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 
+- **2026-09-12 — Bill Now.** On-demand statement from a Session/Absence/Item
+  edit form for a client who pays per session: same generator as month end
+  (`generate_statement_for_client()`), scope = everything the client owes
+  as of that entry, hands off to the Statements page highlighted. Paid
+  statement PDFs now render the client report's paid-in-full sentence and
+  drop payment instructions — the receipt. Statements page keeps paid rows
+  behind a `Paid (receipts)` filter. 808 tests. **This is a feature, so
+  the lived-with rule applies in full:** Rick is using it with one client
+  now; ships in 2.1 once it has weeks of real use behind it.
 - **2026-09-09 — Format change on an existing Absence/Session auto-loads the
   fee again.** Both forms' fee logic bailed out in edit mode, so choosing a
   format on a saved entry did nothing. Page-load behaviour (saved fees shown,

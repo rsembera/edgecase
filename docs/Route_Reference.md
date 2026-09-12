@@ -16,7 +16,7 @@ EdgeCase has 111 routes: 107 across 11 blueprints, plus 4 app-level routes regis
 5. **entries_bp** - Entry CRUD operations (16 routes)
 6. **ledger_bp** - Income/Expense tracking (13 routes)
 7. **links_bp** - Link group management (4 routes)
-8. **statements_bp** - Statement generation, payment allocation (11 routes)
+8. **statements_bp** - Statement generation, payment allocation, Bill Now (13 routes)
 9. **scheduler_bp** - Calendar integration (1 route)
 10. **types_bp** - Client type management (4 routes)
 11. **settings_bp** - Settings and configuration (17 routes)
@@ -997,6 +997,19 @@ def find_unbilled()
 def generate_statements()
 ```
 **Purpose:** Generate statements for unbilled entries
+
+---
+
+### Bill Now
+
+```python
+@statements_bp.route('/bill-now/preview/<int:entry_id>', methods=['GET'])
+def bill_now_preview(entry_id)
+
+@statements_bp.route('/bill-now/<int:entry_id>', methods=['POST'])
+def bill_now(entry_id)
+```
+**Purpose:** On-demand statement from a Session/Absence/Item edit form. Scope is the entry's client, everything fee-bearing + locked + unbilled dated up to and including the entry. Preview returns the scope for the confirm dialog; POST generates via `generate_statement_for_client()` (the same helper the month-end loop uses) and returns `statement_id`. Refuses billed, unlocked, zero-fee entries (400) and net-negative periods (400, rolled back). Records nothing about payment.
 
 ---
 

@@ -234,6 +234,39 @@ never auto-loaded. (Until 2026-09-09 the edit-mode guard was mistakenly
 applied to the change event as well, so picking a format on a saved entry
 did nothing.)
 
+### Bill Now and the Statement as Receipt (2026-09-12)
+
+**The monthly rhythm is a habit, not a rule.** Generation takes a client
+and a date range; month end is just "everyone, first-to-last." Bill Now
+is a second entry point into the same generator — the per-client body of
+`/statements/generate` lives in `generate_statement_for_client()` and both
+callers use it — so an on-demand statement can never differ from a
+month-end one in what it bills or how.
+
+**Scope is the client, not the entry.** Bill Now from a Session bills
+everything the client owes as of that session: all fee-bearing, locked,
+unbilled entries dated up to and including it. Billing strictly one entry
+would strand an older unbilled absence or item to be billed alone later.
+The period starts at the earliest such entry so the month label is honest.
+
+**Generation records nothing about payment.** A statement marked paid on
+the strength of a promise puts income in the ledger that hasn't arrived.
+The state machine is unchanged: ready → sent (View PDF or Email) → paid
+(Record Payment writes the income line). Pay-at-desk is two clicks.
+
+**The paid statement is the receipt.** A portion in `paid` renders the
+client report's exact sentence — *All fees for the services listed above
+have been paid in full.* — and drops balance-forward and payment
+instructions. Only `paid` qualifies; `partial` and `written_off` do not,
+by the same rule as the report. Computed at render time: the copy attached
+to the Communication at send stays a statement; a re-download after
+payment is the receipt. No separate receipt document, no separate
+numbering, same audit trail.
+
+**Paid portions stay on the Statements page** behind a `Paid (receipts)`
+filter, with View Receipt as their only action. Before this they had no
+link anywhere in the UI.
+
 ### Guardian Billing
 
 Guardian billing is separate from fee definition—it determines **who pays**, not **how much**.
