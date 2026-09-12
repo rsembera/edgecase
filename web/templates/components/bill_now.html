@@ -18,8 +18,10 @@
             <input type="checkbox" id="bill-now-paid-now">
             <span>Paid now — the money is already in hand</span>
         </label>
-        <div id="bill-now-note-row" class="bill-now-note-row" style="display: none;">
-            <input type="text" id="bill-now-note" placeholder="Payment note, e.g. e-transfer" maxlength="120">
+        <div id="bill-now-note-row" class="form-group bill-now-note-row" style="display: none;">
+            <label for="bill-now-note">Payment note (optional)</label>
+            <input type="text" id="bill-now-note" placeholder="e.g. e-transfer" maxlength="120">
+            <p class="help-text">Saved on the payment's ledger entry, like the note in Record Payment.</p>
         </div>
         <p class="help-text" id="bill-now-help">The statement opens on the Statements page: view or email it there, then Record Payment. Once paid, its PDF is the receipt.</p>
         <div class="bill-now-modal-actions">
