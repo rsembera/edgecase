@@ -71,9 +71,6 @@ one is to compress the chain, not skip it.
 - 3 tests: full settle with income/allocation/date_sent and an immediate
   receipt PDF; unchecked writes no money; guardian split refused with
   rollback, then generates normally without the flag. 808 → 811.
-- Button moved from the bottom action row to the entry header, beside
-  Redact, as a small grey `btn-sm btn-secondary` — Absence and Item headers
-  gained the same `entry-header-actions` wrapper Session already had.
 
 ### 2026-09-09 — Absence and Session forms: changing the format on an existing entry did nothing
 
