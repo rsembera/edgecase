@@ -246,6 +246,7 @@ def edit_income(entry_id):
     attachments = db.get_attachments(entry_id)
     currency = db.get_setting('currency', '$')
     payor_suggestions = db.get_distinct_payor_sources()
+    has_allocations = bool(db.get_payment_allocations(entry_id))
     
     return render_template('entry_forms/income.html',
                          entry=income,
@@ -255,16 +256,29 @@ def edit_income(entry_id):
                          payor_suggestions=payor_suggestions,
                          attachments=attachments,
                          currency=currency,
+                         has_allocations=has_allocations,
                          is_edit=True)
 
 
 @ledger_bp.route('/ledger/income/<int:entry_id>/delete', methods=['POST'])
 def delete_income_entry(entry_id):
-    """Delete income entry and all its attachments."""
+    """Delete income entry and all its attachments.
+
+    Payment entries (those with allocation rows) must use Reverse Payment
+    instead — a bare delete would orphan the allocations and leave
+    statement portions marked paid with no money behind them.
+    """
     entry = db.get_entry(entry_id)
     
     if not entry or entry['ledger_type'] != 'income':
         return "Income entry not found", 404
+
+    # Guard: refuse if this entry has payment allocations
+    allocs = db.get_payment_allocations(entry_id)
+    if allocs:
+        return jsonify({
+            'error': 'This payment has allocations. Use Reverse Payment instead.'
+        }), 409
     
     try:
         upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)

@@ -248,20 +248,16 @@ def test_refuses_nonexistent_entry(client, app_db):
     assert resp.status_code == 404
 
 
-def test_portion_returns_to_ready_if_never_sent(client, app_db):
-    """A portion that was never sent should go back to 'ready', not 'sent'."""
+def test_portion_always_returns_to_sent(client, app_db):
+    """record_payment only touches sent/partial portions, so reversal
+    always returns to 'sent' — there is no 'ready' branch."""
     cid = _make_client(app_db)
     stmt = _make_statement(app_db, cid, 100.0)
-    pid = _make_portion(app_db, stmt, cid, 100.0, status='ready')
+    pid = _make_portion(app_db, stmt, cid, 100.0)
 
-    # Manually fix the portion so it's payable (record_payment requires
-    # 'sent' or 'partial', but let's test the reversal status logic
-    # by setting it to 'sent' for payment, then checking it goes to 'ready')
-    # Actually, 'ready' portions aren't payable — they need to be 'sent'.
-    # Let's make it 'sent' but with date_sent = None to test the branch.
+    # Even if date_sent is NULL (inconsistent record), we return to 'sent'
     conn = app_db.connect()
-    conn.execute("UPDATE statement_portions SET status = 'sent', "
-                 "date_sent = NULL WHERE id = ?", (pid,))
+    conn.execute("UPDATE statement_portions SET date_sent = NULL WHERE id = ?", (pid,))
     conn.commit()
 
     pay_data = _pay(client, pid, 100.0)
@@ -273,5 +269,53 @@ def test_portion_returns_to_ready_if_never_sent(client, app_db):
                        content_type='application/json')
     assert resp.get_json()['success'] is True
 
-    # Should be 'ready' because date_sent was NULL
-    assert _portion(app_db, pid)['status'] == 'ready'
+    # Always 'sent', never 'ready'
+    assert _portion(app_db, pid)['status'] == 'sent'
+
+
+def test_reverse_one_of_two_payments_leaves_partial(client, app_db):
+    """Two payments on one portion; reverse only the later one."""
+    cid = _make_client(app_db)
+    stmt = _make_statement(app_db, cid, 200.0)
+    pid = _make_portion(app_db, stmt, cid, 200.0)
+
+    # First payment: $80
+    pay1 = _pay(client, pid, 80.0)
+    assert pay1['success'] is True
+
+    # Second payment: $120 (settles it)
+    pay2 = _pay(client, pid, 120.0)
+    assert pay2['success'] is True
+    assert _portion(app_db, pid)['status'] == 'paid'
+
+    # Reverse only the second payment
+    resp = client.post('/statements/reverse-payment',
+                       json={'entry_id': pay2['entry_id']},
+                       content_type='application/json')
+    assert resp.get_json()['success'] is True
+
+    p = _portion(app_db, pid)
+    assert p['status'] == 'partial'
+    assert p['amount_paid'] == 80.0
+
+    # First payment's allocations should be untouched
+    assert _alloc_count(app_db, pay1['entry_id']) == 1
+
+
+def test_delete_income_refuses_allocated_entry(client, app_db):
+    """The delete route should refuse entries that have allocations."""
+    cid = _make_client(app_db)
+    stmt = _make_statement(app_db, cid, 100.0)
+    pid = _make_portion(app_db, stmt, cid, 100.0)
+
+    pay_data = _pay(client, pid, 100.0)
+    entry_id = pay_data['entry_id']
+
+    resp = client.post(f'/ledger/income/{entry_id}/delete',
+                       content_type='application/json')
+    assert resp.status_code == 409
+
+    # Entry and allocations should still exist
+    assert _income_count(app_db) == 1
+    assert _alloc_count(app_db, entry_id) > 0
+    assert _portion(app_db, pid)['status'] == 'paid'

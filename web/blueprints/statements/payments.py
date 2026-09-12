@@ -414,10 +414,24 @@ def reverse_payment():
     # ---- check for consumed credit -----------------------------------------
     consumed = [a for a in allocations if a['is_credit']]
     if consumed:
+        # Name the statement(s) that consumed the credit so the error
+        # tells Richard which one to deal with first.
+        consuming_ids = {a['portion_id'] for a in consumed if a['portion_id']}
+        stmt_descriptions = []
+        for cid in consuming_ids:
+            cursor.execute("""
+                SELECT e.description FROM entries e
+                JOIN statement_portions sp ON sp.statement_entry_id = e.id
+                WHERE sp.id = ?
+            """, (cid,))
+            row = cursor.fetchone()
+            if row:
+                stmt_descriptions.append(row[0])
+        stmt_label = ', '.join(stmt_descriptions) if stmt_descriptions else 'a later statement'
         return jsonify({
             'success': False,
-            'error': 'Cannot reverse: credit from this payment has already '
-                     'been applied to a later statement.'
+            'error': f'Cannot reverse: credit from this payment has already '
+                     f'been applied to {stmt_label}.'
         }), 409
 
     # ---- unwind portions ---------------------------------------------------
@@ -444,8 +458,10 @@ def reverse_payment():
             if to_cents(new_paid) < 0:
                 new_paid = dec(0)
 
+            # record_payment only writes against 'sent' or 'partial'
+            # portions, so anything this route touches was sent.
             if to_cents(new_paid) == 0:
-                new_status = 'sent' if portion['date_sent'] else 'ready'
+                new_status = 'sent'
             else:
                 new_status = 'partial'
 
