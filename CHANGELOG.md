@@ -1,5 +1,40 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 — Bill Now withdrawn the same day; production restored to 11:43
+
+Built and put into production use in one afternoon: an on-demand statement
+button on the entry forms, a "Paid now" shortcut that recorded the full
+payment in the same transaction, and the paid statement rendering as a
+receipt. Within hours the ledger held a $300 payment nobody had made (the
+shortcut fired on a two-session statement the user meant to pay half of —
+or a mis-keyed Record Payment; the restore made the post-mortem moot).
+There is no reversal path for a recorded payment, so the fix was a restore
+from the 11:43 incremental and a re-entry of the afternoon's clinical work.
+
+All five commits reverted with `git revert` (history intact: c7be14c,
+1c128a4, ef28e5a, 32916aa, 75bd64b). Tree is byte-identical to 61fffe7,
+Wednesday's fee-auto-load fix. 798 tests.
+
+What the day established, kept here so it is not relearned:
+
+- **The existing month-end generator already handles a pay-per-session
+  client.** Generate a statement for that client with a range ending
+  today; mark sent; Record Payment. No feature was needed.
+- **A feature that writes money does not ship to production the day it is
+  designed.** The lived-with rule exists for exactly this. Bill Now was
+  reasonable; "Paid now" was a shortcut on top of it, added forty minutes
+  later, and it is the part that hurt.
+- **Two genuine gaps surfaced and remain open:** (1) no way to reverse or
+  correct a mis-recorded payment without SQL — the Architecture doc's "no
+  refund path" was written for refunds, not mistakes; (2) Restore is
+  two-stage (staged on click, applied at next launch) and the only signal
+  is a banner on the Backups page — it needs a dialog that says so.
+- Two behaviour-neutral refactors from the day are worth redoing on their
+  own when there is a reason: the per-client body of `/statements/generate`
+  as `generate_statement_for_client()`, and the write block of
+  `/record-payment` as `write_payment()`. Both passed the full suite
+  unchanged before any feature code touched them.
+
 ### 2026-09-09 — Absence and Session forms: changing the format on an existing entry did nothing
 
 `updateFeesForFormat()` in both `absence.js` and `session.js` returned early
