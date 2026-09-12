@@ -234,6 +234,24 @@ never auto-loaded. (Until 2026-09-09 the edit-mode guard was mistakenly
 applied to the change event as well, so picking a format on a saved entry
 did nothing.)
 
+### Report Payment Column: Oldest-First Is a Convention (2026-09-12)
+
+A payment is recorded against a statement portion, never a session. The
+ledger therefore holds no fact about which service a partial payment
+covered, and the Client Report cannot report one. What it does instead:
+within a single-payer statement, money is taken to cover the oldest
+service first — the convention every receivables system uses, and the
+same rule the payment modal applies across statements. Deterministic,
+runs over every entry on the statement (not just the report window), and
+yields at most one 'Partial' row. The balance line under the table gives
+the statement-level figures, which are the only ones that are facts.
+
+Rejected: per-session allocation in `payment_allocations`. It would make
+the mapping a recorded fact at the cost of a schema change and a UI
+asking the practitioner to split every payment across sessions — more
+bookkeeping than a solo practice wants, and information the client never
+supplied in the first place.
+
 ### Guardian Billing
 
 Guardian billing is separate from fee definition—it determines **who pays**, not **how much**.

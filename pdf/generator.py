@@ -32,6 +32,38 @@ def esc(value):
     return _xml_escape(str(value))
 
 
+def entry_payment_labels(entries, paid_total):
+    """Per-entry Paid/Partial/Owing for ONE single-payer statement, by the
+    oldest-first convention.
+
+    A payment is recorded against a statement, never a session, so the
+    system holds no fact about which service it covered. The report uses
+    the convention every receivables ledger uses — money covers the oldest
+    service first — which is also the rule the payment modal applies
+    across statements. `entries` are (entry_id, date, fee) for EVERY
+    fee-bearing entry on the statement, not just those in the report's
+    range; an older entry outside the range still absorbs money first.
+
+    Returns {entry_id: label}. Exactly one entry can be 'Partial'.
+    """
+    labels = {}
+    remaining = dec(paid_total)
+    for entry_id, _date, fee in sorted(entries, key=lambda e: (e[1] or 0, e[0])):
+        fee_d = dec(fee)
+        if to_cents(fee_d) <= 0:
+            labels[entry_id] = '\u2014'
+            continue
+        if to_cents(remaining) >= to_cents(fee_d):
+            labels[entry_id] = 'Paid'
+            remaining -= fee_d
+        elif to_cents(remaining) > 0:
+            labels[entry_id] = 'Partial'
+            remaining = dec(0)
+        else:
+            labels[entry_id] = 'Owing'
+    return labels
+
+
 def payment_status_label(portion_statuses):
     """Collapse one statement's portion statuses into a per-entry label.
 
@@ -930,6 +962,7 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
     # One query over the statements the listed entries touch; each
     # statement's portions collapse to a label via payment_status_label.
     status_by_statement = {}
+    entry_labels = {}
     if include_payment_status:
         statement_ids = sorted({e['statement_id'] for e in entries
                                 if e.get('statement_id')})
@@ -958,6 +991,38 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
                 AND status != 'written_off'
             """, [client_id, *statement_ids])
             billed_total, paid_total = cursor.fetchone()
+
+            # Per-entry labels by the oldest-first convention, for
+            # single-payer statements that are partly paid. Guardian
+            # splits keep the statement-level label: the money there is
+            # per payer, and which payer covers which service is a
+            # further convention this report does not impose.
+            cursor.execute(f"""
+                SELECT statement_entry_id, COUNT(*), SUM(amount_paid), MIN(status)
+                FROM statement_portions
+                WHERE client_id = ? AND statement_entry_id IN ({placeholders})
+                GROUP BY statement_entry_id
+            """, [client_id, *statement_ids])
+            partial_single = {sid: paid for sid, n, paid, st in cursor.fetchall()
+                              if n == 1 and st == 'partial'}
+            if partial_single:
+                ph2 = ','.join('?' * len(partial_single))
+                cursor.execute(f"""
+                    SELECT id, statement_id, class, fee, base_fee, base_price,
+                           COALESCE(session_date, absence_date, item_date) AS d
+                    FROM entries
+                    WHERE statement_id IN ({ph2})
+                    AND class IN ('session', 'absence', 'item')
+                """, list(partial_single))
+                by_stmt = {}
+                for eid, sid, cls, fee, base_fee, base_price, d in cursor.fetchall():
+                    amount = fee
+                    if not amount:
+                        amount = base_price if cls == 'item' else base_fee
+                    by_stmt.setdefault(sid, []).append((eid, d, amount or 0))
+                for sid, ents in by_stmt.items():
+                    entry_labels.update(
+                        entry_payment_labels(ents, partial_single[sid]))
         else:
             billed_total, paid_total = 0, 0
 
@@ -1116,6 +1181,8 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
             # in the paid-in-full line either way.
             if to_cents(fee) == 0:
                 status_label = '—'
+            elif entry['id'] in entry_labels:
+                status_label = entry_labels[entry['id']]
             elif entry.get('statement_id'):
                 status_label = status_by_statement.get(
                     entry['statement_id'], 'Unbilled')
