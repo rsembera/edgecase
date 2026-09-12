@@ -15,6 +15,7 @@
 let currentFilter = 'all';
 let currentPaymentPortionId = null;
 let currentProposal = null;
+let creditAcknowledged = false;   // second Confirm needed when money would be held as credit
 let proposalDebounce = null;
 let paymentDatePicker = null;
 let currentWriteOffPortionId = null;
@@ -49,13 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Payment modal - close on outside click
-    const paymentModal = document.getElementById('payment-modal');
-    if (paymentModal) {
-        paymentModal.addEventListener('click', function(e) {
-            if (e.target === this) hidePaymentModal();
-        });
-    }
+    // Payment modal - close on outside click. Press AND release must both
+    // land on the overlay: a drag-select that starts in a field and ends
+    // outside the panel fires `click` on the overlay too, and used to
+    // close the modal mid-edit.
+    closeOnOutsideClick('payment-modal', hidePaymentModal);
     
     // Payment amount - format on blur, re-propose the split on input
     const paymentAmount = document.getElementById('payment-amount');
@@ -77,14 +76,31 @@ document.addEventListener('DOMContentLoaded', function() {
         setPaymentDate(new Date());
     }
     
-    // Write-off modal - close on outside click
-    const writeoffModal = document.getElementById('writeoff-modal');
-    if (writeoffModal) {
-        writeoffModal.addEventListener('click', function(e) {
-            if (e.target === this) hideWriteOffModal();
-        });
-    }
+    // Write-off modal - close on outside click (same rule)
+    closeOnOutsideClick('writeoff-modal', hideWriteOffModal);
 });
+
+/**
+ * Close a modal only when the pointer both went down and came up on the
+ * overlay itself. A `click` alone is not enough: the browser dispatches
+ * it on the nearest common ancestor of mousedown and mouseup, so
+ * selecting text in a field and releasing outside the panel "clicks"
+ * the overlay.
+ * @param {string} overlayId
+ * @param {Function} hide
+ */
+function closeOnOutsideClick(overlayId, hide) {
+    const overlay = document.getElementById(overlayId);
+    if (!overlay) return;
+    let pressedOnOverlay = false;
+    overlay.addEventListener('mousedown', function(e) {
+        pressedOnOverlay = (e.target === overlay);
+    });
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay && pressedOnOverlay) hide();
+        pressedOnOverlay = false;
+    });
+}
 
 // ============================================================
 // DROPDOWN AND FILTER
@@ -634,10 +650,16 @@ function showPaymentForm(portionId) {
             }
             currentProposal = data;
             document.getElementById('payment-amount').value = data.total_owing.toFixed(2);
+            creditAcknowledged = false;
             renderPayerLine(data);
             renderAllocationRows(data);
             updateAllocationSummary();
             document.getElementById('payment-modal').classList.add('visible');
+            // Prefilled with the full balance; select it so a partial
+            // payment is typed over it rather than drag-selected.
+            const amountField = document.getElementById('payment-amount');
+            amountField.focus();
+            amountField.select();
         })
         .catch(error => {
             console.error('Error loading payment proposal:', error);
@@ -703,6 +725,7 @@ function renderAllocationRows(data) {
  */
 function onPaymentAmountChanged() {
     if (!currentPaymentPortionId) return;
+    creditAcknowledged = false;
 
     clearTimeout(proposalDebounce);
     proposalDebounce = setTimeout(() => {
@@ -729,6 +752,7 @@ function onPaymentAmountChanged() {
  * A manual edit only changes the summary — the split is now the user's.
  */
 function onAllocationEdited() {
+    creditAcknowledged = false;
     updateAllocationSummary();
 }
 
@@ -840,6 +864,20 @@ function confirmPayment() {
 
     if (allocationTotal() > amount + 0.001) {
         showError('The amounts applied add up to more than the payment received.');
+        return;
+    }
+
+    // Money left over is held as credit. That is legitimate for a real
+    // overpayment and the usual sign of editing the wrong field for
+    // everything else ("Amount received" still at the prefilled balance,
+    // the partial typed into "Applied"). Never record it on one click.
+    const leftover = Math.round((amount - allocationTotal()) * 100) / 100;
+    if (leftover > 0 && !creditAcknowledged) {
+        creditAcknowledged = true;
+        showError(`This records $${amount.toFixed(2)} received and holds `
+                + `$${leftover.toFixed(2)} as credit on the client's account. `
+                + `If the client actually paid $${allocationTotal().toFixed(2)}, `
+                + `change "Amount received" instead. Press Confirm again to hold the credit.`);
         return;
     }
 
