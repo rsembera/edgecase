@@ -319,12 +319,20 @@ def _serve_statement_pdf(portion_id, *, as_attachment):
             shutil.rmtree(output_path.parent, ignore_errors=True)
             return response
 
-        return send_file(
+        # Inline views carry no Content-Disposition: Safari treats
+        # `inline; filename=` as a download hint and saves a copy to
+        # ~/Downloads while also rendering the tab. Real downloads
+        # (as_attachment=True) keep the filename.
+        response = send_file(
             output_path,
             mimetype='application/pdf',
             as_attachment=as_attachment,
-            download_name=filename
+            download_name=filename if as_attachment else None,
         )
+        if not as_attachment:
+            # send_file derives a filename from the on-disk path; drop it.
+            response.headers.pop('Content-Disposition', None)
+        return response
     except Exception as e:
         shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500
