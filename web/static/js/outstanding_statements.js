@@ -28,18 +28,6 @@ let endDatePicker = null;
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Opened from Bill Now (or any link to a specific statement): pin that
-    // statement's rows visible, highlight them, and scroll to them.
-    const wanted = new URLSearchParams(window.location.search).get('statement');
-    if (wanted) {
-        const rows = document.querySelectorAll(`.statement-row[data-statement="${CSS.escape(wanted)}"]`);
-        rows.forEach(r => r.classList.add('highlight'));
-        if (rows.length) {
-            filterTable();
-            rows[0].scrollIntoView({ block: 'center' });
-        }
-    }
-
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
@@ -142,13 +130,10 @@ function filterTable() {
         const client = row.dataset.client;
         const file = row.dataset.file;
         
-        // 'all' means all OPEN statements; paid ones (receipts) only show
-        // under their own filter, or when the page was opened to them.
-        const statusMatch = currentFilter === 'all' ? status !== 'paid' : status === currentFilter;
+        const statusMatch = currentFilter === 'all' || status === currentFilter;
         const searchMatch = !searchTerm || client.includes(searchTerm) || file.includes(searchTerm);
-        const pinned = row.classList.contains('highlight');
         
-        row.style.display = ((statusMatch && searchMatch) || pinned) ? '' : 'none';
+        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
     });
     
     updateClearButton();
@@ -510,20 +495,6 @@ function confirmSendEmail() {
  * Generate PDF only (no email) - opens in new window or Preview
  * @param {number} portionId - Statement portion ID
  */
-/**
- * Open the PDF of a paid statement — rendered now, it carries the
- * paid-in-full line and serves as the receipt. No state change.
- */
-function viewReceipt(portionId) {
-    const pdfUrl = `/statements/view-pdf/${portionId}`;
-    const isDesktop = window.pywebview && window.pywebview.api && window.pywebview.api.open_pdf;
-    if (isDesktop) {
-        window.pywebview.api.open_pdf(pdfUrl);
-    } else {
-        window.open(pdfUrl, '_blank');
-    }
-}
-
 function generateOnly(portionId) {
     const btn = resolveEventButton();
 
