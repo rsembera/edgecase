@@ -1,5 +1,50 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 — Bill Now: on-demand statements, and the paid statement as receipt
+
+Use case: a client who pays after every session. The monthly rhythm was a
+habit, not a rule — generation already takes a client and a date range —
+so this is a second entry point into the same generator, not a second
+billing model.
+
+- **`generate_statement_for_client()`** (`statements/generation.py`): the
+  per-client body of `/statements/generate` lifted into one helper that
+  the month-end loop and Bill Now both call. Behaviour-neutral refactor;
+  798 tests unchanged before the feature landed.
+- **`POST /statements/bill-now/<entry_id>`** generates a statement for the
+  entry's client covering everything fee-bearing, locked and unbilled up to
+  and including that entry's date — what the client owes as of it, nothing
+  older stranded. Period start is the earliest such entry so the month
+  label is honest. Net-negative periods refused exactly as at month end,
+  with rollback. **`GET .../preview/<entry_id>`** returns the scope and
+  total for the confirm dialog. Records nothing about payment.
+- **Bill Now button** on the Session, Absence and Item edit forms
+  (`components/bill_now.html`, `bill_now.js`): locked + unbilled + fee > 0
+  only. Confirm modal lists the entries in scope; on success hands off to
+  the Statements page with `?statement=<id>`, which pins and highlights
+  that statement's rows. From there the existing actions apply: View PDF
+  (marks sent) or Email, then Record Payment → ledger income, as always.
+- **Statement PDF as receipt** (`pdf/generator.py`): a portion in `paid`
+  renders the client report's exact sentence, *All fees for the services
+  listed above have been paid in full.*, in the attestation style after
+  the line items, and drops balance-forward and payment instructions.
+  `partial` and `written_off` do not qualify — same rule as the report.
+  Read at render time, so the copy frozen at send stays a statement and
+  a re-download after payment is the receipt. Applies to every paid
+  statement ever generated.
+- **Statements page** now includes paid portions (query + `Paid
+  (receipts)` filter; `All` renamed `All Open` and still excludes them).
+  Paid rows get one action, View Receipt. Without this the receipt was
+  unreachable — paid statements had no link anywhere in the UI.
+- `tests/test_bill_now.py` (9): single-entry bill; sweep of earlier
+  unbilled absence/item without later session; refusals for unlocked,
+  zero-fee, already-billed, missing; month-end run finds nothing after;
+  net-negative rollback; real-render PDF text has the paid-in-full line
+  only when paid (not partial/written off); Statements page lists the
+  paid row with the receipt action and none of the open-row actions;
+  button presence across all three forms and absence on billed, zero-fee
+  and new entries. 798 → 808.
+
 ### 2026-09-09 — Absence and Session forms: changing the format on an existing entry did nothing
 
 `updateFeesForFormat()` in both `absence.js` and `session.js` returned early

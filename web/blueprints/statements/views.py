@@ -37,9 +37,12 @@ def outstanding_statements():
         FROM statement_portions sp
         JOIN clients c ON sp.client_id = c.id
         JOIN entries e ON sp.statement_entry_id = e.id
-        WHERE sp.status IN ('ready', 'sent', 'partial')
-        ORDER BY sp.status ASC, e.created_at DESC
+        WHERE sp.status IN ('ready', 'sent', 'partial', 'paid')
+        ORDER BY (sp.status = 'paid') ASC, sp.status ASC, e.created_at DESC
     """)
+    # Paid portions ride along so a settled statement can still be opened —
+    # rendered after Record Payment it is the receipt (see
+    # StatementPDFGenerator). The page hides them behind the Paid filter.
     
     columns = [col[0] for col in cursor.description]
     rows = cursor.fetchall()

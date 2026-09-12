@@ -792,24 +792,39 @@ class StatementPDFGenerator:
         table, total = self._build_line_items_table(entries, settings['currency'], guardian_number, profile)
         story.append(table)
 
+        # A settled portion renders as the receipt. Same sentence, same
+        # style, same rule as the client report: only 'paid' — never
+        # partial, never written off — and read at render time, so the
+        # copy frozen at send stays a statement and a re-download after
+        # Record Payment is the receipt. Balance-forward and payment
+        # instructions are then noise and are dropped.
+        is_paid = portion['status'] == 'paid'
+        if is_paid:
+            story.append(Spacer(1, 0.15*inch))
+            story.append(Paragraph(
+                'All fees for the services listed above have been paid in full.',
+                self.styles['Attestation']))
+
         # Balance forward (display-only). Computed at render time — the copy
         # attached to the Communication entry freezes it as-of-send, while a
         # re-downloaded PDF shows the current truth. Zero prior balance and
         # no credit renders nothing, so statements look exactly as before.
-        prior_outstanding = self.db.get_prior_outstanding(
-            portion['client_id'], portion['statement_entry_id'],
-            portion['guardian_number'])
-        credit_applied = self.db.get_credit_applied(portion['id'])
-        if prior_outstanding > 0 or credit_applied > 0:
-            story.extend(self._build_balance_summary(
-                portion['amount_due'], prior_outstanding,
-                settings['currency'], credit_applied))
+        if not is_paid:
+            prior_outstanding = self.db.get_prior_outstanding(
+                portion['client_id'], portion['statement_entry_id'],
+                portion['guardian_number'])
+            credit_applied = self.db.get_credit_applied(portion['id'])
+            if prior_outstanding > 0 or credit_applied > 0:
+                story.extend(self._build_balance_summary(
+                    portion['amount_due'], prior_outstanding,
+                    settings['currency'], credit_applied))
 
         # Signature section
         story.extend(self._build_signature_section(settings, assets_path))
         
         # Payment instructions
-        story.extend(self._build_payment_instructions(settings))
+        if not is_paid:
+            story.extend(self._build_payment_instructions(settings))
         
         # Build the PDF
         doc.build(story)

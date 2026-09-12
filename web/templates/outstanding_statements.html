@@ -63,10 +63,11 @@
                     Filter:&nbsp;<span id="filter-label">All</span>:&nbsp;▾
                 </button>
                 <div id="filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.5rem; min-width: 180px; z-index: 100;">
-                    <a href="#" class="filter-option" data-value="all" onclick="setFilter('all', 'All'); return false;">All Statuses</a>
+                    <a href="#" class="filter-option" data-value="all" onclick="setFilter('all', 'All Open'); return false;">All Open</a>
                     <a href="#" class="filter-option" data-value="ready" onclick="setFilter('ready', 'Ready'); return false;">Ready to Send</a>
                     <a href="#" class="filter-option" data-value="sent" onclick="setFilter('sent', 'Sent'); return false;">Sent</a>
                     <a href="#" class="filter-option" data-value="partial" onclick="setFilter('partial', 'Partial'); return false;">Partial Payment</a>
+                    <a href="#" class="filter-option" data-value="paid" onclick="setFilter('paid', 'Paid'); return false;">Paid (receipts)</a>
                 </div>
             </div>
             
@@ -96,6 +97,7 @@
                 {% for stmt in statements %}
                 <tr class="statement-row" 
                     data-status="{{ stmt.status }}" 
+                    data-statement="{{ stmt.statement_entry_id }}"
                     data-client="{{ stmt.client_name|lower }}"
                     data-file="{{ stmt.file_number|lower }}">
                     <td>{{ stmt.date_display }}</td>
@@ -103,7 +105,7 @@
                         <strong>{{ stmt.client_name }}</strong><br>
                         <span class="text-muted" style="font-size: 0.8125rem;">{{ stmt.file_number }}</span>
                     </td>
-                    <td>${{ "%.2f"|format(stmt.amount_owing) }}</td>
+                    <td>${{ "%.2f"|format(stmt.amount_due if stmt.status == 'paid' else stmt.amount_owing) }}</td>
                     <td>
                         <span class="status-badge {{ stmt.status }}">{{ stmt.status }}</span>
                     </td>
@@ -129,6 +131,10 @@
                             </button>
                             <button class="btn-icon btn-icon-grey" onclick="showWriteOffModal({{ stmt.id }}, {{ stmt.amount_owing }})" title="Write Off">
                                 <i data-lucide="x-circle"></i>
+                            </button>
+                            {% elif stmt.status == 'paid' %}
+                            <button class="btn-icon" onclick="viewReceipt({{ stmt.id }})" title="View Receipt (paid in full)">
+                                <i data-lucide="receipt"></i>
                             </button>
                             {% endif %}
                         </div>

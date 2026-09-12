@@ -539,3 +539,8 @@ body.parchment .generate-section { border-color: #8b7355; }
         gap: 1rem;
     }
 }
+
+/* Row the page was opened to (Bill Now hands off here with ?statement=ID) */
+.statement-row.highlight td {
+    background: #FEF3C7;
+}

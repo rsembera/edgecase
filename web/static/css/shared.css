@@ -2397,3 +2397,12 @@ body.parchment .session-badge-upload {
     background: #e8e0d0;
     color: #2c2416;
 }
+
+/* Bill Now modal (components/bill_now.html) */
+.bill-now-modal-content { max-width: 480px; }
+.bill-now-table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 0.75rem; font-size: 0.9375rem; }
+.bill-now-table td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border-color, #E5E7EB); }
+.bill-now-table td:first-child { white-space: nowrap; color: var(--text-muted, #6B7280); }
+.bill-now-amount { text-align: right; white-space: nowrap; }
+.bill-now-total td { border-bottom: none; font-weight: 600; }
+.bill-now-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
