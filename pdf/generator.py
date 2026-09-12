@@ -47,7 +47,14 @@ def entry_payment_labels(entries, paid_total):
     Returns {entry_id: label}. Exactly one entry can be 'Partial'.
     """
     labels = {}
+    # A credit line (negative item) reduced the statement's amount due, so
+    # it is money already applied to the services: it joins the pool
+    # before the walk. Without this a fully paid statement that carried a
+    # credit would read as one session short.
     remaining = dec(paid_total)
+    for _entry_id, _date, fee in entries:
+        if to_cents(dec(fee)) < 0:
+            remaining -= dec(fee)
     for entry_id, _date, fee in sorted(entries, key=lambda e: (e[1] or 0, e[0])):
         fee_d = dec(fee)
         if to_cents(fee_d) <= 0:

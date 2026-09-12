@@ -33,6 +33,9 @@ says what it can:
   sent → Owing + balance line; today's shape (Aug paid; Sep 5, Sep 12 with
   $150 paid) → Paid / Paid / Owing and the $450 / $300 / $150 line; pure
   helper cases; older out-of-window entry absorbs the money. 798 → 802.
+- Credit lines: a negative item on the statement reduced what was due, so
+  it joins the pool before the walk — otherwise a fully paid statement
+  carrying a credit read as one session short. Test added.
 
 ### 2026-09-12 (evening) — Record Payment: two defects that produced a phantom $300 payment
 

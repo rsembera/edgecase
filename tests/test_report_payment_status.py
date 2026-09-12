@@ -203,6 +203,11 @@ def test_oldest_first_convention_is_pure_and_deterministic():
     assert entry_payment_labels(ents, 450.0) == {1: 'Paid', 2: 'Paid', 3: 'Paid', 4: '\u2014'}
     # nothing: all owing
     assert entry_payment_labels(ents, 0) == {1: 'Owing', 2: 'Owing', 3: 'Owing', 4: '\u2014'}
+    # a -$50 credit item on a 2 x $150 statement: amount due was $250, and
+    # $250 paid means BOTH sessions paid — the credit joins the pool
+    with_credit = [(1, 100, 150.0), (2, 200, 150.0), (9, 150, -50.0)]
+    assert entry_payment_labels(with_credit, 250.0) == {1: 'Paid', 2: 'Paid', 9: '\u2014'}
+    assert entry_payment_labels(with_credit, 100.0) == {1: 'Paid', 2: 'Owing', 9: '\u2014'}
 
 
 def test_older_entry_outside_report_range_absorbs_money_first(app_db):
