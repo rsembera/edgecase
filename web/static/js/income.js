@@ -244,3 +244,48 @@ function deleteEntry() {
         .then(r => r.ok ? window.location.href = '/ledger' : alert('Could not delete this entry. Please try again.'))
         .catch(() => alert('Could not delete this entry. Please try again.'));
 }
+
+// ============================================================
+// PAYMENT REVERSAL
+// ============================================================
+
+function confirmReversePayment() {
+    const errorDiv = document.getElementById('reverse-payment-error');
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    document.getElementById('reverse-confirm-btn').disabled = false;
+    document.getElementById('reverse-payment-modal').style.display = 'flex';
+}
+
+function closeReversePaymentModal() {
+    document.getElementById('reverse-payment-modal').style.display = 'none';
+}
+
+function reversePayment() {
+    const entryId = window.location.pathname.split('/')[3];
+    const confirmBtn = document.getElementById('reverse-confirm-btn');
+    confirmBtn.disabled = true;
+
+    fetch('/statements/reverse-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry_id: parseInt(entryId) })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/ledger';
+            } else {
+                const errorDiv = document.getElementById('reverse-payment-error');
+                errorDiv.textContent = data.error || 'Could not reverse this payment.';
+                errorDiv.style.display = 'block';
+                confirmBtn.disabled = false;
+            }
+        })
+        .catch(() => {
+            const errorDiv = document.getElementById('reverse-payment-error');
+            errorDiv.textContent = 'Could not reverse this payment. Please try again.';
+            errorDiv.style.display = 'block';
+            confirmBtn.disabled = false;
+        });
+}
