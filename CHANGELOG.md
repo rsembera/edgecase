@@ -1,5 +1,13 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 (late) — Help text sat 24px too low under every styled select
+
+`choices.min.css` gives each `.choices` wrapper `margin-bottom: 24px`; the
+app's overrides never cancelled it, so help text under a Choices-styled
+select (Communication's Recipient/Type, Absence's Missed Session Format,
+every other select) sat a full line lower than under a native one.
+`shared.css` now zeroes it — field spacing is the form-group's job.
+
 ### 2026-09-12 (night) — Client Report: partial payments were invisible
 
 A $150 payment against a two-session $300 statement showed both sessions
