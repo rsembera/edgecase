@@ -45,33 +45,6 @@ billing model.
   button presence across all three forms and absence on billed, zero-fee
   and new entries. 798 → 808.
 
-### 2026-09-12 (later) — Bill Now: "Paid now" shortcut
-
-The client pays by e-transfer at the end of the session, so the money is
-in hand when Bill Now is clicked. Marking the statement paid at generation
-was still the wrong answer (it asserts income before it's real); the right
-one is to compress the chain, not skip it.
-
-- **`write_payment()`** (`statements/payments.py`): the write block of
-  `/record-payment` — income entry, allocations, portion updates, credit
-  remainder — lifted into one helper that the route and Bill Now share.
-  Behaviour-neutral; the 168 money-path tests unchanged.
-- **`POST /statements/bill-now/<id>`** now takes `{"paid_now": true,
-  "note": "..."}`. In the same transaction as generation: the single
-  portion is marked sent (handed over, no email), then paid in full
-  through `write_payment` with today's ledger date and the note as the
-  payment's content. Guardian-split statements refuse the shortcut and
-  roll back — two payers, two payments, recorded individually. A
-  statement fully covered by credit at generation is already paid;
-  nothing further is written.
-- Modal: "Paid now" checkbox reveals a note field (e.g. "e-transfer") and
-  changes the button to *Generate & Record Payment*. On success the
-  Statements page opens on the Paid filter with the statement pinned;
-  View Receipt is one click.
-- 3 tests: full settle with income/allocation/date_sent and an immediate
-  receipt PDF; unchecked writes no money; guardian split refused with
-  rollback, then generates normally without the flag. 808 → 811.
-
 ### 2026-09-09 — Absence and Session forms: changing the format on an existing entry did nothing
 
 `updateFeesForFormat()` in both `absence.js` and `session.js` returned early

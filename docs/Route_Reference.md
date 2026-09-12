@@ -1009,7 +1009,7 @@ def bill_now_preview(entry_id)
 @statements_bp.route('/bill-now/<int:entry_id>', methods=['POST'])
 def bill_now(entry_id)
 ```
-**Purpose:** On-demand statement from a Session/Absence/Item edit form. Scope is the entry's client, everything fee-bearing + locked + unbilled dated up to and including the entry. Preview returns the scope for the confirm dialog; POST generates via `generate_statement_for_client()` (the same helper the month-end loop uses) and returns `statement_id`. Refuses billed, unlocked, zero-fee entries (400) and net-negative periods (400, rolled back). Records nothing about payment unless the JSON body carries `{"paid_now": true, "note": "..."}`, in which case the same transaction marks the single portion sent and settles it in full via `write_payment()` (refused for guardian splits).
+**Purpose:** On-demand statement from a Session/Absence/Item edit form. Scope is the entry's client, everything fee-bearing + locked + unbilled dated up to and including the entry. Preview returns the scope for the confirm dialog; POST generates via `generate_statement_for_client()` (the same helper the month-end loop uses) and returns `statement_id`. Refuses billed, unlocked, zero-fee entries (400) and net-negative periods (400, rolled back). Records nothing about payment.
 
 ---
 
