@@ -30,7 +30,9 @@ let endDatePicker = null;
 document.addEventListener('DOMContentLoaded', function() {
     // Opened from Bill Now (or any link to a specific statement): pin that
     // statement's rows visible, highlight them, and scroll to them.
-    const wanted = new URLSearchParams(window.location.search).get('statement');
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get('statement');
+    if (params.get('filter') === 'paid') setFilter('paid', 'Paid');
     if (wanted) {
         const rows = document.querySelectorAll(`.statement-row[data-statement="${CSS.escape(wanted)}"]`);
         rows.forEach(r => r.classList.add('highlight'));

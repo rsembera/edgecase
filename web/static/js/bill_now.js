@@ -38,6 +38,20 @@ function openBillNow() {
         .catch(() => { scope.innerHTML = '<p class="text-muted">Could not load preview.</p>'; });
 }
 
+const PAID_HELP = 'Generates the statement, records the full payment today with the note above (income goes to the ledger), and opens the receipt. Use this only when the money has actually arrived.';
+const UNPAID_HELP = 'The statement opens on the Statements page: view or email it there, then Record Payment. Once paid, its PDF is the receipt.';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const box = document.getElementById('bill-now-paid-now');
+    if (!box) return;
+    box.addEventListener('change', function() {
+        document.getElementById('bill-now-note-row').style.display = box.checked ? '' : 'none';
+        document.getElementById('bill-now-help').textContent = box.checked ? PAID_HELP : UNPAID_HELP;
+        document.getElementById('bill-now-confirm').textContent = box.checked ? 'Generate & Record Payment' : 'Generate Statement';
+        if (box.checked) document.getElementById('bill-now-note').focus();
+    });
+});
+
 function closeBillNow() {
     document.getElementById('bill-now-modal').style.display = 'none';
 }
@@ -45,16 +59,22 @@ function closeBillNow() {
 function confirmBillNow() {
     const btn = document.getElementById('bill-now-btn');
     const confirm = document.getElementById('bill-now-confirm');
+    const paidNow = document.getElementById('bill-now-paid-now').checked;
+    const note = paidNow ? document.getElementById('bill-now-note').value.trim() : '';
     withButtonDisabled(confirm, () => fetch(`/statements/bill-now/${btn.dataset.entryId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paid_now: paidNow, note: note })
     })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
                 // The unsaved-changes guard only fires on a dirty form;
                 // a locked entry with nothing typed navigates cleanly.
-                window.location.href = `/statements/?statement=${data.statement_id}`;
+                // A paid statement lives under the Paid filter; ?statement=
+                // pins it visible either way.
+                const filter = data.payment && data.payment.status === 'paid' ? '&filter=paid' : '';
+                window.location.href = `/statements/?statement=${data.statement_id}${filter}`;
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
             }

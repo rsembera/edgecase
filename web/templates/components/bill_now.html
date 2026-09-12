@@ -14,7 +14,14 @@
         <h3>Bill Now</h3>
         <p id="bill-now-intro">Generate a statement for everything this client owes as of this entry.</p>
         <div id="bill-now-scope"></div>
-        <p class="help-text">The statement opens on the Statements page: view or email it there, then Record Payment. Once paid, its PDF is the receipt.</p>
+        <label class="bill-now-paid">
+            <input type="checkbox" id="bill-now-paid-now">
+            <span>Paid now — the money is already in hand</span>
+        </label>
+        <div id="bill-now-note-row" class="bill-now-note-row" style="display: none;">
+            <input type="text" id="bill-now-note" placeholder="Payment note, e.g. e-transfer" maxlength="120">
+        </div>
+        <p class="help-text" id="bill-now-help">The statement opens on the Statements page: view or email it there, then Record Payment. Once paid, its PDF is the receipt.</p>
         <div class="bill-now-modal-actions">
             <button type="button" class="btn btn-secondary" onclick="closeBillNow()">Cancel</button>
             <button type="button" class="btn" id="bill-now-confirm" onclick="confirmBillNow()">Generate Statement</button>

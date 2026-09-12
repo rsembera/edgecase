@@ -239,3 +239,87 @@ def test_bill_now_button_shown_only_on_billable_locked_entries(client, app_db):
         f"/client/{cid}/session/{free}").data.decode()
     # New entry form: nothing to bill yet.
     assert 'id="bill-now-btn"' not in client.get(f"/client/{cid}/session").data.decode()
+
+
+# --- "Paid now": the pay-at-desk shortcut ---------------------------------
+
+def _count_class(db, cls):
+    cur = db.connect().cursor()
+    cur.execute("SELECT COUNT(*) FROM entries WHERE class = ?", (cls,))
+    return cur.fetchone()[0]
+
+
+def test_bill_now_paid_now_settles_and_records_income(client, app_db, tmp_path):
+    """One transaction: statement generated, marked sent (handed over),
+    full payment recorded through the same write path as Record Payment —
+    income entry with the note, allocation row, portion paid — and the
+    PDF is immediately the receipt."""
+    cid = _make_client(app_db)
+    sid = _add_entry(app_db, cid, "session", (2026, 9, 12))
+
+    resp = client.post(f"/statements/bill-now/{sid}",
+                       json={"paid_now": True, "note": "e-transfer"})
+    assert resp.status_code == 200, resp.get_json()
+    data = resp.get_json()
+    assert data["success"] and data["payment"]["status"] == "paid"
+
+    portion = _portions(app_db, cid)[0]
+    assert portion["status"] == "paid"
+    assert portion["amount_paid"] == portion["amount_due"] == 113.0
+
+    assert _count_class(app_db, "income") == 1
+    income = app_db.get_entry(data["payment"]["income_entry_id"])
+    assert income["class"] == "income"
+    assert income["total_amount"] == 113.0
+    assert income["tax_amount"] == 13.0
+    assert income["content"] == "e-transfer"
+    assert income["statement_id"] == data["statement_id"]
+
+    cur = app_db.connect().cursor()
+    cur.execute("SELECT amount FROM payment_allocations WHERE portion_id = ?",
+                (portion["id"],))
+    assert [r[0] for r in cur.fetchall()] == [113.0]
+    cur.execute("SELECT date_sent FROM statement_portions WHERE id = ?",
+                (portion["id"],))
+    assert cur.fetchone()[0] is not None
+
+    out = tmp_path / "receipt.pdf"
+    assert generate_statement_pdf(app_db, portion["id"], str(out), str(tmp_path))
+    assert PAID_LINE in _pdf_text(out)
+
+
+def test_bill_now_without_paid_now_records_no_money(client, app_db):
+    cid = _make_client(app_db)
+    sid = _add_entry(app_db, cid, "session", (2026, 9, 12))
+    data = client.post(f"/statements/bill-now/{sid}",
+                       json={"paid_now": False, "note": "ignored"}).get_json()
+    assert data["success"] and data["payment"] is None
+    assert _portions(app_db, cid)[0]["status"] == "ready"
+    assert _count_class(app_db, "income") == 0
+
+
+def test_bill_now_paid_now_refused_for_guardian_split_and_rolls_back(client, app_db):
+    """Two payers means two payments; the shortcut cannot know who paid.
+    Refused, and nothing is generated — the entries stay unbilled."""
+    cid = _make_client(app_db)
+    now = int(time.time())
+    pid = app_db.add_entry({"client_id": cid, "class": "profile",
+                            "description": "Profile", "content": "",
+                            "created_at": now, "modified_at": now})
+    app_db.update_entry(pid, {
+        "is_minor": 1, "guardian1_name": "G One", "has_guardian2": 1,
+        "guardian2_name": "G Two", "guardian1_pays_percent": 50,
+        "guardian2_pays_percent": 50})
+    sid = _add_entry(app_db, cid, "session", (2026, 9, 12))
+
+    resp = client.post(f"/statements/bill-now/{sid}", json={"paid_now": True})
+    assert resp.status_code == 400
+    assert "two guardians" in resp.get_json()["error"]
+    assert _portions(app_db, cid) == []
+    assert app_db.get_entry(sid)["statement_id"] is None
+    assert _count_class(app_db, "income") == 0
+
+    # Without the shortcut the split statement generates normally.
+    data = client.post(f"/statements/bill-now/{sid}").get_json()
+    assert data["success"]
+    assert len(_portions(app_db, cid)) == 2
