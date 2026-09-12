@@ -352,6 +352,143 @@ def record_payment():
     })
 
 
+@statements_bp.route('/reverse-payment', methods=['POST'])
+def reverse_payment():
+    """Reverse a recorded payment, reopening the affected statement portions.
+
+    Unwinds everything record_payment did: deletes allocation rows,
+    recalculates each affected portion's amount_paid and status, deletes
+    attachments, and deletes the income entry itself. One transaction.
+
+    Refuses if credit from this payment has already been consumed by a
+    later statement (is_credit=1 rows for this entry_id), because
+    unwinding the credit would leave that statement's portion with an
+    amount_paid that exceeds what was actually received.
+    """
+    import shutil
+    from core.config import ATTACHMENTS_DIR
+
+    db = get_db()
+    data = request.get_json() or {}
+    entry_id = data.get('entry_id')
+
+    if not entry_id:
+        return jsonify({'success': False, 'error': 'entry_id required'}), 400
+
+    conn = db.connect()
+    cursor = conn.cursor()
+
+    # ---- validate the entry ------------------------------------------------
+    cursor.execute("""
+        SELECT id, class, ledger_type, total_amount, description
+        FROM entries WHERE id = ?
+    """, (entry_id,))
+    entry = cursor.fetchone()
+
+    if not entry:
+        return jsonify({'success': False, 'error': 'Entry not found'}), 404
+
+    columns = [col[0] for col in cursor.description]
+    entry = dict(zip(columns, entry))
+
+    if entry['class'] != 'income' or entry['ledger_type'] != 'income':
+        return jsonify({'success': False,
+                        'error': 'Only income entries can be reversed'}), 400
+
+    # ---- get allocations ---------------------------------------------------
+    cursor.execute("""
+        SELECT id, portion_id, amount, is_credit
+        FROM payment_allocations WHERE entry_id = ?
+    """, (entry_id,))
+    alloc_rows = cursor.fetchall()
+    alloc_cols = [col[0] for col in cursor.description]
+    allocations = [dict(zip(alloc_cols, row)) for row in alloc_rows]
+
+    if not allocations:
+        # No allocations — this is a manual income entry or an unresolved
+        # legacy entry. Let the existing delete path handle it.
+        return jsonify({'success': False,
+                        'error': 'This entry has no payment allocations. '
+                                 'Use Delete Entry instead.'}), 400
+
+    # ---- check for consumed credit -----------------------------------------
+    consumed = [a for a in allocations if a['is_credit']]
+    if consumed:
+        return jsonify({
+            'success': False,
+            'error': 'Cannot reverse: credit from this payment has already '
+                     'been applied to a later statement. Reverse or void '
+                     'that statement first.'
+        }), 409
+
+    # ---- unwind portions ---------------------------------------------------
+    portion_allocs = [a for a in allocations if a['portion_id'] is not None]
+
+    try:
+        reversed_portions = []
+        for alloc in portion_allocs:
+            cursor.execute("""
+                SELECT id, amount_due, amount_paid, date_sent
+                FROM statement_portions WHERE id = ?
+            """, (alloc['portion_id'],))
+            portion_row = cursor.fetchone()
+            if not portion_row:
+                continue
+
+            p_cols = [col[0] for col in cursor.description]
+            portion = dict(zip(p_cols, portion_row))
+
+            new_paid = quantize_cents(
+                dec(portion['amount_paid']) - dec(alloc['amount']))
+            # Floor at zero: a rounding edge or a legacy backfill mismatch
+            # should not produce a negative amount_paid.
+            if to_cents(new_paid) < 0:
+                new_paid = dec(0)
+
+            if to_cents(new_paid) == 0:
+                new_status = 'sent' if portion['date_sent'] else 'ready'
+            else:
+                new_status = 'partial'
+
+            cursor.execute("""
+                UPDATE statement_portions
+                SET amount_paid = ?, status = ?
+                WHERE id = ?
+            """, (money_float(new_paid), new_status, portion['id']))
+
+            reversed_portions.append({
+                'portion_id': portion['id'],
+                'new_status': new_status,
+            })
+
+        # ---- delete allocations --------------------------------------------
+        cursor.execute(
+            "DELETE FROM payment_allocations WHERE entry_id = ?",
+            (entry_id,))
+
+        # ---- delete attachments --------------------------------------------
+        cursor.execute(
+            "DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
+
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
+        if upload_dir.exists():
+            shutil.rmtree(upload_dir)
+
+        # ---- delete the income entry ---------------------------------------
+        cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False,
+                        'error': f'Database error: {str(e)}'}), 500
+
+    return jsonify({
+        'success': True,
+        'reversed_portions': reversed_portions,
+    })
+
+
 @statements_bp.route('/write-off', methods=['POST'])
 def write_off_statement():
     """Write off a statement portion."""
