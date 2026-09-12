@@ -39,7 +39,7 @@ def payment_status_label(portion_statuses):
     the state of the statement that billed it. A guardian-split statement
     has two portions, and the entry is only 'Paid' when every payer's
     share is settled. Money still owed anywhere wins over a write-off
-    ('Owing'), and a write-off wins over 'Paid' — waived/uncollectible is
+    ('Partial' if some has arrived, else 'Owing'), and a write-off wins over 'Paid' — waived/uncollectible is
     nothing-owing, but it is not paid and must never support the report's
     paid-in-full line. No portions at all means the statement reference is
     dangling; 'Unbilled' is the honest fallback (billing-error write-offs
@@ -47,7 +47,11 @@ def payment_status_label(portion_statuses):
     """
     if not portion_statuses:
         return 'Unbilled'
-    if any(s in ('ready', 'sent', 'partial') for s in portion_statuses):
+    if any(s == 'partial' for s in portion_statuses):
+        # Money has arrived but not all of it. The statement, not the
+        # entry, is what was paid against, so every entry on it says so.
+        return 'Partial'
+    if any(s in ('ready', 'sent') for s in portion_statuses):
         return 'Owing'
     if any(s == 'written_off' for s in portion_statuses):
         return 'Written off'
@@ -943,6 +947,19 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
             status_by_statement = {
                 statement_id: payment_status_label(statuses)
                 for statement_id, statuses in grouped.items()}
+            # Statement-level money for the balance line: a payment is
+            # made against a statement, not an entry, so this is the only
+            # level at which "paid" and "owing" are facts.
+            cursor.execute(f"""
+                SELECT COALESCE(SUM(amount_due), 0), COALESCE(SUM(amount_paid), 0)
+                FROM statement_portions
+                WHERE client_id = ?
+                AND statement_entry_id IN ({placeholders})
+                AND status != 'written_off'
+            """, [client_id, *statement_ids])
+            billed_total, paid_total = cursor.fetchone()
+        else:
+            billed_total, paid_total = 0, 0
 
     # Get settings
     settings = {
@@ -1188,6 +1205,21 @@ def generate_client_report_pdf(db, client_id, start_date=None, end_date=None,
         story.append(Paragraph(
             'All fees for the services listed above have been paid in full.',
             paid_style))
+    elif include_payment_status and fee_bearing_count and to_cents(billed_total) > 0:
+        # Not settled: say exactly where things stand, at the level where
+        # the numbers are true. A per-line 'Partial' cannot say which
+        # session the money covered, because the payment never said.
+        balance_style = ParagraphStyle(
+            'BalanceLine', parent=generator.styles['Attestation'],
+            spaceBefore=0)
+        billed_d = dec(billed_total)
+        paid_d = dec(paid_total)
+        story.append(Paragraph(
+            'Statements covering these services: billed '
+            f'{generator._format_currency(billed_d, currency)}, paid '
+            f'{generator._format_currency(paid_d, currency)}, balance owing '
+            f'{generator._format_currency(billed_d - paid_d, currency)}.',
+            balance_style))
     
     story.append(Spacer(1, 0.3*inch))
     

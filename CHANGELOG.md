@@ -1,5 +1,26 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 (night) — Client Report: partial payments were invisible
+
+A $150 payment against a two-session $300 statement showed both sessions
+as "Owing" and nothing else — true at the statement level, and read as
+"she owes $300." Payments are made against statements, not entries, so no
+per-line label can say which session the money covered; the report now
+says what it can:
+
+- `payment_status_label`: a statement with money received but not all of
+  it collapses to **Partial** (was Owing). Owing is now strictly
+  nothing-received. Written-off and paid rules unchanged.
+- When the period is not paid in full, a line under the table gives the
+  statement-level figures, summed over the statements the listed services
+  sit on, written-off portions excluded: *Statements covering these
+  services: billed $450.00, paid $300.00, balance owing $150.00.* The
+  paid-in-full sentence prints exactly as before when everything is
+  settled; the two never appear together.
+- Tests: label collapse updated; partial → Partial + balance line; sent →
+  Owing + balance line; today's exact shape (August paid, September half
+  paid) → Paid / Partial / Partial and a $450 / $300 / $150 line. 798 → 800.
+
 ### 2026-09-12 (evening) — Record Payment: two defects that produced a phantom $300 payment
 
 Found by reproducing this afternoon's ledger state on the pre-Bill-Now code.

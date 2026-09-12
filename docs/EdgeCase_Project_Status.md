@@ -13,6 +13,9 @@ Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 
+- **2026-09-12 (night) — Client Report shows Partial and a billed/paid/
+  balance line when the period isn't settled.** A half-paid statement used
+  to read as fully owing.
 - **2026-09-12 (evening) — Record Payment modal: drag-select no longer
   closes it; a payment that would hold money as credit needs a second
   Confirm.** The pre-existing defects behind the day's phantom $300.
