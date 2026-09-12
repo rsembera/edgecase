@@ -1,5 +1,14 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 (later) — The Content-Disposition change reverted
+
+Rick tested the OLD code once more before restarting: tab opened, no
+download. So `inline; filename=` was not what produced the tab-plus-copy
+behaviour seen earlier, and dropping it only cost the readable Save-As
+name (Safari fell back to `session-report.pdf`). Reverted in full. If the
+double behaviour recurs, the header is ruled out; the next suspects are
+Safari's own download settings and whatever click preceded it.
+
 ### 2026-09-12 (late) — Help text sat 24px too low under every styled select
 
 `choices.min.css` gives each `.choices` wrapper `margin-bottom: 24px`; the
