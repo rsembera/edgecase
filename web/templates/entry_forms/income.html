@@ -47,6 +47,7 @@
                            step="0.01"
                            min="0"
                            placeholder="0.00"
+                           {% if has_allocations %}readonly{% endif %}
                            required>
                 </div>
                 <div class="helper-text">Total amount received</div>
@@ -62,7 +63,8 @@
                            value="{{ '%.2f'|format(entry.tax_amount) if entry and entry.tax_amount else '' }}"
                            step="0.01"
                            min="0"
-                           placeholder="0.00">
+                           placeholder="0.00"
+                           {% if has_allocations %}readonly{% endif %}>
                 </div>
                 <div class="helper-text">Tax portion (0 if tax-exempt)</div>
             </div>
@@ -172,7 +174,7 @@
         <a href="{{ url_for('ledger.ledger') }}" class="btn btn-secondary">Cancel</a>
         <div class="action-group">
             {% if is_edit %}
-            {% if entry and entry.statement_id %}
+            {% if has_allocations %}
             <button type="button" onclick="confirmReversePayment()" class="btn btn-danger">Reverse Payment</button>
             {% else %}
             <button type="button" onclick="confirmDeleteEntry()" class="btn btn-danger">Delete Entry</button>
