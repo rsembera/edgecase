@@ -10,6 +10,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/session.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/bill_now.js', v=static_v) }}"></script>
 <script>
 // Auto-size session notes textarea on load (Safari-compatible)
 document.addEventListener('DOMContentLoaded', function() {
@@ -266,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="entry-form-actions">
             <!-- Cancel/Back (Hard Left) — "Back" when reviewing a locked entry, "Cancel" when there's work to abandon -->
             <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn btn-secondary">{% if is_edit and is_locked %}Back{% else %}Cancel{% endif %}</a>
+            {% if is_edit %}{% set bill_now_entry = session %}{% include 'components/bill_now.html' %}{% endif %}
             
             <!-- Previous/Next (Center) - only in edit mode -->
             {% if is_edit %}

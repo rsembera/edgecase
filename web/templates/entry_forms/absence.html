@@ -10,6 +10,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pickers.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/absence.js', v=static_v) }}"></script>
+<script src="{{ url_for('static', filename='js/bill_now.js', v=static_v) }}"></script>
 <script src="{{ url_for('static', filename='js/form-guard.js', v=static_v) }}"></script>
 {% endblock %}
 
@@ -149,6 +150,7 @@
         <div class="entry-form-actions">
             <a href="{{ url_for('clients.client_file', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
             {% if is_edit %}
+            {% set bill_now_entry = entry %}{% include 'components/bill_now.html' %}
             <button type="submit" class="btn" data-dirty-save data-dirty-label="Save Absence" disabled>No Changes</button>
             {% else %}
             <button type="submit" class="btn">Save Absence</button>
