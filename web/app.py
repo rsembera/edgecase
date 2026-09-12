@@ -246,6 +246,13 @@ def add_security_headers(response):
         "connect-src 'self'; "
         "frame-ancestors 'none'"
     )
+    # Never let the browser keep a copy of anything but versioned static
+    # assets: pages and PDFs carry client data, and a cached response also
+    # replays stale headers (Safari re-served an old PDF response, headers
+    # and all, after the server had changed — 2026-09-12).
+    if not request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
     return response
 
 # Database will be set after login

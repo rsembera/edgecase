@@ -1,5 +1,24 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 (latest) — `Cache-Control: no-store` on every non-static response
+
+The app had never set a caching policy. Two consequences, one seen
+tonight and one lurking since launch:
+
+- Safari kept the earlier header-less PDF response for the report URL and
+  replayed it — headers and all — after the server had been reverted and
+  restarted. That is what "the revert didn't take" actually was.
+- More seriously, a browser's disk cache could retain client pages and
+  PDFs after logout. For a PHI application that should never have been
+  possible.
+
+`add_security_headers` now sends `Cache-Control: no-store, max-age=0` and
+`Pragma: no-cache` on everything except `/static/`, whose URLs are
+already versioned with `?v=`. Two tests. 802 → 804.
+
+One-time step after upgrading: empty the browser's cache once (Safari:
+Develop → Empty Caches) so stale entries from before this header are gone.
+
 ### 2026-09-12 (later) — The Content-Disposition change reverted
 
 Rick tested the OLD code once more before restarting: tab opened, no

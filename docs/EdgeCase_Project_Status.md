@@ -13,6 +13,9 @@ Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 
+- **2026-09-12 (latest) — `Cache-Control: no-store` on all non-static
+  responses.** Browsers could cache client pages and PDFs; Safari replayed a
+  stale PDF response. Empty the browser cache once after upgrading.
 - **2026-09-12 (night) — Client Report shows Partial and a billed/paid/
   balance line when the period isn't settled.** A half-paid statement used
   to read as fully owing.
