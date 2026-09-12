@@ -35,6 +35,9 @@ app's overrides never cancelled it, so help text under a Choices-styled
 select (Communication's Recipient/Type, Absence's Missed Session Format,
 every other select) sat a full line lower than under a native one.
 `shared.css` now zeroes it — field spacing is the form-group's job.
+(Second attempt the next day: the first override was a bare `.choices`
+rule, which `choices.min.css` — linked after `shared.css` — beat on
+cascade order. Now `div.choices[data-type]`, which wins on specificity.)
 
 ### 2026-09-12 (night) — Client Report: partial payments were invisible
 
