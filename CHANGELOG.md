@@ -1,5 +1,31 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-12 (evening) — Record Payment: two defects that produced a phantom $300 payment
+
+Found by reproducing this afternoon's ledger state on the pre-Bill-Now code.
+Both predate today.
+
+- **Drag-select closed the modal.** Outside-click close listened for
+  `click` on the overlay, and the browser dispatches `click` on the nearest
+  common ancestor of mousedown and mouseup — so selecting the prefilled
+  amount and releasing a pixel outside the panel counted as an outside
+  click. Now closes only when press AND release are both on the overlay
+  (`closeOnOutsideClick()`, applied to the payment and write-off modals).
+  The amount field is also focused and selected on open, so a partial
+  payment is typed over the prefill without a drag at all.
+- **Amount/allocation mismatch recorded on one click.** "Amount received"
+  left at the prefilled $300 with $150 typed into "Applied" is a legal
+  input — the difference is held as credit, for genuine overpayments — and
+  the only guard was the grey summary line. That is exactly how the $300
+  income / $150 applied / $150 credit state arose. Confirm now refuses the
+  first click when money would be held as credit, says what it would do
+  and which field to change, and records only on a second Confirm. The
+  acknowledgement resets on any edit to the amount or the split.
+- Verified in jsdom against the rendered Statements page, old JS vs new:
+  drag-select closes / stays open; first Confirm records / refuses; second
+  Confirm records with the credit acknowledged. Real outside click still
+  closes both ways.
+
 ### 2026-09-12 — Bill Now withdrawn the same day; production restored to 11:43
 
 Built and put into production use in one afternoon: an on-demand statement
