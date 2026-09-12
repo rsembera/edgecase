@@ -86,18 +86,14 @@ def test_payment_record_leaves_nothing_in_the_shared_temp_dir(
     temp_watch()
 
 
-def test_inline_report_sends_no_content_disposition(client, app_db):
-    """Viewed inline, the response carries NO Content-Disposition: Safari
-    treats `inline; filename=` as a download hint and saves a copy to
-    ~/Downloads while also rendering the tab. (The readable title lives
-    in the private on-disk filename, which the user never sees.)"""
+def test_download_name_still_carries_the_readable_title(client, app_db):
+    """The private dir is an on-disk detail; the user-facing name is unchanged."""
     cid = _make_client(app_db)
 
     resp = client.get('/ledger/report/pdf',
                       query_string={'start': '2026-01-01',
                                     'end': '2026-12-31',
                                     'client': cid})
-    assert resp.status_code == 200
-    assert resp.mimetype == 'application/pdf'
-    assert 'Content-Disposition' not in resp.headers
+    disposition = resp.headers.get('Content-Disposition', '')
+    assert 'Payment_Record_20250901-JH_2026-01-01_to_2026-12-31.pdf' in disposition
     resp.close()

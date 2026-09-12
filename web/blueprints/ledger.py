@@ -708,17 +708,12 @@ def generate_report_pdf():
             shutil.rmtree(output_path.parent, ignore_errors=True)
             return response
         
-        # Inline view: no Content-Disposition. Safari treats
-        # `inline; filename=` as a download hint and saves a copy to
-        # ~/Downloads while also rendering the tab.
-        response = send_file(
+        return send_file(
             output_path,
             mimetype='application/pdf',
             as_attachment=False,
+            download_name=filename
         )
-        # send_file derives a filename from the on-disk path; drop it.
-        response.headers.pop('Content-Disposition', None)
-        return response
     except Exception as e:
         shutil.rmtree(output_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': str(e)}), 500

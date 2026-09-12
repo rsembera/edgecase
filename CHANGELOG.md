@@ -1,18 +1,5 @@
 # EdgeCase Equalizer - Changelog
 
-### 2026-09-12 (late) — Inline PDFs no longer also land in Safari's Downloads
-
-Every "view" PDF route — client report, statement view, ledger payment
-report, client export — sent `Content-Disposition: inline; filename=…`.
-Safari treats a filename on an inline PDF as a download hint: it renders
-the tab AND saves a copy to ~/Downloads. Chrome and Firefox honour
-`inline`. Inline responses now carry no Content-Disposition at all (for
-path-served files Flask derives one from the on-disk name, so it is
-popped explicitly). Real downloads (`as_attachment=True`) keep their
-filename. Cost: Save-from-viewer suggests the URL's last segment instead
-of the readable title. Test updated; a header check across the four
-routes was run by hand.
-
 ### 2026-09-12 (late) — Help text sat 24px too low under every styled select
 
 `choices.min.css` gives each `.choices` wrapper `margin-bottom: 24px`; the

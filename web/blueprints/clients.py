@@ -908,14 +908,11 @@ def session_report(client_id):
                 filename += f"_{start_dt.strftime('%Y%m')}_to_{end_dt.strftime('%Y%m')}"
             filename += ".pdf"
             
-            # Viewed inline: no Content-Disposition at all. Safari treats
-            # `inline; filename=` as a download hint and saves a copy to
-            # ~/Downloads while also rendering the tab. The filename is
-            # only offered when the response is a real download.
             return send_file(
                 pdf_buffer,
                 mimetype='application/pdf',
                 as_attachment=False,
+                download_name=filename
             )
         except Exception as e:
             print(f"Error generating report: {e}")
@@ -1088,11 +1085,11 @@ def export_client_pdf(client_id):
         else:
             filename = f"{file_number}_export_{start_year}-{start_month:02d}_to_{end_year}-{end_month:02d}.pdf"
         
-        # Inline view: no Content-Disposition (see session_report).
         return send_file(
             pdf_buffer,
             mimetype='application/pdf',
             as_attachment=False,
+            download_name=filename
         )
     except Exception as e:
         import traceback
