@@ -168,7 +168,7 @@
                 <button onclick="stayLoggedIn()" class="btn" style="flex: 1;">
                     Stay Logged In
                 </button>
-                <button onclick="window.location.href='/logout'" class="btn btn-secondary" style="flex: 1;">
+                <button onclick="logOutNow()" class="btn btn-secondary" style="flex: 1;">
                     Log Out
                 </button>
             </div>
@@ -343,12 +343,23 @@
                 secondsRemaining = Math.max(0, secondsRemaining - 1);
                 updateCountdown();
                 if (secondsRemaining <= 0) {
-                    clearInterval(countdownInterval);
-                    window.location.href = '/logout';
+                    logOutNow();
                 }
             }, 1000);
             // Expose to global scope so timeout protection script can clear it
             window.warningCountdownInterval = countdownInterval;
+        }
+
+        // Single exit for the warning modal. The /logout request runs a
+        // backup and can take seconds; if the countdown kept ticking after
+        // the Log Out button was pressed it would fire a second /logout
+        // when it hit zero. Stop the clock first, navigate once.
+        let logoutRequested = false;
+        function logOutNow() {
+            if (logoutRequested) return;
+            logoutRequested = true;
+            if (countdownInterval) clearInterval(countdownInterval);
+            window.location.href = '/logout';
         }
         
         function hideWarning() {

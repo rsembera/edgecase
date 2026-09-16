@@ -7,12 +7,17 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from pathlib import Path
 from functools import wraps
 import secrets
+import threading
 import time
 import json
 import os
 import tempfile
 
 auth_bp = Blueprint('auth', __name__)
+
+# Serialises the moment /logout takes ownership of the open database (see
+# logout below). Only the claim is locked, not the backup itself.
+_logout_claim_lock = threading.Lock()
 
 # Minimum master-password length, enforced at every point a password can be
 # SET: first-run database creation, change password, and the recovery-key
@@ -1171,13 +1176,23 @@ def verify_recovery_key():
 
 @auth_bp.route('/logout')
 def logout():
-    """Logout - run backup check and close database connection."""
-    db = current_app.config.get('db')
+    """Logout - run backup check and close database connection.
+
+    The db is claimed (taken out of app config) BEFORE the backup runs,
+    not after. The backup plus post-backup command can take seconds, and
+    a duplicate /logout in that window — a double-click, or the
+    timeout-warning countdown reaching zero after its Log Out button was
+    already pressed — used to find the db still in config and run a
+    second, concurrent backup check. Now the duplicate finds nothing and
+    just redirects.
+    """
+    with _logout_claim_lock:
+        db = current_app.config.get('db')
+        current_app.config['db'] = None
     if db:
         from web.cli import _run_shutdown_backup
         _run_shutdown_backup(db, label="Logout")
         db.close()
-    current_app.config['db'] = None
     session.clear()
     return redirect(url_for('auth.login'))
 

@@ -522,7 +522,10 @@ window.addEventListener('resize', manageViewToggleForDevice);
 /**
  * Show logout modal and navigate to logout after minimum display time
  */
+let logoutModalShown = false;
 function showLogoutModal() {
+    if (logoutModalShown) return;   // double-click must not queue two /logout navigations
+    logoutModalShown = true;
     const modal = document.getElementById('logout-modal');
     modal.classList.add('visible');
     
