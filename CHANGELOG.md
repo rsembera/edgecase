@@ -1,5 +1,25 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-16 — Duplicate logout no longer runs a second backup check
+
+Terminal showed two `[Logout] Checking backup status...` lines
+interleaved with one rsync run. `/logout` read `config['db']`, ran the
+backup and post-backup command (seconds), and only then cleared
+`config['db']` — so a second `/logout` in that window found the db
+still present and ran a concurrent second check. Two client-side
+sources of that second request: the session-timeout warning modal's
+countdown kept ticking after its Log Out button was pressed and fired
+`/logout` again on reaching zero; and a double-click on the dropdown
+Logout queued two navigations.
+
+Fix: the route now claims the db under a lock *before* the backup, so a
+duplicate finds nothing and just redirects. Client side, the warning
+modal has a single `logOutNow()` exit that stops the countdown, and
+`showLogoutModal()` is re-entry guarded.
+
+1 test in `tests/test_logout_double_fire.py` (red against the old
+route: backup ran twice). 814 → 815.
+
 ### 2026-09-12 (night) — Payment reversal
 
 Mis-recorded payments previously required restoring from backup. A new
