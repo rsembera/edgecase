@@ -131,9 +131,12 @@ def create_session(client_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
+    # Consultations are excluded: their service is auto-set to "Consultation",
+    # which must not carry forward into a billable session.
     cursor.execute("""
         SELECT service FROM entries
         WHERE client_id = ? AND class = 'session' AND service IS NOT NULL
+          AND COALESCE(is_consultation, 0) = 0
         ORDER BY session_date DESC, created_at DESC
         LIMIT 1
     """, (client_id,))

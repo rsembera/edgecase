@@ -143,6 +143,10 @@ const originalBaseFee = baseFeeInput.value;
 const originalTaxRate = taxRateInput.value;
 const originalTotalFee = totalFeeInput.value;
 const originalDuration = durationInput.value;
+// Service as rendered (the last real session's service on a new entry).
+// Never restore "Consultation" itself -- e.g. when editing a consultation.
+const originalServiceRaw = (document.getElementById('service') || {}).value || '';
+const originalService = originalServiceRaw === 'Consultation' ? '' : originalServiceRaw;
 
 // Fetch consultation settings from database
 let consultationBase = '0.00';
@@ -209,9 +213,10 @@ consultationCheckbox.addEventListener('change', function() {
             durationInput.value = originalDuration;
         }
         
-        // Only clear service field if it still says "Consultation"
+        // Only reset the service field if it still says "Consultation";
+        // put back the prefill from the last real session (or blank)
         if (serviceInput && serviceInput.value === 'Consultation') {
-            serviceInput.value = '';
+            serviceInput.value = originalService;
         }
         
         if (!isEdit) {
