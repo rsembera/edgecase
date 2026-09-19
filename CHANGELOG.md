@@ -1,5 +1,24 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-19 — Service prefill no longer inherits "Consultation"
+
+The new-session form prefills Service from the client's most recent
+session entry. Consultations have their service auto-set to
+"Consultation", so the first real session after a consult arrived
+prefilled with "Consultation" — and because the field was non-empty, the
+`required` check never prompted; the wrong service carried onto the
+statement and into every later session unless caught.
+
+Fix: the prefill query in `create_session` skips consultation entries
+(`COALESCE(is_consultation, 0) = 0`). A client with only a consultation
+on file gets an empty required field; a client with real sessions and a
+later consult gets the last real session's service. In `session.js`,
+unticking Consultation now restores that prefill instead of blanking the
+field.
+
+2 tests in `tests/test_entries_lifecycle.py` (both red against the old
+query). 815 → 817.
+
 ### 2026-09-16 — Duplicate logout no longer runs a second backup check
 
 Terminal showed two `[Logout] Checking backup status...` lines

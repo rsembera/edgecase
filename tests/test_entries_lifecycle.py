@@ -166,3 +166,38 @@ def test_locked_upload_edit_logs_field_changes(client, app_db):
     history = app_db.get_edit_history(eid)
     assert len(history) == 1
     assert "Description" in str(history[0])
+
+
+
+def _service_prefill(client, cid):
+    """The value="" the new-session form renders into the Service input."""
+    import re
+    html = client.get(f"/client/{cid}/session").get_data(as_text=True)
+    match = re.search(r'id="service"[^>]*?value="([^"]*)"', html, re.S)
+    assert match, "service input not found in new-session form"
+    return match.group(1)
+
+
+def test_service_prefill_skips_consultation_only_history(client, app_db):
+    """A client whose only prior entry is a Consultation gets an empty (required)
+    Service field on Session 1 -- "Consultation" must not carry into billing."""
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session",
+                data=dict(_session_form("Intake consult", date="2026-06-10"),
+                          service="Consultation", is_consultation="1"))
+
+    assert _service_prefill(client, cid) == ""
+
+
+def test_service_prefill_uses_last_real_session_past_a_consultation(client, app_db):
+    """A consultation that falls after a real session is skipped; the prefill
+    comes from the most recent non-consultation session."""
+    cid = _make_client(app_db)
+    client.post(f"/client/{cid}/session",
+                data=dict(_session_form("First", date="2026-06-10"),
+                          service="Psychotherapy"))
+    client.post(f"/client/{cid}/session",
+                data=dict(_session_form("Check-in consult", date="2026-06-12"),
+                          service="Consultation", is_consultation="1"))
+
+    assert _service_prefill(client, cid) == "Psychotherapy"
