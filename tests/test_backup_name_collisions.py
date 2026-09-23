@@ -164,3 +164,49 @@ def test_non_oserror_failure_leaves_no_empty_reservation(backup_env, clock, monk
     with pytest.raises(RuntimeError):
         backup_mod.create_full_backup(db=db)
     assert _zips(root) == []
+
+
+def test_concurrent_backups_are_serialized(backup_env):
+    """A manual backup still running when logout/timeout starts another.
+
+    Both used to run at once: each loaded the manifest, and whichever saved
+    last dropped the other's entry, leaving an orphan zip the restore list
+    never shows (and a stale hash baseline). Backups now serialize on a
+    module lock, so the second waits, sees the first's baseline, and finds
+    nothing new to back up.
+    """
+    import threading
+    backup_mod, root, _db = backup_env
+    att = root / 'attachments' / '1'
+    att.mkdir()
+    backup_mod.create_full_backup()
+    (att / 'new.enc').write_bytes(b'changed since the full')
+
+    entered, release = threading.Event(), threading.Event()
+    real_verify = backup_mod.verify_backup
+    calls = []
+
+    def slow_verify(path, db=None):
+        calls.append(path)
+        if len(calls) == 1:
+            entered.set()
+            release.wait(5)
+        return real_verify(path, db=db)
+    backup_mod.verify_backup = slow_verify
+    try:
+        results = {}
+        a = threading.Thread(target=lambda: results.__setitem__('a', backup_mod.create_backup()))
+        b = threading.Thread(target=lambda: results.__setitem__('b', backup_mod.create_backup()))
+        a.start()
+        assert entered.wait(5)
+        b.start()
+        b.join(1.0)   # unserialized code finishes B here, while A is mid-backup
+        release.set()
+        a.join(5)
+        b.join(5)
+    finally:
+        backup_mod.verify_backup = real_verify
+
+    assert results['a']['type'] == 'incremental'
+    assert results['b'] is None, "second backup should find no changes after the first"
+    _assert_manifest_matches_disk(backup_mod, root, 2)
