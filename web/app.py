@@ -448,17 +448,26 @@ def require_login():
     if last_activity:
         elapsed = now - last_activity
         if elapsed > session_timeout:
-            # Session expired - run backup before clearing
-            print("[Timeout] Session expired, running backup check...")
-            try:
-                from web.cli import _run_shutdown_backup
-                _run_shutdown_backup(db, label="Timeout")
-            except Exception as e:
-                print(f"[Timeout] Backup error: {e}")
-            
+            # Session expired - claim the db, then run backup. Claiming
+            # under the same lock /logout uses means a second request
+            # arriving after the timeout (two tabs on wake, parallel
+            # fetches) finds nothing and cannot start a concurrent backup
+            # check; it just falls through to the login redirect below.
+            from web.blueprints.auth import _logout_claim_lock
+            with _logout_claim_lock:
+                claimed = app.config.get('db')
+                app.config['db'] = None
+            if claimed:
+                print("[Timeout] Session expired, running backup check...")
+                try:
+                    from web.cli import _run_shutdown_backup
+                    _run_shutdown_backup(claimed, label="Timeout")
+                except Exception as e:
+                    print(f"[Timeout] Backup error: {e}")
+                claimed.close()
+
             # Now clear everything
             session.clear()
-            app.config['db'] = None
             if is_api_request():
                 return jsonify({'success': False, 'error': 'session_expired', 'message': 'Session timed out. Please log in again'}), 401
             return redirect(url_for('auth.login', timeout=1))

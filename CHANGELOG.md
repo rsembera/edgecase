@@ -1,5 +1,30 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-23 — Concurrent backups: timeout path claims the db; backups serialize
+
+Found while auditing which paths could fire two backups in one second
+(entry below). Two remaining ways two backups could run *concurrently*:
+
+- **Session timeout.** `before_request` read `config['db']`, ran the
+  shutdown backup, and only then cleared it — the shape `/logout` had
+  before 09-16. Two requests landing together after the timeout (two
+  tabs on wake, parallel fetches) each ran a backup check. The timeout
+  path now claims the db under `_logout_claim_lock`, as `/logout` does;
+  the second request finds nothing and goes to login. The timed-out db
+  is now also closed, as `/logout` does (it was left open before).
+- **Manual "Back up now" still running when logout/timeout/atexit
+  starts another backup.** Both loaded the manifest; the last to save
+  dropped the other's entry (orphan zip, not listed for restore) and its
+  hash baseline. All backup creation plus every manifest
+  read-modify-write (`delete_backup`, `cleanup_old_backups`,
+  `record_backup_check`) now serialize on a module `RLock`. The second
+  backup waits, then sees the first's baseline.
+
+`tests/test_timeout_double_fire.py` (1) and a threaded test in
+`tests/test_backup_name_collisions.py` (1); both red against the old
+code. Soak: 4 concurrent full-suite runs as load, while the backup, timeout
+and logout tests looped 40×, with no failures. 823 → 825.
+
 ### 2026-09-23 — Backups in the same second no longer overwrite each other
 
 Found in Hermanubis (commit 0096407); EdgeCase had the same code. Backup

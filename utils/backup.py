@@ -14,12 +14,31 @@ import hashlib
 import re
 import zipfile
 import shutil
+import threading
 import time
 from datetime import datetime, timedelta
+from functools import wraps
 from pathlib import Path
 
 # Use config for all paths so EDGECASE_DATA override works
 from core.config import DATA_ROOT, DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+
+# Backups and every other manifest read-modify-write run one at a time.
+# A manual "Back up now" can still be running when logout, the session
+# timeout or atexit starts its own backup on another thread; unserialized,
+# both loaded the manifest and whichever saved last dropped the other's
+# entry (an orphan zip no restore list shows) along with its hash
+# baseline. Reentrant because create_backup calls create_full/incremental.
+_backup_lock = threading.RLock()
+
+
+def _serialized(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _backup_lock:
+            return fn(*args, **kwargs)
+    return wrapper
+
 
 # Application identity, stamped into every manifest EdgeCase writes.
 # EdgeCase and MailRepo backups are byte-for-byte the same shape — same
@@ -440,6 +459,7 @@ def validate_backup_location(backup_dir):
         return False, f"Cannot access backup location: {e}"
 
 
+@_serialized
 def create_backup(backup_dir=None, db=None):
     """
     Create a backup, automatically deciding between full and incremental.
@@ -483,6 +503,7 @@ def create_backup(backup_dir=None, db=None):
         return create_incremental_backup(backup_dir, db=db)
 
 
+@_serialized
 def create_full_backup(backup_dir=None, db=None):
     """
     Create a full backup of all data.
@@ -559,6 +580,7 @@ def create_full_backup(backup_dir=None, db=None):
     return backup_info
 
 
+@_serialized
 def create_incremental_backup(backup_dir=None, db=None):
     """
     Create an incremental backup (only changed files since last backup).
@@ -1044,6 +1066,7 @@ def prepare_restore_from_point(point, db=None):
     return str(RESTORE_STAGING_DIR)
 
 
+@_serialized
 def create_pre_restore_backup(db=None):
     """Create a backup of current state before restore (safety net).
 
@@ -1259,6 +1282,7 @@ def cancel_restore():
     return False
 
 
+@_serialized
 def delete_backup(backup_filename):
     """
     Delete a specific backup.
@@ -1347,6 +1371,7 @@ def delete_backup(backup_filename):
     }
 
 
+@_serialized
 def cleanup_old_backups(retention, custom_location=None):
     """
     Delete backups older than the retention period.
@@ -1524,6 +1549,7 @@ def check_backup_needed(frequency='daily'):
     return False
 
 
+@_serialized
 def record_backup_check():
     """
     Record that we checked for backup today.
