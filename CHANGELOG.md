@@ -1,5 +1,44 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-23 — Backups in the same second no longer overwrite each other
+
+Found in Hermanubis (commit 0096407); EdgeCase had the same code. Backup
+names are stamped to the second and every creation path opened its zip
+with mode `'w'`, so a second backup of the same type in the same second
+took the same name and silently replaced the first zip while the
+manifest went on listing both. An overwritten incremental's changes
+dropped out of the restore chain with no error. A full's `chain_id`
+collided the same way, and `create_pre_restore_backup` built its name
+the same way. Worse, each path's `except OSError` cleanup unlinked
+`backup_path`: a full that failed partway (e.g. disk full) in the same
+second as an earlier full deleted the earlier one. That is also why plain
+mode `'x'` is not a fix — `FileExistsError` is an `OSError`, and the
+cleanup would delete the zip it collided with.
+
+Fix: new `reserve_backup_path(backup_dir, prefix)` claims the name by
+creating an empty file with `O_CREAT | O_EXCL` (mode 0600); on a clash
+it sleeps to the next second and retries (5 attempts). The zip is
+written over the reservation, so cleanup can only ever remove the
+caller's own file. Name format unchanged, so restore, retention and
+manifest reconstruction parse and sort exactly as before. A full's
+`chain_id` now comes from the reserved stamp. Cleanup also covers
+non-`OSError` exceptions, so no empty reservation is left behind.
+Pre-restore reserves only after its "no files, return None" check.
+`generate_backup_filename` removed (no other callers). New zips are
+0600 rather than umask-default.
+
+Test audit: no test sleeps to dodge the collision, and none passed
+because of the overwrite (the full suite stays green with unique names).
+Soak: 4 concurrent full-suite runs as load, while the collision and
+round-trip tests looped 40×, with no failures.
+
+6 tests in new `tests/test_backup_name_collisions.py` (frozen clock;
+`time.sleep` advances it, so the tests are deterministic and take no
+real time); 4 red against the old code. 817 → 823.
+
+Installed 2.0.x carries the bug; decided not to cut a point release for
+it alone. Fix ships in the next release.
+
 ### 2026-09-19 — Service prefill no longer inherits "Consultation"
 
 The new-session form prefills Service from the client's most recent

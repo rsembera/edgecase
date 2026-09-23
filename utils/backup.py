@@ -14,6 +14,7 @@ import hashlib
 import re
 import zipfile
 import shutil
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from core.config import DATA_ROOT, DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUP
 # are the mirror image.
 APP_ID = 'edgecase'
 
-# Backup filenames as written by generate_backup_filename:
+# Backup filenames as claimed by reserve_backup_path:
 #   full_2026-08-15_143000.zip / incr_.../ pre_restore_...
 # The optional trailing group tolerates a future collision suffix.
 _BACKUP_FILENAME_RE = re.compile(
@@ -352,10 +353,50 @@ def record_backup_location(folder):
         print(f"Warning: could not record backup location {folder}: {e}")
 
 
-def generate_backup_filename(backup_type):
-    """Generate unique backup filename."""
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    return f"{backup_type}_{timestamp}.zip"
+_RESERVE_ATTEMPTS = 5
+
+
+def reserve_backup_path(backup_dir, prefix):
+    """Claim a unique backup filename by creating it, and return (path, stamp).
+
+    Names are stamped to the second (`full_2026-09-23_153600.zip`), so two
+    backups of the same type in one second used to get the same name, and
+    the second zip silently replaced the first while the manifest still
+    listed both. The name is now claimed atomically with O_CREAT|O_EXCL; on
+    a clash we sleep to the next second and try again, so the name format
+    — which restore, retention and manifest reconstruction all parse and
+    sort — is unchanged.
+
+    The caller writes its zip over the empty reservation and, on any
+    failure, removes it with _discard_reservation. Because the file was
+    created here, cleanup can only ever delete the caller's own file —
+    never the zip it would have collided with (plain mode 'x' would not
+    give that guarantee: FileExistsError is an OSError, and the creation
+    paths' OSError cleanup would unlink the existing backup).
+
+    `stamp` is the datetime the name was built from; a full backup derives
+    its chain_id from it so the two can never disagree.
+    """
+    backup_dir = Path(backup_dir)
+    for _ in range(_RESERVE_ATTEMPTS):
+        stamp = datetime.now()
+        path = backup_dir / f"{prefix}_{stamp.strftime('%Y-%m-%d_%H%M%S')}.zip"
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            time.sleep(1.0 - stamp.microsecond / 1_000_000 + 0.001)
+            continue
+        os.close(fd)
+        return path, stamp
+    raise ValueError(f"Could not reserve a unique {prefix} backup name in {backup_dir}")
+
+
+def _discard_reservation(path):
+    """Remove a reserved (possibly partially written) backup after a failure."""
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def validate_backup_location(backup_dir):
@@ -463,21 +504,22 @@ def create_full_backup(backup_dir=None, db=None):
     if not valid:
         raise ValueError(error)
     
-    filename = generate_backup_filename('full')
-    backup_path = backup_dir / filename
-
     # Flush WAL into the main database file before snapshotting it
     _checkpoint_db(db)
 
     files = get_all_backup_files()
     if not files:
         raise ValueError("No files to backup")
-    
+
+    backup_path, stamp = reserve_backup_path(backup_dir, 'full')
+    filename = backup_path.name
+
     # Calculate hashes before backup
     hashes = {}
     total_size = 0
     
-    # Create zip archive
+    # Create zip archive over the reservation. Any failure removes only
+    # our own reserved file (see reserve_backup_path).
     try:
         with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for rel_path, abs_path in files.items():
@@ -485,17 +527,18 @@ def create_full_backup(backup_dir=None, db=None):
                 hashes[rel_path] = get_file_hash(abs_path)
                 total_size += abs_path.stat().st_size
     except OSError as e:
-        # Clean up partial backup
-        if backup_path.exists():
-            backup_path.unlink()
+        _discard_reservation(backup_path)
         raise ValueError(f"Failed to create backup: {e}")
+    except BaseException:
+        _discard_reservation(backup_path)
+        raise
 
     # Verify backup (zip CRCs + DB integrity_check when db provided)
     verify_backup(backup_path, db=db)
 
     # Update manifest
     manifest = load_manifest()
-    chain_id = datetime.now().strftime('%Y%m%d_%H%M%S')
+    chain_id = stamp.strftime('%Y%m%d_%H%M%S')
     
     backup_info = {
         'filename': filename,
@@ -568,12 +611,12 @@ def create_incremental_backup(backup_dir=None, db=None):
         save_manifest(manifest)
         return None
     
-    filename = generate_backup_filename('incr')
-    backup_path = backup_dir / filename
-    
+    backup_path, _stamp = reserve_backup_path(backup_dir, 'incr')
+    filename = backup_path.name
+
     total_size = 0
     
-    # Create zip with only changed files
+    # Create zip with only changed files, over the reservation
     try:
         with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for rel_path, abs_path in changed_files.items():
@@ -585,10 +628,11 @@ def create_incremental_backup(backup_dir=None, db=None):
                 metadata = {'deleted_files': deleted_files}
                 zf.writestr('_backup_metadata.json', json.dumps(metadata))
     except OSError as e:
-        # Clean up partial backup
-        if backup_path.exists():
-            backup_path.unlink()
+        _discard_reservation(backup_path)
         raise ValueError(f"Failed to create backup: {e}")
+    except BaseException:
+        _discard_reservation(backup_path)
+        raise
 
     # Verify backup (zip CRCs + DB integrity_check when db provided)
     verify_backup(backup_path, db=db)
@@ -1008,9 +1052,6 @@ def create_pre_restore_backup(db=None):
     """
     ensure_backup_dir()
 
-    filename = f"pre_restore_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.zip"
-    backup_path = BACKUPS_DIR / filename
-
     # Flush WAL into the main database file before snapshotting it
     _checkpoint_db(db)
 
@@ -1018,9 +1059,18 @@ def create_pre_restore_backup(db=None):
     if not files:
         return None  # Nothing to back up
 
-    with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for rel_path, abs_path in files.items():
-            zf.write(abs_path, rel_path)
+    # Reserve only now, after the early return, so we never leave an
+    # empty reserved file behind.
+    backup_path, _stamp = reserve_backup_path(BACKUPS_DIR, 'pre_restore')
+    filename = backup_path.name
+
+    try:
+        with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for rel_path, abs_path in files.items():
+                zf.write(abs_path, rel_path)
+    except BaseException:
+        _discard_reservation(backup_path)
+        raise
 
     verify_backup(backup_path, db=db)
     
