@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 12, 2026  
+**Last Updated:** September 23, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -12,7 +12,30 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
+825 tests as of 2026-09-23.
 
+- **2026-09-23 — Backups: same-second names can't collide; concurrent
+  backups serialize.** Ported from Hermanubis. Two backups of one type in
+  one second shared a name, and the second silently replaced the first zip
+  (a lost incremental dropped out of the restore chain with no error).
+  Names are now claimed atomically with `O_EXCL`, and a full's chain_id
+  comes from the claimed name. All backup and manifest writes run under
+  one lock, and the session-timeout path claims the db the way `/logout`
+  does, so overlapping backups can no longer drop each other's manifest
+  entries. Installed 2.0.x users are affected; Rick judged it not worth a
+  point release on its own. See Architecture_Decisions "Backup name
+  reservation and serialization". MailRepo is affected too — handed to
+  the MailRepo project.
+- **2026-09-19 — Service prefill no longer inherits "Consultation".** The
+  first real session after a consult was prefilled with the wrong service.
+- **2026-09-16 — Duplicate logout no longer runs a second backup check.**
+  `/logout` claims the db under a lock before backing up; the timeout
+  warning modal stops its countdown once Log Out is pressed.
+- **2026-09-12 (night) — Payment reversal.** `POST
+  /statements/reverse-payment` unwinds a recorded payment in one
+  transaction; refuses if its credit has since been consumed. Closes the
+  "no reversal path" gap noted below. Feature — subject to the lived-with
+  rule before release.
 - **2026-09-12 (latest) — `Cache-Control: no-store` on all non-static
   responses.** Browsers could cache client pages and PDFs; Safari replayed a
   stale PDF response. Empty the browser cache once after upgrading.

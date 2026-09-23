@@ -1152,6 +1152,50 @@ Extract a single `_run_shutdown_backup(db, label)` function in `cli.py`. All thr
 
 ---
 
+## BACKUP NAME RESERVATION AND SERIALIZATION (2026-09-23)
+
+### The Problem
+
+Two separate problems, found by porting a Hermanubis fix:
+
+- **Same-second overwrite.** Names are stamped to the second and the zip
+  was opened with mode `'w'`, so two backups of one type in one second
+  shared a name and the second silently replaced the first. The manifest
+  kept both entries, and a full's `chain_id` collided the same way.
+- **Concurrent runs.** A manual "Back up now" could overlap a logout,
+  timeout or atexit backup on another thread. Both read-modify-wrote the
+  manifest, and the last writer dropped the other's entry.
+
+### The Decision
+
+- **Claim names atomically.** `reserve_backup_path(dir, prefix)` creates
+  an empty file with `O_CREAT | O_EXCL`. On a clash it sleeps to the next
+  second and retries. The zip is written over the reservation, and a full's
+  `chain_id` comes from the reserved stamp. The name format is unchanged.
+- **Serialize.** Every backup creation function, and every other
+  manifest read-modify-write, runs under one module `RLock`
+  (`@_serialized`). It is reentrant because `create_backup` calls the
+  full/incremental creators.
+- **Claim the db before the timeout backup.** The session-timeout path
+  claims the db under `_logout_claim_lock`, as `/logout` does.
+
+### Why not ZipFile mode `'x'`?
+
+It looks like the one-line fix, and it is a trap. Each creation path
+cleaned up a failed write with `except OSError: backup_path.unlink()`, and
+`FileExistsError` is an `OSError`. So `'x'` would turn a silent overwrite
+into a silent *delete* of the backup it collided with. Reserving first
+means the file being cleaned up is always our own.
+
+### Why sleep rather than a suffix?
+
+Restore, retention and manifest reconstruction all parse and sort the
+`prefix_YYYY-MM-DD_HHMMSS.zip` form. A one-second wait on a clash is
+invisible, and keeping the name format means none of that code changes.
+(MailRepo chose a microsecond suffix instead.)
+
+---
+
 ## ATOMIC FILE RE-ENCRYPTION ON PASSWORD CHANGE
 
 ### The Problem
