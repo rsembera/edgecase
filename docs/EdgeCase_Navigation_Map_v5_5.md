@@ -107,7 +107,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── ledger_report.py         # Financial report PDFs (~570 lines)
 │   └── client_export.py         # Client file export (~1,100 lines)
 ├── utils/
-│   └── backup.py                # Backup/restore system (~1,280 lines)
+│   └── backup.py                # Backup/restore system (~2,300 lines)
 ├── ai/
 │   ├── assistant.py             # Model loading and generation (~380 lines)
 │   └── prompts.py               # Prompt templates for AI actions
