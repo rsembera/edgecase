@@ -1,5 +1,17 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-24 — Design docs: online intake service; exploratory reminder service
+
+Docs only, nothing built. `docs/Intake_Service_Plan.md`: a small service on
+Sentinel where prospective clients fill in the intake and consent forms via
+a one-time link plus PIN; the browser encrypts each form to a key only
+EdgeCase holds, so Sentinel stores ciphertext it cannot read; EdgeCase
+imports into the Profile and attaches the consent as a PDF. Includes field
+mapping, crypto, threat model, phases and open questions.
+`docs/Reminder_Service_Plan.md`: exploratory notes on automated text
+reminders, chiefly why the calendar (not EdgeCase) has to be the source of
+truth, and what that means for Sentinel.
+
 ### 2026-09-23 — Concurrent backups: timeout path claims the db; backups serialize
 
 Found while auditing which paths could fire two backups in one second
