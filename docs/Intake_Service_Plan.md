@@ -69,7 +69,7 @@ it already lives, and makes Sentinel a dumb mailbox.
   bundle. P-256 WebCrypto works in every current browser, including old
   iPhones.)
 - **Associated data:** the GCM AAD binds the ciphertext to
-  `invitation_hash || form_name || consent_version`, so a blob cannot be
+  `invitation_hash || form_name || config_version || consent_version`, so a blob cannot be
   replayed under a different invitation or form.
 - **Keys:** EdgeCase generates the keypair on first enabling the feature.
   Private key in the `settings` table (inside SQLCipher). Public key pushed
@@ -96,8 +96,10 @@ is_minor, key_id, issued_at, expires_at, status
 **Sentinel:**
 - `invitations`: `token_hash, pin_hmac, required_forms, forms_done,
   is_minor, expires_at, failed_pin_attempts, locked`.
-- `submissions`: `id, token_hash, form, key_id, consent_version,
-  ciphertext, received_at`.
+- `submissions`: `id, token_hash, form, key_id, config_version,
+  consent_version, ciphertext, received_at`.
+- `config`: the current bundle (branding, logo, field settings, additional
+  questions, consent text) and its version.
 - `public_keys`: `key_id, public_key`.
 - Nothing else. No names, no emails, no IPs.
 
@@ -128,8 +130,8 @@ guardian 2) mapping to the existing `guardian1_*` / `guardian2_*` Profile
 fields, and the consent is attested by the guardian. The section appears only
 if the invitation was issued with `is_minor`.
 
-**Consent.** The text lives in the Sentinel repo as versioned files
-(`consent/v1.md`, …). The version and the full text shown are included
+**Consent.** The text is edited in EdgeCase and pushed to AirLock (see
+Customization). The version and the full text shown are included
 *inside* the encrypted payload, so EdgeCase renders exactly what the client
 saw, not whatever the current file says. The client types their full name and
 ticks "I have read and agree." EdgeCase renders a PDF (ReportLab, practice
@@ -144,22 +146,71 @@ complexity on phones and no legal weight.
 IPv4 hashes are trivially reversible, and the invitation token plus PIN is
 stronger evidence of who submitted than an address anyway.
 
+## Customization
+
+Other therapists will need their own logo, letterhead, consent wording and
+form choices. The constraint that shapes all of it: **every intake answer has
+to land somewhere in EdgeCase**, and the Profile has fixed columns. So no
+form builder. A builder means field types, validation rules, a generic
+storage model in EdgeCase, and rendering it all back out — a second product.
+Instead:
+
+**Standard fields: fixed mapping, configurable presentation.** Each
+Profile-mapped field in the table above gets:
+- show / hide (name and at least one contact method cannot be hidden),
+- required / optional,
+- an editable label (e.g. "Pronouns" instead of "Gender").
+The mapping never changes, so import stays a lookup table.
+
+**Additional questions.** Up to five free-text questions the therapist
+writes ("What brings you to therapy?"). Answers are appended to
+`additional_info`, each prefixed by its question, and appear in full in the
+intake PDF. No new schema, no types, text only, length-limited.
+
+**Branding.** Practice name, credentials, address, phone, website and logo,
+the same values EdgeCase already holds for statements. Rendered as the form
+header, matching the paper forms.
+
+**Consent text.** Free text (Markdown), edited in EdgeCase.
+
+**Everything is edited in EdgeCase, not on the server.** A new
+Settings → AirLock section holds the field toggles, labels, additional
+questions and consent text; branding is reused from Practice Info. On save,
+EdgeCase pushes a config bundle to AirLock over the admin channel
+(`PUT /admin/config`), the same way it pushes the public key. AirLock has no
+admin UI of its own to secure, there is one place to edit, and a
+self-hosting therapist never touches the server after setup. Branding and
+form layout are not sensitive, so storing them on Sentinel is fine.
+
+**Versioning.** Each pushed bundle gets a version (content hash). The form
+config version and consent version are both included *inside* each
+encrypted submission, along with the labels and questions as shown. Import
+therefore knows exactly what the client saw even if the therapist changed
+the form while an invitation was open. Because the payload carries what was
+shown, AirLock only ever needs the current bundle.
+
+**Safety of therapist-edited text.** Labels, questions and consent text are
+rendered as text (consent Markdown through a sanitizing renderer, no raw
+HTML). The logo is re-encoded on the EdgeCase side before upload (PNG,
+size-capped), never served as the therapist's original file.
+
 ## Sentinel service
 
 Flask, small. Two surfaces, separated at the network level:
 
 **Public (nginx vhost, TLS):**
 - `GET /i` — static form shell (HTML/CSS/JS, no third-party assets)
-- `POST /i/unlock` — `{token, pin}` → outstanding forms, consent text and
-  version, public key
-- `POST /i/submit` — `{token, pin, form, key_id, consent_version,
-  ciphertext}`
+- `POST /i/unlock` — `{token, pin}` → outstanding forms, current config
+  bundle (branding, fields, questions, consent text) and its version,
+  public key
+- `POST /i/submit` — `{token, pin, form, key_id, config_version,
+  consent_version, ciphertext}`
 
 **Admin (bound to the Tailscale interface only; not proxied publicly;
 bearer key held in EdgeCase settings):**
 - `POST /admin/invitations` · `DELETE /admin/invitations/<hash>`
 - `GET /admin/submissions` · `DELETE /admin/submissions/<id>`
-- `PUT /admin/public-key`
+- `PUT /admin/public-key` · `PUT /admin/config`
 
 **Hardening:**
 - Rate limiting per IP and per token on `/i/unlock` and `/i/submit`. Five
@@ -209,7 +260,9 @@ WireGuard, or an SSH tunnel all satisfy it. Documented, not automated.
 1. **This doc + threat model review.** Done when Richard signs off on the
    open questions.
 2. **EdgeCase side** (3–4 sessions): keypair, `intake_invitations` table and
-   migration, issue/revoke UI, import routine with a local test harness that
+   migration, issue/revoke UI, Settings → AirLock (field toggles, labels,
+   additional questions, consent text, config push), import routine with a
+   local test harness that
    encrypts payloads the way the browser will, Profile mapping, consent PDF,
    Communication entry. Schema doc, Route Reference, CHANGELOG.
 3. **Sentinel service** (3 sessions): new repo, routes, forms, WebCrypto
