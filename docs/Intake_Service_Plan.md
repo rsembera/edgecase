@@ -1,7 +1,7 @@
-# Online Intake & Consent — Design Plan
+# AirLock — Online Intake & Consent Design Plan
 
 **Status:** DESIGN, 2026-09-24. Not started. Nothing here is built.
-**Working name:** `edgecase-intake` (separate repo, deployed to Sentinel).
+**Name:** AirLock (repo `edgecase-airlock`, deployed to Sentinel).
 **Source forms:** `/home/rick/Nexus/intake-consent-forms/Intake.pdf` and
 `Consent.pdf` (Apollo). Their wording is the content; this plan is only the
 delivery.
@@ -234,3 +234,10 @@ can be exercised end to end with the test harness before Sentinel exists.
    reminders by text" checkbox to the intake now, so the possible reminder
    service (see `Reminder_Service_Plan.md`) has consent on file from the
    start?
+6. **Where the consent lives in EdgeCase** and what the import screen looks
+   like (review-before-commit, or straight in). Default assumption: consent
+   PDF attached to the Profile entry. To decide before phase 2.
+7. **Is AirLock public?** Either way, the EdgeCase side ships dormant: no
+   menu item, no import button, nothing in Settings beyond an "AirLock
+   server" field, until a server is configured. Users who never run AirLock
+   never see a feature with no obvious use.
