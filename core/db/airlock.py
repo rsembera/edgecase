@@ -162,8 +162,12 @@ class AirLockMixin:
         if email and len(email) > MAX_EMAIL_LEN:
             raise ValueError("Email is too long.")
         forms = [f for f in airlock_crypto.FORMS if f in set(required_forms or ())]
-        if not forms or set(required_forms) - set(airlock_crypto.FORMS):
+        if set(required_forms or ()) - set(airlock_crypto.FORMS):
             raise ValueError("Required forms must be intake and/or consent.")
+        # New clients only (decision 2), so the intake is always required:
+        # it is where the client's name comes from.
+        if "intake" not in forms:
+            raise ValueError("An invitation must include the intake form.")
         try:
             ttl_days = int(ttl_days)
         except (TypeError, ValueError):

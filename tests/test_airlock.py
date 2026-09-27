@@ -246,13 +246,21 @@ def test_create_invitation_validates(app_db, kwargs):
         app_db.create_intake_invitation(**kwargs)
 
 
-def test_single_form_and_minor(app_db):
-    inv = app_db.create_intake_invitation("Kid", required_forms=("consent",),
+def test_intake_only_and_minor(app_db):
+    inv = app_db.create_intake_invitation("Kid", required_forms=("intake",),
                                           is_minor=True)
-    assert inv["required_forms"] == ["consent"]
+    assert inv["required_forms"] == ["intake"]
     assert inv["is_minor"] is True
     with pytest.raises(ValueError):
-        app_db.record_intake_form_received(inv["id"], "intake")
+        app_db.record_intake_form_received(inv["id"], "consent")
+    assert app_db.record_intake_form_received(inv["id"], "intake")["status"] == "complete"
+
+
+def test_consent_only_is_refused(app_db):
+    """New clients only: without the intake there is no name to create the
+    client from."""
+    with pytest.raises(ValueError):
+        app_db.create_intake_invitation("A", required_forms=("consent",))
 
 
 def test_forms_progress_to_complete(app_db):
