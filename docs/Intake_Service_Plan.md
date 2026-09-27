@@ -274,6 +274,16 @@ WireGuard, or an SSH tunnel all satisfy it. Documented, not automated.
 Estimate: 8–10 sessions. Phase 2 is independently useful: the import side
 can be exercised end to end with the test harness before Sentinel exists.
 
+## Considered and deferred
+
+- **Client receipt downloads (2026-09-27).** A portal where clients log in to
+  fetch receipts is rejected: it needs readable PHI or per-client keys on
+  Sentinel, i.e. accounts. The compatible variant is one-time outbound
+  delivery (EdgeCase encrypts the PDF with a fresh key carried in the link
+  fragment; Sentinel stores ciphertext; deleted after download or a few
+  days). Deferred: receipts are emailed today and no client has asked for
+  anything else. Revisit if one does.
+
 ## Open questions for Richard
 
 1. **Gender:** add a `gender` column to the Profile, or fold the answer into
