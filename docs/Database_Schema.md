@@ -1,13 +1,13 @@
 # EdgeCase Equalizer - Database Schema
 
 **Purpose:** Complete database table definitions and design decisions  
-**Last Updated:** August 9, 2026
+**Last Updated:** September 27, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase uses SQLite with SQLCipher encryption, containing 14 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
+EdgeCase uses SQLite with SQLCipher encryption, containing 16 tables organized around an entry-based architecture. All client records (profiles, sessions, communications, etc.) are stored as entries in a unified table with class-specific fields.
 
 **Database Location:** `~/Applications/edgecase/data/edgecase.db`
 
@@ -26,6 +26,8 @@ EdgeCase uses SQLite with SQLCipher encryption, containing 14 tables organized a
 12. archived_clients - Retention system archives
 13. statement_portions - Statement tracking
 14. payment_allocations - Which statements a payment settled; credit on account
+15. insurance_providers - Insurer networks the practitioner has joined
+16. intake_invitations - AirLock online intake invitations
 
 ---
 
@@ -501,6 +503,80 @@ allocations".
 **Note on `is_credit`:** added a day after the table, so
 `_initialize_schema()` carries an idempotent `PRAGMA table_info` guard that
 adds the column where it is missing.
+
+---
+
+### 15. insurance_providers
+
+Insurer networks the practitioner has joined. The provider number is the
+practitioner's, but which number prints on a document is a property of the
+client, so assignment lives on `clients.provider_id` (nullable; added by an
+idempotent `PRAGMA table_info` guard). See `core/db/providers.py`.
+
+```sql
+CREATE TABLE insurance_providers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    provider_number TEXT NOT NULL,
+    number_format TEXT NOT NULL DEFAULT '{name} — Provider No. {number}',
+    created_at INTEGER NOT NULL,
+    modified_at INTEGER NOT NULL
+);
+```
+
+**Key Fields:**
+- `number_format`: the printed line as the insurer wants it, with `{name}`
+  and `{number}` substituted
+
+---
+
+### 16. intake_invitations
+
+AirLock invitations: a link token and PIN issued to a prospective client for
+the online intake and/or consent forms. Added 2026-09-27; see
+`docs/Intake_Service_Plan.md`, `core/db/airlock.py`, `core/airlock_crypto.py`.
+Empty unless AirLock is used.
+
+```sql
+CREATE TABLE intake_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER,
+    display_name TEXT NOT NULL,
+    email TEXT,
+    token TEXT UNIQUE NOT NULL,
+    token_hash TEXT UNIQUE NOT NULL,
+    pin TEXT NOT NULL,
+    required_forms TEXT NOT NULL,
+    forms_done TEXT NOT NULL DEFAULT '',
+    is_minor INTEGER NOT NULL DEFAULT 0,
+    key_id TEXT NOT NULL,
+    issued_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'issued',
+    imported_at INTEGER,
+    revoked_at INTEGER,
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
+```
+
+**Key Fields:**
+- `token` / `pin`: kept so the practitioner can re-read the link; the AirLock
+  server only ever receives `token_hash` (SHA-256 of the token) and the PIN
+- `required_forms` / `forms_done`: comma-separated subsets of
+  `intake,consent`, always in that order
+- `key_id`: the AirLock keypair the invitation was issued under; a retired
+  keypair is kept until no open invitation references it
+- `status`: `issued`, `partial`, `complete`, `imported` or `revoked`.
+  **Expired is computed** from `expires_at` (see
+  `invitation_effective_status`), never stored
+- `client_id`: NULL until import creates the client
+
+**Retention:** `archive_and_delete_client` deletes a client's invitations
+before the client row (the foreign key would otherwise block disposal).
+
+**AirLock keypairs** are not a table: they live in `settings` as
+`airlock_keys` (JSON, private keys as PEM, inside SQLCipher) and
+`airlock_active_key_id`.
 
 ---
 

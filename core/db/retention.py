@@ -259,6 +259,14 @@ class RetentionMixin:
                 (client_id, client_id)
             )
 
+            # Delete AirLock invitations the client was imported through.
+            # They reference clients(id), so with foreign keys on they would
+            # block the DELETE below (the payment_allocations trap again), and
+            # they hold the name and email the client was invited under,
+            # which is disposed of with everything else.
+            cursor.execute("DELETE FROM intake_invitations WHERE client_id = ?",
+                           (client_id,))
+
             # Delete all entries
             cursor.execute("DELETE FROM entries WHERE client_id = ?", (client_id,))
 

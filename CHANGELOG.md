@@ -1,5 +1,31 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock phase 2, part 1: submission crypto, keypair, invitations (branch `airlock`)
+
+First code for AirLock (docs/Intake_Service_Plan.md). Nothing is visible in
+the app yet.
+
+- `core/airlock_crypto.py`: ECDH P-256 → HKDF-SHA256 → AES-256-GCM
+  envelopes, associated data binding invitation, form, config version and
+  consent version; token, token-hash and PIN generation; a test-side mirror
+  of the browser's encryption. No new dependency (`cryptography` only).
+- `core/db/airlock.py` and table 16, `intake_invitations`: issue, list,
+  revoke, form progress, mark imported. Expiry is computed from
+  `expires_at`, not swept. Keypair stored in `settings`; rotation retires
+  the old key and keeps it until no open invitation needs it.
+- Retention disposal now deletes a client's invitations. Without that, the
+  foreign key made disposal of any AirLock-imported client fail outright
+  (verified red: all five disposal tests fail without the line).
+- `tests/test_airlock.py`: round trip, every AAD field, tampering, wrong and
+  relabelled keys, eight malformed-envelope shapes including an off-curve
+  point, key rotation and pruning, invitation lifecycle and validation. One
+  test encrypts with Node's real WebCrypto exactly as the AirLock page will,
+  and decrypts here: the browser half is proven compatible before it exists.
+- Docs: plan corrected where the code taught us (Profile fields live on
+  `entries`; Sentinel, not EdgeCase, hashes the PIN; table is the 16th).
+  `Database_Schema.md` gains `insurance_providers` (missing since August)
+  and `intake_invitations`.
+
 ### 2026-09-24 — Design docs: online intake service; exploratory reminder service
 
 Docs only, nothing built. `docs/Intake_Service_Plan.md`: a small service on

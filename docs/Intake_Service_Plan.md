@@ -1,6 +1,9 @@
 # AirLock — Online Intake & Consent Design Plan
 
-**Status:** Design approved 2026-09-27. Phase 2 (EdgeCase side) in progress on branch `airlock`.
+**Status:** Design approved 2026-09-27. Phase 2 (EdgeCase side) in progress on branch `airlock`:
+crypto, keypair storage and invitations done (`core/airlock_crypto.py`,
+`core/db/airlock.py`, `tests/test_airlock.py`); import, mapping, consent PDF
+and UI next.
 **Name:** AirLock (repo `edgecase-airlock`, deployed to Sentinel).
 **Source forms:** `/home/rick/Nexus/intake-consent-forms/Intake.pdf` and
 `Consent.pdf` (Apollo). Their wording is the content; this plan is only the
@@ -34,8 +37,10 @@ it already lives, and makes Sentinel a dumb mailbox.
    - a 256-bit random token (the link), and
    - a 6-digit PIN.
    It stores both in its own database, sends Sentinel only
-   `SHA-256(token)`, `HMAC(pin)`, the expiry, the required forms and the
-   minor flag, and shows Richard the link and PIN.
+   `SHA-256(token)`, the PIN, the expiry, the required forms and the minor
+   flag (over the admin channel), and shows Richard the link and PIN.
+   Sentinel stores the PIN as an HMAC under its own secret, so the hashing
+   happens there, not in EdgeCase.
 2. **Deliver.** Richard emails the link and gives the PIN on the consult
    call (or by text). Two channels, so a forwarded or misdelivered email is
    not enough to fill in forms as the client.
@@ -69,7 +74,8 @@ it already lives, and makes Sentinel a dumb mailbox.
   bundle. P-256 WebCrypto works in every current browser, including old
   iPhones.)
 - **Associated data:** the GCM AAD binds the ciphertext to
-  `invitation_hash || form_name || config_version || consent_version`, so a blob cannot be
+  the invitation hash, form name, config version and consent version
+  (newline-joined; exact bytes in `core/airlock_crypto.build_aad`), so a blob cannot be
   replayed under a different invitation or form.
 - **Keys:** EdgeCase generates the keypair on first enabling the feature.
   Private key in the `settings` table (inside SQLCipher). Public key pushed
@@ -86,12 +92,14 @@ it already lives, and makes Sentinel a dumb mailbox.
 
 ## What each side stores
 
-**EdgeCase (new table `intake_invitations`, the 15th):**
-`id, client_id (nullable), display_name, email, token, pin, required_forms,
-is_minor, key_id, issued_at, expires_at, status
-(issued | partial | complete | imported | revoked | expired), imported_at`.
-`client_id` is set when the invitation is issued for an existing client
-(e.g. re-consent after a fee change) or when import creates one.
+**EdgeCase (new table `intake_invitations`, the 16th; built 2026-09-27):**
+`id, client_id (nullable), display_name, email, token, token_hash, pin,
+required_forms, forms_done, is_minor, key_id, issued_at, expires_at, status
+(issued | partial | complete | imported | revoked), imported_at, revoked_at`.
+"Expired" is computed from `expires_at`, never stored, so no sweep job is
+needed for a dead link to be dead. `client_id` is set when import creates
+the client (new clients only, decision 2). Retention disposal deletes a
+client's invitations with the rest of their record.
 
 **Sentinel:**
 - `invitations`: `token_hash, pin_hmac, required_forms, forms_done,
@@ -114,7 +122,7 @@ designed around this form):
 |---|---|
 | First / middle / last name (split on the web form) | `clients.first_name / middle_name / last_name` |
 | Date of birth | `date_of_birth` |
-| Gender (optional) | **open question**, see below |
+| Gender (optional) | new `gender` column on the Profile entry (decision 1) |
 | Address | `address` |
 | Home / Work / Cell | `home_phone / work_phone / phone` |
 | Email | `email` |
@@ -288,7 +296,8 @@ can be exercised end to end with the test harness before Sentinel exists.
 
 Phase 1 closed. Richard's answers to the open questions:
 
-1. **Gender:** new `gender` column on `clients`; the web label is editable
+1. **Gender:** new `gender` column on the Profile entry (`entries`, where
+   the other Profile fields live); the web label is editable
    (e.g. "Pronouns").
 2. **Existing clients:** invitations are for new clients only. Current
    clients already have consent on file; no re-consent flow.
