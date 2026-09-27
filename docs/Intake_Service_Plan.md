@@ -5,12 +5,16 @@ crypto, keypair storage and invitations done (`core/airlock_crypto.py`,
 `core/db/airlock.py`); validation, mapping, PDFs and the all-or-nothing import
 done (`core/airlock_import.py`, `pdf/airlock_records.py`); screens and the
 admin-channel client done (`web/blueprints/airlock.py`, `core/airlock_client.py`),
-tested against an in-memory stand-in server. Remaining in phase 2: the
-customization settings (fields, labels, questions, consent text) and the config
-push. Then phase 3, the server itself.
+tested against an in-memory stand-in server; form customization and the config
+bundle done (`core/airlock_config.py`, the Forms page). **Phase 2 complete.**
+Next: phase 3, the server itself.
 
 **Admin API as EdgeCase calls it** (the server must match): `PUT
-/admin/public-key {key_id, public_key}`; `POST /admin/invitations {token_hash,
+/admin/public-key {key_id, public_key}`; `PUT /admin/config <bundle>` (see
+`core/airlock_config.build_bundle`: practice info, `logo_png` as base64 PNG or
+null, `fields` [{name, label, show, required}], `questions`, `consent_text`,
+`consent_version`, `config_version`; sent before every invitation and on every
+save of the Forms page); `POST /admin/invitations {token_hash,
 pin, required_forms, is_minor, expires_at, key_id}`; `DELETE
 /admin/invitations/<token_hash>`; `GET /admin/submissions → {"submissions":
 [{id, token_hash, form, key_id, config_version, consent_version, envelope,

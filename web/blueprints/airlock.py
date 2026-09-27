@@ -14,7 +14,8 @@ import time
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from core import airlock_client, airlock_crypto
+from core import airlock_client, airlock_config, airlock_crypto
+from core.config import get_assets_path
 from core.airlock_client import AirLockConnectionError
 from core.airlock_import import (AirLockImportError, import_client, parse_consent,
                                  parse_intake, possible_duplicates, profile_fields)
@@ -39,6 +40,9 @@ MESSAGES = {
                                'server yet; it will be removed at the next check.'),
     'deleted': ('ok', 'Removed from the server.'),
     'not_ready': ('warn', 'That invitation has nothing ready to review.'),
+    'forms_saved': ('ok', 'Forms saved and sent to the AirLock server.'),
+    'forms_saved_local': ('warn', 'Forms saved here, but the AirLock server could not be '
+                                  'reached. They will be sent before the next invitation.'),
 }
 
 
@@ -68,6 +72,17 @@ def _message():
 def _fmt(ts):
     from datetime import datetime
     return datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M') if ts else ''
+
+
+def _push_setup(client):
+    """Send the public key and the current form bundle. Done before every
+    invitation, so the server always has what the new link will need."""
+    kid, public = db.airlock_public_key()
+    client.put_public_key(kid, public)
+    bundle = airlock_config.build_bundle(db, airlock_config.load_config(db),
+                                         str(get_assets_path()))
+    client.put_config(bundle)
+    return bundle
 
 
 # ---------------------------------------------------------------------------
@@ -190,6 +205,9 @@ def issue():
     if redirect_resp:
         return redirect_resp
     forms = ('intake', 'consent') if request.form.get('forms', 'both') == 'both' else ('intake',)
+    if 'consent' in forms and not airlock_config.load_config(db)['consent_text']:
+        return _invitations_with_error(
+            'Add your consent text on the Forms page before inviting a client to sign it.', 400)
     try:
         inv = db.create_intake_invitation(
             request.form.get('display_name', ''), email=request.form.get('email', ''),
@@ -199,8 +217,7 @@ def issue():
         return _invitations_with_error(str(e), 400)
     try:
         client = airlock_client.client_from_settings(db)
-        kid, public = db.airlock_public_key()
-        client.put_public_key(kid, public)
+        _push_setup(client)
         client.create_invitation(inv)
     except AirLockConnectionError as e:
         db.delete_unsent_intake_invitation(inv['id'])
@@ -363,6 +380,56 @@ def delete_unmatched():
 
 
 # ---------------------------------------------------------------------------
+# forms (customization)
+# ---------------------------------------------------------------------------
+
+@airlock_bp.route('/airlock/forms', methods=['GET', 'POST'])
+def forms():
+    redirect_resp = _require_enabled()
+    if redirect_resp:
+        return redirect_resp
+    if request.method == 'GET':
+        return _render_forms(airlock_config.load_config(db), message=_message())
+    data = {
+        'fields': {name: {'label': request.form.get(f'label__{name}', ''),
+                          'show': bool(request.form.get(f'show__{name}')),
+                          'required': bool(request.form.get(f'required__{name}'))}
+                   for name in airlock_config.FIELD_NAMES},
+        'questions': [request.form.get(f'question_{i}', '')
+                      for i in range(1, airlock_config.MAX_QUESTIONS + 1)],
+        'consent_text': request.form.get('consent_text', ''),
+    }
+    try:
+        cfg = airlock_config.validate_config(data)
+    except ValueError as e:
+        return _render_forms(data, error=str(e), status=400)
+    airlock_config.save_config(db, cfg)
+    try:
+        _push_setup(airlock_client.client_from_settings(db))
+        msg = 'forms_saved'
+    except AirLockConnectionError:
+        msg = 'forms_saved_local'
+    return redirect(url_for('airlock.forms', msg=msg))
+
+
+def _render_forms(cfg, message=None, error=None, status=200):
+    fields = []
+    for name, default_label, _, _ in airlock_config.FIELDS:
+        meta = (cfg.get('fields') or {}).get(name) or {}
+        fields.append({'name': name, 'default_label': default_label,
+                       'label': meta.get('label') or default_label,
+                       'show': bool(meta.get('show')),
+                       'required': bool(meta.get('required')),
+                       'locked': name in airlock_config.ALWAYS_REQUIRED})
+    questions = list(cfg.get('questions') or [])
+    questions += [''] * (airlock_config.MAX_QUESTIONS - len(questions))
+    return render_template('airlock_forms.html', fields=fields,
+                           questions=questions[:airlock_config.MAX_QUESTIONS],
+                           consent_text=cfg.get('consent_text') or '',
+                           message=message, error=error), status
+
+
+# ---------------------------------------------------------------------------
 # settings API (Settings → AirLock)
 # ---------------------------------------------------------------------------
 
@@ -414,8 +481,7 @@ def airlock_test():
     if client is None:
         return jsonify({'success': False, 'error': 'AirLock is not configured'}), 400
     try:
-        kid, public = db.airlock_public_key()
-        client.put_public_key(kid, public)
+        _push_setup(client)
     except AirLockConnectionError as e:
         return jsonify({'success': False, 'error': str(e)}), 502
-    return jsonify({'success': True, 'key_id': kid})
+    return jsonify({'success': True, 'key_id': db.airlock_public_key()[0]})

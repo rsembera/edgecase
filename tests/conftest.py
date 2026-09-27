@@ -164,3 +164,19 @@ def client(app_db, monkeypatch):
         yield c
 
     flask_app.config["db"] = prev_db
+
+
+@pytest.fixture
+def airlock_server(app_db, monkeypatch):
+    """AirLock configured and pointed at an in-memory FakeServer."""
+    from core import airlock_client, airlock_config
+    from tests.airlock_fake import FakeServer
+    fake = FakeServer()
+    app_db.set_setting("airlock_server_url", "http://sentinel.test:8081")
+    app_db.set_setting("airlock_public_url", "https://forms.example.ca")
+    app_db.set_setting("airlock_admin_key", "k" * 32)
+    monkeypatch.setattr(airlock_client, "client_from_settings", lambda db: fake)
+    cfg = airlock_config.default_config()
+    cfg["consent_text"] = "# Consent\n\nI agree to psychotherapy."
+    airlock_config.save_config(app_db, cfg)
+    return fake

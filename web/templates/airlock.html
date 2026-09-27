@@ -13,9 +13,14 @@
             <h2><i data-lucide="inbox" class="page-icon"></i>AirLock</h2>
             <p class="page-subtitle">Online intake and consent for new clients</p>
         </div>
-        <a href="{{ url_for('clients.index') }}" class="btn">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
-        </a>
+        <div style="display:flex; gap:0.6rem;">
+            <a href="{{ url_for('airlock.forms') }}" class="btn btn-secondary">
+                <i data-lucide="clipboard-list" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Forms
+            </a>
+            <a href="{{ url_for('clients.index') }}" class="btn">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+            </a>
+        </div>
     </div>
 
     {% if message %}<div class="al-notice {{ message[0] }}">{{ message[1] }}</div>{% endif %}

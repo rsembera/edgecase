@@ -1,5 +1,27 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock phase 2, part 4: form customization; phase 2 complete (branch `airlock`)
+
+- `core/airlock_config.py` and the Forms page (`/airlock/forms`, linked from
+  the AirLock page): per-field show / required / label for every intake
+  field, up to five free-text questions, and the consent text (headings and
+  bullets only). First and last name are always asked; at least one contact
+  method must be shown and required; a hidden field cannot be required.
+- The config bundle pushed to the server carries the practice information
+  and logo from Settings (logo decrypted in memory and re-encoded to a
+  size-capped PNG; the original file never leaves the Mac, and a
+  `logo_filename` pointing outside the assets folder is refused, verified
+  red), plus two content-hash versions: `consent_version` changes only with
+  the consent wording, `config_version` with anything.
+- The bundle and public key are pushed before every invitation and on every
+  Forms save (saved locally with a warning if the server is unreachable).
+  An invitation that includes consent is refused until consent text exists.
+- Tests: 23 new (rules, limits, merge-over-defaults, versions, logo
+  re-encoding and refusals, page save/push/offline/invalid, the consent
+  guard, push order, escaping). The in-memory AirLock stand-in moved to
+  `tests/airlock_fake.py` with an `airlock_server` fixture in conftest.
+- Plan and Route Reference updated; phase 2 (the EdgeCase side) is complete.
+
 ### 2026-09-27 — AirLock phase 2, part 3: screens and admin-channel client (branch `airlock`)
 
 - `web/blueprints/airlock.py` (12th blueprint, 11 routes): invitations page
