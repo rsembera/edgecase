@@ -1,5 +1,22 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock deployed to Sentinel (hostname pending) (branch `airlock`)
+
+AirLock runs on Sentinel as a systemd user service (like Palestra): public
+listener on 127.0.0.1:8093 for nginx, admin listener on the Tailscale address
+only (100.116.129.95:8094, verified unreachable from the LAN), data in
+`~/.local/share/airlock`. `git push sentinel main` from the AirLock repo
+deploys through a post-receive hook (checkout, venv refresh, restart, failure
+report). The repo's new `deploy/` holds the unit, the hook, the nginx
+template and `setup_nginx.sh` (vhost + Let's Encrypt, with rollback), and the
+README gains a Deployment section for self-hosters. The nginx config was
+exercised in a container against the live service: only the page, its two
+endpoints and static files pass; the admin API, the root and traversal get
+404 from nginx; oversized bodies 413; HSTS on; no access log. Pending: DNS
+for the public hostname, running the setup script, generating the real admin
+key. Plan doc corrected where it no longer matched the build (housekeeping
+runs inside the service, not a timer; logging is off for the whole vhost).
+
 ### 2026-09-27 — AirLock phase 3: the client form pages, tested in a real browser (branch `airlock`)
 
 The AirLock server now serves the pages a client actually uses (private repo
