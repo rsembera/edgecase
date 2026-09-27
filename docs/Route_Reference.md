@@ -7,10 +7,10 @@
 
 ## OVERVIEW
 
-EdgeCase has 134 routes: 130 across 12 blueprints, plus 4 app-level routes registered directly on the Flask app. (Counts taken from the live route map on 2026-09-27; several blueprints had grown since August without the counts following. Individual entries below predate that check and may not list every route.)
+EdgeCase has 135 routes: 131 across 12 blueprints, plus 4 app-level routes registered directly on the Flask app. (Counts taken from the live route map on 2026-09-27; several blueprints had grown since August without the counts following. Individual entries below predate that check and may not list every route.)
 
 1. **ai_bp** - AI Scribe functionality (11 routes)
-2. **airlock_bp** - AirLock online intake: invitations, review and import, settings (11 routes)
+2. **airlock_bp** - AirLock online intake: invitations, review and import, forms, settings (12 routes)
 3. **auth_bp** - Login/logout, session management, crypto migration, recovery keys (18 routes)
 4. **backups_bp** - Backup/restore operations (10 routes)
 5. **clients_bp** - Client management and file viewing (11 routes)
@@ -180,6 +180,7 @@ after the import commits.
 | `/airlock/review/<id>` | GET | Decrypt, validate, show; duplicates flagged; nothing written |
 | `/airlock/review/<id>/import` | POST | Import (all-or-nothing), then delete from server |
 | `/airlock/review/<id>/discard` | POST | Revoke and delete the submissions from the server |
+| `/airlock/forms` | GET, POST | Field visibility, required, labels; own questions; consent text. Saving pushes the bundle |
 | `/airlock/unmatched/delete` | POST | Remove submissions for tokens EdgeCase has no record of |
 | `/api/airlock_settings` | GET, POST | Server address, client form address, admin key (write-only), expiry; `{"disable": true}` turns off |
 | `/api/airlock_test` | POST | Connect and push the public key |

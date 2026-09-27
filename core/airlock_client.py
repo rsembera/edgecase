@@ -86,6 +86,11 @@ class AirLockClient:
         self._request("PUT", "/admin/public-key",
                       {"key_id": key_id, "public_key": public_key})
 
+    def put_config(self, bundle):
+        """Branding, field settings, questions and consent text (see
+        core/airlock_config.build_bundle). Replaces the server's copy."""
+        self._request("PUT", "/admin/config", bundle)
+
     def create_invitation(self, inv):
         self._request("POST", "/admin/invitations", {
             "token_hash": inv["token_hash"],
