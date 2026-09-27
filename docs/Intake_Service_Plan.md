@@ -10,8 +10,12 @@ bundle done (`core/airlock_config.py`, the Forms page). **Phase 2 complete.**
 Phase 3 (the server, repo `edgecase-airlock`): server core and admin API done
 and tested end to end against EdgeCase; client form pages done
 (`airlock/static/`: WebCrypto in `crypto.js`, tested in Node and in Chromium
-through EdgeCase import). Next: deployment to Sentinel (nginx, systemd,
-admin listener on the Tailscale address).
+through EdgeCase import). Deployed 2026-09-27: running on Sentinel as a
+user service (public listener 127.0.0.1:8093 behind nginx; admin listener
+100.116.129.95:8094, Tailscale only), deployed by `git push sentinel main`;
+deployment files and steps in the AirLock repo's `deploy/` and README.
+Pending: public hostname (DNS, then `deploy/setup_nginx.sh`), the real admin
+key, and Richard's first live test.
 
 **Admin API as EdgeCase calls it** (the server must match): `PUT
 /admin/public-key {key_id, public_key}`; `PUT /admin/config <bundle>` (see
@@ -247,9 +251,10 @@ bearer key held in EdgeCase settings):**
   64 KB).
 - Strict CSP (`default-src 'self'`, no inline code, Trusted Types required), `Referrer-Policy: no-referrer`,
   `Cache-Control: no-store`, HSTS, no cookies at all.
-- nginx access logging off for the `/i` location (the fragment keeps the
-  token out of logs anyway; this also keeps client IPs out).
-- Housekeeping job (systemd timer): delete expired invitations, and delete
+- nginx access logging off for the whole AirLock vhost (the fragment keeps
+  the token out of logs anyway; this also keeps client IPs out). nginx
+  proxies only `/i`, `/i/unlock`, `/i/submit` and `/static/<file>`.
+- Housekeeping (hourly, inside the service): delete expired invitations, and delete
   any submission older than 30 days that was never imported.
 - Deploy: `git push` to Sentinel like the website; systemd unit;
   SQLite for the tables above.
