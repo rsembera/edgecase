@@ -192,11 +192,12 @@ class AirLockMixin:
         return self.get_intake_invitation(cur.lastrowid)
 
     def revoke_intake_invitation(self, invitation_id, now=None) -> bool:
-        """Revoke an open invitation. Returns False if it was already closed
-        (imported, complete, revoked); revoking an expired one is allowed and
-        just records the decision."""
+        """Close an invitation without importing it: revoking an open one, or
+        discarding a complete one on the review screen. Returns False if it
+        was already imported or revoked. Revoking an expired one is allowed
+        and just records the decision."""
         inv = self.get_intake_invitation(invitation_id)
-        if inv is None or inv["status"] not in OPEN_STATUSES:
+        if inv is None or inv["status"] not in OPEN_STATUSES + ("complete",):
             return False
         now = int(time.time()) if now is None else now
         conn = self.connect()
@@ -233,3 +234,14 @@ class AirLockMixin:
                      "client_id = ?, imported_at = ? WHERE id = ?",
                      (client_id, now, invitation_id))
         conn.commit()
+
+    def delete_unsent_intake_invitation(self, invitation_id) -> bool:
+        """Remove an invitation the server never accepted. Only an 'issued'
+        invitation with no forms received qualifies: it was never delivered
+        to anyone, so there is nothing to keep a record of."""
+        conn = self.connect()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM intake_invitations WHERE id = ? AND "
+                    "status = 'issued' AND forms_done = ''", (invitation_id,))
+        conn.commit()
+        return cur.rowcount == 1

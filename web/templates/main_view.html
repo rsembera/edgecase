@@ -140,6 +140,11 @@
                 <a href="{{ url_for('clients.add_client') }}" class="dropdown-item">
                     <i data-lucide="plus" class="icon-sm icon-inline"></i>Add Client
                 </a>
+                {% if airlock_enabled %}
+                <a href="{{ url_for('airlock.invitations') }}" class="dropdown-item">
+                    <i data-lucide="inbox" class="icon-sm icon-inline"></i>AirLock
+                </a>
+                {% endif %}
                 <a href="{{ url_for('types.manage_types') }}" class="dropdown-item">
                     <i data-lucide="tag" class="icon-sm icon-inline"></i>Edit Types
                 </a>

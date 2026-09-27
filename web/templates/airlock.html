@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}AirLock - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/airlock.css', v=static_v) }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h2><i data-lucide="inbox" class="page-icon"></i>AirLock</h2>
+            <p class="page-subtitle">Online intake and consent for new clients</p>
+        </div>
+        <a href="{{ url_for('clients.index') }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+
+    {% if message %}<div class="al-notice {{ message[0] }}">{{ message[1] }}</div>{% endif %}
+    {% if error %}<div class="al-notice error">{{ error }}</div>{% endif %}
+    {% if checked is not none %}
+    <div class="al-notice ok">Checked the server: {{ checked }} submission{{ '' if checked == 1 else 's' }} waiting.</div>
+    {% endif %}
+    {% if unmatched %}
+    <div class="al-notice warn">
+        {{ unmatched }} submission{{ '' if unmatched == 1 else 's' }} on the server belong{{ 's' if unmatched == 1 else '' }}
+        to no invitation in EdgeCase (for example after restoring an older backup) and cannot be opened.
+        <form method="post" action="{{ url_for('airlock.delete_unmatched') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-small btn-danger">Remove from server</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Ready to review -->
+    <div class="al-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+            <h3>Ready to review</h3>
+            <form method="post" action="{{ url_for('airlock.check') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-small">
+                    <i data-lucide="refresh-cw" class="icon-sm icon-inline"></i>Check for submissions
+                </button>
+            </form>
+        </div>
+        {% if ready %}
+        <div class="al-table-wrap"><table class="al-table">
+            <thead><tr><th>Invited</th><th>Issued</th><th>Forms</th><th></th></tr></thead>
+            <tbody>
+            {% for r in ready %}
+            <tr>
+                <td>{{ r.display_name }}{% if r.is_minor %} <span class="al-muted">(minor)</span>{% endif %}</td>
+                <td>{{ r.issued_fmt }}</td>
+                <td>{{ r.forms_done|join(', ') }}</td>
+                <td class="al-actions"><a class="btn-small" href="{{ url_for('airlock.review', invitation_id=r.id) }}">Review</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        {% else %}
+        <p class="al-empty">Nothing waiting. Use “Check for submissions” to look for new ones.</p>
+        {% endif %}
+    </div>
+
+    <!-- Issue -->
+    <div class="al-section">
+        <h3>New invitation</h3>
+        <form method="post" action="{{ url_for('airlock.issue') }}" class="al-issue">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="display_name">Name (for your reference)</label>
+                    <input type="text" id="display_name" name="display_name" maxlength="200" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email (optional)</label>
+                    <input type="email" id="email" name="email" maxlength="254">
+                </div>
+            </div>
+            <div class="al-inline">
+                <label><input type="radio" name="forms" value="both" checked> Intake and consent</label>
+                <label><input type="radio" name="forms" value="intake"> Intake only</label>
+                <label><input type="checkbox" name="is_minor" value="1"> Client is a minor</label>
+                <label>Expires after <input type="number" name="ttl_days" min="1" max="90" value="{{ ttl_days }}" style="width:4.5rem"> days</label>
+            </div>
+            <p class="al-muted">The client gets a link and a 6-digit PIN. Send the link by email and give the PIN another way, such as on your consultation call.</p>
+            <button type="submit" class="btn">Create invitation</button>
+        </form>
+    </div>
+
+    <!-- Open -->
+    <div class="al-section">
+        <h3>Waiting for the client</h3>
+        {% if open_rows %}
+        <div class="al-table-wrap"><table class="al-table">
+            <thead><tr><th>Invited</th><th>Status</th><th>Expires</th><th></th></tr></thead>
+            <tbody>
+            {% for r in open_rows %}
+            <tr>
+                <td>{{ r.display_name }}{% if r.email %} <span class="al-muted">{{ r.email }}</span>{% endif %}</td>
+                <td><span class="status-badge {{ 'issued' if r.effective_status == 'issued' else 'partial' }}">
+                    {{ 'Sent' if r.effective_status == 'issued' else 'Partly done' }}</span></td>
+                <td>{{ r.expires_fmt }}</td>
+                <td class="al-actions"><a class="btn-small btn-secondary" href="{{ url_for('airlock.invitation', invitation_id=r.id) }}">Link &amp; PIN</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        {% else %}
+        <p class="al-empty">No open invitations.</p>
+        {% endif %}
+    </div>
+
+    <!-- History -->
+    {% if closed %}
+    <div class="al-section">
+        <h3>Recent</h3>
+        <div class="al-table-wrap"><table class="al-table">
+            <thead><tr><th>Invited</th><th>Status</th><th>Issued</th></tr></thead>
+            <tbody>
+            {% for r in closed %}
+            <tr>
+                <td>{% if r.effective_status == 'imported' and r.client_id %}<a href="{{ url_for('clients.client_file', client_id=r.client_id) }}">{{ r.display_name }}</a>{% else %}{{ r.display_name }}{% endif %}</td>
+                <td><span class="status-badge {{ r.effective_status }}">{{ r.effective_status|capitalize }}</span></td>
+                <td>{{ r.issued_fmt }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
