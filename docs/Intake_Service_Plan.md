@@ -1,6 +1,6 @@
 # AirLock — Online Intake & Consent Design Plan
 
-**Status:** DESIGN, 2026-09-24. Not started. Nothing here is built.
+**Status:** Design approved 2026-09-27. Phase 2 (EdgeCase side) in progress on branch `airlock`.
 **Name:** AirLock (repo `edgecase-airlock`, deployed to Sentinel).
 **Source forms:** `/home/rick/Nexus/intake-consent-forms/Intake.pdf` and
 `Consent.pdf` (Apollo). Their wording is the content; this plan is only the
@@ -284,23 +284,22 @@ can be exercised end to end with the test harness before Sentinel exists.
   days). Deferred: receipts are emailed today and no client has asked for
   anything else. Revisit if one does.
 
-## Open questions for Richard
+## Decisions (2026-09-27)
 
-1. **Gender:** add a `gender` column to the Profile, or fold the answer into
-   `additional_info`?
-2. **Existing clients:** should invitations also work for a current client
-   (re-consent after a fee or policy change), updating their Profile? The
-   table allows it; the import UI would need a "review changes" step.
-3. **Expiry:** 14 days right?
-4. **Import trigger:** manual button only, or also a check on login?
-5. **Text-reminder consent:** add an optional "OK to send appointment
-   reminders by text" checkbox to the intake now, so the possible reminder
-   service (see `Reminder_Service_Plan.md`) has consent on file from the
-   start?
-6. **Where the consent lives in EdgeCase** and what the import screen looks
-   like (review-before-commit, or straight in). Default assumption: consent
-   PDF attached to the Profile entry. To decide before phase 2.
-7. **Is AirLock public?** Either way, the EdgeCase side ships dormant: no
-   menu item, no import button, nothing in Settings beyond an "AirLock
-   server" field, until a server is configured. Users who never run AirLock
-   never see a feature with no obvious use.
+Phase 1 closed. Richard's answers to the open questions:
+
+1. **Gender:** new `gender` column on `clients`; the web label is editable
+   (e.g. "Pronouns").
+2. **Existing clients:** invitations are for new clients only. Current
+   clients already have consent on file; no re-consent flow.
+3. **Expiry:** 14 days (configurable).
+4. **Import trigger:** manual button only.
+5. **Text-reminder checkbox:** not added. Consent text is versioned, so it
+   can be added if the reminder service is ever built.
+6. **Consent placement and import:** consent PDF attached to the Profile
+   entry. Each submission is shown on a review screen (Import / Discard)
+   before anything is written; the review flags a possible duplicate when a
+   client with the same name exists.
+7. **Publication:** the AirLock repo stays private until the adversarial
+   pass is done, then goes public. The EdgeCase side ships dormant (no UI
+   beyond an "AirLock server" setting) until a server is configured.
