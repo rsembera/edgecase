@@ -1,5 +1,18 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock: end-to-end test against the real server (branch `airlock`)
+
+The AirLock server core now exists (private repo `rsembera/edgecase-airlock`,
+94 tests of its own). `tests/test_airlock_server_integration.py` runs EdgeCase
+against it over real HTTP, with nothing stubbed: EdgeCase's Test connection
+and Create invitation push key, bundle and invitation to the real admin
+listener; the test plays the client's browser against the public listener
+(unlock, encrypt, submit); EdgeCase then checks, reviews and imports through
+its own screens. It also asserts the server's database file contains no
+name, email, token or PIN, and that the link is dead after import. Skipped
+when the AirLock repo is not checked out alongside. Verified to go red on a
+one-character drift in the server's bundle hashing.
+
 ### 2026-09-27 — AirLock phase 2, part 4: form customization; phase 2 complete (branch `airlock`)
 
 - `core/airlock_config.py` and the Forms page (`/airlock/forms`, linked from
