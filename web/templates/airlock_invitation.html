@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}AirLock Invitation - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/airlock.css', v=static_v) }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h2><i data-lucide="inbox" class="page-icon"></i>{{ inv.display_name }}</h2>
+            <p class="page-subtitle">
+                {{ 'Intake and consent' if 'consent' in inv.required_forms else 'Intake only' }}{% if inv.is_minor %} · minor{% endif %}
+                · issued {{ inv.issued_fmt }} · expires {{ inv.expires_fmt }}
+            </p>
+        </div>
+        <a href="{{ url_for('airlock.invitations') }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+
+    {% if message %}<div class="al-notice {{ message[0] }}">{{ message[1] }}</div>{% endif %}
+    {% if is_new %}<div class="al-notice ok">Invitation created. Send the link by email; give the PIN another way.</div>{% endif %}
+
+    {% if inv.effective_status in ('issued', 'partial') %}
+    <div class="al-section">
+        <h3>Link</h3>
+        {% if link %}
+        <div class="al-copy-row">
+            <div class="al-secret" id="al-link">{{ link }}</div>
+            <button type="button" class="btn-small" onclick="alCopy('al-link', this)">Copy</button>
+        </div>
+        {% else %}
+        <div class="al-notice warn">Set the client form address in Settings → AirLock to see the full link.</div>
+        {% endif %}
+
+        <h3>PIN</h3>
+        <div class="al-copy-row">
+            <div class="al-pin" id="al-pin">{{ inv.pin }}</div>
+        </div>
+        <p class="al-muted">Anyone with both the link and the PIN can fill in the forms as this client, until they are submitted or the link expires.</p>
+    </div>
+
+    <div class="al-buttons">
+        <form method="post" action="{{ url_for('airlock.revoke', invitation_id=inv.id) }}"
+              onsubmit="return confirm('Revoke this invitation? The link will stop working.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">Revoke</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="al-section">
+        <p>This invitation is <span class="status-badge {{ inv.effective_status }}">{{ inv.effective_status }}</span>; its link no longer works.</p>
+        {% if inv.effective_status == 'complete' %}
+        <a class="btn" href="{{ url_for('airlock.review', invitation_id=inv.id) }}">Review submission</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function alCopy(id, btn) {
+    const text = document.getElementById(id).textContent.trim();
+    navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+}
+</script>
+{% endblock %}

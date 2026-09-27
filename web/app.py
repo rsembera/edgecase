@@ -71,6 +71,7 @@ from web.blueprints.scheduler import scheduler_bp
 from web.blueprints.statements import statements_bp
 from web.blueprints.backups import backups_bp
 from web.blueprints.ai import ai_bp
+from web.blueprints.airlock import airlock_bp
 
 from flask_wtf.csrf import CSRFProtect
 
@@ -298,6 +299,7 @@ def init_all_blueprints(db):
     from web.blueprints.links import init_blueprint as init_links
     from web.blueprints.backups import init_blueprint as init_backups
     from web.blueprints.ai import init_blueprint as init_ai
+    from web.blueprints.airlock import init_blueprint as init_airlock
     
     init_clients(db)
     init_entries(db)
@@ -309,6 +311,7 @@ def init_all_blueprints(db):
     init_links(db)
     init_backups(db)
     init_ai(db)
+    init_airlock(db)
 
 # Ensure data directory exists
 from core.config import DATA_DIR
@@ -326,6 +329,7 @@ app.register_blueprint(scheduler_bp)
 app.register_blueprint(statements_bp, url_prefix='/statements')
 app.register_blueprint(backups_bp)
 app.register_blueprint(ai_bp)
+app.register_blueprint(airlock_bp)
 
 from datetime import datetime         
 

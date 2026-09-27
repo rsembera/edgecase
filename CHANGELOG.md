@@ -1,5 +1,36 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock phase 2, part 3: screens and admin-channel client (branch `airlock`)
+
+- `web/blueprints/airlock.py` (12th blueprint, 11 routes): invitations page
+  (ready to review / new invitation / waiting / recent), link-and-PIN page,
+  review screen (decrypt, validate, duplicate warning; Import or Discard),
+  Settings → AirLock (server address, client form address, write-only admin
+  key, expiry, test connection, turn off). Dormant until configured: no menu
+  item, and every page redirects to Settings. Submissions are never cached;
+  import deletes them from the server only after the client file commits,
+  and a failed delete heals at the next check.
+- `core/airlock_client.py`: the admin API over urllib (no new dependency).
+  Invitations go up as token hash + PIN only; a test asserts the server
+  never receives a name, email or token. Every failure becomes one
+  displayable error.
+- Found by the new transport tests: `urllib.parse.quote` leaves `/`
+  unescaped, so an ID containing `../` could have redirected an admin
+  DELETE to a different route. Now `safe=""`; verified red first.
+- Found by the settings tests: an expiry of 0 was silently replaced by the
+  default rather than rejected. Fixed.
+- Invitations that the server refuses are deleted rather than left
+  "issued"; Discard can now close a complete invitation.
+- Tests: 27 route tests against an in-memory stand-in server (full flow,
+  automatic and manual numbering, collision, cleanup failure and healing,
+  tampered and version-mislabelled submissions, invalid submissions, discard,
+  hostile text escaped in the review page, unmatched submissions, CSRF token
+  on every form) and 21 transport tests against a real local HTTP server.
+- Docs: Route Reference gains the AirLock section and corrected counts from
+  the live route map (134 routes; several blueprints had outgrown their
+  August counts). The plan now records the admin API exactly as EdgeCase
+  calls it, for the server to match.
+
 ### 2026-09-27 — AirLock phase 2, part 2: validation, import, PDFs; file numbers shared (branch `airlock`)
 
 Still nothing visible in the app; screens come next.

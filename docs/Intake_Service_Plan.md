@@ -3,8 +3,19 @@
 **Status:** Design approved 2026-09-27. Phase 2 (EdgeCase side) in progress on branch `airlock`:
 crypto, keypair storage and invitations done (`core/airlock_crypto.py`,
 `core/db/airlock.py`); validation, mapping, PDFs and the all-or-nothing import
-done (`core/airlock_import.py`, `pdf/airlock_records.py`); screens (Settings →
-AirLock, invitations, review) and the server connection next.
+done (`core/airlock_import.py`, `pdf/airlock_records.py`); screens and the
+admin-channel client done (`web/blueprints/airlock.py`, `core/airlock_client.py`),
+tested against an in-memory stand-in server. Remaining in phase 2: the
+customization settings (fields, labels, questions, consent text) and the config
+push. Then phase 3, the server itself.
+
+**Admin API as EdgeCase calls it** (the server must match): `PUT
+/admin/public-key {key_id, public_key}`; `POST /admin/invitations {token_hash,
+pin, required_forms, is_minor, expires_at, key_id}`; `DELETE
+/admin/invitations/<token_hash>`; `GET /admin/submissions → {"submissions":
+[{id, token_hash, form, key_id, config_version, consent_version, envelope,
+received_at}]}` (`envelope` is the JSON text the browser produced); `DELETE
+/admin/submissions/<id>`. Bearer auth; path segments fully percent-encoded.
 **Name:** AirLock (repo `edgecase-airlock`, deployed to Sentinel).
 **Source forms:** `/home/rick/Nexus/intake-consent-forms/Intake.pdf` and
 `Consent.pdf` (Apollo). Their wording is the content; this plan is only the

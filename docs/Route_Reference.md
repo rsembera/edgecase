@@ -1,25 +1,26 @@
 # EdgeCase Equalizer - Route Reference
 
 **Purpose:** Complete route listings organized by blueprint  
-**Last Updated:** August 9, 2026
+**Last Updated:** September 27, 2026
 
 ---
 
 ## OVERVIEW
 
-EdgeCase has 111 routes: 107 across 11 blueprints, plus 4 app-level routes registered directly on the Flask app.
+EdgeCase has 134 routes: 130 across 12 blueprints, plus 4 app-level routes registered directly on the Flask app. (Counts taken from the live route map on 2026-09-27; several blueprints had grown since August without the counts following. Individual entries below predate that check and may not list every route.)
 
-1. **ai_bp** - AI Scribe functionality (10 routes)
-2. **auth_bp** - Login/logout, session management, crypto migration, recovery keys (10 routes)
-3. **backups_bp** - Backup/restore operations (10 routes)
-4. **clients_bp** - Client management and file viewing (11 routes)
-5. **entries_bp** - Entry CRUD operations (16 routes)
-6. **ledger_bp** - Income/Expense tracking (13 routes)
-7. **links_bp** - Link group management (4 routes)
-8. **statements_bp** - Statement generation, payment allocation (11 routes)
-9. **scheduler_bp** - Calendar integration (1 route)
-10. **types_bp** - Client type management (4 routes)
-11. **settings_bp** - Settings and configuration (17 routes)
+1. **ai_bp** - AI Scribe functionality (11 routes)
+2. **airlock_bp** - AirLock online intake: invitations, review and import, settings (11 routes)
+3. **auth_bp** - Login/logout, session management, crypto migration, recovery keys (18 routes)
+4. **backups_bp** - Backup/restore operations (10 routes)
+5. **clients_bp** - Client management and file viewing (11 routes)
+6. **entries_bp** - Entry CRUD operations (16 routes)
+7. **ledger_bp** - Income/Expense tracking (13 routes)
+8. **links_bp** - Link group management (4 routes)
+9. **statements_bp** - Statement generation, payment allocation (12 routes)
+10. **scheduler_bp** - Calendar integration (1 route)
+11. **types_bp** - Client type management (4 routes)
+12. **settings_bp** - Settings and configuration (19 routes)
 
 Plus **app.py** - Session/restore APIs (4 app-level routes, not a blueprint).
 
@@ -155,6 +156,36 @@ def scribe_save(entry_id)
 **Purpose:** Save AI-generated content back to session entry
 
 **Returns:** Redirect to client file
+
+---
+
+## AIRLOCK BLUEPRINT
+
+**Prefix:** None (mounted at root)  
+**File:** `~/Applications/edgecase/web/blueprints/airlock.py`
+
+Dormant until an AirLock server is configured (`core/airlock_client.is_enabled`):
+every page route redirects to `/settings#airlock` until then. See
+`docs/Intake_Service_Plan.md`. Submissions are never cached: review and import
+fetch and decrypt from the server each time, and delete from the server only
+after the import commits.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/airlock` | GET | Invitations: ready to review, issue form, open, recent |
+| `/airlock/check` | POST | Fetch submissions, record forms received, clean up imported/revoked |
+| `/airlock/invitations` | POST | Issue: create locally, push hash + PIN; deleted again if the push fails |
+| `/airlock/invitations/<id>` | GET | Link and PIN for an open invitation |
+| `/airlock/invitations/<id>/revoke` | POST | Revoke here and on the server |
+| `/airlock/review/<id>` | GET | Decrypt, validate, show; duplicates flagged; nothing written |
+| `/airlock/review/<id>/import` | POST | Import (all-or-nothing), then delete from server |
+| `/airlock/review/<id>/discard` | POST | Revoke and delete the submissions from the server |
+| `/airlock/unmatched/delete` | POST | Remove submissions for tokens EdgeCase has no record of |
+| `/api/airlock_settings` | GET, POST | Server address, client form address, admin key (write-only), expiry; `{"disable": true}` turns off |
+| `/api/airlock_test` | POST | Connect and push the public key |
+
+Result messages after a redirect are fixed codes (`?msg=revoked` etc., see
+`MESSAGES`), never free text.
 
 ---
 

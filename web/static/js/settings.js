@@ -1505,6 +1505,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadSecuritySettings();
         loadCalendarSettings();
         loadInsuranceProviders();
+        loadAirLockSettings();
         loadStatementSettings();
         loadTimeFormat();
         loadAIStatus();
@@ -1792,4 +1793,68 @@ async function removeProvider(providerId) {
             }
         }
     );
+}
+
+// ============================================================
+// AIRLOCK
+// ============================================================
+
+async function loadAirLockSettings() {
+    try {
+        const r = await fetch('/api/airlock_settings');
+        const d = await r.json();
+        document.getElementById('airlock_server_url').value = d.server_url || '';
+        document.getElementById('airlock_public_url').value = d.public_url || '';
+        document.getElementById('airlock_ttl_days').value = d.ttl_days || 14;
+        document.getElementById('airlock_key_hint').textContent = d.has_admin_key
+            ? 'A key is saved. Leave blank to keep it.'
+            : "From your AirLock server's setup";
+        document.getElementById('airlock_disable').style.display =
+            (d.server_url && d.has_admin_key) ? '' : 'none';
+    } catch (e) {
+        console.error('Failed to load AirLock settings:', e);
+    }
+}
+
+async function saveAirLockSettings() {
+    const r = await fetch('/api/airlock_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            server_url: document.getElementById('airlock_server_url').value,
+            public_url: document.getElementById('airlock_public_url').value,
+            admin_key: document.getElementById('airlock_admin_key').value,
+            ttl_days: document.getElementById('airlock_ttl_days').value
+        })
+    });
+    const d = await r.json();
+    if (d.success) {
+        document.getElementById('airlock_admin_key').value = '';
+        showSectionStatus('airlock-status');
+        loadAirLockSettings();
+    } else {
+        showSectionStatus('airlock-status', '✗ ' + (d.error || 'Not saved'));
+    }
+}
+
+async function testAirLock() {
+    showSectionStatus('airlock-status', 'Connecting…');
+    try {
+        const r = await fetch('/api/airlock_test', { method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const d = await r.json();
+        showSectionStatus('airlock-status', d.success ? '✓ Connected' : '✗ ' + d.error);
+    } catch (e) {
+        showSectionStatus('airlock-status', '✗ Could not reach EdgeCase');
+    }
+}
+
+async function disableAirLock() {
+    if (!confirm('Turn off AirLock? Invitations stay in EdgeCase; you can turn it back on later.')) return;
+    const r = await fetch('/api/airlock_settings', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ disable: true }) });
+    if ((await r.json()).success) {
+        showSectionStatus('airlock-status', '✓ Turned off');
+        loadAirLockSettings();
+    }
 }
