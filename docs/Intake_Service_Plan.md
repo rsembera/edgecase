@@ -2,8 +2,9 @@
 
 **Status:** Design approved 2026-09-27. Phase 2 (EdgeCase side) in progress on branch `airlock`:
 crypto, keypair storage and invitations done (`core/airlock_crypto.py`,
-`core/db/airlock.py`, `tests/test_airlock.py`); import, mapping, consent PDF
-and UI next.
+`core/db/airlock.py`); validation, mapping, PDFs and the all-or-nothing import
+done (`core/airlock_import.py`, `pdf/airlock_records.py`); screens (Settings →
+AirLock, invitations, review) and the server connection next.
 **Name:** AirLock (repo `edgecase-airlock`, deployed to Sentinel).
 **Source forms:** `/home/rick/Nexus/intake-consent-forms/Intake.pdf` and
 `Consent.pdf` (Apollo). Their wording is the content; this plan is only the
@@ -122,7 +123,7 @@ designed around this form):
 |---|---|
 | First / middle / last name (split on the web form) | `clients.first_name / middle_name / last_name` |
 | Date of birth | `date_of_birth` |
-| Gender (optional) | new `gender` column on the Profile entry (decision 1) |
+| Gender (optional) | the Profile's existing Gender field (stored in the Profile entry's `content`) |
 | Address | `address` |
 | Home / Work / Cell | `home_phone / work_phone / phone` |
 | Email | `email` |
@@ -296,17 +297,23 @@ can be exercised end to end with the test harness before Sentinel exists.
 
 Phase 1 closed. Richard's answers to the open questions:
 
-1. **Gender:** new `gender` column on the Profile entry (`entries`, where
-   the other Profile fields live); the web label is editable
+1. **Gender:** *(revised in build)* the Profile already has a Gender field
+   (kept in the Profile entry's `content`), so no new column; the web label
+   is editable
    (e.g. "Pronouns").
 2. **Existing clients:** invitations are for new clients only. Current
-   clients already have consent on file; no re-consent flow.
+   clients already have consent on file; no re-consent flow. It follows that
+   every invitation includes the intake (it supplies the client's name):
+   the choices are intake + consent, or intake only.
 3. **Expiry:** 14 days (configurable).
 4. **Import trigger:** manual button only.
 5. **Text-reminder checkbox:** not added. Consent text is versioned, so it
    can be added if the reminder service is ever built.
-6. **Consent placement and import:** consent PDF attached to the Profile
-   entry. Each submission is shown on a review screen (Import / Discard)
+6. **Consent placement and import:** *(revised in build)* the Profile
+   screen cannot show attachments, so import creates a locked **Upload**
+   entry, "Intake & consent (AirLock)", carrying the intake PDF and the
+   signed consent PDF, with provenance notes (invitation, typed names,
+   versions). Each submission is shown on a review screen (Import / Discard)
    before anything is written; the review flags a possible duplicate when a
    client with the same name exists.
 7. **Publication:** the AirLock repo stays private until the adversarial

@@ -1,5 +1,36 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock phase 2, part 2: validation, import, PDFs; file numbers shared (branch `airlock`)
+
+Still nothing visible in the app; screens come next.
+
+- `core/airlock_import.py`: parses decrypted intake and consent submissions
+  as hostile input (known keys only, strings only, control and bidi
+  characters stripped, lengths capped, dates and choices checked against the
+  Profile's own values), reporting every problem at once. Maps the intake
+  onto the Profile exactly as the Profile form stores it (gender in
+  `content`, "Cell" is `phone`); up to five custom questions are appended to
+  Additional Information; minors get guardian 1 at 100%. Flags possible
+  duplicates by name or email.
+- `import_client()` is all-or-nothing: PDFs rendered and file number chosen
+  before the first write; client, Profile, a locked Upload entry
+  ("Intake & consent (AirLock)") with both PDFs attached, and the invitation
+  update then go through one cursor and one commit. Any failure rolls back
+  and deletes files already written; the invitation stays importable.
+  Verified red with the rollback removed.
+- `pdf/airlock_records.py`: intake and consent PDFs on the statement
+  letterhead. Every submitted string escaped; consent text rendered from a
+  safe Markdown subset. Verified red with escaping removed.
+- `core/file_numbers.py`: file numbering moved out of the Add Client route
+  so AirLock numbers clients identically. The route's behaviour was pinned
+  first by `tests/test_file_numbers.py` (nothing tested it before) and the
+  same tests pass after the move. Two small tightenings: an empty manual
+  number and a collision under an unknown format are now refused.
+- Invitations must include the intake form (new clients only: it supplies
+  the name). Plan updated: the Profile already had a Gender field, so no
+  migration; the consent lives on an Upload entry because the Profile screen
+  cannot show attachments.
+
 ### 2026-09-27 — AirLock phase 2, part 1: submission crypto, keypair, invitations (branch `airlock`)
 
 First code for AirLock (docs/Intake_Service_Plan.md). Nothing is visible in
