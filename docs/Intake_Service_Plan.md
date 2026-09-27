@@ -7,7 +7,11 @@ done (`core/airlock_import.py`, `pdf/airlock_records.py`); screens and the
 admin-channel client done (`web/blueprints/airlock.py`, `core/airlock_client.py`),
 tested against an in-memory stand-in server; form customization and the config
 bundle done (`core/airlock_config.py`, the Forms page). **Phase 2 complete.**
-Next: phase 3, the server itself.
+Phase 3 (the server, repo `edgecase-airlock`): server core and admin API done
+and tested end to end against EdgeCase; client form pages done
+(`airlock/static/`: WebCrypto in `crypto.js`, tested in Node and in Chromium
+through EdgeCase import). Next: deployment to Sentinel (nginx, systemd,
+admin listener on the Tailscale address).
 
 **Admin API as EdgeCase calls it** (the server must match): `PUT
 /admin/public-key {key_id, public_key}`; `PUT /admin/config <bundle>` (see
@@ -241,7 +245,7 @@ bearer key held in EdgeCase settings):**
   wrong PINs lock the invitation; Richard reissues from EdgeCase.
 - Request size cap (ciphertext for a one-page form is a few KB; cap at
   64 KB).
-- Strict CSP (`default-src 'self'`), `Referrer-Policy: no-referrer`,
+- Strict CSP (`default-src 'self'`, no inline code, Trusted Types required), `Referrer-Policy: no-referrer`,
   `Cache-Control: no-store`, HSTS, no cookies at all.
 - nginx access logging off for the `/i` location (the fragment keeps the
   token out of logs anyway; this also keeps client IPs out).

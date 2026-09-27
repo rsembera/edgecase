@@ -65,7 +65,9 @@ def test_every_imported_third_party_package_is_declared(imported_app_modules,
                 "packaging", "exceptiongroup", "idna", "typing_extensions",
                 "distutils", "more_itertools", "pygments", "tomli", "jaraco",
                 "backports", "importlib_metadata", "zipp", "platformdirs",
-                "wheel", "py2app", "macholib", "modulegraph", "altgraph"}
+                "wheel", "py2app", "macholib", "modulegraph", "altgraph",
+                # the AirLock browser tests (Chromium via Playwright)
+                "playwright", "pyee", "greenlet"}
     assert not missing, f"undeclared runtime packages: {sorted(missing)}"
 
 
