@@ -59,8 +59,12 @@ def _portion(db, statement_entry_id, client_id, amount_due=150.0):
 
 def _seed_full_client(client, app_db, file_number="RET-001"):
     """A client with a statement, a portion, a recorded payment (which creates
-    a payment_allocations row) and an attachment row."""
+    a payment_allocations row), an attachment row, and the AirLock invitation
+    the client was imported through."""
     cid = _client(app_db, file_number)
+    inv = app_db.create_intake_invitation(f"Invitee {file_number}",
+                                          email="invitee@example.com")
+    app_db.mark_intake_imported(inv["id"], cid)
     stmt = _statement(app_db, cid)
     portion = _portion(app_db, stmt, cid)
 
@@ -100,6 +104,9 @@ def _counts_for(app_db, client_id):
     cur.execute("SELECT COUNT(*) FROM payment_allocations WHERE client_id = ?",
                 (client_id,))
     out['payment_allocations'] = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM intake_invitations WHERE client_id = ?",
+                (client_id,))
+    out['intake_invitations'] = cur.fetchone()[0]
     cur.execute("""
         SELECT COUNT(*) FROM attachments a
         WHERE NOT EXISTS (SELECT 1 FROM entries e WHERE e.id = a.entry_id)
@@ -121,6 +128,18 @@ def test_disposal_removes_payment_allocations(client, app_db):
     assert after['payment_allocations'] == 0
 
 
+def test_disposal_removes_airlock_invitation(client, app_db):
+    """An imported invitation references clients(id); with foreign keys on it
+    blocked the whole disposal, and it carries the name and email the client
+    was invited under."""
+    cid = _seed_full_client(client, app_db, file_number="RET-AIR")
+    assert _counts_for(app_db, cid)['intake_invitations'] == 1
+
+    assert app_db.archive_and_delete_client(cid) is True
+
+    assert _counts_for(app_db, cid)['intake_invitations'] == 0
+
+
 def test_disposal_leaves_nothing_of_the_client(client, app_db):
     """The whole sweep, so a newly added table fails here rather than silently
     joining the leftovers."""
@@ -134,6 +153,7 @@ def test_disposal_leaves_nothing_of_the_client(client, app_db):
         'entries': 0,
         'statement_portions': 0,
         'payment_allocations': 0,
+        'intake_invitations': 0,
         'orphaned_attachments': 0,
     }
 

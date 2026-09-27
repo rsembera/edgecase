@@ -23,6 +23,7 @@ from core.db.entries import EntryMixin
 from core.db.ledger import LedgerMixin
 from core.db.retention import RetentionMixin
 from core.db.providers import ProviderMixin
+from core.db.airlock import AirLockMixin
 from core.db.errors import EntryLockedError  # re-exported; defined in a leaf module to avoid an import cycle with EntryMixin
 
 # 2.0.3: the two-note system (2.0.2) was withdrawn. Text written into
@@ -30,7 +31,7 @@ from core.db.errors import EntryLockedError  # re-exported; defined in a leaf mo
 REFLECTIONS_DIVIDER = "\n\n--- Reflections (moved from the withdrawn Reflections field) ---\n"
 
 
-class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin, ProviderMixin):
+class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, ClientMixin, AllocationMixin, EntryMixin, LedgerMixin, RetentionMixin, ProviderMixin, AirLockMixin):
     """
     Database interface for EdgeCase.
     Manages all SQLite operations using Entry-based architecture.
@@ -602,6 +603,33 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
             cursor.execute("ALTER TABLE clients "
                            "ADD COLUMN provider_id INTEGER REFERENCES "
                            "insurance_providers(id)")
+
+        # AirLock invitations (online intake & consent; see core/db/airlock.py
+        # and docs/Intake_Service_Plan.md). Additive: the table appears on
+        # next launch and stays empty unless AirLock is used. token and pin
+        # are kept so Richard can re-read the link; the AirLock server only
+        # ever sees token_hash.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS intake_invitations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER,
+                display_name TEXT NOT NULL,
+                email TEXT,
+                token TEXT UNIQUE NOT NULL,
+                token_hash TEXT UNIQUE NOT NULL,
+                pin TEXT NOT NULL,
+                required_forms TEXT NOT NULL,
+                forms_done TEXT NOT NULL DEFAULT '',
+                is_minor INTEGER NOT NULL DEFAULT 0,
+                key_id TEXT NOT NULL,
+                issued_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'issued',
+                imported_at INTEGER,
+                revoked_at INTEGER,
+                FOREIGN KEY (client_id) REFERENCES clients(id)
+            )
+        """)
 
         # Indexes for the most common query patterns (CODE_REVIEW.md M3).
         # IF NOT EXISTS makes this idempotent, so running at every startup
