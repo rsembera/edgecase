@@ -1,5 +1,35 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-27 — AirLock phase 3: the client form pages, tested in a real browser (branch `airlock`)
+
+The AirLock server now serves the pages a client actually uses (private repo
+`rsembera/edgecase-airlock`, `airlock/static/`): enter the PIN, then the
+intake form under the practice letterhead and logo (labels, hidden fields,
+questions and the minor's guardian section as configured on the Forms page),
+then the consent text and signature, then a thank-you. Mobile first, dark
+mode, no inline code, nothing stored in the browser; every server string is
+inserted as text. The browser encrypts with WebCrypto in `crypto.js`, a
+module with no page code so this repo's tests run the file itself.
+
+- The page applies `core/airlock_import`'s email, phone, date and length rules
+  before sending, since a form that reaches the server cannot be sent again.
+- Consent text is laid out by the same rules as the signed PDF.
+- Server fixes found by the new tests: pages and scripts were sent with
+  `Cache-Control: no-cache` (Flask's own, which the security-header hook did
+  not override) instead of `no-store`, verified red; and pasting a full link
+  over a partial one did nothing, because a fragment-only change does not
+  reload the page. The CSP now also requires Trusted Types.
+- `tests/test_airlock_server_integration.py` gains 5 tests: the page's own
+  `crypto.js` in Node produces envelopes `decrypt_envelope` opens, with token
+  hash and AAD equal byte for byte and consent layout equal to the PDF's; the
+  page's rules are pinned to `airlock_import`'s; and three Chromium runs
+  (adult, both forms, imported; minor with two guardians, imported; no link,
+  wrong PIN and form-changed refusals), each asserting no console errors.
+  Six deliberate mutations of the page code (key derivation, AAD, bullets,
+  guardian rule, email rule, an HTML sink) each turned tests red.
+- Playwright added to the dev requirements; the packaging-manifest test
+  exempts it as test tooling.
+
 ### 2026-09-27 — AirLock: end-to-end test against the real server (branch `airlock`)
 
 The AirLock server core now exists (private repo `rsembera/edgecase-airlock`,

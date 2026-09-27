@@ -44,6 +44,7 @@ ai = [
 dev = [
     "pytest>=9.0.0",
     "ruff>=0.15.0",
+    "playwright>=1.60.0",
 ]
 
 [project.scripts]
