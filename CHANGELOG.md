@@ -1,5 +1,26 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-29 — AirLock intake form mirrors the Client Profile (branch `airlock`)
+
+Decided: the online intake is the client filling in their own Profile, and
+nothing else. Removed the per-field show/required/label settings and the five
+custom questions (EdgeCase config, bundle, import, review, intake PDF; the
+server's bundle validation and page). The form is fixed on both sides in the
+Profile's order and wording, adds Text Number ("Which number can I text?"),
+and requires only first and last name plus one phone or email (date of birth
+and emergency contact optional). Text Number and Preferred Contact offer only
+choices the client's own answers support, withdrawing a choice when its
+number is cleared; import refuses a mismatch instead of guessing (it used to
+set Text Number to Cell whenever the client preferred texting). Review and
+PDF labels now come from `airlock_import.INTAKE_FIELDS`. The Forms page is
+now **AirLock Consent** (`/airlock/consent`), holding only the consent text;
+an existing consent text carries over. Tests: import order and dropdown
+values pinned to profile.html; mismatch refusals; a cross-repo test that the
+server's field list equals the import's; a Chromium test of the linked
+choices through to import (all red on the old code). Playwright installed on
+Apollo, so the browser tests now run there. Needs the AirLock server change
+deployed alongside; then save the Consent page once to resend the config.
+
 ### 2026-09-29 — AirLock live at airlock.lightinextension.ca; first-use fixes (branch `airlock`)
 
 Public hostname, nginx vhost and Let's Encrypt certificate in place; real

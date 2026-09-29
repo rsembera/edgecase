@@ -139,8 +139,7 @@ client's invitations with the rest of their record.
 
 Built as plain HTML from the current PDFs. Mobile first.
 
-**Intake → Profile entry** (fields map almost 1:1; the Profile was clearly
-designed around this form):
+**Intake → Profile entry** (1:1, in the Profile's order):
 
 | Form | EdgeCase |
 |---|---|
@@ -148,11 +147,12 @@ designed around this form):
 | Date of birth | `date_of_birth` |
 | Gender (optional) | the Profile's existing Gender field (stored in the Profile entry's `content`) |
 | Address | `address` |
-| Home / Work / Cell | `home_phone / work_phone / phone` |
 | Email | `email` |
-| Preferred contact (Phone / Email / Text) | `preferred_contact` |
+| Cell / Home / Work | `phone / home_phone / work_phone` |
+| Which number can I text? | `text_number` |
 | OK to leave a message | `ok_to_leave_message` |
-| Emergency contact name / relationship / phone | `emergency_contact_name / _relationship / _phone` |
+| Preferred contact (email, call cell/home/work, text) | `preferred_contact` |
+| Emergency contact name / phone / relationship | `emergency_contact_name / _phone / _relationship` |
 | How did you hear about this practice | `referral_source` |
 | Additional information | `additional_info` |
 | Printed name / signature / date | attestation (typed name + checkbox + server timestamp) |
@@ -180,48 +180,53 @@ stronger evidence of who submitted than an address anyway.
 
 ## Customization
 
-Other therapists will need their own logo, letterhead, consent wording and
-form choices. The constraint that shapes all of it: **every intake answer has
-to land somewhere in EdgeCase**, and the Profile has fixed columns. So no
-form builder. A builder means field types, validation rules, a generic
-storage model in EdgeCase, and rendering it all back out — a second product.
-Instead:
+Other therapists will need their own logo, letterhead and consent wording.
+The intake form itself is **not** customizable (decided 2026-09-29): it is
+the client-facing part of the Client Profile, and nothing else. Every answer
+lands in a Profile field, so import is a lookup table and there is no form
+builder, no second product.
 
-**Standard fields: fixed mapping, configurable presentation.** Each
-Profile-mapped field in the table above gets:
-- show / hide (name and at least one contact method cannot be hidden),
-- required / optional,
-- an editable label (e.g. "Pronouns" instead of "Gender").
-The mapping never changes, so import stays a lookup table.
+**The intake form mirrors the Profile.** Same fields, same order, same
+dropdown values (Text Number, OK to Leave Message, Preferred Contact). Labels
+are fixed, worded for the client ("Which number can I text?" for Text
+Number). Fields the practitioner fills in (file number, insurer, fees,
+session defaults, meeting link, the guardians' payment split) are not on the
+form. Required: first and last name and one phone or email; everything else
+is optional. Text Number and Preferred Contact only offer choices the
+client's own answers support (no "call my work phone" without one), and
+import refuses a mismatch. The field list lives in
+`core/airlock_import.INTAKE_FIELDS` and the server's
+`airlock/validation.FIELDS`; a cross-repo test keeps them identical.
 
-**Additional questions.** Up to five free-text questions the therapist
-writes ("What brings you to therapy?"). Answers are appended to
-`additional_info`, each prefixed by its question, and appear in full in the
-intake PDF. No new schema, no types, text only, length-limited.
+Earlier design (dropped 2026-09-29): per-field show/hide, required and
+label settings, plus up to five free-text questions appended to Additional
+Information. Removed because the form should be the Profile, filled in
+remotely.
 
 **Branding.** Practice name, credentials, address, phone, website and logo,
 the same values EdgeCase already holds for statements. Rendered as the form
 header, matching the paper forms.
 
-**Consent text.** Free text (Markdown), edited in EdgeCase.
+**Consent text.** Plain text with headings, bullets and paragraphs, edited on
+EdgeCase's AirLock Consent page.
 
-**Everything is edited in EdgeCase, not on the server.** A new
-Settings → AirLock section holds the field toggles, labels, additional
-questions and consent text; branding is reused from Practice Info. On save,
+**Everything is edited in EdgeCase, not on the server.** The
+AirLock Consent page holds the consent text; branding is reused from
+Practice Info. On save,
 EdgeCase pushes a config bundle to AirLock over the admin channel
 (`PUT /admin/config`), the same way it pushes the public key. AirLock has no
 admin UI of its own to secure, there is one place to edit, and a
 self-hosting therapist never touches the server after setup. Branding and
 form layout are not sensitive, so storing them on Sentinel is fine.
 
-**Versioning.** Each pushed bundle gets a version (content hash). The form
-config version and consent version are both included *inside* each
-encrypted submission, along with the labels and questions as shown. Import
+**Versioning.** Each pushed bundle gets a version (content hash). The config
+version and consent version are both included in each encrypted
+submission's associated data, and the consent text as shown is inside it. Import
 therefore knows exactly what the client saw even if the therapist changed
 the form while an invitation was open. Because the payload carries what was
 shown, AirLock only ever needs the current bundle.
 
-**Safety of therapist-edited text.** Labels, questions and consent text are
+**Safety of therapist-edited text.** The consent text is
 rendered as text (consent Markdown through a sanitizing renderer, no raw
 HTML). The logo is re-encoded on the EdgeCase side before upload (PNG,
 size-capped), never served as the therapist's original file.

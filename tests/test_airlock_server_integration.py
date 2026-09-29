@@ -28,6 +28,7 @@ from reportlab.lib.styles import ParagraphStyle
 from werkzeug.serving import make_server
 
 from core import airlock_client, airlock_config
+from core import airlock_import as ai
 from core import airlock_crypto as ac
 from tests import test_airlock_import as fx
 
@@ -96,7 +97,6 @@ def test_edgecase_and_airlock_end_to_end(client, app_db, airlock):
     app_db.set_setting("file_number_format", "manual")
     app_db.set_setting("therapist_name", "Jordan Example")
     cfg = airlock_config.default_config()
-    cfg["questions"] = ["What brings you to therapy?"]
     cfg["consent_text"] = "# Consent\n\nI agree to psychotherapy."
     airlock_config.save_config(app_db, cfg)
 
@@ -121,8 +121,7 @@ def test_edgecase_and_airlock_end_to_end(client, app_db, airlock):
         assert secret not in raw_db
 
     # The client's browser
-    payload = fx.intake_payload(questions=[{"question": "What brings you to therapy?",
-                                            "answer": "Stress at work."}])
+    payload = fx.intake_payload(additional_info="Stress at work.")
     assert _browser_submit(airlock["public"], token, inv["pin"], "intake", payload)[0] == 201
     assert _browser_submit(airlock["public"], token, inv["pin"], "consent",
                            fx.consent_payload())[0] == 201
@@ -246,13 +245,36 @@ def test_page_validation_matches_import_rules():
 
     assert js_regex("EMAIL") == (ai._EMAIL.pattern, "")
     assert js_regex("PHONE") == (ai._PHONE.pattern, "i") and ai._PHONE.flags & re.I
-    assert f"const MAX_ANSWER = {ai.MAX_ANSWER};" in app
     assert f"const MAX_TYPED_NAME = {ai.MAX_TYPED_NAME};" in app
     assert ("const CONTACT_FIELDS = ['email', 'phone', 'home_phone', 'work_phone'];" in app
-            and set(airlock_config.CONTACT_FIELDS) == {"email", "phone", "home_phone",
-                                                        "work_phone"})
+            and set(ai.CONTACT_FIELDS) == {"email", "phone", "home_phone", "work_phone"})
+    assert "const TEXTABLE = { cell: 'phone', home: 'home_phone', work: 'work_phone' };" in app
+    assert ai.TEXTABLE == {"cell": "phone", "home": "home_phone", "work": "work_phone"}
+    assert ai.CALLABLE == {"email": "email", "call_cell": "phone", "call_home": "home_phone",
+                           "call_work": "work_phone"}
+    assert re.search(r"const CALLABLE = \{ email: 'email', call_cell: 'phone', "
+                     r"call_home: 'home_phone',\s+call_work: 'work_phone' \};", app)
     for key, (max_len, _kind) in ai.GUARDIAN_FIELDS.items():
         assert re.search(rf"\['{key}', '[^']+', '\w+', {max_len},", app), key
+
+
+def test_server_form_is_the_import_field_list():
+    """The server renders the form, EdgeCase imports it: same fields, same
+    Profile order, same kinds and lengths, same choice values."""
+    from core import airlock_import as ai
+    sys.path.insert(0, str(AIRLOCK_REPO))
+    try:
+        from airlock import validation as v
+    finally:
+        sys.path.remove(str(AIRLOCK_REPO))
+    kinds = {"text": "line", "textarea": "multiline", "tel": "phone", "email": "email",
+             "date": "date", "choice": "choice"}
+    assert [f[0] for f in v.FIELDS] == list(ai.INTAKE_FIELDS)
+    for name, kind, max_len, _label, _section in v.FIELDS:
+        assert (max_len, kinds[kind]) == ai.INTAKE_FIELDS[name][:2], name
+    assert {n: {c for c, _ in opts} for n, opts in v.CHOICES.items()} == \
+        {n: set(labels) for n, labels in ai.CHOICE_LABELS.items()}
+    assert set(v.REQUIRED) == {"first_name", "last_name"}
 
 
 # ---------------------------------------------------------------------------
@@ -318,6 +340,7 @@ def _fill_adult(page):
     page.fill("#f-address", "12 Analytical Way\nOttawa ON")
     page.fill("#f-phone", "613-555-0101")
     page.fill("#f-email", "ada@example.com")
+    page.check("#f-text_number-cell")
     page.check("#f-preferred_contact-text")
     page.fill("#f-emergency_contact_name", "Charles Babbage")
     page.fill("#f-emergency_contact_phone", "613-555-0102")
@@ -344,10 +367,7 @@ def _open_submissions(app_db, airlock):
 
 
 def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, browser):
-    cfg = _configure(app_db, airlock, questions=["What brings you to therapy?"])
-    cfg["fields"]["gender"]["label"] = "Pronouns"
-    cfg["fields"]["work_phone"]["show"] = False
-    airlock_config.save_config(app_db, cfg)
+    cfg = _configure(app_db, airlock)
     inv = _issue(client, app_db)
     page = _page(browser)
 
@@ -355,13 +375,14 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
     page.wait_for_selector("#intake-form")
     assert "Maple Street Therapy" in page.inner_text("#letterhead")
     assert "Jordan Example" in page.inner_text("#letterhead")
-    assert page.inner_text("label[for=f-gender]").startswith("Pronouns")
-    assert page.locator("#f-work_phone").count() == 0
+    headings = page.locator("#intake-form h3").all_inner_texts()
+    assert headings[:4] == ["About you", "How to reach you", "Emergency contact",
+                            "A little more"]
     assert page.inner_text(".step") == "Form 1 of 2"
 
     _fill_adult(page)
     page.fill("#f-gender", "she/her")
-    page.fill("#f-question-0", "Stress at work.\nTrouble sleeping.")
+    page.fill("#f-additional_info", "Stress at work.\nTrouble sleeping.")
     page.check("#agreed")
     page.fill("#typed_name", "Ada Lovelace")
     # An email import would refuse is stopped here, before anything is sent.
@@ -385,11 +406,11 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
     # What the browser encrypted is exactly what EdgeCase expects
     subs = _open_submissions(app_db, airlock)
     intake, consent = subs["intake"], subs["consent"]
-    assert set(intake["fields"]) == set(airlock_config.FIELD_NAMES)
+    assert list(intake["fields"]) == list(ai.INTAKE_FIELDS)
     assert intake["fields"]["work_phone"] == "" and intake["fields"]["gender"] == "she/her"
     assert intake["fields"]["address"] == "12 Analytical Way\nOttawa ON"
-    assert intake["questions"] == [{"question": "What brings you to therapy?",
-                                    "answer": "Stress at work.\nTrouble sleeping."}]
+    assert intake["fields"]["text_number"] == "cell"
+    assert "questions" not in intake
     assert intake["guardians"] == []
     assert intake["attestation"] == {"typed_name": "Ada Lovelace", "agreed": True}
     assert consent["consent_text"] == cfg["consent_text"]
@@ -398,6 +419,7 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
     profile = app_db.get_profile_entry(cid)
     assert app_db.get_client(cid)["first_name"] == "Ada"
     assert profile["content"] == "she/her" and profile["preferred_contact"] == "text"
+    assert profile["text_number"] == "cell"
     assert "Trouble sleeping." in profile["additional_info"]
     assert airlock["store"].submissions() == []
 
@@ -453,7 +475,7 @@ def test_browser_refusals(client, app_db, airlock, browser):
     page.click("button:has-text('Continue')")
     page.wait_for_selector("#intake-form")
     # The practitioner edits the form while the client is filling it in
-    cfg["questions"] = ["A new question"]
+    cfg["consent_text"] += "\n\nA new paragraph."
     airlock_config.save_config(app_db, cfg)
     ac_client = airlock_client.client_from_settings(app_db)
     ac_client.put_config(airlock_config.build_bundle(app_db, airlock_config.load_config(app_db),
@@ -467,3 +489,53 @@ def test_browser_refusals(client, app_db, airlock, browser):
     assert airlock["store"].submissions() == []
     # console errors here are the 401 and 409 responses themselves
     assert all("status of 40" in p for p in page.problems), page.problems
+
+
+def test_browser_offers_only_contact_choices_the_client_filled_in(client, app_db, airlock,
+                                                                   browser):
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, forms="intake")
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+
+    def offered(field):
+        return [el.get_attribute("data-value")
+                for el in page.locator(f"#f-{field} label.radio:visible").all()]
+
+    assert offered("text_number") == ["none"]
+    assert offered("preferred_contact") == []
+    assert page.is_visible("#f-preferred_contact .choice-hint")
+
+    page.fill("#f-home_phone", "613-555-0199")
+    page.fill("#f-email", "ada@example.com")
+    assert offered("text_number") == ["home", "none"]
+    assert offered("preferred_contact") == ["email", "call_home"]
+    assert page.is_hidden("#f-preferred_contact .choice-hint")
+
+    page.check("#f-text_number-home")
+    assert offered("preferred_contact") == ["email", "call_home", "text"]
+    page.check("#f-preferred_contact-text")
+
+    # Clearing the home phone withdraws both choices that depended on it
+    page.fill("#f-home_phone", "")
+    assert offered("text_number") == ["none"]
+    assert not page.is_checked("#f-text_number-home")
+    assert offered("preferred_contact") == ["email"]
+    assert not page.is_checked("#f-preferred_contact-text")
+
+    page.fill("#f-home_phone", "613-555-0199")
+    page.check("#f-text_number-home")
+    page.check("#f-preferred_contact-text")
+    page.fill("#f-first_name", "Ada")
+    page.fill("#f-last_name", "Lovelace")
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    assert page.problems == []
+
+    cid = _import(client, app_db, inv, "WEB-003")
+    profile = app_db.get_profile_entry(cid)
+    assert (profile["text_number"], profile["preferred_contact"]) == ("home", "text")
+    assert not profile["date_of_birth"] and not profile["emergency_contact_name"]

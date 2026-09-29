@@ -23,13 +23,13 @@ def intake_payload(**overrides):
         "date_of_birth": "1990-12-10", "gender": "Woman",
         "address": "12 Analytical Way\nOttawa ON", "phone": "613-555-0101",
         "home_phone": "", "work_phone": "", "email": "ada@example.com",
-        "preferred_contact": "text", "ok_to_leave_message": "yes",
+        "text_number": "cell", "preferred_contact": "text", "ok_to_leave_message": "yes",
         "emergency_contact_name": "Charles Babbage",
         "emergency_contact_relationship": "Friend",
         "emergency_contact_phone": "613-555-0102",
         "referral_source": "Psychology Today", "additional_info": "",
     }
-    data = {"form": "intake", "fields": fields, "questions": [],
+    data = {"form": "intake", "fields": fields,
             "guardians": [], "attestation": {"typed_name": "Ada Lovelace", "agreed": True}}
     for k, v in overrides.items():
         if k in fields:
@@ -108,7 +108,12 @@ def test_unknown_fields_are_ignored():
     ({"first_name": ["Ada"]}, "not text"),
     ({"preferred_contact": "carrier pigeon"}, "unexpected value"),
     ({"ok_to_leave_message": "maybe"}, "unexpected value"),
-    ({"questions": [{"question": "q", "answer": "a"}] * 6}, "malformed"),
+    ({"text_number": "fax"}, "unexpected value"),
+    ({"text_number": "home"}, "Text Number is Home Phone, but that number is blank"),
+    ({"preferred_contact": "call_work"}, "Call Work, but that contact is blank"),
+    ({"preferred_contact": "email", "email": ""}, "Email, but that contact is blank"),
+    ({"text_number": "none"}, "Text Message, but no Text Number"),
+    ({"text_number": ""}, "Text Message, but no Text Number"),
     ({"guardians": [{"name": "Mom"}]}, "not for a minor"),
     ({"attestation": {"typed_name": "Ada", "agreed": "true"}}, "not ticked"),
     ({"attestation": {"typed_name": "", "agreed": True}}, "no typed name"),
@@ -171,21 +176,47 @@ def test_profile_mapping_matches_the_profile_form():
     p = ai.profile_fields(parsed_intake(), is_minor=False)
     assert p["content"] == "Woman"          # gender lives in content
     assert p["phone"] == "613-555-0101"     # the Profile's "Cell"
-    assert p["text_number"] == "cell"       # prefers text, has a cell
+    assert p["text_number"] == "cell"
     assert p["preferred_contact"] == "text"
     assert p["is_minor"] == 0
     assert "guardian1_name" not in p
     assert "session_total" not in p and "meeting_link" not in p
 
 
-def test_questions_are_appended_to_additional_info():
-    intake = parsed_intake(additional_info="Prefers mornings", questions=[
-        {"question": "What brings you here?", "answer": "Stress"},
-        {"question": "Seen a therapist before?", "answer": ""}])
-    info = ai.profile_fields(intake, is_minor=False)["additional_info"]
-    assert info.startswith("Prefers mornings\n\nQuestions from the online intake:")
-    assert "What brings you here?\nStress" in info
-    assert "Seen a therapist before?\n(no answer)" in info
+def test_text_number_comes_from_the_client_not_a_guess():
+    """The old import guessed "cell" whenever the client preferred texting;
+    a client who texts from a home line lost their text number."""
+    p = ai.profile_fields(parsed_intake(home_phone="613-555-0199", text_number="home"),
+                          is_minor=False)
+    assert p["text_number"] == "home"
+    p = ai.profile_fields(parsed_intake(text_number="none", preferred_contact="email"),
+                          is_minor=False)
+    assert (p["text_number"], p["preferred_contact"]) == ("none", "email")
+
+
+def test_additional_info_is_only_what_the_client_wrote():
+    p = ai.profile_fields(parsed_intake(additional_info="Prefers mornings"), is_minor=False)
+    assert p["additional_info"] == "Prefers mornings"
+
+
+def test_intake_fields_follow_the_client_profile_order():
+    import re
+    from pathlib import Path
+    profile = (Path(__file__).resolve().parent.parent
+               / "web/templates/entry_forms/profile.html").read_text()
+    names = re.findall(r'<(?:input|select|textarea)[^>]*\bname="([a-z_0-9]+)"', profile)
+    assert [n for n in dict.fromkeys(names) if n in ai.INTAKE_FIELDS] == list(ai.INTAKE_FIELDS)
+
+
+def test_choices_are_the_profile_dropdown_values():
+    import re
+    from pathlib import Path
+    profile = (Path(__file__).resolve().parent.parent
+               / "web/templates/entry_forms/profile.html").read_text()
+    for name, labels in ai.CHOICE_LABELS.items():
+        block = re.search(rf'<select id="{name}".*?</select>', profile, re.S).group(0)
+        values = set(re.findall(r'<option value="([^"]*)"', block)) - {""}
+        assert values == set(labels), name
 
 
 def test_minor_mapping():
@@ -379,8 +410,8 @@ def test_hostile_text_renders_safely(app_db, tmp_path):
     inv = complete_invitation(app_db)
     nasty = '<b>&amp; <font size="80">x</font> <script>alert(1)</script>'
     intake = parsed_intake(first_name="Ada<i>", last_name="Love & <lace>",
-                           address=nasty, additional_info=nasty,
-                           questions=[{"question": nasty, "answer": nasty}])
+                           address=nasty, additional_info=nasty, gender=nasty,
+                           referral_source=nasty)
     consent = parsed_consent(consent_text=f"# {nasty}\n\n{nasty}\n\n- {nasty}")
     cid = ai.import_client(app_db, inv["id"], intake, consent, type_id=1,
                            received_at=RECEIVED, versions=VERSIONS,

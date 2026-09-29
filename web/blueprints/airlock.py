@@ -15,6 +15,7 @@ import time
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 from core import airlock_client, airlock_config, airlock_crypto
+from core import airlock_import as ai
 from core.config import get_assets_path
 from core.airlock_client import AirLockConnectionError
 from core.airlock_import import (AirLockImportError, import_client, parse_consent,
@@ -40,9 +41,10 @@ MESSAGES = {
                                'server yet; it will be removed at the next check.'),
     'deleted': ('ok', 'Removed from the server.'),
     'not_ready': ('warn', 'That invitation has nothing ready to review.'),
-    'forms_saved': ('ok', 'Forms saved and sent to the AirLock server.'),
-    'forms_saved_local': ('warn', 'Forms saved here, but the AirLock server could not be '
-                                  'reached. They will be sent before the next invitation.'),
+    'consent_saved': ('ok', 'Consent text saved and sent to the AirLock server.'),
+    'consent_saved_local': ('warn', 'Consent text saved here, but the AirLock server could '
+                                    'not be reached. It will be sent before the next '
+                                    'invitation.'),
 }
 
 
@@ -207,7 +209,7 @@ def issue():
     forms = ('intake', 'consent') if request.form.get('forms', 'both') == 'both' else ('intake',)
     if 'consent' in forms and not airlock_config.load_config(db)['consent_text']:
         return _invitations_with_error(
-            'Add your consent text on the Forms page before inviting a client to sign it.', 400)
+            'Add your consent text on the Consent page before inviting a client to sign it.', 400)
     try:
         inv = db.create_intake_invitation(
             request.form.get('display_name', ''), email=request.form.get('email', ''),
@@ -293,6 +295,7 @@ def _render_review(inv, intake, consent, received, problems, error=None, status=
         duplicates=possible_duplicates(db, intake) if intake else [],
         client_types=db.get_all_client_types(), file_number_format=fmt,
         file_number_preview=preview,
+        intake_fields=ai.INTAKE_FIELDS, choice_labels=ai.CHOICE_LABELS,
         can_import=bool(intake) and not problems and
         (consent is not None or 'consent' not in inv['required_forms'])), status
 
@@ -380,53 +383,33 @@ def delete_unmatched():
 
 
 # ---------------------------------------------------------------------------
-# forms (customization)
+# consent text
 # ---------------------------------------------------------------------------
 
-@airlock_bp.route('/airlock/forms', methods=['GET', 'POST'])
-def forms():
+@airlock_bp.route('/airlock/consent', methods=['GET', 'POST'])
+def consent():
     redirect_resp = _require_enabled()
     if redirect_resp:
         return redirect_resp
     if request.method != 'POST':  # GET, and the HEAD probe base.html sends before navigating
-        return _render_forms(airlock_config.load_config(db), message=_message())
-    data = {
-        'fields': {name: {'label': request.form.get(f'label__{name}', ''),
-                          'show': bool(request.form.get(f'show__{name}')),
-                          'required': bool(request.form.get(f'required__{name}'))}
-                   for name in airlock_config.FIELD_NAMES},
-        'questions': [request.form.get(f'question_{i}', '')
-                      for i in range(1, airlock_config.MAX_QUESTIONS + 1)],
-        'consent_text': request.form.get('consent_text', ''),
-    }
+        return _render_consent(airlock_config.load_config(db)['consent_text'],
+                               message=_message())
+    text = request.form.get('consent_text', '')
     try:
-        cfg = airlock_config.validate_config(data)
+        cfg = airlock_config.validate_config({'consent_text': text})
     except ValueError as e:
-        return _render_forms(data, error=str(e), status=400)
+        return _render_consent(text, error=str(e), status=400)
     airlock_config.save_config(db, cfg)
     try:
         _push_setup(airlock_client.client_from_settings(db))
-        msg = 'forms_saved'
+        msg = 'consent_saved'
     except AirLockConnectionError:
-        msg = 'forms_saved_local'
-    return redirect(url_for('airlock.forms', msg=msg))
+        msg = 'consent_saved_local'
+    return redirect(url_for('airlock.consent', msg=msg))
 
 
-def _render_forms(cfg, message=None, error=None, status=200):
-    fields = []
-    for name, default_label, _, _ in airlock_config.FIELDS:
-        meta = (cfg.get('fields') or {}).get(name) or {}
-        fields.append({'name': name, 'default_label': default_label,
-                       'label': meta.get('label') or default_label,
-                       'show': bool(meta.get('show')),
-                       'required': bool(meta.get('required')),
-                       'locked': name in airlock_config.ALWAYS_REQUIRED,
-                       'options': airlock_config.CHOICE_OPTIONS.get(name)})
-    questions = list(cfg.get('questions') or [])
-    questions += [''] * (airlock_config.MAX_QUESTIONS - len(questions))
-    return render_template('airlock_forms.html', fields=fields,
-                           questions=questions[:airlock_config.MAX_QUESTIONS],
-                           consent_text=cfg.get('consent_text') or '',
+def _render_consent(consent_text, message=None, error=None, status=200):
+    return render_template('airlock_consent.html', consent_text=consent_text,
                            message=message, error=error), status
 
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}AirLock Forms - EdgeCase Equalizer{% endblock %}
+{% block title %}AirLock Consent - EdgeCase Equalizer{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/airlock.css', v=static_v) }}">
@@ -10,8 +10,8 @@
 <div class="card">
     <div class="page-header">
         <div>
-            <h2><i data-lucide="clipboard-list" class="page-icon"></i>AirLock Forms</h2>
-            <p class="page-subtitle">What clients see on the online intake and consent forms</p>
+            <h2><i data-lucide="clipboard-list" class="page-icon"></i>AirLock Consent</h2>
+            <p class="page-subtitle">The consent form clients read and sign online</p>
         </div>
         <a href="{{ url_for('airlock.invitations') }}" class="btn">
             <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
@@ -21,52 +21,12 @@
     {% if message %}<div class="al-notice {{ message[0] }}">{{ message[1] }}</div>{% endif %}
     {% if error %}<div class="al-notice error">{{ error }}</div>{% endif %}
 
-    <p class="al-muted">The forms carry your Practice Information and logo from Settings, as your statements do.
-        Every answer lands in the client’s Profile; you choose which questions are asked and how they’re worded.</p>
+    <p class="al-muted">The online forms carry your Practice Information and logo from Settings,
+        as your statements do. The intake form is the client’s own part of the Client Profile,
+        in the Profile’s order; every answer lands in the Profile on import.</p>
 
-    <form method="post" action="{{ url_for('airlock.forms') }}">
+    <form method="post" action="{{ url_for('airlock.consent') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <div class="al-section">
-            <h3>Intake fields</h3>
-            <p class="al-muted">One box per Profile field, pre-filled with the wording the client sees;
-                change it if you like.</p>
-            <div class="al-fields">
-            {% for f in fields %}
-                <div class="al-field-row form-group">
-                    <input type="text" name="label__{{ f.name }}" maxlength="100" value="{{ f.label }}"
-                           aria-label="{{ f.default_label }}" title="Profile field: {{ f.default_label }}">
-                    <label class="checkbox-label-inline">
-                        <input type="checkbox" name="show__{{ f.name }}" value="1"
-                               {% if f.show %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
-                        <span>Show</span>
-                    </label>
-                    <label class="checkbox-label-inline">
-                        <input type="checkbox" name="required__{{ f.name }}" value="1"
-                               {% if f.required %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
-                        <span>Required</span>
-                    </label>
-                    {% if f.options %}
-                    <div class="al-options">Client picks one: {{ f.options|join(' · ') }}</div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            </div>
-            <p class="al-muted">First and last name are always asked. At least one way to reach the client
-                (email or a phone) must be shown and required.</p>
-        </div>
-
-        <div class="al-section al-questions">
-            <h3>Your own questions</h3>
-            <p class="al-muted">Up to five, answered in free text. Answers go into the Profile’s
-                Additional Information and the intake PDF.</p>
-            {% for q in questions %}
-            <div class="form-group">
-                <input type="text" name="question_{{ loop.index }}" value="{{ q }}" maxlength="300"
-                       placeholder="e.g., What brings you to therapy?">
-            </div>
-            {% endfor %}
-        </div>
 
         <div class="al-section">
             <h3>Consent text</h3>
@@ -87,7 +47,7 @@
         </div>
 
         <div class="al-buttons">
-            <button type="submit" class="btn">Save forms</button>
+            <button type="submit" class="btn">Save consent text</button>
         </div>
     </form>
 </div>
