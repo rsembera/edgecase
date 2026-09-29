@@ -1806,14 +1806,13 @@ async function loadAirLockSettings() {
         document.getElementById('airlock_server_url').value = d.server_url || '';
         document.getElementById('airlock_public_url').value = d.public_url || '';
         document.getElementById('airlock_ttl_days').value = d.ttl_days || 14;
-        // The key itself is never sent back to the browser; show a masked
-        // placeholder so the field reads as filled rather than lost.
-        document.getElementById('airlock_admin_key').placeholder = d.has_admin_key
-            ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022  (saved)'
-            : '';
-        document.getElementById('airlock_key_hint').textContent = d.has_admin_key
-            ? 'A key is saved. Leave blank to keep it, or paste a new one to replace it.'
-            : "From your AirLock server's setup";
+        // The key itself is never sent back to the browser. Once one is saved,
+        // swap the entry field for a "saved" line with a Replace button.
+        const keyInput = document.getElementById('airlock_admin_key');
+        keyInput.value = '';
+        document.getElementById('airlock_key_entry').style.display = d.has_admin_key ? 'none' : '';
+        document.getElementById('airlock_key_saved').style.display = d.has_admin_key ? '' : 'none';
+        document.getElementById('airlock_key_hint').textContent = "From your AirLock server's setup";
         document.getElementById('airlock_disable').style.display =
             (d.server_url && d.has_admin_key) ? '' : 'none';
     } catch (e) {
@@ -1834,12 +1833,19 @@ async function saveAirLockSettings() {
     });
     const d = await r.json();
     if (d.success) {
-        document.getElementById('airlock_admin_key').value = '';
         showSectionStatus('airlock-status');
         loadAirLockSettings();
     } else {
         showSectionStatus('airlock-status', '✗ ' + (d.error || 'Not saved'));
     }
+}
+
+function replaceAirLockKey() {
+    document.getElementById('airlock_key_saved').style.display = 'none';
+    document.getElementById('airlock_key_entry').style.display = '';
+    document.getElementById('airlock_key_hint').textContent =
+        'Paste the new key and click Save. Leave blank to keep the current one.';
+    document.getElementById('airlock_admin_key').focus();
 }
 
 async function testAirLock() {

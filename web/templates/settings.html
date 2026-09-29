@@ -516,8 +516,14 @@ details[open] .settings-section-header .arrow {
         <div class="form-row-half">
             <div class="form-group">
                 <label for="airlock_admin_key">Admin key</label>
-                <input type="password" id="airlock_admin_key" autocomplete="off">
-                <small class="helper-text" id="airlock_key_hint">From your AirLock server's setup</small>
+                <div id="airlock_key_entry">
+                    <input type="password" id="airlock_admin_key" autocomplete="off">
+                    <small class="helper-text" id="airlock_key_hint">From your AirLock server's setup</small>
+                </div>
+                <div id="airlock_key_saved" style="display:none;">
+                    <span class="helper-text">✓ Admin key saved</span>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="replaceAirLockKey()">Replace key…</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="airlock_ttl_days">Invitations expire after (days)</label>
