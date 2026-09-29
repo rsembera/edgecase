@@ -17,6 +17,17 @@ existing record (workflow: inquiry → client file → consult → intake and
 consent → first appointment); the standalone invitation form stays for the
 no-file case. Consent text and field customization stay on the Forms page.
 
+Forms page, worked back from the Client Profile: label boxes capped at 400px
+like Settings' inputs (own-question boxes at 600px) instead of spanning the
+card; intake fields now in the Profile's order (email before the phones, OK
+to leave a message before preferred contact, emergency phone before
+relationship), which is also the order the client sees; the two Profile
+dropdowns (OK to leave a message, preferred contact) show the fixed answers
+the client picks from. Tests pin the order to profile.html and the choice
+fields to the import's CHOICES. Server side still to follow: its "How to
+reach you" heading is keyed on the cell phone, so email now sits under
+"About you" until that moves to email.
+
 ### 2026-09-27 — AirLock deployed to Sentinel (hostname pending) (branch `airlock`)
 
 AirLock runs on Sentinel as a systemd user service (like Palestra): public

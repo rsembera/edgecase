@@ -46,6 +46,9 @@
                                {% if f.required %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
                         <span>Required</span>
                     </label>
+                    {% if f.options %}
+                    <div class="al-options">Client picks one: {{ f.options|join(' · ') }}</div>
+                    {% endif %}
                 </div>
             {% endfor %}
             </div>
@@ -53,7 +56,7 @@
                 (email or a phone) must be shown and required.</p>
         </div>
 
-        <div class="al-section">
+        <div class="al-section al-questions">
             <h3>Your own questions</h3>
             <p class="al-muted">Up to five, answered in free text. Answers go into the Profile’s
                 Additional Information and the intake PDF.</p>

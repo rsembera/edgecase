@@ -420,7 +420,8 @@ def _render_forms(cfg, message=None, error=None, status=200):
                        'label': meta.get('label') or default_label,
                        'show': bool(meta.get('show')),
                        'required': bool(meta.get('required')),
-                       'locked': name in airlock_config.ALWAYS_REQUIRED})
+                       'locked': name in airlock_config.ALWAYS_REQUIRED,
+                       'options': airlock_config.CHOICE_OPTIONS.get(name)})
     questions = list(cfg.get('questions') or [])
     questions += [''] * (airlock_config.MAX_QUESTIONS - len(questions))
     return render_template('airlock_forms.html', fields=fields,
