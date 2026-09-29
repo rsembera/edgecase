@@ -7,18 +7,6 @@
 {% endblock %}
 
 {% block content %}
-{% set labels = [
-    ('first_name', 'First Name'), ('middle_name', 'Middle Name'), ('last_name', 'Last Name'),
-    ('date_of_birth', 'Date of Birth'), ('gender', 'Gender'), ('address', 'Address'),
-    ('phone', 'Cell'), ('home_phone', 'Home Phone'), ('work_phone', 'Work Phone'),
-    ('email', 'Email'), ('preferred_contact', 'Preferred Contact'),
-    ('ok_to_leave_message', 'OK to Leave Message?'),
-    ('emergency_contact_name', 'Emergency Contact'),
-    ('emergency_contact_relationship', 'Relationship'),
-    ('emergency_contact_phone', 'Emergency Phone'),
-    ('referral_source', 'Referral Source'), ('additional_info', 'Additional Information')] %}
-{% set choice_labels = {'email': 'Email', 'call_cell': 'Call Cell', 'call_home': 'Call Home',
-                        'call_work': 'Call Work', 'text': 'Text Message', 'yes': 'Yes', 'no': 'No'} %}
 <div class="card">
     <div class="page-header">
         <div>
@@ -54,9 +42,9 @@
     <div class="al-section">
         <h3>Intake</h3>
         <dl class="al-review-grid">
-            {% for key, label in labels %}{% set v = intake.fields[key] %}{% if v %}
-            <dt>{{ label }}</dt>
-            <dd>{{ choice_labels.get(v, v) if key in ('preferred_contact', 'ok_to_leave_message') else v }}</dd>
+            {% for key, spec in intake_fields.items() %}{% set v = intake.fields[key] %}{% if v %}
+            <dt>{{ spec[2] }}</dt>
+            <dd>{{ choice_labels.get(key, {}).get(v, v) }}</dd>
             {% endif %}{% endfor %}
         </dl>
         {% for g in intake.guardians %}
@@ -66,12 +54,6 @@
             <dt>{{ label }}</dt><dd>{{ g[key] }}</dd>{% endif %}{% endfor %}
         </dl>
         {% endfor %}
-        {% if intake.questions %}
-        <h3 style="margin-top:1rem">Additional questions</h3>
-        <dl class="al-review-grid">
-            {% for qa in intake.questions %}<dt>{{ qa.question }}</dt><dd>{{ qa.answer or '(no answer)' }}</dd>{% endfor %}
-        </dl>
-        {% endif %}
         <p class="al-muted" style="margin-top:0.8rem">Signed (typed name): {{ intake.attestation.typed_name }}</p>
     </div>
     {% endif %}

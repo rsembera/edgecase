@@ -49,18 +49,7 @@
 .al-problems li { margin-bottom: 0.25rem; }
 .al-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
 
-/* Forms page */
-.al-fields { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.75rem 0; }
-/* Label boxes capped at 400px, as Settings caps its text inputs; checkboxes sit beside them. */
-.al-field-row.form-group { display: grid; grid-template-columns: minmax(0, 400px) auto auto;
-                           justify-content: start; gap: 1rem; align-items: center;
-                           margin-bottom: 0; }
-.al-field-row .al-options { grid-column: 1 / -1; margin: -0.1rem 0 0.35rem 0.25rem;
-                            font-size: 0.8rem; color: #6b7280; }
-.al-questions .form-group input[type="text"] { max-width: 600px; }
-.al-field-row .checkbox-label-inline { display: flex; margin: 0; font-weight: normal;
-                                       font-size: 0.875rem; color: var(--color-text); white-space: nowrap; }
-.al-field-row .checkbox-label-inline input:disabled + span { color: #9CA3AF; }
+/* Consent page */
 .al-consent-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 .al-consent-editor textarea { width: 100%; font-family: inherit; resize: vertical; }
 @media (max-width: 800px) { .al-consent-editor { grid-template-columns: 1fr; } }

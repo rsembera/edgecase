@@ -1,15 +1,15 @@
-"""AirLock form customization: what the online forms show, and the bundle
-pushed to the server.
+"""AirLock form configuration: the consent text, and the bundle pushed to
+the server.
 
-docs/Intake_Service_Plan.md, "Customization". The mapping from intake field
-to Profile column never changes; what the practitioner controls is each
-field's visibility, whether it is required, and its label, plus up to five
-free-text questions of their own and the consent text. Branding is not
-configured here: it is the Practice Information EdgeCase already holds for
-statements.
+docs/Intake_Service_Plan.md, "Customization". The intake form is not
+configurable: it is the client-facing part of the Client Profile, fixed on
+both sides (core/airlock_import.INTAKE_FIELDS here, airlock/validation.FIELDS
+on the server). What the practitioner sets is the consent text. Branding is
+the Practice Information EdgeCase already holds for statements.
 
-The config is stored in settings as `airlock_form_config` (JSON). The bundle
-built from it carries two versions, both short content hashes:
+Stored in settings as `airlock_form_config` (JSON; earlier versions also held
+field and question settings, which are now ignored). The bundle built from it
+carries two versions, both short content hashes:
     consent_version  changes only when the consent text changes
     config_version   changes when anything in the bundle changes
 Both travel in every submission's associated data, so a record always says
@@ -21,41 +21,6 @@ import json
 from io import BytesIO
 from pathlib import Path
 
-# (field, default label, shown by default, required by default)
-# In the Client Profile's order, which is also the order the client sees.
-FIELDS = [
-    ("first_name", "First name", True, True),
-    ("middle_name", "Middle name", True, False),
-    ("last_name", "Last name", True, True),
-    ("date_of_birth", "Date of birth", True, True),
-    ("gender", "Gender", True, False),
-    ("address", "Address", True, True),
-    ("email", "Email", True, True),
-    ("phone", "Cell phone", True, False),
-    ("home_phone", "Home phone", True, False),
-    ("work_phone", "Work phone", True, False),
-    ("ok_to_leave_message", "OK to leave a message?", True, False),
-    ("preferred_contact", "Preferred way to contact you", True, False),
-    ("emergency_contact_name", "Emergency contact name", True, True),
-    ("emergency_contact_phone", "Emergency contact phone", True, True),
-    ("emergency_contact_relationship", "Emergency contact relationship", True, False),
-    ("referral_source", "How did you hear about this practice?", True, False),
-    ("additional_info", "Anything else you'd like me to know?", True, False),
-]
-# Fields that are dropdowns in the Profile: the client picks from these
-# answers (the server's wording, airlock/validation.CHOICES), never free text.
-CHOICE_OPTIONS = {
-    "ok_to_leave_message": ["Yes", "No"],
-    "preferred_contact": ["Email", "Call my cell", "Call my home phone",
-                          "Call my work phone", "Text message"],
-}
-FIELD_NAMES = [f[0] for f in FIELDS]
-ALWAYS_REQUIRED = {"first_name", "last_name"}
-CONTACT_FIELDS = ("email", "phone", "home_phone", "work_phone")
-
-MAX_LABEL = 100
-MAX_QUESTIONS = 5
-MAX_QUESTION = 300
 MAX_CONSENT = 50_000
 MAX_LOGO_BYTES = 300 * 1024
 LOGO_BOX = (600, 300)
@@ -64,17 +29,10 @@ SETTING_KEY = "airlock_form_config"
 
 
 def default_config():
-    return {
-        "fields": {name: {"label": label, "show": show, "required": req}
-                   for name, label, show, req in FIELDS},
-        "questions": [],
-        "consent_text": "",
-    }
+    return {"consent_text": ""}
 
 
 def load_config(db):
-    """Stored config merged over the defaults, so a field added in a later
-    version appears with its defaults instead of vanishing."""
     cfg = default_config()
     raw = db.get_setting(SETTING_KEY, "")
     if not raw:
@@ -83,58 +41,17 @@ def load_config(db):
         stored = json.loads(raw)
     except ValueError:
         return cfg
-    for name, meta in (stored.get("fields") or {}).items():
-        if name in cfg["fields"] and isinstance(meta, dict):
-            cfg["fields"][name].update({k: meta[k] for k in ("label", "show", "required")
-                                        if k in meta})
-    cfg["questions"] = [q for q in stored.get("questions") or [] if isinstance(q, str)]
-    cfg["consent_text"] = stored.get("consent_text") or ""
+    if isinstance(stored, dict) and isinstance(stored.get("consent_text"), str):
+        cfg["consent_text"] = stored["consent_text"]
     return cfg
 
 
-def _line(value):
-    return " ".join(str(value or "").split())
-
-
 def validate_config(data):
-    """Form input -> clean config. Raises ValueError listing every problem.
-
-    Rules: first and last name are always shown and required; at least one
-    contact method is shown and required (the import refuses a client it
-    cannot reach); a required field must be shown.
-    """
-    problems = []
-    fields = {}
-    raw_fields = data.get("fields") or {}
-    for name, default_label, _, _ in FIELDS:
-        meta = raw_fields.get(name) or {}
-        label = _line(meta.get("label")) or default_label
-        if len(label) > MAX_LABEL:
-            problems.append(f"Label for {default_label.lower()} is too long")
-            label = default_label
-        show = bool(meta.get("show"))
-        required = bool(meta.get("required")) and show
-        if name in ALWAYS_REQUIRED:
-            show = required = True
-        fields[name] = {"label": label, "show": show, "required": required}
-    if not any(fields[c]["show"] and fields[c]["required"] for c in CONTACT_FIELDS):
-        problems.append("At least one contact method (email or a phone) must be shown "
-                        "and required")
-
-    questions = [_line(q) for q in (data.get("questions") or []) if _line(q)]
-    if len(questions) > MAX_QUESTIONS:
-        problems.append(f"At most {MAX_QUESTIONS} questions")
-    if any(len(q) > MAX_QUESTION for q in questions):
-        problems.append(f"Questions are limited to {MAX_QUESTION} characters")
-
+    """Form input -> clean config. Raises ValueError on a problem."""
     consent = str(data.get("consent_text") or "").replace("\r\n", "\n").strip()
     if len(consent) > MAX_CONSENT:
-        problems.append("Consent text is too long")
-
-    if problems:
-        raise ValueError("; ".join(problems))
-    return {"fields": fields, "questions": questions[:MAX_QUESTIONS],
-            "consent_text": consent}
+        raise ValueError("Consent text is too long")
+    return {"consent_text": consent}
 
 
 def save_config(db, cfg):
@@ -194,8 +111,6 @@ def build_bundle(db, cfg, assets_path):
     bundle = {
         "practice": practice,
         "logo_png": base64.b64encode(logo).decode("ascii") if logo else None,
-        "fields": [{"name": n, **cfg["fields"][n]} for n in FIELD_NAMES],
-        "questions": list(cfg["questions"]),
         "consent_text": cfg["consent_text"],
         "consent_version": consent_version,
     }

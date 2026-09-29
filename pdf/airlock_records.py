@@ -16,31 +16,8 @@ from reportlab.lib.units import inch
 from reportlab.platypus import (HRFlowable, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 
+from core.airlock_import import CHOICE_LABELS, INTAKE_FIELDS
 from pdf.generator import StatementPDFGenerator, esc
-
-INTAKE_LABELS = [
-    ("first_name", "First Name"),
-    ("middle_name", "Middle Name"),
-    ("last_name", "Last Name"),
-    ("date_of_birth", "Date of Birth"),
-    ("gender", "Gender"),
-    ("address", "Address"),
-    ("phone", "Cell"),
-    ("home_phone", "Home Phone"),
-    ("work_phone", "Work Phone"),
-    ("email", "Email"),
-    ("preferred_contact", "Preferred Contact Method"),
-    ("ok_to_leave_message", "OK to Leave Message?"),
-    ("emergency_contact_name", "Emergency Contact Name"),
-    ("emergency_contact_relationship", "Emergency Contact Relationship"),
-    ("emergency_contact_phone", "Emergency Contact Phone"),
-    ("referral_source", "How did you hear about this practice?"),
-    ("additional_info", "Additional Information"),
-]
-CHOICE_LABELS = {
-    "email": "Email", "call_cell": "Call Cell", "call_home": "Call Home",
-    "call_work": "Call Work", "text": "Text Message", "yes": "Yes", "no": "No",
-}
 
 
 def _stamp(ts):
@@ -97,12 +74,11 @@ def render_intake_pdf(db, intake, invitation, received_at, assets_path) -> bytes
     styles, story = _doc(db, "Client Intake", assets_path)
     f = intake["fields"]
     rows = []
-    for key, label in INTAKE_LABELS:
+    for key, (_, _, label) in INTAKE_FIELDS.items():
         value = f.get(key, "")
         if not value:
             continue
-        value = CHOICE_LABELS.get(value, value) if key in ("preferred_contact",
-                                                            "ok_to_leave_message") else value
+        value = CHOICE_LABELS.get(key, {}).get(value, value)
         rows.append([Paragraph(esc(label), styles["ALSmall"]),
                      Paragraph(_multiline(value), styles["ALBody"])])
     if rows:
@@ -121,13 +97,6 @@ def render_intake_pdf(db, intake, invitation, received_at, assets_path) -> bytes
                            ("address", "Address")):
             if g.get(key):
                 story.append(Paragraph(f"{label}: {_multiline(g[key])}", styles["ALBody"]))
-
-    if intake["questions"]:
-        story.append(Paragraph("Additional Questions", styles["ALHeading"]))
-        for qa in intake["questions"]:
-            story.append(Paragraph(f"<b>{esc(qa['question'])}</b>", styles["ALBody"]))
-            story.append(Paragraph(_multiline(qa["answer"]) or "<i>(no answer)</i>",
-                                   styles["ALBody"]))
 
     story += _signature_block(styles, intake["attestation"], received_at, invitation)
     return _build(story)

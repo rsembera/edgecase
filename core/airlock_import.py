@@ -10,7 +10,6 @@ Submission plaintext (inside the encrypted envelope), one JSON object per form:
 
     intake:  {"form": "intake",
               "fields": {<Profile field>: str, ...},
-              "questions": [{"question": str, "answer": str}, ...],   # <= 5
               "guardians": [{"name","email","phone","address"}, ...], # minor only, <= 2
               "attestation": {"typed_name": str, "agreed": true}}
     consent: {"form": "consent",
@@ -37,39 +36,49 @@ from pathlib import Path
 
 from core import config
 
-# field -> (max length, kind)
+# The intake form is the client-facing part of the Client Profile, fixed, in
+# the Profile's order. Must match AirLock's airlock/validation.FIELDS.
+# field -> (max length, kind, Profile label)
 INTAKE_FIELDS = {
-    "first_name": (100, "line"),
-    "middle_name": (100, "line"),
-    "last_name": (100, "line"),
-    "date_of_birth": (10, "date"),
-    "gender": (100, "line"),
-    "address": (500, "multiline"),
-    "phone": (30, "phone"),            # labelled "Cell" in the Profile
-    "home_phone": (30, "phone"),
-    "work_phone": (30, "phone"),
-    "email": (254, "email"),
-    "preferred_contact": (20, "choice"),
-    "ok_to_leave_message": (20, "choice"),
-    "emergency_contact_name": (200, "line"),
-    "emergency_contact_relationship": (100, "line"),
-    "emergency_contact_phone": (30, "phone"),
-    "referral_source": (300, "line"),
-    "additional_info": (4000, "multiline"),
+    "first_name": (100, "line", "First Name"),
+    "middle_name": (100, "line", "Middle Name"),
+    "last_name": (100, "line", "Last Name"),
+    "date_of_birth": (10, "date", "Date of Birth"),
+    "gender": (100, "line", "Gender"),
+    "address": (500, "multiline", "Address"),
+    "email": (254, "email", "Email"),
+    "phone": (30, "phone", "Cell"),
+    "home_phone": (30, "phone", "Home Phone"),
+    "work_phone": (30, "phone", "Work Phone"),
+    "text_number": (20, "choice", "Text Number"),
+    "ok_to_leave_message": (20, "choice", "OK to Leave Message?"),
+    "preferred_contact": (20, "choice", "Preferred Contact Method"),
+    "emergency_contact_name": (200, "line", "Emergency Contact Name"),
+    "emergency_contact_phone": (30, "phone", "Emergency Contact Phone"),
+    "emergency_contact_relationship": (100, "line", "Emergency Contact Relationship"),
+    "referral_source": (300, "line", "Referral Source"),
+    "additional_info": (4000, "multiline", "Additional Information"),
 }
-CHOICES = {
-    "preferred_contact": {"", "email", "call_cell", "call_home", "call_work", "text"},
-    "ok_to_leave_message": {"", "yes", "no"},
+# The Profile's dropdown values, with the Profile's wording for each.
+CHOICE_LABELS = {
+    "text_number": {"none": "None (no texting)", "cell": "Cell", "home": "Home Phone",
+                    "work": "Work Phone"},
+    "ok_to_leave_message": {"yes": "Yes", "no": "No"},
+    "preferred_contact": {"email": "Email", "call_cell": "Call Cell", "call_home": "Call Home",
+                          "call_work": "Call Work", "text": "Text Message"},
 }
+CHOICES = {name: {""} | set(labels) for name, labels in CHOICE_LABELS.items()}
+# A choice that names a contact needs that contact filled in.
+TEXTABLE = {"cell": "phone", "home": "home_phone", "work": "work_phone"}
+CALLABLE = {"email": "email", "call_cell": "phone", "call_home": "home_phone",
+            "call_work": "work_phone"}
+CONTACT_FIELDS = ("email", "phone", "home_phone", "work_phone")
 GUARDIAN_FIELDS = {
     "name": (200, "line"),
     "email": (254, "email"),
     "phone": (30, "phone"),
     "address": (500, "multiline"),
 }
-MAX_QUESTIONS = 5
-MAX_QUESTION = 300
-MAX_ANSWER = 2000
 MAX_TYPED_NAME = 200
 MAX_CONSENT_TEXT = 50_000
 
@@ -156,8 +165,7 @@ def parse_intake(plaintext: bytes, is_minor: bool) -> dict:
     if not isinstance(raw, dict):
         raise AirLockImportError(["Intake: no fields"])
     fields = {}
-    for name, (max_len, kind) in INTAKE_FIELDS.items():
-        label = name.replace("_", " ").capitalize()
+    for name, (max_len, kind, label) in INTAKE_FIELDS.items():
         value = _clean(raw.get(name), max_len, kind, label, problems)
         if kind == "choice" and value not in CHOICES[name]:
             problems.append(f"{label}: unexpected value")
@@ -167,22 +175,17 @@ def parse_intake(plaintext: bytes, is_minor: bool) -> dict:
         problems.append("First name is required")
     if not fields["last_name"]:
         problems.append("Last name is required")
-    if not any(fields[f] for f in ("email", "phone", "home_phone", "work_phone")):
+    if not any(fields[f] for f in CONTACT_FIELDS):
         problems.append("At least one way to contact the client is required")
-
-    questions = []
-    raw_q = data.get("questions") or []
-    if not isinstance(raw_q, list) or len(raw_q) > MAX_QUESTIONS:
-        problems.append("Additional questions: malformed")
-        raw_q = []
-    for i, qa in enumerate(raw_q, 1):
-        if not isinstance(qa, dict):
-            problems.append(f"Question {i}: malformed")
-            continue
-        q = _clean(qa.get("question"), MAX_QUESTION, "line", f"Question {i}", problems)
-        a = _clean(qa.get("answer"), MAX_ANSWER, "multiline", f"Answer {i}", problems)
-        if q:
-            questions.append({"question": q, "answer": a})
+    tn, pc = fields["text_number"], fields["preferred_contact"]
+    if tn in TEXTABLE and not fields[TEXTABLE[tn]]:
+        problems.append(f"Text Number is {CHOICE_LABELS['text_number'][tn]}, "
+                        "but that number is blank")
+    if pc in CALLABLE and not fields[CALLABLE[pc]]:
+        problems.append(f"Preferred Contact Method is {CHOICE_LABELS['preferred_contact'][pc]}, "
+                        "but that contact is blank")
+    if pc == "text" and tn not in TEXTABLE:
+        problems.append("Preferred Contact Method is Text Message, but no Text Number was given")
 
     guardians = []
     raw_g = data.get("guardians") or []
@@ -204,8 +207,7 @@ def parse_intake(plaintext: bytes, is_minor: bool) -> dict:
     attestation = _attestation(data.get("attestation"), problems, "Intake signature")
     if problems:
         raise AirLockImportError(problems)
-    return {"fields": fields, "questions": questions, "guardians": guardians,
-            "attestation": attestation}
+    return {"fields": fields, "guardians": guardians, "attestation": attestation}
 
 
 def parse_consent(plaintext: bytes) -> dict:
@@ -234,11 +236,6 @@ def profile_fields(intake: dict, is_minor: bool) -> dict:
     """The Profile entry columns an intake fills. Fees, session defaults and
     the meeting link are left for the practitioner, as with a manual client."""
     f = intake["fields"]
-    info = f["additional_info"]
-    if intake["questions"]:
-        block = "\n\n".join(f"{qa['question']}\n{qa['answer'] or '(no answer)'}"
-                            for qa in intake["questions"])
-        info = (info + "\n\n" if info else "") + "Questions from the online intake:\n\n" + block
     out = {
         "description": f"{f['first_name']} {f['last_name']} - Profile",
         "content": f["gender"],            # the Profile keeps gender here
@@ -248,14 +245,14 @@ def profile_fields(intake: dict, is_minor: bool) -> dict:
         "phone": f["phone"],
         "home_phone": f["home_phone"],
         "work_phone": f["work_phone"],
-        "text_number": "cell" if f["preferred_contact"] == "text" and f["phone"] else "",
+        "text_number": f["text_number"],
         "preferred_contact": f["preferred_contact"],
         "ok_to_leave_message": f["ok_to_leave_message"],
         "emergency_contact_name": f["emergency_contact_name"],
         "emergency_contact_phone": f["emergency_contact_phone"],
         "emergency_contact_relationship": f["emergency_contact_relationship"],
         "referral_source": f["referral_source"],
-        "additional_info": info,
+        "additional_info": f["additional_info"],
         "is_minor": 1 if is_minor else 0,
     }
     g = intake["guardians"]
