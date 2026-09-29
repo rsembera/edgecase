@@ -388,7 +388,7 @@ def forms():
     redirect_resp = _require_enabled()
     if redirect_resp:
         return redirect_resp
-    if request.method == 'GET':
+    if request.method != 'POST':  # GET, and the HEAD probe base.html sends before navigating
         return _render_forms(airlock_config.load_config(db), message=_message())
     data = {
         'fields': {name: {'label': request.form.get(f'label__{name}', ''),
