@@ -669,18 +669,29 @@
         
         // Server connection monitor
         let disconnected = false;
+        let misses = 0;
+        let unloading = false;
         const overlay = document.getElementById('server-disconnected-overlay');
+        // A heartbeat in flight when the user clicks a link is aborted by the
+        // browser; that is not a dead server.
+        window.addEventListener('pagehide', () => { unloading = true; });
+        window.addEventListener('beforeunload', () => { unloading = true; });
         
         async function checkHeartbeat() {
             try {
                 const response = await fetch('/api/heartbeat', { method: 'GET', cache: 'no-store' });
-                if (response.ok && disconnected) {
-                    // Reconnected
-                    disconnected = false;
-                    overlay.style.display = 'none';
+                if (response.ok) {
+                    misses = 0;
+                    if (disconnected) {
+                        // Reconnected
+                        disconnected = false;
+                        overlay.style.display = 'none';
+                    }
                 }
             } catch (e) {
-                if (!disconnected) {
+                if (unloading) return;
+                misses += 1;
+                if (misses >= 2 && !disconnected) {
                     disconnected = true;
                     overlay.style.display = 'flex';
                 }

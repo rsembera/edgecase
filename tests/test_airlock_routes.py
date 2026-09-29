@@ -309,3 +309,10 @@ def test_every_form_carries_a_csrf_token(client, app_db, airlock_server):
         forms = len(re.findall(r'<form[^>]*method="post"', html))
         tokens = len(re.findall(r'name="csrf_token"', html))
         assert forms and forms == tokens, path
+
+
+def test_forms_page_answers_head_probe(client, airlock_server):
+    """base.html probes every link with HEAD before navigating; a non-2xx
+    answer shows the 'Server Disconnected' overlay. HEAD must not be
+    treated as a form submission."""
+    assert client.head("/airlock/forms").status_code == 200

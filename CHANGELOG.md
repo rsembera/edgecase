@@ -1,5 +1,22 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-29 — AirLock live at airlock.lightinextension.ca; first-use fixes (branch `airlock`)
+
+Public hostname, nginx vhost and Let's Encrypt certificate in place; real
+admin key generated; EdgeCase Settings → AirLock connected (tested from
+Apollo against a copy of the Mac testing fixture). Fixes from first use:
+the Forms link showed the "Server Disconnected" overlay because base.html
+probes every link with HEAD before navigating and the Forms route treated
+HEAD as an empty form submission (400) — HEAD now renders like GET, with a
+regression test. Heartbeat monitor hardened: a fetch aborted by page
+navigation no longer counts, and the overlay needs two consecutive misses.
+Settings: a saved admin key now shows as "✓ Admin key saved" with a Replace
+button instead of an empty field (the key stays write-only). Decided:
+invitations will be issued from the Client File and import will fill the
+existing record (workflow: inquiry → client file → consult → intake and
+consent → first appointment); the standalone invitation form stays for the
+no-file case. Consent text and field customization stay on the Forms page.
+
 ### 2026-09-27 — AirLock deployed to Sentinel (hostname pending) (branch `airlock`)
 
 AirLock runs on Sentinel as a systemd user service (like Palestra): public
