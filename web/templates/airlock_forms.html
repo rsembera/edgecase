@@ -29,15 +29,13 @@
 
         <div class="al-section">
             <h3>Intake fields</h3>
-            <p class="al-muted">Each line is a Profile field. Type in the box only if you want the client to see
-                different wording than the field name.</p>
+            <p class="al-muted">One box per Profile field, pre-filled with the wording the client sees;
+                change it if you like.</p>
             <div class="al-fields">
             {% for f in fields %}
-                <div class="al-field-row">
-                    <label for="label__{{ f.name }}">{{ f.default_label }}</label>
-                    <input type="text" id="label__{{ f.name }}" name="label__{{ f.name }}" maxlength="100"
-                           value="{{ f.label if f.label != f.default_label else '' }}"
-                           placeholder="{{ f.default_label }}">
+                <div class="al-field-row form-group">
+                    <input type="text" name="label__{{ f.name }}" maxlength="100" value="{{ f.label }}"
+                           aria-label="{{ f.default_label }}" title="Profile field: {{ f.default_label }}">
                     <label class="checkbox-label-inline">
                         <input type="checkbox" name="show__{{ f.name }}" value="1"
                                {% if f.show %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
