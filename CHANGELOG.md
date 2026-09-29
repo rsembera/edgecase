@@ -20,6 +20,8 @@ server's field list equals the import's; a Chromium test of the linked
 choices through to import (all red on the old code). Playwright installed on
 Apollo, so the browser tests now run there. Needs the AirLock server change
 deployed alongside; then save the Consent page once to resend the config.
+Consent page layout: editor and preview at one fixed height (32rem), each
+scrolling on its own; space between the help text and the two panes.
 
 ### 2026-09-29 — AirLock live at airlock.lightinextension.ca; first-use fixes (branch `airlock`)
 
