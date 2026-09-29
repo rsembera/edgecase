@@ -19,8 +19,7 @@ from core import airlock_import as ai
 from core.config import get_assets_path
 from core.airlock_client import AirLockConnectionError
 from core.airlock_import import (AirLockImportError, import_client, parse_consent,
-                                 parse_intake, possible_duplicates, profile_fields)
-from core.file_numbers import FileNumberError, preview_file_number
+                                 parse_intake, review_rows)
 
 airlock_bp = Blueprint('airlock', __name__)
 
@@ -201,29 +200,47 @@ def _invitations_with_error(error, status=200):
     return _render_invitations(error=error, status=status)
 
 
-@airlock_bp.route('/airlock/invitations', methods=['POST'])
-def issue():
+def _client_name(client):
+    return " ".join(p for p in (client.get('first_name'), client.get('last_name')) if p)
+
+
+@airlock_bp.route('/airlock/invite/<int:client_id>', methods=['GET', 'POST'])
+def invite(client_id):
+    """Issue an invitation from a client file. The invitation carries the
+    client's id, so the import fills in this file."""
     redirect_resp = _require_enabled()
     if redirect_resp:
         return redirect_resp
+    client = db.get_client(client_id)
+    if client is None:
+        return "Client not found", 404
+    profile = db.get_profile_entry(client_id) or {}
+    open_invs = [i for i in db.list_intake_invitations() if i['client_id'] == client_id]
+    ctx = {'client': client, 'name': _client_name(client), 'profile': profile,
+           'open_invs': open_invs, 'ttl_days': db.get_setting('airlock_ttl_days', '14'),
+           'has_consent': bool(airlock_config.load_config(db)['consent_text'])}
+    if request.method != 'POST':  # GET, and the HEAD probe base.html sends before navigating
+        return render_template('airlock_invite.html', **ctx)
+
     forms = ('intake', 'consent') if request.form.get('forms', 'both') == 'both' else ('intake',)
-    if 'consent' in forms and not airlock_config.load_config(db)['consent_text']:
-        return _invitations_with_error(
-            'Add your consent text on the Consent page before inviting a client to sign it.', 400)
+    if 'consent' in forms and not ctx['has_consent']:
+        return render_template('airlock_invite.html', error='Add your consent text on the '
+                               'Consent page before inviting a client to sign it.', **ctx), 400
     try:
         inv = db.create_intake_invitation(
-            request.form.get('display_name', ''), email=request.form.get('email', ''),
-            required_forms=forms, is_minor=bool(request.form.get('is_minor')),
-            ttl_days=request.form.get('ttl_days') or db.get_setting('airlock_ttl_days', '14'))
+            ctx['name'], email=profile.get('email') or '', required_forms=forms,
+            is_minor=bool(request.form.get('is_minor')), client_id=client_id,
+            ttl_days=request.form.get('ttl_days') or ctx['ttl_days'])
     except ValueError as e:
-        return _invitations_with_error(str(e), 400)
+        return render_template('airlock_invite.html', error=str(e), **ctx), 400
     try:
-        client = airlock_client.client_from_settings(db)
-        _push_setup(client)
-        client.create_invitation(inv)
+        ac = airlock_client.client_from_settings(db)
+        _push_setup(ac)
+        ac.create_invitation(inv)
     except AirLockConnectionError as e:
         db.delete_unsent_intake_invitation(inv['id'])
-        return _invitations_with_error(f'{e} The invitation was not created.', 502)
+        return render_template('airlock_invite.html',
+                               error=f'{e} The invitation was not created.', **ctx), 502
     return redirect(url_for('airlock.invitation', invitation_id=inv['id'], new=1))
 
 
@@ -283,20 +300,17 @@ def review(invitation_id):
 
 
 def _render_review(inv, intake, consent, received, problems, error=None, status=200):
-    fmt = db.get_setting('file_number_format', 'manual')
-    profile = profile_fields(intake, inv['is_minor']) if intake else None
-    preview = ''
-    if intake:
-        f = intake['fields']
-        preview = preview_file_number(db, f['first_name'], f['middle_name'], f['last_name'])
+    client = db.get_client(inv['client_id']) if inv.get('client_id') else None
+    if intake and client is None:
+        problems = list(problems) + ['This invitation is not linked to a client file, so '
+                                     'there is nothing to fill in. Discard it and send a '
+                                     'new one from the client file.']
+    rows = review_rows(db, client['id'], intake, inv['is_minor']) if intake and client else []
     return render_template(
-        'airlock_review.html', inv=inv, intake=intake, consent=consent,
-        profile=profile, received_fmt=_fmt(received), problems=problems, error=error,
-        duplicates=possible_duplicates(db, intake) if intake else [],
-        client_types=db.get_all_client_types(), file_number_format=fmt,
-        file_number_preview=preview,
-        intake_fields=ai.INTAKE_FIELDS, choice_labels=ai.CHOICE_LABELS,
-        can_import=bool(intake) and not problems and
+        'airlock_review.html', inv=inv, intake=intake, consent=consent, client=client,
+        rows=rows, changed=sum(r['status'] in ('new', 'changed') for r in rows),
+        received_fmt=_fmt(received), problems=problems, error=error,
+        can_import=bool(intake) and client is not None and not problems and
         (consent is not None or 'consent' not in inv['required_forms'])), status
 
 
@@ -320,16 +334,12 @@ def do_import(invitation_id):
     if problems or not intake:
         return _render_review(inv, intake, consent, received, problems, status=400)
     try:
-        type_id = int(request.form.get('type_id', ''))
-    except ValueError:
-        type_id = 0
-    try:
         client_id = import_client(
-            db, invitation_id, intake, consent, type_id=type_id, received_at=received,
-            versions=versions, manual_file_number=request.form.get('file_number', ''))
-    except (AirLockImportError, FileNumberError) as e:
-        msg = '; '.join(e.problems) if isinstance(e, AirLockImportError) else str(e)
-        return _render_review(inv, intake, consent, received, [], error=msg, status=400)
+            db, invitation_id, intake, consent, received_at=received, versions=versions,
+            keep=request.form.getlist('keep'))
+    except AirLockImportError as e:
+        return _render_review(inv, intake, consent, received, [],
+                              error='; '.join(e.problems), status=400)
 
     cleanup_ok = True
     client = airlock_client.client_from_settings(db)

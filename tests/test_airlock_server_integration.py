@@ -105,8 +105,8 @@ def test_edgecase_and_airlock_end_to_end(client, app_db, airlock):
     assert r.get_json()["success"], r.get_json()
 
     # Issue through EdgeCase's own screen
-    r = client.post("/airlock/invitations", data={
-        "display_name": "Ada L.", "email": "ada@example.com", "forms": "both", "ttl_days": "14"})
+    cid = fx.a_client(app_db, file_number="E2E-001", email="ada@example.com")
+    r = client.post(f"/airlock/invite/{cid}", data={"forms": "both", "ttl_days": "14"})
     assert r.status_code == 302, r.data
     inv = app_db.list_intake_invitations()[0]
     page = client.get(r.headers["Location"]).data.decode()
@@ -134,10 +134,9 @@ def test_edgecase_and_airlock_end_to_end(client, app_db, airlock):
     assert "checked=2" in r.headers["Location"]
     review = client.get(f"/airlock/review/{inv['id']}").data.decode()
     assert "Lovelace" in review and "Stress at work." in review
-    r = client.post(f"/airlock/review/{inv['id']}/import",
-                    data={"type_id": "1", "file_number": "E2E-001"})
+    r = client.post(f"/airlock/review/{inv['id']}/import")
     assert r.status_code == 302, r.data
-    cid = int(re.search(r"/client/(\d+)", r.headers["Location"]).group(1))
+    assert r.headers["Location"].endswith(f"/client/{cid}")
     assert app_db.get_client(cid)["file_number"] == "E2E-001"
     assert "Stress at work." in app_db.get_profile_entry(cid)["additional_info"]
 
@@ -154,8 +153,8 @@ def test_revoke_reaches_the_real_server(client, app_db, airlock):
     cfg = airlock_config.default_config()
     cfg["consent_text"] = "I agree."
     airlock_config.save_config(app_db, cfg)
-    client.post("/airlock/invitations", data={"display_name": "B", "forms": "both",
-                                              "ttl_days": "14"})
+    client.post(f"/airlock/invite/{fx.a_client(app_db)}",
+                data={"forms": "both", "ttl_days": "14"})
     inv = app_db.list_intake_invitations()[0]
     r = client.post(f"/airlock/invitations/{inv['id']}/revoke")
     assert "msg=revoked" in r.headers["Location"]
@@ -319,10 +318,11 @@ def _configure(app_db, airlock, **cfg_changes):
     return cfg
 
 
-def _issue(client, app_db, **form):
-    data = {"display_name": "New Client", "forms": "both", "ttl_days": "14"}
+def _issue(client, app_db, file_number="WEB", **form):
+    cid = fx.a_client(app_db, first="New", last="Client", file_number=file_number)
+    data = {"forms": "both", "ttl_days": "14"}
     data.update(form)
-    r = client.post("/airlock/invitations", data=data)
+    r = client.post(f"/airlock/invite/{cid}", data=data)
     assert r.status_code == 302, r.data
     return app_db.list_intake_invitations()[0]
 
@@ -346,13 +346,14 @@ def _fill_adult(page):
     page.fill("#f-emergency_contact_phone", "613-555-0102")
 
 
-def _import(client, app_db, inv, file_number):
+def _import(client, app_db, inv):
     r = client.post("/airlock/check")
     assert r.status_code == 302, r.data
-    r = client.post(f"/airlock/review/{inv['id']}/import",
-                    data={"type_id": "1", "file_number": file_number})
+    r = client.post(f"/airlock/review/{inv['id']}/import")
     assert r.status_code == 302, r.data
-    return int(re.search(r"/client/(\d+)", r.headers["Location"]).group(1))
+    cid = int(re.search(r"/client/(\d+)", r.headers["Location"]).group(1))
+    assert cid == inv["client_id"]
+    return cid
 
 
 def _open_submissions(app_db, airlock):
@@ -415,7 +416,7 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
     assert intake["attestation"] == {"typed_name": "Ada Lovelace", "agreed": True}
     assert consent["consent_text"] == cfg["consent_text"]
 
-    cid = _import(client, app_db, inv, "WEB-001")
+    cid = _import(client, app_db, inv)
     profile = app_db.get_profile_entry(cid)
     assert app_db.get_client(cid)["first_name"] == "Ada"
     assert profile["content"] == "she/her" and profile["preferred_contact"] == "text"
@@ -449,7 +450,7 @@ def test_browser_minor_intake_with_two_guardians(client, app_db, airlock, browse
 
     intake = _open_submissions(app_db, airlock)["intake"]
     assert [g["name"] for g in intake["guardians"]] == ["Grace Hopper", "Alan Turing"]
-    cid = _import(client, app_db, inv, "WEB-002")
+    cid = _import(client, app_db, inv)
     profile = app_db.get_profile_entry(cid)
     assert profile["guardian1_name"] == "Grace Hopper" and profile["guardian2_name"] == "Alan Turing"
     assert profile["is_minor"] == 1
@@ -535,7 +536,7 @@ def test_browser_offers_only_contact_choices_the_client_filled_in(client, app_db
     page.wait_for_selector("h2:has-text('Thank you')")
     assert page.problems == []
 
-    cid = _import(client, app_db, inv, "WEB-003")
+    cid = _import(client, app_db, inv)
     profile = app_db.get_profile_entry(cid)
     assert (profile["text_number"], profile["preferred_contact"]) == ("home", "text")
     assert not profile["date_of_birth"] and not profile["emergency_contact_name"]

@@ -149,10 +149,11 @@ class AirLockMixin:
     def create_intake_invitation(self, display_name, email=None,
                                  required_forms=airlock_crypto.FORMS,
                                  is_minor=False, ttl_days=DEFAULT_TTL_DAYS,
-                                 now=None):
+                                 client_id=None, now=None):
         """Mint an invitation. Returns the full row, including the token and
-        PIN Richard gives the client. New clients only (decision 2): no
-        client_id until import creates the client."""
+        PIN Richard gives the client. Invitations are issued from a client
+        file (decided 2026-09-29), so client_id names the file the import
+        will fill in; the screens always pass it."""
         display_name = (display_name or "").strip()
         if not display_name:
             raise ValueError("A name is required.")
@@ -164,8 +165,7 @@ class AirLockMixin:
         forms = [f for f in airlock_crypto.FORMS if f in set(required_forms or ())]
         if set(required_forms or ()) - set(airlock_crypto.FORMS):
             raise ValueError("Required forms must be intake and/or consent.")
-        # New clients only (decision 2), so the intake is always required:
-        # it is where the client's name comes from.
+        # The intake is always required: it is what the import applies.
         if "intake" not in forms:
             raise ValueError("An invitation must include the intake form.")
         try:
@@ -182,10 +182,10 @@ class AirLockMixin:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO intake_invitations
-                (display_name, email, token, token_hash, pin, required_forms,
+                (client_id, display_name, email, token, token_hash, pin, required_forms,
                  forms_done, is_minor, key_id, issued_at, expires_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, 'issued')
-        """, (display_name, email, token, airlock_crypto.token_hash(token),
+            VALUES (?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, 'issued')
+        """, (client_id, display_name, email, token, airlock_crypto.token_hash(token),
               airlock_crypto.new_pin(), ",".join(forms), int(bool(is_minor)),
               kid, now, now + ttl_days * 86400))
         conn.commit()

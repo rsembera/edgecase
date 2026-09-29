@@ -19,10 +19,10 @@ Submission plaintext (inside the encrypted envelope), one JSON object per form:
 The config and consent versions travel in the envelope's associated data, so
 decryption itself proves them.
 
-import_client() is all-or-nothing: PDFs are rendered and the file number
-chosen before the first write; the client, Profile, Upload entry, attachment
-rows and the invitation update are then written on one cursor and committed
-once. Any failure rolls the database back and deletes files already written.
+import_client() fills in the invitation's client file (invitations are issued
+from a client file). It is all-or-nothing: PDFs are rendered before the first
+write; the name, Profile, Upload entry, attachment rows and the invitation
+update are then written on one cursor and committed once. Any failure rolls the database back and deletes files already written.
 """
 import json
 import os
@@ -232,62 +232,53 @@ def parse_consent(plaintext: bytes) -> dict:
 # mapping and review
 # ---------------------------------------------------------------------------
 
-def profile_fields(intake: dict, is_minor: bool) -> dict:
-    """The Profile entry columns an intake fills. Fees, session defaults and
-    the meeting link are left for the practitioner, as with a manual client."""
+# The client file's own fields the review compares and the import writes:
+# (key, label, where it lives, column). Names live on the client row; the
+# rest on the Profile entry (gender in its `content`).
+NAME_FIELDS = ("first_name", "middle_name", "last_name")
+GUARDIAN_LABELS = (("name", "Name"), ("email", "Email"), ("phone", "Phone"),
+                   ("address", "Address"))
+
+
+def _review_fields(intake, is_minor):
     f = intake["fields"]
-    out = {
-        "description": f"{f['first_name']} {f['last_name']} - Profile",
-        "content": f["gender"],            # the Profile keeps gender here
-        "date_of_birth": f["date_of_birth"],
-        "address": f["address"],
-        "email": f["email"],
-        "phone": f["phone"],
-        "home_phone": f["home_phone"],
-        "work_phone": f["work_phone"],
-        "text_number": f["text_number"],
-        "preferred_contact": f["preferred_contact"],
-        "ok_to_leave_message": f["ok_to_leave_message"],
-        "emergency_contact_name": f["emergency_contact_name"],
-        "emergency_contact_phone": f["emergency_contact_phone"],
-        "emergency_contact_relationship": f["emergency_contact_relationship"],
-        "referral_source": f["referral_source"],
-        "additional_info": f["additional_info"],
-        "is_minor": 1 if is_minor else 0,
-    }
-    g = intake["guardians"]
-    if is_minor and g:
-        out.update({
-            "guardian1_name": g[0]["name"], "guardian1_email": g[0]["email"],
-            "guardian1_phone": g[0]["phone"], "guardian1_address": g[0]["address"],
-            # Guardian 1 pays in full until the practitioner says otherwise;
-            # 0 / 0 would bill nobody.
-            "guardian1_pays_percent": 100.0,
-            "has_guardian2": 1 if len(g) > 1 else 0,
-            "guardian2_pays_percent": 0.0,
-        })
-        if len(g) > 1:
-            out.update({"guardian2_name": g[1]["name"], "guardian2_email": g[1]["email"],
-                        "guardian2_phone": g[1]["phone"], "guardian2_address": g[1]["address"]})
+    out = []
+    for name, (_, _, label) in INTAKE_FIELDS.items():
+        where = "client" if name in NAME_FIELDS else "profile"
+        column = "content" if name == "gender" else name
+        out.append((name, label, where, column, f[name]))
+    if is_minor:
+        for i, g in enumerate(intake["guardians"][:2], 1):
+            for key, label in GUARDIAN_LABELS:
+                out.append((f"guardian{i}_{key}", f"Guardian {i} {label}", "profile",
+                            f"guardian{i}_{key}", g[key]))
     return out
 
 
-def possible_duplicates(db, intake: dict) -> list:
-    """Existing clients who might be this person: same first and last name,
-    or the same email on their Profile. For the review screen to show; it
-    never blocks an import."""
-    f = intake["fields"]
-    cur = db.connect().cursor()
-    cur.execute("""
-        SELECT DISTINCT c.id, c.file_number, c.first_name, c.last_name
-        FROM clients c
-        LEFT JOIN entries e ON e.client_id = c.id AND e.class = 'profile'
-        WHERE (LOWER(c.first_name) = LOWER(?) AND LOWER(c.last_name) = LOWER(?))
-           OR (? != '' AND LOWER(e.email) = LOWER(?))
-        ORDER BY c.id
-    """, (f["first_name"], f["last_name"], f["email"], f["email"]))
-    return [dict(zip(("id", "file_number", "first_name", "last_name"), r))
-            for r in cur.fetchall()]
+def review_rows(db, client_id, intake, is_minor) -> list:
+    """What the client submitted beside what the file holds, one row per
+    field. status: 'same', 'new' (file blank), 'changed', or 'blank' (the
+    client left it empty: import leaves the file alone)."""
+    client = db.get_client(client_id) or {}
+    profile = db.get_profile_entry(client_id) or {}
+    rows = []
+    for key, label, where, column, submitted in _review_fields(intake, is_minor):
+        held = (client if where == "client" else profile).get(column)
+        held = "" if held is None else str(held)
+        if not submitted:
+            status = "blank"
+        elif held == submitted:
+            status = "same"
+        elif not held:
+            status = "new"
+        else:
+            status = "changed"
+        labels = CHOICE_LABELS.get(key, {})
+        rows.append({"key": key, "label": label, "where": where, "column": column,
+                     "submitted": submitted, "on_file": held, "status": status,
+                     "submitted_display": labels.get(submitted, submitted),
+                     "on_file_display": labels.get(held, held)})
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -317,16 +308,19 @@ def _upload_notes(invitation, intake, consent, received_at, versions):
 
 
 def import_client(db, invitation_id, intake: dict, consent: dict | None, *,
-                  type_id: int, received_at: int, versions: dict,
-                  manual_file_number: str | None = None,
+                  received_at: int, versions: dict, keep=(),
                   attachments_dir: Path | None = None, assets_path: str | None = None,
                   now: int | None = None) -> int:
-    """Create the client from validated submissions. Returns the client id.
+    """Apply validated submissions to the invitation's client file. Returns
+    the client id.
+
+    The client's answer replaces what is on file, except for keys in `keep`
+    (the practitioner ticked "keep what's on file") and answers left blank,
+    which change nothing. The PDFs go into a new locked Upload entry.
 
     Raises AirLockImportError (nothing written) if the invitation is not
     ready, and re-raises anything else after rolling back.
     """
-    from core.file_numbers import generate_file_number
     from core.encryption import encrypt_file
     from pdf.airlock_records import render_consent_pdf, render_intake_pdf
 
@@ -338,43 +332,68 @@ def import_client(db, invitation_id, intake: dict, consent: dict | None, *,
         raise AirLockImportError([f"Invitation is {status}, not complete"])
     if "consent" in inv["required_forms"] and consent is None:
         raise AirLockImportError(["The consent form is missing"])
-    if db.get_client_type(type_id) is None:
-        raise AirLockImportError(["Unknown client type"])
+    client_id = inv["client_id"]
+    client = db.get_client(client_id) if client_id else None
+    if client is None:
+        raise AirLockImportError(["This invitation is not linked to a client file"])
 
     now = int(time.time()) if now is None else now
     attachments_dir = Path(attachments_dir or config.ATTACHMENTS_DIR)
     assets_path = assets_path or str(config.get_assets_path())
-    f = intake["fields"]
+    file_number = client["file_number"]
+    keep = set(keep)
 
     # Everything that can fail without side effects, first.
     intake_pdf = render_intake_pdf(db, intake, inv, received_at, assets_path)
     consent_pdf = (render_consent_pdf(db, consent, inv, received_at, versions, assets_path)
                    if consent else None)
-    profile = profile_fields(intake, inv["is_minor"])
     upload_time = _time_string(db, received_at)
     notes = _upload_notes(inv, intake, consent, received_at, versions)
-    # Last, because prefix-counter advances (and commits) its counter.
-    file_number = generate_file_number(db, f["first_name"], f["middle_name"],
-                                       f["last_name"], manual=manual_file_number)
+    rows = review_rows(db, client_id, intake, inv["is_minor"])
+    apply = [r for r in rows if r["status"] in ("new", "changed") and r["key"] not in keep]
+    name_updates = {r["column"]: r["submitted"] for r in apply if r["where"] == "client"}
+    profile_updates = {r["column"]: r["submitted"] for r in apply if r["where"] == "profile"}
+    existing = db.get_profile_entry(client_id)
+    if inv["is_minor"]:
+        profile_updates["is_minor"] = 1
+        guardians = intake["guardians"]
+        if guardians and not (existing or {}).get("guardian1_name"):
+            # Guardian 1 pays in full until the practitioner says otherwise;
+            # 0 / 0 would bill nobody.
+            profile_updates.setdefault("guardian1_pays_percent", 100.0)
+            profile_updates.setdefault("guardian2_pays_percent", 0.0)
+        if len(guardians) > 1:
+            profile_updates["has_guardian2"] = 1
+    changed_labels = [r["label"] for r in apply]
 
     conn = db.connect()
     cur = conn.cursor()
     written = []
     try:
-        cur.execute("""
-            INSERT INTO clients (file_number, first_name, middle_name, last_name,
-                                 type_id, session_offset, created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-        """, (file_number, f["first_name"], f["middle_name"] or None, f["last_name"],
-              type_id, now, now))
-        client_id = cur.lastrowid
+        if name_updates:
+            sets = ", ".join(f"{c} = ?" for c in name_updates)
+            cur.execute(f"UPDATE clients SET {sets}, modified_at = ? WHERE id = ?",
+                        list(name_updates.values()) + [now, client_id])
 
-        cols = ["client_id", "class", "created_at", "modified_at"] + list(profile)
-        vals = [client_id, "profile", now, now] + [
-            (None if v == "" and k in db.TYPED_ENTRY_COLUMNS else v)
-            for k, v in profile.items()]
-        cur.execute(f"INSERT INTO entries ({', '.join(cols)}) "
-                    f"VALUES ({', '.join('?' * len(vals))})", vals)
+        history = {"timestamp": now, "description":
+                   "Updated from the AirLock intake: " + ", ".join(changed_labels)}
+        if existing:
+            if profile_updates or changed_labels:
+                old = json.loads(existing.get("edit_history") or "[]")
+                cols = dict(profile_updates)
+                if changed_labels:
+                    cols["edit_history"] = json.dumps(old + [history])
+                sets = ", ".join(f"{c} = ?" for c in cols)
+                cur.execute(f"UPDATE entries SET {sets}, modified_at = ? WHERE id = ?",
+                            list(cols.values()) + [now, existing["id"]])
+        else:
+            first = name_updates.get("first_name", client["first_name"])
+            last = name_updates.get("last_name", client["last_name"])
+            cols = {"client_id": client_id, "class": "profile", "created_at": now,
+                    "modified_at": now, "description": f"{first} {last} - Profile",
+                    **profile_updates}
+            cur.execute(f"INSERT INTO entries ({', '.join(cols)}) "
+                        f"VALUES ({', '.join('?' * len(cols))})", list(cols.values()))
 
         cur.execute("""
             INSERT INTO entries (client_id, class, created_at, modified_at,
@@ -407,9 +426,9 @@ def import_client(db, invitation_id, intake: dict, consent: dict | None, *,
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (upload_id, display, description, stored, path.stat().st_size, now))
 
-        cur.execute("UPDATE intake_invitations SET status = 'imported', "
-                    "client_id = ?, imported_at = ? WHERE id = ? AND status = 'complete'",
-                    (client_id, now, invitation_id))
+        cur.execute("UPDATE intake_invitations SET status = 'imported', imported_at = ? "
+                    "WHERE id = ? AND status = 'complete' AND client_id = ?",
+                    (now, invitation_id, client_id))
         if cur.rowcount != 1:
             raise AirLockImportError(["Invitation changed during import"])
         conn.commit()
@@ -424,4 +443,3 @@ def import_client(db, invitation_id, intake: dict, consent: dict | None, *,
         if written:
             shutil.rmtree(written[0].parent, ignore_errors=True)
         raise
-

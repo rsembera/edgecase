@@ -28,33 +28,33 @@
     </div>
     {% endif %}
 
-    {% if duplicates %}
-    <div class="al-notice warn">
-        <strong>Possible existing client:</strong>
-        {% for d in duplicates %}
-        <a href="{{ url_for('clients.client_file', client_id=d.id) }}" target="_blank">{{ d.first_name }} {{ d.last_name }} ({{ d.file_number }})</a>{{ ', ' if not loop.last }}
-        {% endfor %}.
-        Check before importing; Import always creates a new client.
-    </div>
-    {% endif %}
-
-    {% if intake %}
+    {% if intake and client %}
     <div class="al-section">
-        <h3>Intake</h3>
-        <dl class="al-review-grid">
-            {% for key, spec in intake_fields.items() %}{% set v = intake.fields[key] %}{% if v %}
-            <dt>{{ spec[2] }}</dt>
-            <dd>{{ choice_labels.get(key, {}).get(v, v) }}</dd>
-            {% endif %}{% endfor %}
-        </dl>
-        {% for g in intake.guardians %}
-        <h3 style="margin-top:1rem">Parent / Guardian {{ loop.index }}</h3>
-        <dl class="al-review-grid">
-            {% for key, label in [('name','Name'),('email','Email'),('phone','Phone'),('address','Address')] %}{% if g[key] %}
-            <dt>{{ label }}</dt><dd>{{ g[key] }}</dd>{% endif %}{% endfor %}
-        </dl>
-        {% endfor %}
-        <p class="al-muted" style="margin-top:0.8rem">Signed (typed name): {{ intake.attestation.typed_name }}</p>
+        <h3>Intake for <a href="{{ url_for('clients.client_file', client_id=client.id) }}">{{ client.first_name }} {{ client.last_name }}</a> ({{ client.file_number }})</h3>
+        <p class="al-muted">{% if changed %}{{ changed }} field{{ '' if changed == 1 else 's' }} will change.
+            The client’s answer is used unless you tick “Keep on file”.{% else %}Nothing on file changes;
+            the forms are still added to the file.{% endif %}
+            Answers the client left blank never erase what’s on file.</p>
+        <form method="post" action="{{ url_for('airlock.do_import', invitation_id=inv.id) }}" id="import-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="al-table-wrap"><table class="al-table al-compare">
+                <thead><tr><th>Field</th><th>On file</th><th>Client’s answer</th><th></th></tr></thead>
+                <tbody>
+                {% for r in rows %}
+                <tr class="al-{{ r.status }}">
+                    <td>{{ r.label }}</td>
+                    <td class="al-value">{{ r.on_file_display or '—' }}</td>
+                    <td class="al-value">{% if r.status == 'blank' %}<span class="al-muted">(left blank)</span>{% else %}{{ r.submitted_display }}{% endif %}</td>
+                    <td class="al-actions">{% if r.status == 'changed' %}
+                        <label class="checkbox-label-inline">
+                            <input type="checkbox" name="keep" value="{{ r.key }}" class="checkbox-auto"> Keep on file
+                        </label>{% elif r.status == 'new' %}<span class="al-muted">Added</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+            <p class="al-muted" style="margin-top:0.8rem">Intake signed (typed name): {{ intake.attestation.typed_name }}</p>
+        </form>
     </div>
     {% endif %}
 
@@ -66,34 +66,14 @@
     </div>
     {% endif %}
 
+
     <div class="al-section">
         {% if can_import %}
-        <form method="post" action="{{ url_for('airlock.do_import', invitation_id=inv.id) }}" class="al-issue">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="type_id">Client type</label>
-                    <select id="type_id" name="type_id" required>
-                        {% for t in client_types %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="file_number">File number</label>
-                    {% if file_number_format == 'manual' %}
-                    <input type="text" id="file_number" name="file_number" required maxlength="50">
-                    {% else %}
-                    <input type="text" id="file_number" value="{{ file_number_preview }}" readonly>
-                    <small class="helper-text">Assigned automatically on import</small>
-                    {% endif %}
-                </div>
-            </div>
-            <p class="al-muted">Import creates the client with this Profile, and a locked
-                “{{ 'Intake & consent' if consent else 'Intake' }} (AirLock)” entry holding the PDF{{ 's' if consent }}.
-                Fees and session defaults are yours to set afterwards.</p>
-            <div class="al-buttons">
-                <button type="submit" class="btn">Import</button>
-            </div>
-        </form>
+        <p class="al-muted">Import updates this client’s Profile as shown and adds a locked
+            “{{ 'Intake & consent' if consent else 'Intake' }} (AirLock)” entry holding the PDF{{ 's' if consent }}.</p>
+        <div class="al-buttons">
+            <button type="submit" form="import-form" class="btn">Import into client file</button>
+        </div>
         {% endif %}
         <form method="post" action="{{ url_for('airlock.discard', invitation_id=inv.id) }}" style="margin-top:0.75rem"
               onsubmit="return confirm('Discard this submission? It will be deleted from the server and cannot be recovered.');">

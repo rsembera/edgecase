@@ -139,19 +139,19 @@ def test_forms_page_is_gone(client, app_db, airlock_server):
 
 
 def test_no_consent_invitation_without_consent_text(client, app_db, airlock_server):
+    from tests.test_airlock_import import a_client
+    cid = a_client(app_db)
     cfgmod.save_config(app_db, cfgmod.default_config())   # empty consent
-    r = client.post("/airlock/invitations",
-                    data={"display_name": "Ada", "forms": "both", "ttl_days": "14"})
+    r = client.post(f"/airlock/invite/{cid}", data={"forms": "both", "ttl_days": "14"})
     assert r.status_code == 400 and b"consent text" in r.data
     assert airlock_server.calls == []
-    r = client.post("/airlock/invitations",
-                    data={"display_name": "Ada", "forms": "intake", "ttl_days": "14"})
+    r = client.post(f"/airlock/invite/{cid}", data={"forms": "intake", "ttl_days": "14"})
     assert r.status_code == 302
 
 
 def test_invitation_pushes_current_config(client, app_db, airlock_server):
-    client.post("/airlock/invitations",
-                data={"display_name": "Ada", "forms": "both", "ttl_days": "14"})
+    from tests.test_airlock_import import a_client
+    client.post(f"/airlock/invite/{a_client(app_db)}", data={"forms": "both", "ttl_days": "14"})
     assert airlock_server.calls[:3] == ["put_public_key", "put_config", "create_invitation"]
     assert airlock_server.config["consent_version"]
 

@@ -172,15 +172,15 @@ after the import commits.
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/airlock` | GET | Invitations: ready to review, issue form, open, recent |
+| `/airlock` | GET | Invitations: ready to review, open, recent (issuing is from the client file) |
 | `/airlock/check` | POST | Fetch submissions, record forms received, clean up imported/revoked |
-| `/airlock/invitations` | POST | Issue: create locally, push hash + PIN; deleted again if the push fails |
+| `/airlock/invite/<client_id>` | GET, POST | Send intake forms from a client file: create locally with the client's id, push hash + PIN; deleted again if the push fails |
 | `/airlock/invitations/<id>` | GET | Link and PIN for an open invitation |
 | `/airlock/invitations/<id>/revoke` | POST | Revoke here and on the server |
-| `/airlock/review/<id>` | GET | Decrypt, validate, show; duplicates flagged; nothing written |
-| `/airlock/review/<id>/import` | POST | Import (all-or-nothing), then delete from server |
+| `/airlock/review/<id>` | GET | Decrypt, validate, show each answer beside the client file; nothing written |
+| `/airlock/review/<id>/import` | POST | Fill in the client file (all-or-nothing; `keep` = fields to leave as on file), then delete from server |
 | `/airlock/review/<id>/discard` | POST | Revoke and delete the submissions from the server |
-| `/airlock/forms` | GET, POST | Field visibility, required, labels; own questions; consent text. Saving pushes the bundle |
+| `/airlock/consent` | GET, POST | Consent text with preview. Saving pushes the bundle |
 | `/airlock/unmatched/delete` | POST | Remove submissions for tokens EdgeCase has no record of |
 | `/api/airlock_settings` | GET, POST | Server address, client form address, admin key (write-only), expiry; `{"disable": true}` turns off |
 | `/api/airlock_test` | POST | Connect and push the public key |

@@ -59,9 +59,23 @@ def parsed_consent(**kw):
     return ai.parse_consent(enc(consent_payload(**kw)))
 
 
-def complete_invitation(db, forms=("intake", "consent"), is_minor=False):
+def a_client(db, first="Ada", last="Lovelace", file_number="C-1", **profile):
+    """A client file as it exists before intake: created at inquiry, with
+    whatever Profile details the practitioner already has."""
+    cid = db.add_client({"file_number": file_number, "first_name": first,
+                         "last_name": last, "type_id": 1})
+    if profile:
+        db.add_entry({"client_id": cid, "class": "profile",
+                      "description": f"{first} {last} - Profile", **profile})
+    return cid
+
+
+def complete_invitation(db, forms=("intake", "consent"), is_minor=False, client_id=None):
+    if client_id is None:
+        client_id = a_client(db)
     inv = db.create_intake_invitation("Ada L.", email="ada@example.com",
-                                      required_forms=forms, is_minor=is_minor)
+                                      required_forms=forms, is_minor=is_minor,
+                                      client_id=client_id)
     for f in forms:
         db.record_intake_form_received(inv["id"], f)
     return db.get_intake_invitation(inv["id"])
@@ -169,35 +183,8 @@ def test_parse_consent_rejects(overrides):
 
 
 # ---------------------------------------------------------------------------
-# mapping and duplicates
+# the form mirrors the Profile
 # ---------------------------------------------------------------------------
-
-def test_profile_mapping_matches_the_profile_form():
-    p = ai.profile_fields(parsed_intake(), is_minor=False)
-    assert p["content"] == "Woman"          # gender lives in content
-    assert p["phone"] == "613-555-0101"     # the Profile's "Cell"
-    assert p["text_number"] == "cell"
-    assert p["preferred_contact"] == "text"
-    assert p["is_minor"] == 0
-    assert "guardian1_name" not in p
-    assert "session_total" not in p and "meeting_link" not in p
-
-
-def test_text_number_comes_from_the_client_not_a_guess():
-    """The old import guessed "cell" whenever the client preferred texting;
-    a client who texts from a home line lost their text number."""
-    p = ai.profile_fields(parsed_intake(home_phone="613-555-0199", text_number="home"),
-                          is_minor=False)
-    assert p["text_number"] == "home"
-    p = ai.profile_fields(parsed_intake(text_number="none", preferred_contact="email"),
-                          is_minor=False)
-    assert (p["text_number"], p["preferred_contact"]) == ("none", "email")
-
-
-def test_additional_info_is_only_what_the_client_wrote():
-    p = ai.profile_fields(parsed_intake(additional_info="Prefers mornings"), is_minor=False)
-    assert p["additional_info"] == "Prefers mornings"
-
 
 def test_intake_fields_follow_the_client_profile_order():
     import re
@@ -219,31 +206,42 @@ def test_choices_are_the_profile_dropdown_values():
         assert values == set(labels), name
 
 
-def test_minor_mapping():
+# ---------------------------------------------------------------------------
+# review: the client's answers beside the file
+# ---------------------------------------------------------------------------
+
+def _rows(db, cid, intake, is_minor=False):
+    return {r["key"]: r for r in ai.review_rows(db, cid, intake, is_minor)}
+
+
+def test_review_rows_compare_answers_with_the_file(app_db):
+    cid = a_client(app_db, email="old@example.com", phone="613-555-0101",
+                   ok_to_leave_message="yes", additional_info="Referred by Dr. B")
+    rows = _rows(app_db, cid, parsed_intake())
+    assert rows["first_name"]["status"] == "same"
+    assert rows["email"]["status"] == "changed"
+    assert (rows["email"]["on_file"], rows["email"]["submitted"]) == \
+        ("old@example.com", "ada@example.com")
+    assert rows["phone"]["status"] == "same"
+    assert rows["gender"]["status"] == "new" and rows["gender"]["column"] == "content"
+    assert rows["additional_info"]["status"] == "blank"       # client left it empty
+    assert rows["middle_name"]["status"] == "blank"
+    assert rows["preferred_contact"]["submitted_display"] == "Text Message"
+    assert "guardian1_name" not in rows
+
+
+def test_review_rows_include_guardians_for_a_minor(app_db):
+    cid = a_client(app_db)
     intake = ai.parse_intake(enc(intake_payload(guardians=[
-        {"name": "Anne", "email": "", "phone": "613-555-0103", "address": ""},
-        {"name": "George", "email": "g@example.com", "phone": "", "address": ""}])),
+        {"name": "Anne", "email": "", "phone": "613-555-0103", "address": ""}])),
         is_minor=True)
-    p = ai.profile_fields(intake, is_minor=True)
-    assert (p["is_minor"], p["guardian1_name"], p["guardian2_name"]) == (1, "Anne", "George")
-    assert (p["guardian1_pays_percent"], p["guardian2_pays_percent"], p["has_guardian2"]) == (100.0, 0.0, 1)
-
-
-def test_possible_duplicates(app_db):
-    existing = app_db.add_client({"file_number": "D-1", "first_name": "ADA",
-                                  "last_name": "lovelace", "type_id": 1})
-    other = app_db.add_client({"file_number": "D-2", "first_name": "Augusta",
-                               "last_name": "King", "type_id": 1})
-    app_db.add_entry({"client_id": other, "class": "profile",
-                      "email": "Ada@Example.com"})
-    ids = [d["id"] for d in ai.possible_duplicates(app_db, parsed_intake())]
-    assert ids == [existing, other]
-    assert ai.possible_duplicates(app_db, parsed_intake(first_name="Grace",
-                                                        email="grace@example.com")) == []
+    rows = _rows(app_db, cid, intake, is_minor=True)
+    assert rows["guardian1_name"]["status"] == "new"
+    assert rows["guardian1_email"]["status"] == "blank"
 
 
 # ---------------------------------------------------------------------------
-# import_client
+# import_client: fills in the invitation's client file
 # ---------------------------------------------------------------------------
 
 def _entries(db, client_id):
@@ -266,64 +264,130 @@ def _counts(db):
 VERSIONS = {"config_version": "cfg-1", "consent_version": "consent-1"}
 
 
-def test_import_creates_the_whole_client_file(app_db, tmp_path):
-    app_db.set_setting("file_number_format", "prefix-counter")
-    app_db.set_setting("file_number_counter", "42")
-    inv = complete_invitation(app_db)
+def _import(db, inv, tmp_path, intake=None, consent="default", **kw):
+    return ai.import_client(db, inv["id"], intake or parsed_intake(),
+                            parsed_consent() if consent == "default" else consent,
+                            received_at=RECEIVED, versions=VERSIONS,
+                            attachments_dir=tmp_path, **kw)
 
-    cid = ai.import_client(app_db, inv["id"], parsed_intake(), parsed_consent(),
-                           type_id=1, received_at=RECEIVED, versions=VERSIONS,
-                           attachments_dir=tmp_path)
 
-    client = app_db.get_client(cid)
-    assert (client["file_number"], client["first_name"], client["last_name"]) == \
-        ("0042", "Ada", "Lovelace")
+def test_import_fills_the_existing_client_file(app_db, tmp_path):
+    cid = a_client(app_db, file_number="0042", email="old@example.com",
+                   ok_to_leave_message="no")
+    inv = complete_invitation(app_db, client_id=cid)
+    before = _counts(app_db)
+
+    assert _import(app_db, inv, tmp_path) == cid
+    assert _counts(app_db)["clients"] == before["clients"]          # no new client
+    profiles = [e for e in _entries(app_db, cid) if e["class"] == "profile"]
+    assert len(profiles) == 1                                        # updated, not added
+
     profile = app_db.get_profile_entry(cid)
-    assert profile["email"] == "ada@example.com"
+    assert profile["email"] == "ada@example.com"                    # client's answer wins
+    assert profile["ok_to_leave_message"] == "yes"
     assert profile["content"] == "Woman"
     assert profile["date_of_birth"] == "1990-12-10"
+    assert (profile["text_number"], profile["preferred_contact"]) == ("cell", "text")
+    history = app_db.get_edit_history(profile["id"])
+    assert "Updated from the AirLock intake" in history[-1]["description"]
+    assert "Email" in history[-1]["description"]
+    assert "ada@example.com" not in history[-1]["description"]     # names, not values
 
     upload = [e for e in _entries(app_db, cid) if e["class"] == "upload"][0]
     assert upload["description"] == "Intake & consent (AirLock)"
-    assert upload["locked"] == 1
-    assert upload["upload_date"] == RECEIVED
+    assert upload["locked"] == 1 and upload["upload_date"] == RECEIVED
     assert f"invitation #{inv['id']}".lower() in upload["content"].lower()
     assert "consent version consent-1" in upload["content"]
-
     atts = app_db.get_attachments(upload["id"])
     assert sorted(a["filename"] for a in atts) == ["Consent_0042.pdf", "Intake_0042.pdf"]
-    for a in atts:
-        on_disk = tmp_path / str(cid) / str(upload["id"])
-        files = list(on_disk.iterdir())
-        assert len(files) == 2
-        assert all(f.suffix == ".enc" and "0042" not in f.name for f in files)
-        assert all(f.read_bytes().startswith(b"%PDF") for f in files)
+    files = list((tmp_path / str(cid) / str(upload["id"])).iterdir())
+    assert len(files) == 2
+    assert all(f.suffix == ".enc" and f.read_bytes().startswith(b"%PDF") for f in files)
 
     inv = app_db.get_intake_invitation(inv["id"])
     assert (inv["status"], inv["client_id"]) == ("imported", cid)
 
 
+def test_keep_on_file_overrides_the_clients_answer(app_db, tmp_path):
+    cid = a_client(app_db, email="old@example.com", phone="613-555-0000")
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path, keep=["email"])
+    profile = app_db.get_profile_entry(cid)
+    assert profile["email"] == "old@example.com"
+    assert profile["phone"] == "613-555-0101"
+
+
+def test_blank_answers_never_erase_the_file(app_db, tmp_path):
+    cid = a_client(app_db, additional_info="Referred by Dr. B", work_phone="613-555-0200")
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path)        # the client left both blank
+    profile = app_db.get_profile_entry(cid)
+    assert profile["additional_info"] == "Referred by Dr. B"
+    assert profile["work_phone"] == "613-555-0200"
+
+
+def test_a_name_change_updates_the_client_but_not_the_file_number(app_db, tmp_path):
+    cid = a_client(app_db, first="Ada", last="Lovelace", file_number="AL-1")
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path, intake=parsed_intake(first_name="Augusta",
+                                                        middle_name="Ada"))
+    client = app_db.get_client(cid)
+    assert (client["first_name"], client["middle_name"], client["last_name"],
+            client["file_number"]) == ("Augusta", "Ada", "Lovelace", "AL-1")
+
+
+def test_a_file_without_a_profile_gets_one(app_db, tmp_path):
+    cid = a_client(app_db)                # no Profile yet
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path)
+    profile = app_db.get_profile_entry(cid)
+    assert profile["description"] == "Ada Lovelace - Profile"
+    assert profile["email"] == "ada@example.com"
+
+
+def test_text_number_comes_from_the_client_not_a_guess(app_db, tmp_path):
+    """The old import guessed "cell" whenever the client preferred texting;
+    a client who texts from a home line lost their text number."""
+    cid = a_client(app_db)
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path, intake=parsed_intake(home_phone="613-555-0199",
+                                                        text_number="home"))
+    assert app_db.get_profile_entry(cid)["text_number"] == "home"
+
+
 def test_import_intake_only(app_db, tmp_path):
-    app_db.set_setting("file_number_format", "manual")
-    inv = complete_invitation(app_db, forms=("intake",))
-    cid = ai.import_client(app_db, inv["id"], parsed_intake(), None, type_id=1,
-                           received_at=RECEIVED, versions={}, manual_file_number="M-7",
-                           attachments_dir=tmp_path)
+    cid = a_client(app_db, file_number="M-7")
+    inv = complete_invitation(app_db, forms=("intake",), client_id=cid)
+    _import(app_db, inv, tmp_path, consent=None)
     upload = [e for e in _entries(app_db, cid) if e["class"] == "upload"][0]
     assert upload["description"] == "Intake (AirLock)"
     assert [a["filename"] for a in app_db.get_attachments(upload["id"])] == ["Intake_M-7.pdf"]
 
 
 def test_import_minor(app_db, tmp_path):
-    inv = complete_invitation(app_db, is_minor=True)
+    cid = a_client(app_db)
+    inv = complete_invitation(app_db, is_minor=True, client_id=cid)
     intake = ai.parse_intake(enc(intake_payload(guardians=[
-        {"name": "Anne", "email": "", "phone": "613-555-0103", "address": ""}])),
+        {"name": "Anne", "email": "", "phone": "613-555-0103", "address": ""},
+        {"name": "George", "email": "g@example.com", "phone": "", "address": ""}])),
         is_minor=True)
-    app_db.set_setting("file_number_format", "date-initials")
-    cid = ai.import_client(app_db, inv["id"], intake, parsed_consent(), type_id=1,
-                           received_at=RECEIVED, versions=VERSIONS, attachments_dir=tmp_path)
+    _import(app_db, inv, tmp_path, intake=intake)
     p = app_db.get_profile_entry(cid)
-    assert (p["is_minor"], p["guardian1_name"]) == (1, "Anne")
+    assert (p["is_minor"], p["guardian1_name"], p["guardian2_name"]) == (1, "Anne", "George")
+    assert (p["guardian1_pays_percent"], p["guardian2_pays_percent"], p["has_guardian2"]) == \
+        (100.0, 0.0, 1)
+
+
+def test_import_minor_keeps_an_existing_payment_split(app_db, tmp_path):
+    cid = a_client(app_db, is_minor=1, guardian1_name="Anne", guardian1_pays_percent=60.0,
+                   guardian2_pays_percent=40.0)
+    inv = complete_invitation(app_db, is_minor=True, client_id=cid)
+    intake = ai.parse_intake(enc(intake_payload(guardians=[
+        {"name": "Anne B.", "email": "", "phone": "613-555-0103", "address": ""}])),
+        is_minor=True)
+    _import(app_db, inv, tmp_path, intake=intake)
+    p = app_db.get_profile_entry(cid)
+    assert (p["guardian1_name"], p["guardian1_pays_percent"]) == ("Anne B.", 60.0)
 
 
 @pytest.mark.parametrize("setup, fragment", [
@@ -331,38 +395,36 @@ def test_import_minor(app_db, tmp_path):
     ("partial", "partial"),
     ("revoked", "revoked"),
     ("no_consent", "consent form is missing"),
-    ("bad_type", "Unknown client type"),
+    ("unlinked", "not linked to a client file"),
 ])
 def test_import_refusals_write_nothing(app_db, tmp_path, setup, fragment):
-    inv = app_db.create_intake_invitation("Ada")
+    inv = app_db.create_intake_invitation("Ada", client_id=a_client(app_db))
     consent = parsed_consent()
-    type_id = 1
     if setup == "partial":
         app_db.record_intake_form_received(inv["id"], "intake")
     elif setup == "revoked":
         app_db.revoke_intake_invitation(inv["id"])
-    elif setup in ("no_consent", "bad_type"):
-        inv = complete_invitation(app_db)
-        if setup == "no_consent":
-            consent = None
-        else:
-            type_id = 999
+    elif setup == "no_consent":
+        inv = complete_invitation(app_db, client_id=inv["client_id"])
+        consent = None
+    elif setup == "unlinked":
+        inv = app_db.create_intake_invitation("Old standalone invitation")
+        for f in ("intake", "consent"):
+            app_db.record_intake_form_received(inv["id"], f)
     before = _counts(app_db)
     with pytest.raises(ai.AirLockImportError) as exc:
-        ai.import_client(app_db, inv["id"], parsed_intake(), consent, type_id=type_id,
-                         received_at=RECEIVED, versions=VERSIONS,
-                         manual_file_number="X-1", attachments_dir=tmp_path)
+        _import(app_db, inv, tmp_path, consent=consent)
     assert any(fragment in p for p in exc.value.problems)
     assert _counts(app_db) == before
     assert list(tmp_path.iterdir()) == []
 
 
 def test_import_is_all_or_nothing(app_db, tmp_path, monkeypatch):
-    """A failure after the first PDF is on disk and the client row written:
-    the database rolls back, the file is removed, the invitation is untouched
-    and can be imported again."""
-    app_db.set_setting("file_number_format", "manual")
-    inv = complete_invitation(app_db)
+    """A failure after the first PDF is on disk and the Profile updated: the
+    database rolls back, the file is removed, the invitation is untouched and
+    can be imported again."""
+    cid = a_client(app_db, email="old@example.com")
+    inv = complete_invitation(app_db, client_id=cid)
     before = _counts(app_db)
 
     calls = {"n": 0}
@@ -376,46 +438,36 @@ def test_import_is_all_or_nothing(app_db, tmp_path, monkeypatch):
 
     monkeypatch.setattr(ai.uuid, "uuid4", flaky)
     with pytest.raises(OSError):
-        ai.import_client(app_db, inv["id"], parsed_intake(), parsed_consent(),
-                         type_id=1, received_at=RECEIVED, versions=VERSIONS,
-                         manual_file_number="AON-1", attachments_dir=tmp_path)
+        _import(app_db, inv, tmp_path, intake=parsed_intake(first_name="Augusta"))
     assert calls["n"] == 2
     assert _counts(app_db) == before
+    assert app_db.get_profile_entry(cid)["email"] == "old@example.com"
+    assert app_db.get_client(cid)["first_name"] == "Ada"
     assert not any(p.is_file() for p in tmp_path.rglob("*"))
     assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
 
     monkeypatch.setattr(ai.uuid, "uuid4", real)
-    cid = ai.import_client(app_db, inv["id"], parsed_intake(), parsed_consent(),
-                           type_id=1, received_at=RECEIVED, versions=VERSIONS,
-                           manual_file_number="AON-1", attachments_dir=tmp_path)
-    assert app_db.get_client(cid)["file_number"] == "AON-1"
+    _import(app_db, inv, tmp_path)
+    assert app_db.get_profile_entry(cid)["email"] == "ada@example.com"
 
 
 def test_import_twice_is_refused(app_db, tmp_path):
-    app_db.set_setting("file_number_format", "manual")
     inv = complete_invitation(app_db)
-    ai.import_client(app_db, inv["id"], parsed_intake(), parsed_consent(), type_id=1,
-                     received_at=RECEIVED, versions=VERSIONS, manual_file_number="T-1",
-                     attachments_dir=tmp_path)
+    _import(app_db, inv, tmp_path)
     with pytest.raises(ai.AirLockImportError):
-        ai.import_client(app_db, inv["id"], parsed_intake(), parsed_consent(), type_id=1,
-                         received_at=RECEIVED, versions=VERSIONS, manual_file_number="T-2",
-                         attachments_dir=tmp_path)
+        _import(app_db, inv, tmp_path)
 
 
 def test_hostile_text_renders_safely(app_db, tmp_path):
     """ReportLab markup characters in every text field must be escaped, not
     interpreted: an unescaped '<' makes ReportLab raise."""
-    app_db.set_setting("file_number_format", "manual")
     inv = complete_invitation(app_db)
     nasty = '<b>&amp; <font size="80">x</font> <script>alert(1)</script>'
     intake = parsed_intake(first_name="Ada<i>", last_name="Love & <lace>",
                            address=nasty, additional_info=nasty, gender=nasty,
                            referral_source=nasty)
     consent = parsed_consent(consent_text=f"# {nasty}\n\n{nasty}\n\n- {nasty}")
-    cid = ai.import_client(app_db, inv["id"], intake, consent, type_id=1,
-                           received_at=RECEIVED, versions=VERSIONS,
-                           manual_file_number="H-1", attachments_dir=tmp_path)
+    cid = _import(app_db, inv, tmp_path, intake=intake, consent=consent)
     assert app_db.get_client(cid)["last_name"] == "Love & <lace>"
 
 
@@ -423,8 +475,8 @@ def test_end_to_end_from_encrypted_envelopes(app_db, tmp_path):
     """Invitation -> browser-side encryption -> decrypt with EdgeCase's key and
     EdgeCase's own AAD -> parse -> import. The whole EdgeCase half of the
     pipeline, with only the network missing."""
-    app_db.set_setting("file_number_format", "manual")
-    inv = app_db.create_intake_invitation("Ada L.")
+    cid = a_client(app_db)
+    inv = app_db.create_intake_invitation("Ada L.", client_id=cid)
     kid, public = app_db.airlock_public_key()
     envelopes = {}
     for form, payload in (("intake", intake_payload()), ("consent", consent_payload())):
@@ -436,8 +488,7 @@ def test_end_to_end_from_encrypted_envelopes(app_db, tmp_path):
     opened = {form: ac.decrypt_envelope(
         env, keys, ac.build_aad(inv["token_hash"], form, "cfg-1", "consent-1"))
         for form, env in envelopes.items()}
-    cid = ai.import_client(app_db, inv["id"], ai.parse_intake(opened["intake"], False),
-                           ai.parse_consent(opened["consent"]), type_id=1,
-                           received_at=int(time.time()), versions=VERSIONS,
-                           manual_file_number="E2E-1", attachments_dir=tmp_path)
-    assert app_db.get_client(cid)["first_name"] == "Ada"
+    ai.import_client(app_db, inv["id"], ai.parse_intake(opened["intake"], False),
+                     ai.parse_consent(opened["consent"]), received_at=int(time.time()),
+                     versions=VERSIONS, attachments_dir=tmp_path)
+    assert app_db.get_profile_entry(cid)["email"] == "ada@example.com"

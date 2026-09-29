@@ -17,11 +17,14 @@ from core.airlock_client import AirLockConnectionError
 from tests import test_airlock_import as fx
 
 
-def _issue(client, name="Ada L.", email="ada@example.com", forms="both", minor=False):
-    data = {"display_name": name, "email": email, "forms": forms, "ttl_days": "14"}
+def _issue(client, app_db, forms="both", minor=False, ttl_days="14", client_id=None):
+    """Send intake forms from a client file, as the Client File button does."""
+    if client_id is None:
+        client_id = fx.a_client(app_db, email="ada@example.com")
+    data = {"forms": forms, "ttl_days": ttl_days}
     if minor:
         data["is_minor"] = "1"
-    return client.post("/airlock/invitations", data=data)
+    return client.post(f"/airlock/invite/{client_id}", data=data)
 
 
 def _latest(app_db):
@@ -101,7 +104,7 @@ def test_test_connection_pushes_the_key(client, app_db, airlock_server):
 # ---------------------------------------------------------------------------
 
 def test_issue_sends_only_hash_and_pin(client, app_db, airlock_server):
-    r = _issue(client)
+    r = _issue(client, app_db)
     inv = _latest(app_db)
     assert r.status_code == 302
     assert r.headers["Location"].endswith(f"/airlock/invitations/{inv['id']}?new=1")
@@ -119,20 +122,52 @@ def test_issue_sends_only_hash_and_pin(client, app_db, airlock_server):
 
 def test_issue_failure_leaves_nothing(client, app_db, airlock_server):
     airlock_server.fail.add("create_invitation")
-    r = _issue(client)
+    r = _issue(client, app_db)
     assert r.status_code == 502
     assert b"was not created" in r.data
     assert app_db.list_intake_invitations(include_closed=True) == []
 
 
 def test_issue_validation_error(client, app_db, airlock_server):
-    r = _issue(client, name="")
-    assert r.status_code == 400 and b"name is required" in r.data
+    r = _issue(client, app_db, ttl_days="0")
+    assert r.status_code == 400 and b"Expiry must be between" in r.data
     assert airlock_server.calls == []
+    assert client.post("/airlock/invite/9999", data={"forms": "both"}).status_code == 404
+
+
+def test_invitation_carries_the_client_file(client, app_db, airlock_server):
+    cid = fx.a_client(app_db, first="Grace", last="Hopper", email="grace@example.com")
+    _issue(client, app_db, client_id=cid)
+    inv = _latest(app_db)
+    assert (inv["client_id"], inv["display_name"], inv["email"]) == \
+        (cid, "Grace Hopper", "grace@example.com")
+
+
+def test_invite_page(client, app_db, airlock_server):
+    cid = fx.a_client(app_db, is_minor=1)
+    page = client.get(f"/airlock/invite/{cid}").data.decode()
+    assert "Ada Lovelace" in page and "C-1" in page
+    assert re.search(r'name="is_minor" value="1"[^>]*\s+checked', page)   # from the Profile
+    _issue(client, app_db, client_id=cid)
+    assert "already has an open invitation" in client.get(f"/airlock/invite/{cid}").data.decode()
+
+
+def test_client_file_has_the_send_button_only_when_configured(client, app_db, airlock_server):
+    cid = fx.a_client(app_db)
+    assert f"/airlock/invite/{cid}".encode() in client.get(f"/client/{cid}").data
+    client.post("/api/airlock_settings", json={"disable": True})
+    assert f"/airlock/invite/{cid}".encode() not in client.get(f"/client/{cid}").data
+
+
+def test_no_standalone_invitations(client, app_db, airlock_server):
+    """Every client has a file before intake goes out (decided 2026-09-29)."""
+    page = client.get("/airlock").data.decode()
+    assert "New invitation" not in page and 'name="display_name"' not in page
+    assert client.post("/airlock/invitations", data={"display_name": "X"}).status_code == 404
 
 
 def test_revoke(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     r = client.post(f"/airlock/invitations/{inv['id']}/revoke")
     assert "msg=revoked" in r.headers["Location"]
@@ -141,7 +176,7 @@ def test_revoke(client, app_db, airlock_server):
 
 
 def test_revoke_when_server_unreachable(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     airlock_server.fail.add("revoke_invitation")
     r = client.post(f"/airlock/invitations/{inv['id']}/revoke")
@@ -154,8 +189,9 @@ def test_revoke_when_server_unreachable(client, app_db, airlock_server):
 # ---------------------------------------------------------------------------
 
 def test_full_flow(client, app_db, airlock_server):
-    app_db.set_setting("file_number_format", "manual")
-    _issue(client)
+    cid = fx.a_client(app_db, file_number="AL-001", email="old@example.com",
+                      phone="613-555-0000")
+    _issue(client, app_db, client_id=cid)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv)
 
@@ -167,53 +203,42 @@ def test_full_flow(client, app_db, airlock_server):
 
     review = client.get(f"/airlock/review/{inv['id']}").data.decode()
     assert "Lovelace" in review and "I agree to psychotherapy." in review
-    assert 'name="file_number"' in review
+    assert "AL-001" in review and 'name="file_number"' not in review
+    assert re.search(r'class="al-changed">\s*<td>Email</td>', review)
+    assert 'name="keep" value="email"' in review and 'name="keep" value="phone"' in review
 
-    r = client.post(f"/airlock/review/{inv['id']}/import",
-                    data={"type_id": "1", "file_number": "AL-001"})
-    assert r.status_code == 302
-    cid = int(re.search(r"/client/(\d+)", r.headers["Location"]).group(1))
-    assert app_db.get_client(cid)["file_number"] == "AL-001"
+    before = app_db.connect().execute("SELECT COUNT(*) FROM clients").fetchone()[0]
+    r = client.post(f"/airlock/review/{inv['id']}/import", data={"keep": ["phone"]})
+    assert r.status_code == 302 and r.headers["Location"].endswith(f"/client/{cid}")
+    assert app_db.connect().execute("SELECT COUNT(*) FROM clients").fetchone()[0] == before
+    profile = app_db.get_profile_entry(cid)
+    assert profile["email"] == "ada@example.com"          # client's answer
+    assert profile["phone"] == "613-555-0000"             # kept on file
     assert airlock_server.submissions == []
     assert app_db.get_intake_invitation(inv["id"])["status"] == "imported"
 
 
-def test_import_with_automatic_numbering(client, app_db, airlock_server):
-    app_db.set_setting("file_number_format", "prefix-counter")
-    _issue(client)
-    inv = _latest(app_db)
+def test_old_unlinked_invitation_cannot_be_imported(client, app_db, airlock_server):
+    """Invitations from before the Client File button have no client to fill in."""
+    inv = app_db.create_intake_invitation("Old standalone")
+    airlock_server.invitations[inv["token_hash"]] = {"key_id": inv["key_id"]}
+    airlock_server.public_keys[inv["key_id"]] = app_db.airlock_public_key()[1]
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
-    assert b"Assigned automatically" in client.get(f"/airlock/review/{inv['id']}").data
-    r = client.post(f"/airlock/review/{inv['id']}/import", data={"type_id": "1"})
-    cid = int(re.search(r"/client/(\d+)", r.headers["Location"]).group(1))
-    assert app_db.get_client(cid)["file_number"] == "0001"
-
-
-def test_manual_number_collision_is_reported(client, app_db, airlock_server):
-    app_db.set_setting("file_number_format", "manual")
-    app_db.add_client({"file_number": "TAKEN", "first_name": "T", "last_name": "N",
-                       "type_id": 1})
-    _issue(client)
-    inv = _latest(app_db)
-    _submit_both(airlock_server, inv)
-    client.post("/airlock/check")
-    r = client.post(f"/airlock/review/{inv['id']}/import",
-                    data={"type_id": "1", "file_number": "TAKEN"})
-    assert r.status_code == 400 and b"already exists" in r.data
-    assert len(airlock_server.submissions) == 2
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert "not linked to a client file" in page and "Import into client file" not in page
+    r = client.post(f"/airlock/review/{inv['id']}/import")
+    assert r.status_code == 400
     assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
 
 
 def test_import_cleanup_failure_is_reported_and_healed(client, app_db, airlock_server):
-    app_db.set_setting("file_number_format", "manual")
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
     airlock_server.fail.add("delete_submission")
-    r = client.post(f"/airlock/review/{inv['id']}/import",
-                    data={"type_id": "1", "file_number": "CF-1"})
+    r = client.post(f"/airlock/review/{inv['id']}/import")
     assert "msg=cleanup_failed" in r.headers["Location"]
     assert len(airlock_server.submissions) == 2
     airlock_server.fail.clear()
@@ -222,7 +247,7 @@ def test_import_cleanup_failure_is_reported_and_healed(client, app_db, airlock_s
 
 
 def test_tampered_submission_cannot_be_imported(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     airlock_server.submit(inv["token_hash"], "intake", fx.intake_payload(), tamper=True)
     airlock_server.submit(inv["token_hash"], "consent", fx.consent_payload())
@@ -230,7 +255,7 @@ def test_tampered_submission_cannot_be_imported(client, app_db, airlock_server):
     page = client.get(f"/airlock/review/{inv['id']}").data.decode()
     assert "could not be decrypted" in page
     assert "/import" not in page
-    r = client.post(f"/airlock/review/{inv['id']}/import", data={"type_id": "1"})
+    r = client.post(f"/airlock/review/{inv['id']}/import")
     assert r.status_code == 400
     assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
 
@@ -238,7 +263,7 @@ def test_tampered_submission_cannot_be_imported(client, app_db, airlock_server):
 def test_submission_under_other_versions_fails(client, app_db, airlock_server):
     """The server reports the versions, but they are in the AAD: a server that
     lies about them makes decryption fail rather than mislabel the record."""
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv)
     airlock_server.submissions[1]["consent_version"] = "consent-2"
@@ -248,7 +273,7 @@ def test_submission_under_other_versions_fails(client, app_db, airlock_server):
 
 
 def test_invalid_submission_lists_problems(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv, email="nope", phone="")
     client.post("/airlock/check")
@@ -257,7 +282,7 @@ def test_invalid_submission_lists_problems(client, app_db, airlock_server):
 
 
 def test_discard(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
@@ -269,7 +294,7 @@ def test_discard(client, app_db, airlock_server):
 
 
 def test_review_escapes_hostile_text(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
     _submit_both(airlock_server, inv, first_name='<img src=x onerror=alert(1)>',
                  additional_info="<script>alert(2)</script>")
@@ -297,9 +322,10 @@ def test_check_when_server_unreachable(client, app_db, airlock_server):
 
 
 def test_every_form_carries_a_csrf_token(client, app_db, airlock_server):
-    _issue(client)
+    _issue(client, app_db)
     inv = _latest(app_db)
-    pages = ["/airlock", f"/airlock/invitations/{inv['id']}"]
+    pages = ["/airlock", f"/airlock/invitations/{inv['id']}",
+             f"/airlock/invite/{inv['client_id']}"]
     htmls = [client.get(p).data.decode() for p in pages]
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
