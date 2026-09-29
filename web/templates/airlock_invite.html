@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Send Intake Forms - EdgeCase Equalizer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/airlock.css', v=static_v) }}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h2><i data-lucide="send" class="page-icon"></i>Send Intake Forms</h2>
+            <p class="page-subtitle">{{ name }} ({{ client.file_number }})</p>
+        </div>
+        <a href="{{ url_for('clients.client_file', client_id=client.id) }}" class="btn">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back
+        </a>
+    </div>
+
+    {% if error %}<div class="al-notice error">{{ error }}</div>{% endif %}
+
+    {% if open_invs %}
+    <div class="al-notice warn">
+        {{ name }} already has an open invitation
+        (<a href="{{ url_for('airlock.invitation', invitation_id=open_invs[0].id) }}">link &amp; PIN</a>).
+        A new one works alongside it; revoke the old one if you no longer need it.
+    </div>
+    {% endif %}
+
+    <p class="al-muted">The client gets a link and a 6-digit PIN. Send the link by email and give
+        the PIN another way, such as on your consultation call. What they submit comes back to
+        this file: you review it beside what’s already here before anything changes.</p>
+
+    <form method="post" action="{{ url_for('airlock.invite', client_id=client.id) }}" class="al-invite">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="forms">Forms</label>
+            <select id="forms" name="forms">
+                <option value="both"{% if has_consent %} selected{% endif %}>Intake and consent</option>
+                <option value="intake"{% if not has_consent %} selected{% endif %}>Intake only</option>
+            </select>
+            {% if not has_consent %}
+            <small class="helper-text">Add consent text on the <a href="{{ url_for('airlock.consent') }}">Consent page</a> to send both.</small>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label for="ttl_days">Expires after (days)</label>
+            <input type="number" id="ttl_days" name="ttl_days" min="1" max="90" value="{{ ttl_days }}">
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label-inline">
+                <input type="checkbox" name="is_minor" value="1" class="checkbox-auto"
+                       {% if profile.is_minor %}checked{% endif %}>
+                Client is a minor (a parent or guardian fills in the forms)
+            </label>
+        </div>
+        <div class="al-buttons">
+            <button type="submit" class="btn">Create invitation</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -25,12 +25,18 @@
 .status-badge.imported { background: #D1FAE5; color: #065F46; }
 .status-badge.revoked, .status-badge.expired { background: #F3F4F6; color: #4B5563; }
 
-.al-issue { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.75rem;
-            padding: 1rem 1.1rem; }
-.al-issue .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-.al-issue .form-group { flex: 1 1 14rem; }
-.al-inline { display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; margin: 0.6rem 0; }
-.al-inline label { font-weight: normal; display: flex; gap: 0.35rem; align-items: center; }
+/* Send intake forms (from a client file): inputs at Settings' widths */
+.al-invite { margin-top: 1rem; }
+.al-invite .form-group select { max-width: 400px; }
+.al-invite .form-group input[type="number"] { max-width: 8rem; }
+
+/* Review: the client's answers beside the file */
+.al-compare td.al-value { white-space: pre-wrap; }
+.al-compare tr.al-changed td { background: #FEF3C7; }
+.al-compare tr.al-new td { background: #ECFDF5; }
+.al-compare tr.al-same td, .al-compare tr.al-blank td { color: #9ca3af; }
+.al-compare .checkbox-label-inline { display: inline-flex; gap: 0.35rem; align-items: center;
+                                     margin: 0; font-weight: normal; font-size: 0.85rem; }
 
 .al-secret { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95rem;
              background: #f1f5f9; border-radius: 0.5rem; padding: 0.6rem 0.75rem;

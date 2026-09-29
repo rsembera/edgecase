@@ -1,5 +1,28 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
+
+Decided: every client has a file before intake goes out (inquiry → client
+file → consult → intake and consent), so there is no standalone "new client"
+invitation. This corrects the earlier note that the standalone form would
+stay; that was never decided. The client file has a **Send intake forms**
+button (shown once AirLock is configured) leading to `/airlock/invite/<id>`:
+forms, expiry, and a minor box pre-ticked from the Profile, with a notice if
+an invitation is already open. The invitation stores the client's id at
+issue. The AirLock page loses its New invitation form; names in its lists
+link to the client file. Review shows each answer beside what the file
+holds (changed rows highlighted, added rows marked, identical and blank ones
+greyed); the client's answer wins unless "Keep on file" is ticked; a blank
+answer never erases. Import updates the client's name if changed (file
+number untouched), updates the Profile or creates one if the file has none,
+records the changed field names (not values) in the Profile's edit history,
+keeps an existing guardian payment split, and adds the locked Upload entry
+with the PDFs; still all-or-nothing. Client type and file number are gone
+from review; the duplicate-name warning and `possible_duplicates` are
+removed. An invitation from before this change (no client) shows why it
+cannot be imported. Docs: Intake_Service_Plan decision 2 revised,
+Route_Reference updated. 13 new tests, all red on the previous commit.
+
 ### 2026-09-29 — AirLock intake form mirrors the Client Profile (branch `airlock`)
 
 Decided: the online intake is the client filling in their own Profile, and

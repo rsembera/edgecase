@@ -35,10 +35,11 @@ delivery.
 
 ## What it does
 
-A prospective client gets a link. They open it on their phone or computer,
-fill in the intake form and the consent form, and submit. The next time
-Richard imports, EdgeCase creates the client file with the Profile filled in
-and the signed consent attached as a PDF. No accounts, no passwords, no
+A client whose file Richard has already opened (at inquiry) gets a link,
+sent from that file. They open it on their phone or computer, fill in the
+intake form and the consent form, and submit. Richard reviews their answers
+beside what the file already holds; on import EdgeCase fills in the Profile
+and attaches the signed consent as a PDF. No accounts, no passwords, no
 portal to come back to.
 
 ## The one rule everything else follows
@@ -82,7 +83,7 @@ it already lives, and makes Sentinel a dumb mailbox.
    client sees a confirmation page and nothing else.
 6. **Import.** EdgeCase (Settings → Intake → "Check for submissions", or on
    login if configured) pulls pending blobs over the admin channel,
-   decrypts locally, creates or updates the client, attaches the consent
+   decrypts locally, fills in the invitation's client file, attaches the consent
    PDF, and then tells Sentinel to delete each blob it has safely committed.
    Delete only after the EdgeCase transaction commits; a crash mid-import
    means the blob is fetched again next time, and import is idempotent on
@@ -121,8 +122,8 @@ it already lives, and makes Sentinel a dumb mailbox.
 required_forms, forms_done, is_minor, key_id, issued_at, expires_at, status
 (issued | partial | complete | imported | revoked), imported_at, revoked_at`.
 "Expired" is computed from `expires_at`, never stored, so no sweep job is
-needed for a dead link to be dead. `client_id` is set when import creates
-the client (new clients only, decision 2). Retention disposal deletes a
+needed for a dead link to be dead. `client_id` is set when the invitation is
+issued from the client file (decision 2), and names the file import fills in. Retention disposal deletes a
 client's invitations with the rest of their record.
 
 **Sentinel:**
@@ -330,10 +331,12 @@ Phase 1 closed. Richard's answers to the open questions:
    (kept in the Profile entry's `content`), so no new column; the web label
    is editable
    (e.g. "Pronouns").
-2. **Existing clients:** invitations are for new clients only. Current
-   clients already have consent on file; no re-consent flow. It follows that
-   every invitation includes the intake (it supplies the client's name):
-   the choices are intake + consent, or intake only.
+2. **Existing clients:** *(revised 2026-09-29)* invitations are sent from
+   the client file, which Richard creates at inquiry (workflow: inquiry →
+   client file → consult → intake and consent → first appointment). There is
+   no standalone "new client" invitation and import never creates a client.
+   Clients already in therapy have consent on file; no re-consent flow.
+   Every invitation includes the intake: intake + consent, or intake only.
 3. **Expiry:** 14 days (configurable).
 4. **Import trigger:** manual button only.
 5. **Text-reminder checkbox:** not added. Consent text is versioned, so it
@@ -343,8 +346,10 @@ Phase 1 closed. Richard's answers to the open questions:
    entry, "Intake & consent (AirLock)", carrying the intake PDF and the
    signed consent PDF, with provenance notes (invitation, typed names,
    versions). Each submission is shown on a review screen (Import / Discard)
-   before anything is written; the review flags a possible duplicate when a
-   client with the same name exists.
+   before anything is written, each answer beside what the file holds. The
+   client's answer replaces the file's unless Richard ticks "Keep on file"
+   for that field; an answer left blank never erases anything. A changed
+   name updates the client; the file number never changes.
 7. **Publication:** the AirLock repo stays private until the adversarial
    pass is done, then goes public. The EdgeCase side ships dormant (no UI
    beyond an "AirLock server" setting) until a server is configured.
