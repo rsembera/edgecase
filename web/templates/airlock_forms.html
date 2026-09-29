@@ -29,21 +29,28 @@
 
         <div class="al-section">
             <h3>Intake fields</h3>
-            <div class="al-table-wrap"><table class="al-table">
-                <thead><tr><th>Profile field</th><th>Label on the form</th><th>Show</th><th>Required</th></tr></thead>
-                <tbody>
-                {% for f in fields %}
-                <tr>
-                    <td class="al-muted">{{ f.default_label }}</td>
-                    <td><input type="text" name="label__{{ f.name }}" value="{{ f.label }}" maxlength="100" style="width:100%"></td>
-                    <td><input type="checkbox" name="show__{{ f.name }}" value="1"
-                               {% if f.show %}checked{% endif %}{% if f.locked %} disabled{% endif %}></td>
-                    <td><input type="checkbox" name="required__{{ f.name }}" value="1"
-                               {% if f.required %}checked{% endif %}{% if f.locked %} disabled{% endif %}></td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table></div>
+            <p class="al-muted">Each line is a Profile field. Type in the box only if you want the client to see
+                different wording than the field name.</p>
+            <div class="al-fields">
+            {% for f in fields %}
+                <div class="al-field-row">
+                    <label for="label__{{ f.name }}">{{ f.default_label }}</label>
+                    <input type="text" id="label__{{ f.name }}" name="label__{{ f.name }}" maxlength="100"
+                           value="{{ f.label if f.label != f.default_label else '' }}"
+                           placeholder="{{ f.default_label }}">
+                    <label class="checkbox-label-inline">
+                        <input type="checkbox" name="show__{{ f.name }}" value="1"
+                               {% if f.show %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
+                        <span>Show</span>
+                    </label>
+                    <label class="checkbox-label-inline">
+                        <input type="checkbox" name="required__{{ f.name }}" value="1"
+                               {% if f.required %}checked{% endif %}{% if f.locked %} disabled{% endif %}>
+                        <span>Required</span>
+                    </label>
+                </div>
+            {% endfor %}
+            </div>
             <p class="al-muted">First and last name are always asked. At least one way to reach the client
                 (email or a phone) must be shown and required.</p>
         </div>
@@ -62,11 +69,20 @@
 
         <div class="al-section">
             <h3>Consent text</h3>
-            <p class="al-muted">Shown in full to the client, who signs by typing their name. Plain text;
-                lines starting with <code>#</code> become headings and lines starting with <code>-</code>
-                become bullet points. Changing it creates a new consent version; earlier signatures keep
-                the version they signed.</p>
-            <textarea name="consent_text" rows="18" style="width:100%; font-family: inherit;">{{ consent_text }}</textarea>
+            <p class="al-muted">Shown in full to the client, who signs by typing their name. Plain text:
+                a line starting with <code>#</code> is a heading, a line starting with <code>-</code> is a
+                bullet point, and a blank line starts a new paragraph. Nothing else is formatted.
+                Changing the text creates a new consent version; earlier signatures keep the version they signed.</p>
+            <div class="al-consent-editor">
+                <div class="form-group">
+                    <label for="consent_text">Text</label>
+                    <textarea id="consent_text" name="consent_text" rows="22">{{ consent_text }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>What the client sees</label>
+                    <div id="consent_preview" class="al-consent-preview"></div>
+                </div>
+            </div>
         </div>
 
         <div class="al-buttons">
@@ -74,4 +90,62 @@
         </div>
     </form>
 </div>
+
+<script>
+// Same three rules as the client page's consent.js and the signed PDF:
+// headings (#), bullets (- or *), blank-line paragraphs. Nothing else.
+function consentBlocks(text) {
+    const out = [];
+    let para = [];
+    const flush = () => {
+        if (para.length) { out.push({ kind: 'para', text: para.join(' ') }); para = []; }
+    };
+    for (const line of String(text).split('\n')) {
+        const s = line.trim();
+        if (!s) {
+            flush();
+        } else if (s.startsWith('#')) {
+            flush();
+            out.push({ kind: 'heading', text: s.replace(/^#+/, '').trim() });
+        } else if (s.slice(0, 2) === '- ' || s.slice(0, 2) === '* ') {
+            flush();
+            out.push({ kind: 'bullet', text: s.slice(2).trim() });
+        } else {
+            para.push(s);
+        }
+    }
+    flush();
+    return out;
+}
+
+function renderConsentPreview() {
+    const box = document.getElementById('consent_preview');
+    const text = document.getElementById('consent_text').value;
+    box.replaceChildren();
+    if (!text.trim()) {
+        const p = document.createElement('p');
+        p.className = 'al-empty';
+        p.textContent = 'Nothing to show yet.';
+        box.append(p);
+        return;
+    }
+    let list = null;
+    for (const block of consentBlocks(text)) {
+        if (block.kind === 'bullet') {
+            if (!list) { list = document.createElement('ul'); box.append(list); }
+            const li = document.createElement('li');
+            li.textContent = block.text;
+            list.append(li);
+            continue;
+        }
+        list = null;
+        const el = document.createElement(block.kind === 'heading' ? 'h4' : 'p');
+        el.textContent = block.text;
+        box.append(el);
+    }
+}
+
+document.getElementById('consent_text').addEventListener('input', renderConsentPreview);
+renderConsentPreview();
+</script>
 {% endblock %}
