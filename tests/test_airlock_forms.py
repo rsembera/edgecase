@@ -38,6 +38,25 @@ def test_defaults_are_valid_and_cover_every_intake_field():
     assert cfgmod.validate_config(cfg)["fields"] == cfg["fields"]
 
 
+def test_fields_follow_the_client_profile_order():
+    """The Forms page and the client's form list fields in the Profile's order."""
+    import re
+    from pathlib import Path
+    profile = (Path(__file__).resolve().parent.parent
+               / "web/templates/entry_forms/profile.html").read_text()
+    names = re.findall(r'<(?:input|select|textarea)[^>]*\bname="([a-z_0-9]+)"', profile)
+    in_profile = [n for n in dict.fromkeys(names) if n in cfgmod.FIELD_NAMES]
+    assert in_profile == cfgmod.FIELD_NAMES
+
+
+def test_profile_dropdowns_are_choices_with_matching_options():
+    from core.airlock_import import CHOICES, INTAKE_FIELDS
+    choice_fields = {n for n, (_, kind) in INTAKE_FIELDS.items() if kind == "choice"}
+    assert set(cfgmod.CHOICE_OPTIONS) == choice_fields
+    for name, labels in cfgmod.CHOICE_OPTIONS.items():
+        assert len(labels) == len(CHOICES[name] - {""})
+
+
 def test_names_cannot_be_hidden_or_optional():
     cfg = cfgmod.default_config()
     cfg["fields"]["first_name"].update(show=False, required=False)
@@ -187,6 +206,12 @@ def test_forms_page_saves_and_pushes(client, app_db, airlock_server):
     assert airlock_server.config["consent_text"] == "# Consent\n\nNew wording."
     assert airlock_server.config["questions"] == ["What brings you here?"]
     assert b"Pronouns" in client.get("/airlock/forms").data
+
+
+def test_forms_page_shows_the_fixed_answers_of_dropdown_fields(client, app_db, airlock_server):
+    html = client.get("/airlock/forms").data.decode()
+    assert "Client picks one: Email · Call my cell" in html
+    assert "Client picks one: Yes · No" in html
 
 
 def test_forms_page_saves_locally_when_server_unreachable(client, app_db, airlock_server):

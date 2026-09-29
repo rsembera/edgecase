@@ -22,6 +22,7 @@ from io import BytesIO
 from pathlib import Path
 
 # (field, default label, shown by default, required by default)
+# In the Client Profile's order, which is also the order the client sees.
 FIELDS = [
     ("first_name", "First name", True, True),
     ("middle_name", "Middle name", True, False),
@@ -29,18 +30,25 @@ FIELDS = [
     ("date_of_birth", "Date of birth", True, True),
     ("gender", "Gender", True, False),
     ("address", "Address", True, True),
+    ("email", "Email", True, True),
     ("phone", "Cell phone", True, False),
     ("home_phone", "Home phone", True, False),
     ("work_phone", "Work phone", True, False),
-    ("email", "Email", True, True),
-    ("preferred_contact", "Preferred way to contact you", True, False),
     ("ok_to_leave_message", "OK to leave a message?", True, False),
+    ("preferred_contact", "Preferred way to contact you", True, False),
     ("emergency_contact_name", "Emergency contact name", True, True),
-    ("emergency_contact_relationship", "Emergency contact relationship", True, False),
     ("emergency_contact_phone", "Emergency contact phone", True, True),
+    ("emergency_contact_relationship", "Emergency contact relationship", True, False),
     ("referral_source", "How did you hear about this practice?", True, False),
     ("additional_info", "Anything else you'd like me to know?", True, False),
 ]
+# Fields that are dropdowns in the Profile: the client picks from these
+# answers (the server's wording, airlock/validation.CHOICES), never free text.
+CHOICE_OPTIONS = {
+    "ok_to_leave_message": ["Yes", "No"],
+    "preferred_contact": ["Email", "Call my cell", "Call my home phone",
+                          "Call my work phone", "Text message"],
+}
 FIELD_NAMES = [f[0] for f in FIELDS]
 ALWAYS_REQUIRED = {"first_name", "last_name"}
 CONTACT_FIELDS = ("email", "phone", "home_phone", "work_phone")
