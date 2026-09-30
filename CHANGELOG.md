@@ -1,5 +1,12 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — About: credits
+
+The About box's credits add Claude Opus 5.5 (AirLock build, testing and
+deployment) and Fable 5.1 (the AirLock security review): "Coded by Claude
+Sonnet 4.5, Opus 4.5–4.8, 5 & 5.5, and Fable 5 & 5.1". Version line
+unchanged (v2.0 Strugatsky; AirLock is not yet in a release).
+
 ### 2026-09-30 — Dropdown menu icons centred on their labels
 
 The icons in the Manage, new-entry and ledger menus sat slightly below
