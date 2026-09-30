@@ -1,5 +1,18 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-29 — AirLock: shorter link, Copy as link (branch `airlock`)
+
+Link tokens are now 128-bit (22 characters, was 256-bit / 43), halving the
+link; still unguessable, with the PIN and its lockout on top. The server
+(edgecase-airlock) accepts both lengths, so links issued earlier keep
+working, and its page recognises both. The invitation page gains **Copy as
+link**: it puts "Open your forms" as a formatted link and the plain address
+on the clipboard together, so a mail program that pastes formatting shows
+the words and one that doesn't gets the address (which mail programs make
+clickable anyway). Where the window cannot copy formatting, it copies the
+address and says so. Plain **Copy** stays, for texting. Checked in Chromium
+that both versions land on the clipboard.
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client

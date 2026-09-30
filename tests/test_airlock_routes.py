@@ -118,6 +118,8 @@ def test_issue_sends_only_hash_and_pin(client, app_db, airlock_server):
     page = client.get(f"/airlock/invitations/{inv['id']}?new=1").data.decode()
     assert f"https://forms.example.ca/i#{inv['token']}" in page
     assert inv["pin"] in page
+    assert len(inv["token"]) == 22                        # short link since 2026-09-29
+    assert "alCopyAsLink(this)" in page and "Open your forms" in page
 
 
 def test_issue_failure_leaves_nothing(client, app_db, airlock_server):

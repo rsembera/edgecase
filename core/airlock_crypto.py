@@ -51,7 +51,7 @@ HKDF_INFO_PREFIX = b"AirLock v1 "
 # A one-page form encrypts to a few KB. Anything far past that is not a form.
 MAX_ENVELOPE_BYTES = 64 * 1024
 
-TOKEN_BYTES = 32      # 256-bit link token
+TOKEN_BYTES = 16      # 128-bit link token: 22 characters (was 32 bytes / 43 until 2026-09-29)
 PIN_DIGITS = 6
 FORMS = ("intake", "consent")
 
@@ -82,7 +82,8 @@ def b64u_decode(text: str) -> bytes:
 # ---------------------------------------------------------------------------
 
 def new_token() -> str:
-    """256-bit random invitation token, URL-safe."""
+    """128-bit random invitation token, URL-safe: 22 characters, keeping the
+    link short. Unguessable on its own; the PIN and its lockout sit on top."""
     return secrets.token_urlsafe(TOKEN_BYTES)
 
 
