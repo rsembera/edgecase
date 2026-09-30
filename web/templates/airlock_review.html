@@ -31,10 +31,8 @@
     {% if intake and client %}
     <div class="al-section">
         <h3>Intake for <a href="{{ url_for('clients.client_file', client_id=client.id) }}">{{ client.first_name }} {{ client.last_name }}</a> ({{ client.file_number }})</h3>
-        <p class="al-muted">{% if changed %}{{ changed }} field{{ '' if changed == 1 else 's' }} will change.
-            The client’s answer is used unless you tick “Keep on file”.{% else %}Nothing on file changes;
-            the forms are still added to the file.{% endif %}
-            Answers the client left blank never erase what’s on file.</p>
+        <p class="al-muted">{% if changed %}{{ changed }} field{{ ' differs' if changed == 1 else 's differ' }} from the file.{% else %}Nothing on file changes;
+            the forms are still added to the file.{% endif %}</p>
         <form method="post" action="{{ url_for('airlock.do_import', invitation_id=inv.id) }}" id="import-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="al-table-wrap"><table class="al-table al-compare">
@@ -44,10 +42,10 @@
                 <tr class="al-{{ r.status }}">
                     <td>{{ r.label }}</td>
                     <td class="al-value">{{ r.on_file_display or '—' }}</td>
-                    <td class="al-value">{% if r.status == 'blank' %}<span class="al-muted">(left blank)</span>{% else %}{{ r.submitted_display }}{% endif %}</td>
+                    <td class="al-value">{{ r.submitted_display or '—' }}</td>
                     <td class="al-actions">{% if r.status == 'changed' %}
                         <label class="checkbox-label-inline">
-                            <input type="checkbox" name="keep" value="{{ r.key }}" class="checkbox-auto"> Keep on file
+                            <input type="checkbox" name="keep" value="{{ r.key }}" class="checkbox-auto"> Reject
                         </label>{% elif r.status == 'new' %}<span class="al-muted">Added</span>{% endif %}</td>
                 </tr>
                 {% endfor %}

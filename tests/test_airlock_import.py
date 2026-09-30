@@ -308,6 +308,27 @@ def test_import_fills_the_existing_client_file(app_db, tmp_path):
     assert (inv["status"], inv["client_id"]) == ("imported", cid)
 
 
+def test_review_rows_compare_phone_numbers_by_digits(app_db):
+    # Phone autofill writes +1 and no punctuation; the same number is no change.
+    cid = a_client(app_db, phone="6132219737", home_phone="(613) 555-0199",
+                   work_phone="613-555-0100 x12", emergency_contact_phone="6135550102")
+    rows = _rows(app_db, cid, parsed_intake(phone="+16132219737",
+                                            home_phone="1 613 555 0199",
+                                            work_phone="613-555-0100",
+                                            emergency_contact_phone="+1 613-850-9737"))
+    assert rows["phone"]["status"] == "same"
+    assert rows["home_phone"]["status"] == "same"
+    assert rows["work_phone"]["status"] == "changed"          # extension dropped
+    assert rows["emergency_contact_phone"]["status"] == "changed"
+
+
+def test_same_phone_in_another_format_keeps_the_files_format(app_db, tmp_path):
+    cid = a_client(app_db, phone="6132219737")
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path, intake=parsed_intake(phone="+16132219737"))
+    assert app_db.get_profile_entry(cid)["phone"] == "6132219737"
+
+
 def test_keep_on_file_overrides_the_clients_answer(app_db, tmp_path):
     cid = a_client(app_db, email="old@example.com", phone="613-555-0000")
     inv = complete_invitation(app_db, client_id=cid)

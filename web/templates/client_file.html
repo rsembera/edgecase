@@ -71,7 +71,12 @@
         </div>
         <div style="display:flex; gap:0.6rem; align-items:flex-start;">
             {% if airlock_enabled %}
+            {% set review_id = airlock_review_id(client.id) %}
+            {% if review_id %}
+            <a href="{{ url_for('airlock.review', invitation_id=review_id) }}" class="btn btn-secondary"><i data-lucide="inbox" class="icon-sm"></i> Review intake forms</a>
+            {% else %}
             <a href="{{ url_for('airlock.invite', client_id=client.id) }}" class="btn btn-secondary"><i data-lucide="send" class="icon-sm"></i> Send intake forms</a>
+            {% endif %}
             {% endif %}
             <a href="{{ url_for('clients.index') }}" class="btn"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
         </div>

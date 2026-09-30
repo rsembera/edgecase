@@ -162,6 +162,34 @@ def test_client_file_has_the_send_button_only_when_configured(client, app_db, ai
     assert f"/airlock/invite/{cid}".encode() not in client.get(f"/client/{cid}").data
 
 
+def test_client_file_links_to_review_while_a_submission_waits(client, app_db, airlock_server):
+    cid = fx.a_client(app_db)
+    _issue(client, app_db, client_id=cid)
+    inv = _latest(app_db)
+    page = client.get(f"/client/{cid}").data.decode()
+    assert f"/airlock/invite/{cid}" in page                  # still waiting: Send
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/check")
+    page = client.get(f"/client/{cid}").data.decode()
+    assert f"/airlock/review/{inv['id']}" in page and "Review intake forms" in page
+    assert f"/airlock/invite/{cid}" not in page
+    client.post(f"/airlock/review/{inv['id']}/import")
+    page = client.get(f"/client/{cid}").data.decode()
+    assert f"/airlock/invite/{cid}" in page and "Review intake forms" not in page
+
+
+def test_review_marks_rows_to_reject_and_blanks_one_way(client, app_db, airlock_server):
+    cid = fx.a_client(app_db, email="old@example.com", additional_info="On file")
+    _issue(client, app_db, client_id=cid)
+    inv = _latest(app_db)
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/check")
+    review = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert re.search(r'name="keep" value="email"[^>]*>\s*Reject', review)
+    assert "Keep on file" not in review and "(left blank)" not in review
+    assert "differ from the file" in review and "will change" not in review
+
+
 def test_no_standalone_invitations(client, app_db, airlock_server):
     """Every client has a file before intake goes out (decided 2026-09-29)."""
     page = client.get("/airlock").data.decode()
