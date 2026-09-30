@@ -256,13 +256,23 @@ for client / Review intake forms), one invitation per client, phone tidying
 and checks on the client page, logo blend and website link, minor with
 guardians. Expired/Dismiss and Discard are covered by tests.
 
-**Next session:** the adversarial security pass (item 2 below).
+**Security pass (2026-09-30):** done on Apollo against a local instance;
+findings, fixes and tests in CHANGELOG (parts 1–5) and the threat model in
+`docs/Intake_Service_Plan.md`. The server fixes are on GitHub (through `b416e46`)
+but **not yet deployed to Sentinel**: the live server still has the shared
+rate-limit bucket until `git push sentinel main` (in that repository `main`
+tracks `sentinel`, so a bare `git push` is a deploy).
 
 **Before real clients:**
 1. ~~Finish the tests above.~~ Done 2026-09-30.
-2. Adversarial security pass (gates making the server repo public). Known
-   gap: PIN attempts are limited per network address but not yet per link,
-   as the plan calls for.
+2. ~~Adversarial security pass.~~ Done 2026-09-30. The recorded "known gap"
+   was the wrong way round: PIN guesses were already limited per link (five
+   wrong, ever, from any address); it was the per-address limit that did not
+   work in production. Remaining before the server repo goes public: deploy
+   the fixes; decide whether the Tailscale address in
+   `deploy/airlock.service` (and the repository's history) should be a
+   placeholder; the README's security wording (done) and the website's
+   security page (not started).
 3. Richard's real consent text (the current one is a placeholder).
 4. Consent/privacy wording saying intake can be done online and how it is
    protected (Richard's decision as PHIPA custodian; Claude drafts).

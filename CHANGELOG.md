@@ -1,5 +1,32 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock security review, part 5: admin bind check, pins, the threat model rewritten (branch `airlock`; server `859046b`..`23d19fb`, not yet deployed)
+
+Server: the admin API's "not on every interface" check compared the setting
+with three strings, so `AIRLOCK_ADMIN_HOST=0` (or `0x0`, `::0`) bound it
+everywhere; it is now decided on what the setting resolves to, and a public
+address is refused as well (`859046b`; Tailscale, LAN and loopback addresses
+pass). What flask pulls in is pinned, so a deploy installs the versions the
+tests ran (`23d19fb`); pip-audit finds no known vulnerabilities in them. A
+guard test checks that the token, its hash and the PIN never reach the log,
+tracebacks included (`c7261bb`).
+
+EdgeCase: two guard tests for replay through the real routes (one client's
+forms filed under another client's invitation; the intake presented again as
+the consent): both fail to open and nothing is imported. They pass on the
+old code; the binding was already sound.
+
+`docs/Intake_Service_Plan.md`: the threat model is now the result of the
+pass, row by row, with three rows the original lacked (the server controlled
+while running, a stolen admin key, altered or planted consent text). "The
+one rule" now states its limit: it covers what Sentinel stores, not someone
+who controls Sentinel while it runs, since the form page is served from
+there. Token length corrected to 128-bit; the rate-limit paragraph describes
+what exists.
+
+Swept and sound: hostile markup in every intake field, imported into a minor's
+file, then every GET page in the app fetched (88 pages): nothing unescaped.
+
 ### 2026-09-30 — AirLock security review, part 4: date of birth is YYYY-MM-DD only; retired keys kept while a submission waits (branch `airlock`)
 
 Import checked the date of birth with `date.fromisoformat`, which also
