@@ -269,9 +269,12 @@ In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
    was the wrong way round: PIN guesses were already limited per link (five
    wrong, ever, from any address); it was the per-address limit that did not
    work in production. Remaining before the server repo goes public: deploy
-   the fixes (done 2026-09-30); decide whether the Tailscale address in
-   `deploy/airlock.service` (and the repository's history) should be a
-   placeholder; the README's security wording (done) and the website's
+   the fixes (done 2026-09-30); ~~decide whether the Tailscale address in
+   `deploy/airlock.service` should be a placeholder~~ — removed 2026-09-30
+   (it now lives in Sentinel's `~/.config/airlock/env`; still in both repos'
+   history, where it is harmless: reachable only inside the tailnet, and the
+   admin API needs its key). The server repo stays private for now (Richard,
+   2026-09-30). Still open for going public: the website's
    security page (not started).
 3. Richard's real consent text (the current one is a placeholder).
 4. Consent/privacy wording saying intake can be done online and how it is
