@@ -344,3 +344,24 @@ def test_consent_page_answers_head_probe(client, airlock_server):
     answer shows the 'Server Disconnected' overlay. HEAD must not be
     treated as a form submission."""
     assert client.head("/airlock/consent").status_code == 200
+
+
+def test_no_browser_dialogs_in_airlock_pages():
+    """The app uses its own confirmation modal, never the browser's
+    confirm() / alert() / prompt()."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent / "web/templates"
+    for path in [*root.glob("airlock*.html"), root / "partials/airlock_confirm.html"]:
+        text = re.sub(r"\{#.*?#\}", "", path.read_text(), flags=re.S)
+        assert not re.search(r"(?<![\w.])(confirm|alert|prompt)\(", text), path.name
+
+
+def test_destructive_buttons_use_the_app_modal(client, app_db, airlock_server):
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    page = client.get(f"/airlock/invitations/{inv['id']}").data.decode()
+    assert 'id="al-confirm-modal"' in page and "alConfirm('al-revoke-form'" in page
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert 'id="al-confirm-modal"' in page and "alConfirm('al-discard-form'" in page

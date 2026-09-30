@@ -16,7 +16,7 @@
 .al-table th { text-align: left; font-weight: 600; color: #6b7280; font-size: 0.8rem;
                text-transform: uppercase; letter-spacing: 0.03em; padding: 0.4rem 0.5rem;
                border-bottom: 1px solid #e5e7eb; }
-.al-table td { padding: 0.55rem 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.al-table td { padding: 0.55rem 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 .al-table td.al-actions { text-align: right; white-space: nowrap; }
 .al-table-wrap { overflow-x: auto; }
 

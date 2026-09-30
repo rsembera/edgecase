@@ -1,0 +1,33 @@
+{# Confirmation dialog in the app's own style (not the browser's confirm()).
+   A button calls alConfirm(formId, title, message, label); Confirm submits
+   that form. Built from the shared modal classes the client-file delete uses. #}
+<div id="al-confirm-modal" class="modal-overlay darker" role="dialog" aria-modal="true"
+     aria-labelledby="al-confirm-title" onclick="if (event.target === this) alConfirmClose()">
+    <div class="modal-content max-w-450 danger-border">
+        <h3 class="modal-title" id="al-confirm-title"></h3>
+        <p class="modal-body-text mb-lg" id="al-confirm-message"></p>
+        <div class="flex-between-gap">
+            <button type="button" class="btn" onclick="alConfirmClose()">Cancel</button>
+            <button type="button" class="btn-danger-solid" id="al-confirm-ok"></button>
+        </div>
+    </div>
+</div>
+<script>
+function alConfirm(formId, title, message, label) {
+    const modal = document.getElementById('al-confirm-modal');
+    document.getElementById('al-confirm-title').textContent = title;
+    document.getElementById('al-confirm-message').textContent = message;
+    const ok = document.getElementById('al-confirm-ok');
+    ok.textContent = label;
+    ok.onclick = () => { ok.disabled = true; document.getElementById(formId).submit(); };
+    modal.style.display = 'flex';
+    ok.focus();
+}
+function alConfirmClose() {
+    document.getElementById('al-confirm-modal').style.display = 'none';
+}
+document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('al-confirm-modal');
+    if (e.key === 'Escape' && modal && modal.style.display === 'flex') alConfirmClose();
+});
+</script>

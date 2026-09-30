@@ -13,6 +13,15 @@ clickable anyway). Where the window cannot copy formatting, it copies the
 address and says so. Plain **Copy** stays, for texting. Checked in Chromium
 that both versions land on the clipboard.
 
+Revoke (invitation page) and Discard (review) now confirm in the app's own
+modal (`partials/airlock_confirm.html`, built from the shared modal classes
+the client-file delete uses) instead of the browser's confirm(); Cancel,
+Escape and a click outside close it. AirLock table rows are centred
+vertically, so row buttons line up with the text beside them. Tests: no
+AirLock template calls confirm/alert/prompt; both pages carry the modal; a
+Chromium test drives EdgeCase's real invitation page and styles through
+Cancel, Escape and Revoke.
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client
