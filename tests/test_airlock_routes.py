@@ -195,7 +195,7 @@ def test_client_file_links_to_review_while_a_submission_waits(client, app_db, ai
     _issue(client, app_db, client_id=cid)
     inv = _latest(app_db)
     page = client.get(f"/client/{cid}").data.decode()
-    assert re.search(r'<a href="/airlock"[^>]*>(?:(?!</a>).)*Intake forms sent', page, re.S)
+    assert re.search(r'<a href="/airlock"[^>]*>(?:(?!</a>).)*Waiting for client', page, re.S)
     assert f"/airlock/invite/{cid}" not in page
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
