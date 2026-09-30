@@ -9,6 +9,16 @@ fields). The field is now plain text shown as dots (`.masked-input`,
 and password-manager hints off. EdgeCase's own password fields are unchanged.
 Test red on the previous commit.
 
+### 2026-09-30 — AirLock admin key: anything that isn't a key is refused, not sent
+
+Pasting the wrong thing into the admin key field (the clipboard still held
+the consent text) saved it, and Test connection then crashed with a
+UnicodeEncodeError (a curly apostrophe can't go in an HTTP header). Settings
+now refuses a key that isn't letters, digits, `-` and `_` (at most 200; the
+server's keys are 43), and the client refuses to send a bad key already
+saved, as a connection error ("Enter it again in Settings → AirLock") that
+every AirLock screen already reports. Tests red on the previous code.
+
 ### 2026-09-30 — AirLock security review, part 5: admin bind check, pins, the threat model rewritten (branch `airlock`; server `859046b`..`23d19fb`, not yet deployed)
 
 Server: the admin API's "not on every interface" check compared the setting

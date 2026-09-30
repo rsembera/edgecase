@@ -491,6 +491,8 @@ def airlock_settings():
     admin_key = (data.get('admin_key') or '').strip()
     if not admin_key and not db.get_setting('airlock_admin_key', ''):
         return jsonify({'success': False, 'error': 'An admin key is required'}), 400
+    if admin_key and not airlock_client.valid_admin_key(admin_key):
+        return jsonify({'success': False, 'error': airlock_client.BAD_KEY_MESSAGE}), 400
     db.set_setting('airlock_server_url', server)
     db.set_setting('airlock_public_url', public)
     db.set_setting('airlock_ttl_days', str(ttl))
