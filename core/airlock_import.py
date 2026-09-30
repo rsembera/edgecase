@@ -87,7 +87,15 @@ UPLOAD_DESCRIPTION_INTAKE_ONLY = "Intake (AirLock)"
 
 _EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$")
 _PHONE = re.compile(r"^[0-9+().\-\s]{3,}(?:\s*(?:x|ext\.?)\s*\d{1,6})?$", re.I)
+# A full number: area code and all (10), up to an international 12, counted
+# without any extension. Same limits as the Client Profile.
+PHONE_MIN_DIGITS, PHONE_MAX_DIGITS = 10, 12
+_PHONE_EXT = re.compile(r"\s*(?:x|ext\.?)\s*\d{1,6}$", re.I)
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
+
+
+def _phone_main_digits(text):
+    return len(re.sub(r"\D", "", _PHONE_EXT.sub("", text)))
 
 
 class AirLockImportError(ValueError):
@@ -126,6 +134,10 @@ def _clean(value, max_len, kind, label, problems):
         return ""
     if kind == "phone" and not _PHONE.match(text):
         problems.append(f"{label}: not a phone number")
+        return ""
+    if kind == "phone" and not (PHONE_MIN_DIGITS <= _phone_main_digits(text)
+                                <= PHONE_MAX_DIGITS):
+        problems.append(f"{label}: not a full phone number (with area code)")
         return ""
     if kind == "date":
         try:

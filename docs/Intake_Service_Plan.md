@@ -337,6 +337,11 @@ Phase 1 closed. Richard's answers to the open questions:
    no standalone "new client" invitation and import never creates a client.
    Clients already in therapy have consent on file; no re-consent flow.
    Every invitation includes the intake: intake + consent, or intake only.
+   *(2026-09-30)* One invitation per client at a time: while one is out or
+   its forms await review, the client file shows "Intake forms sent" (to the
+   AirLock page) or "Review intake forms" instead of Send, and a new
+   invitation is refused. Revoke, import or discard frees the client; an
+   expired invitation is replaced by the next one.
 3. **Expiry:** 14 days (configurable).
 4. **Import trigger:** manual button only.
 5. **Text-reminder checkbox:** not added. Consent text is versioned, so it

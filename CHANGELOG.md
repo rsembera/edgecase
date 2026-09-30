@@ -1,5 +1,32 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock: one invitation per client; phone numbers tidied and checked (branch `airlock`)
+
+Decided: a client has one invitation at a time (reverses "a new one works
+alongside it"). The client file's button follows the invitation: **Send
+intake forms** → **Intake forms sent** (to the AirLock page) while it is out
+→ **Review intake forms** once the forms are in → Send again after import,
+discard or revoke. `/airlock/invite/<id>` refuses a second invitation (409)
+and its page explains instead of showing the form, linking to the link & PIN
+or the review. An expired invitation still gets replaced by the next one.
+`db.client_intake_in_progress` replaces `invitation_awaiting_review`.
+Intake_Service_Plan decision 2 updated.
+
+Phone numbers on the client page: when the client leaves a phone field, a
+North American number is laid out as the Client Profile shows it, "(613)
+221-9737" (a leading +1 dropped, an extension kept as " x12"); anything else
+is left as typed. A number must have 10–12 digits before any extension (the
+Profile's rule); a short one is flagged under the field at once ("Please
+enter the full number, including the area code."), marked aria-invalid, and
+blocks sending. Import applies the same count (`PHONE_MIN_DIGITS`,
+`PHONE_MAX_DIGITS`), and the page/import consistency test checks the page's
+`PHONE_DIGITS` against them. Server: edgecase-airlock `a497030`, deployed.
+
+Tests: one-at-a-time, the three client-file states, short/long numbers
+refused on import, full numbers accepted, and a browser test for the tidying
+and the inline message (all red on the previous commits; the revoke case
+already passed and guards the rule).
+
 ### 2026-09-30 — AirLock review: Reject, one blank mark, phones by digits; Review button in the client file (branch `airlock`)
 
 From the first look at the review screen. The per-row checkbox is now

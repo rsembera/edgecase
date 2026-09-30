@@ -244,6 +244,7 @@ def test_page_validation_matches_import_rules():
 
     assert js_regex("EMAIL") == (ai._EMAIL.pattern, "")
     assert js_regex("PHONE") == (ai._PHONE.pattern, "i") and ai._PHONE.flags & re.I
+    assert f"const PHONE_DIGITS = [{ai.PHONE_MIN_DIGITS}, {ai.PHONE_MAX_DIGITS}];" in app
     assert f"const MAX_TYPED_NAME = {ai.MAX_TYPED_NAME};" in app
     assert ("const CONTACT_FIELDS = ['email', 'phone', 'home_phone', 'work_phone'];" in app
             and set(ai.CONTACT_FIELDS) == {"email", "phone", "home_phone", "work_phone"})
@@ -626,4 +627,37 @@ def test_browser_marks_required_fields_not_optional_ones(client, app_db, airlock
         assert "(required)" not in label and "(optional)" not in label, name
     assert page.inner_text("label[for=typed_name]").endswith("(required)")
     assert "at least one way to reach you" in page.inner_text("#intake-form")
+    assert page.problems == []
+
+
+def test_browser_tidies_phone_numbers_and_flags_short_ones(client, app_db, airlock, browser):
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, file_number="WEB-P")
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    # formatted like the Client Profile when the client leaves the field
+    page.fill("#f-phone", "+16132219737")
+    page.fill("#f-work_phone", "613.555.0100 x12")
+    page.fill("#f-home_phone", "613123456")
+    page.click("#f-first_name")
+    assert page.input_value("#f-phone") == "(613) 221-9737"
+    assert page.input_value("#f-work_phone") == "(613) 555-0100 x12"
+    # a short number is flagged right away, beside the field
+    assert page.is_visible("#f-home_phone-error")
+    assert "area code" in page.inner_text("#f-home_phone-error")
+    assert page.get_attribute("#f-home_phone", "aria-invalid") == "true"
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    assert airlock["store"].submissions() == []
+    # fixing it clears the message; typing again doesn't reformat mid-number
+    page.fill("#f-home_phone", "6131234567")
+    assert page.is_hidden("#f-home_phone-error")
+    page.click("#f-first_name")
+    assert page.input_value("#f-home_phone") == "(613) 123-4567"
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("#consent-form")
+    assert _open_submissions(app_db, airlock)["intake"]["fields"]["phone"] == "(613) 221-9737"
     assert page.problems == []

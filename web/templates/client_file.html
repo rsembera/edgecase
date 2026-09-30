@@ -71,9 +71,11 @@
         </div>
         <div style="display:flex; gap:0.6rem; align-items:flex-start;">
             {% if airlock_enabled %}
-            {% set review_id = airlock_review_id(client.id) %}
-            {% if review_id %}
-            <a href="{{ url_for('airlock.review', invitation_id=review_id) }}" class="btn btn-secondary"><i data-lucide="inbox" class="icon-sm"></i> Review intake forms</a>
+            {% set al_state, al_id = airlock_in_progress(client.id) %}
+            {% if al_state == 'review' %}
+            <a href="{{ url_for('airlock.review', invitation_id=al_id) }}" class="btn btn-secondary"><i data-lucide="inbox" class="icon-sm"></i> Review intake forms</a>
+            {% elif al_state == 'waiting' %}
+            <a href="{{ url_for('airlock.invitations') }}" class="btn btn-secondary"><i data-lucide="clock" class="icon-sm"></i> Intake forms sent</a>
             {% else %}
             <a href="{{ url_for('airlock.invite', client_id=client.id) }}" class="btn btn-secondary"><i data-lucide="send" class="icon-sm"></i> Send intake forms</a>
             {% endif %}
