@@ -443,6 +443,41 @@ def test_an_unexpected_error_opening_a_form_is_reported_not_raised(client, app_d
     assert client.post(f"/airlock/review/{inv['id']}/import").status_code == 400
 
 
+def test_forms_moved_to_another_invitation_do_not_open(client, app_db, airlock_server):
+    """A server that files one client's forms under another client's
+    invitation: the encryption is bound to the invitation they were written
+    for, so they fail to open and nothing reaches the other file."""
+    a_id = fx.a_client(app_db, first="Ada", file_number="A-1", email="ada@example.com")
+    b_id = fx.a_client(app_db, first="Bea", last="Other", file_number="B-1")
+    _issue(client, app_db, client_id=a_id)
+    inv_a = _latest(app_db)
+    _issue(client, app_db, client_id=b_id)
+    inv_b = _latest(app_db)
+    _submit_both(airlock_server, inv_a)
+    for sub in airlock_server.submissions:
+        sub["token_hash"] = inv_b["token_hash"]
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv_b['id']}").data.decode()
+    assert "intake form could not be decrypted" in page
+    assert "consent form could not be decrypted" in page
+    assert "Lovelace" not in page and "Import into client file" not in page
+    assert client.post(f"/airlock/review/{inv_b['id']}/import").status_code == 400
+    assert app_db.get_client(b_id)["first_name"] == "Bea"
+
+
+def test_a_form_relabelled_as_the_other_form_does_not_open(client, app_db, airlock_server):
+    """The intake presented a second time as the consent."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    airlock_server.submit(inv["token_hash"], "intake", fx.intake_payload())
+    copy = dict(airlock_server.submissions[0], id="copy", form="consent")
+    airlock_server.submissions.append(copy)
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert "consent form could not be decrypted" in page
+    assert "Import into client file" not in page
+
+
 def test_invalid_submission_lists_problems(client, app_db, airlock_server):
     _issue(client, app_db)
     inv = _latest(app_db)

@@ -49,17 +49,32 @@ form to a public key that EdgeCase generated. The private key exists only
 inside EdgeCase's encrypted database. Sentinel stores ciphertext it cannot
 open, plus the minimum metadata to route it.
 
-If Sentinel is fully compromised, the attacker gets: hashes of outstanding
-invitation tokens, opaque blobs, and timestamps. No names, no answers, no
-mapping from token to person. That keeps the PHIPA weight in EdgeCase, where
-it already lives, and makes Sentinel a dumb mailbox.
+If someone gets hold of everything Sentinel stores (a stolen disk, a copied
+database, a backup), they get: hashes of outstanding invitation tokens,
+opaque blobs, and timestamps. No names, no answers, no mapping from token to
+person. That keeps the PHIPA weight in EdgeCase, where it already lives, and
+makes Sentinel a dumb mailbox.
+
+**The limit of that rule (stated plainly, 2026-09-30 security review).** It
+covers what is stored. It does not cover someone who controls Sentinel while
+it is running. The form page and its encryption code are served by Sentinel,
+so whoever controls it can serve a changed page that sends them what a
+client types from then on, and can file made-up submissions under an open
+invitation (encrypting to a public key needs no secret). Submissions already
+stored stay unreadable, and nothing on Sentinel can reach EdgeCase's data.
+No browser-delivered form can do better than this; the defences are the
+ordinary ones for the server (patched, few services, SSH keys only) plus
+Richard's review of every submission before it touches a file. Anything
+written about AirLock for clients or other therapists must say "the server
+stores only ciphertext it cannot read", not "the server can never see your
+answers".
 
 ## Flow
 
 1. **Issue.** In EdgeCase, Richard creates an invitation: the name and email
    he knows from the inquiry, which forms are required (default both), and
    whether the client is a minor. EdgeCase mints:
-   - a 256-bit random token (the link), and
+   - a 128-bit random token (the link; 256-bit until 2026-09-29), and
    - a 6-digit PIN.
    It stores both in its own database, sends Sentinel only
    `SHA-256(token)`, the PIN, the expiry, the required forms and the minor
@@ -107,8 +122,9 @@ it already lives, and makes Sentinel a dumb mailbox.
   to Sentinel with a key ID. Each blob carries its key ID. Rotating the
   keypair keeps the old private key until every invitation issued under it
   has expired.
-- **Token:** 256-bit, `secrets.token_urlsafe(32)`. Stored on Sentinel as
-  plain SHA-256; with that much entropy a slow hash buys nothing.
+- **Token:** 128-bit, `secrets.token_urlsafe(16)` (22 characters; 256-bit
+  until 2026-09-29, and those links still work until they expire). Stored on
+  Sentinel as plain SHA-256; with that much entropy a slow hash buys nothing.
 - **PIN:** stored on Sentinel as HMAC with a server-side secret. It is only
   6 digits, so this is not protection against a stolen database. It does
   not need to be: without the token the PIN is useless, and the database
@@ -260,8 +276,12 @@ bearer key held in EdgeCase settings):**
 - `PUT /admin/public-key` · `PUT /admin/config`
 
 **Hardening:**
-- Rate limiting per IP and per token on `/i/unlock` and `/i/submit`. Five
-  wrong PINs lock the invitation; Richard reissues from EdgeCase.
+- Per link: five wrong PINs, ever, from any address, lock the invitation
+  (even the right PIN is then refused); Richard reissues from EdgeCase. Per
+  address: 30 requests per 10 minutes on `/i/unlock` and `/i/submit` (IPv6
+  counted per /64), applied before the request body is read. There is no
+  separate per-link rate limit: it would add nothing to the lockout
+  (2026-09-30 review).
 - Request size cap (ciphertext for a one-page form is a few KB; cap at
   64 KB).
 - Strict CSP (`default-src 'self'`, no inline code, Trusted Types required), `Referrer-Policy: no-referrer`,
@@ -288,20 +308,32 @@ WireGuard, or an SSH tunnel all satisfy it. Documented, not automated.
 - Re-sending: revoke and reissue. There is no "resend the same link."
 - No drafts. Leaving the page loses the form. Both forms fit one sitting.
 
-## Threat model (summary; the adversarial pass expands it)
+## Threat model (after the adversarial pass, 2026-09-30)
 
-| Threat | Mitigation |
-|---|---|
-| Sentinel compromised | Ciphertext only; no names; token hashes only |
-| Link forwarded or misdelivered | PIN via second channel; lockout |
-| Token brute force | 256-bit token; rate limiting |
-| Replay a blob under another invitation/form | GCM associated data |
-| Oversized or malformed ciphertext | Size cap; EdgeCase rejects on decrypt failure and reports, never partially imports |
-| Hostile field content (script, huge strings, control chars) | Server never parses plaintext; EdgeCase validates and length-limits every field on import, escapes on render, same as manual entry |
-| Admin API exposed | Not proxied publicly; Tailscale-only bind; bearer key |
-| Token in logs / referrers | URL fragment; no-referrer; access log off |
-| Import interrupted | Delete-after-commit; idempotent on submission ID |
-| Laptop lost | Unchanged from today: the private key is inside SQLCipher |
+Every row was attacked against a local instance on Apollo (never the live
+server). "Test" names where the proof lives: S = the server repository's
+tests, E = EdgeCase's `tests/test_airlock*.py`.
+
+| Threat | Mitigation | Result of the pass |
+|---|---|---|
+| Sentinel's stored data taken (disk, database, backup) | Ciphertext only; no names; token hashes only | Holds. E: the end-to-end test reads the raw database for names, token and PIN |
+| Sentinel controlled while running | None in code: the page is served from there (see "The limit of that rule") | Stated, not solved. A planted consent text is caught on import (below) |
+| Link forwarded or misdelivered | PIN via second channel; five wrong PINs lock the link | Holds across addresses and in parallel (S: `test_serve.py`) |
+| Token brute force | 128-bit token; per-address rate limit | **Fixed:** the limit was one bucket for everyone behind nginx (waitress stripped `X-Forwarded-For`), so anyone could lock all clients out. Also fixed: the limiter never forgot an address |
+| Replay a blob under another invitation/form | GCM associated data | Holds (E: moved to another invitation; relabelled as the other form) |
+| Oversized or malformed requests and ciphertext | Size caps; shape checks; EdgeCase rejects and reports, never partially imports | **Fixed:** JSON nested too deep was a 500 on the server (from anyone) and crashed EdgeCase's review screen |
+| Hostile field content (script, huge strings, control chars) | Server never parses plaintext; EdgeCase validates every field, escapes on render | **Fixed:** a surrogate half crashed the review screen; dates other than YYYY-MM-DD were accepted. Markup: escaped on all 88 pages swept and in the PDFs |
+| Consent text altered by the client, or planted on the server | Text must hash to the version signed, and that version must be one EdgeCase sent | **New row, fixed:** any text the browser sent used to be printed as the signed consent |
+| Admin key stolen | Bearer key; private network only | **Fixed:** the key could replace the public key under an existing id and so read future submissions; key ids are now write-once. It can still revoke, delete and change branding or consent text (the last is caught on import): replace the key (`python -m airlock.admin_key`) if it is ever exposed |
+| Admin API exposed | Not proxied publicly; Tailscale-only bind; bearer key | **Fixed:** `AIRLOCK_ADMIN_HOST=0` slipped past the all-interfaces check; public addresses are refused too |
+| Token in logs / referrers | URL fragment; no-referrer; access log off | Holds, including tracebacks (S: `test_link_and_pin_never_reach_the_log`). nginx's error log can still record a client's address when a request fails |
+| Import interrupted | Delete-after-commit; idempotent on submission ID | Holds (existing tests); a retired key is now kept while a submission waits for review |
+| Laptop lost | Unchanged from today: the private key is inside SQLCipher | Holds; no route returns the key or the admin key |
+
+Accepted, not changed: anyone holding the link can lock it with five wrong
+PINs (reissue); the link stays in the browser's history on the device that
+opened it (useless without the PIN, dead once the forms are in); the server's
+dependencies are pinned by version, not by hash.
 
 ## Phases
 
