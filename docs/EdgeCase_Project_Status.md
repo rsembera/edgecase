@@ -270,7 +270,7 @@ guardians. Expired/Dismiss and Discard are covered by tests.
 
 Notes: from inside the home network the public hostname doesn't load
 (router loopback); a Pi-hole local record `airlock.lightinextension.ca →
-192.168.0.200` fixes that, optional. Phones on mobile data (or iCloud
+192.168.0.200` fixes that and is in place (added 2026-09-30). Phones on mobile data (or iCloud
 Private Relay) are unaffected.
 
 ### Attachment Encryption v2 (Argon2id / AES-256-GCM) — started June 14, 2026
