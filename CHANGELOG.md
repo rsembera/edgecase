@@ -43,6 +43,12 @@ or phone is needed; the iOS date field fits the card and stays readable when
 Safari autofills it. Browser test for the marks and wording (red on the old
 page).
 
+The AirLock page now checks the server for submissions each time it is
+opened (the ntfy ping means "open AirLock"); Check for submissions stays for
+re-checks. If the server can't be reached the page still opens, with a
+notice, showing what was last received. EdgeCase's HEAD link probe does not
+trigger a check.
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client

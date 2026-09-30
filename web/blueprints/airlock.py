@@ -179,9 +179,19 @@ def invitations():
     redirect_resp = _require_enabled()
     if redirect_resp:
         return redirect_resp
-    return _render_invitations(message=_message(),
-                               checked=request.args.get('checked', type=int),
-                               unmatched=request.args.get('unmatched', type=int) or 0)
+    checked = request.args.get('checked', type=int)
+    unmatched = request.args.get('unmatched', type=int) or 0
+    error = None
+    if checked is None and request.method == 'GET':
+        # Check the server on every visit (the ntfy ping says "open AirLock"),
+        # quietly: the lists show the result. The button stays for re-checks.
+        try:
+            _, unmatched_subs = _fetch()
+            unmatched = len(unmatched_subs)
+        except AirLockConnectionError as e:
+            error = f'{e} Showing what was last received.'
+    return _render_invitations(message=_message(), error=error, checked=checked,
+                               unmatched=unmatched)
 
 
 @airlock_bp.route('/airlock/check', methods=['POST'])
