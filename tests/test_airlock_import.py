@@ -126,6 +126,10 @@ def test_full_phone_numbers_are_accepted(number):
     ({"work_phone": "1234567890123"}, "not a full phone number"),
     ({"emergency_contact_phone": "613 555 010 x12"}, "not a full phone number"),
     ({"date_of_birth": "10/12/1990"}, "not a date"),
+    # Python's date parser also takes these ISO spellings; the Profile holds YYYY-MM-DD only
+    ({"date_of_birth": "19901210"}, "not a date"),
+    ({"date_of_birth": "1990-W50-1"}, "not a date"),
+    ({"date_of_birth": "\u0661\u0669\u0669\u0660-12-10"}, "not a date"),    # non-ASCII digits
     ({"date_of_birth": "2999-01-01"}, "out of range"),
     ({"date_of_birth": "1850-01-01"}, "out of range"),
     ({"address": "x" * 501}, "longer than 500"),
