@@ -540,3 +540,63 @@ def test_browser_offers_only_contact_choices_the_client_filled_in(client, app_db
     profile = app_db.get_profile_entry(cid)
     assert (profile["text_number"], profile["preferred_contact"]) == ("home", "text")
     assert not profile["date_of_birth"] and not profile["emergency_contact_name"]
+
+
+def test_browser_revoke_uses_the_app_modal(client, app_db, airlock, browser):
+    """EdgeCase's own invitation page, with its real stylesheets, in Chromium:
+    Revoke opens the app's modal (no browser dialog), Cancel and Escape close
+    it, and confirming submits the revoke."""
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db)
+    page = _page(browser)
+    dialogs = []
+    page.on("dialog", lambda d: (dialogs.append(d.message), d.dismiss()))
+
+    # Chromium's route callbacks run outside Flask's context, so the page and
+    # every file it loads are fetched first, and the form post it makes is
+    # recorded here and replayed to EdgeCase afterwards.
+    path = f"/airlock/invitations/{inv['id']}"
+    html = client.get(path).data.decode()
+    files = {path: (html.encode(), "text/html; charset=utf-8")}
+    for ref in set(re.findall(r'(?:href|src)="(/static/[^"]+)"', html)):
+        r = client.get(ref)
+        files[ref] = (r.data, r.headers.get("Content-Type"))
+    posts = []
+
+    def serve(route):
+        req = route.request
+        url_path = req.url.removeprefix("http://edgecase.test")
+        if req.method == "HEAD":        # base.html checks the server is up first
+            route.fulfill(status=200, body="")
+        elif req.method == "POST":
+            posts.append((url_path, req.post_data, req.headers.get("content-type")))
+            route.fulfill(status=200, body="posted", content_type="text/plain")
+        elif url_path in files:
+            body, ctype = files[url_path]
+            route.fulfill(status=200, body=body, content_type=ctype)
+        else:
+            route.fulfill(status=404, body="")
+
+    page.route("http://edgecase.test/**", serve)
+    page.goto(f"http://edgecase.test{path}")
+    assert page.is_hidden("#al-confirm-modal")
+
+    page.click("button:has-text('Revoke')")
+    assert page.is_visible("#al-confirm-modal")
+    assert page.inner_text("#al-confirm-title") == "Revoke Invitation"
+    page.click("#al-confirm-modal button:has-text('Cancel')")
+    assert page.is_hidden("#al-confirm-modal")
+    page.click("button:has-text('Revoke')")
+    page.keyboard.press("Escape")
+    assert page.is_hidden("#al-confirm-modal")
+    page.wait_for_timeout(200)
+    assert posts == []
+
+    page.click("button:has-text('Revoke')")
+    with page.expect_response(lambda r: r.request.method == "POST"):
+        page.click("#al-confirm-ok")
+    assert [p[0] for p in posts] == [f"/airlock/invitations/{inv['id']}/revoke"]
+    r = client.post(posts[0][0], data=posts[0][1], content_type=posts[0][2])
+    assert "msg=revoked" in r.headers["Location"]
+    assert app_db.get_intake_invitation(inv["id"])["status"] == "revoked"
+    assert dialogs == []

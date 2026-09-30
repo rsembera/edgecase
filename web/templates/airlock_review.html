@@ -75,11 +75,12 @@
             <button type="submit" form="import-form" class="btn">Import into client file</button>
         </div>
         {% endif %}
-        <form method="post" action="{{ url_for('airlock.discard', invitation_id=inv.id) }}" style="margin-top:0.75rem"
-              onsubmit="return confirm('Discard this submission? It will be deleted from the server and cannot be recovered.');">
+        <form method="post" action="{{ url_for('airlock.discard', invitation_id=inv.id) }}" style="margin-top:0.75rem" id="al-discard-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger">Discard</button>
+            <button type="button" class="btn btn-danger"
+                    onclick="alConfirm('al-discard-form', 'Discard Submission', 'Discard this submission? It will be deleted from the server and cannot be recovered.', 'Discard')">Discard</button>
         </form>
     </div>
 </div>
+{% include "partials/airlock_confirm.html" %}
 {% endblock %}

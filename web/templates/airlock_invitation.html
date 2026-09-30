@@ -49,10 +49,10 @@
     </div>
 
     <div class="al-buttons">
-        <form method="post" action="{{ url_for('airlock.revoke', invitation_id=inv.id) }}"
-              onsubmit="return confirm('Revoke this invitation? The link will stop working.');">
+        <form method="post" action="{{ url_for('airlock.revoke', invitation_id=inv.id) }}" id="al-revoke-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger">Revoke</button>
+            <button type="button" class="btn btn-danger"
+                    onclick="alConfirm('al-revoke-form', 'Revoke Invitation', 'Revoke this invitation? The link will stop working.', 'Revoke')">Revoke</button>
         </form>
     </div>
     {% else %}
@@ -93,4 +93,5 @@ function alCopyAsLink(btn) {
     })]).then(() => alFlash(btn, 'Copied'), plain);
 }
 </script>
+{% include "partials/airlock_confirm.html" %}
 {% endblock %}
