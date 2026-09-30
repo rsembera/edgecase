@@ -5,7 +5,7 @@
 .al-section { margin-top: 1.5rem; }
 .al-section h3 { margin: 0 0 0.6rem; font-size: 1.05rem; }
 .al-muted { color: #6b7280; font-size: 0.9rem; }
-.al-empty { color: #9ca3af; font-style: italic; padding: 0.4rem 0; }
+.al-empty { color: var(--color-text-muted); font-size: 0.875rem; padding: 0.4rem 0; margin: 0; }  /* matches .helper-text */
 
 .al-notice { padding: 0.7rem 0.9rem; border-radius: 0.6rem; margin: 1rem 0; font-size: 0.95rem; }
 .al-notice.ok { background: #D1FAE5; color: #065F46; }

@@ -48,6 +48,8 @@ opened (the ntfy ping means "open AirLock"); Check for submissions stays for
 re-checks. If the server can't be reached the page still opens, with a
 notice, showing what was last received. EdgeCase's HEAD link probe does not
 trigger a check.
+AirLock page's "nothing here" lines use the app's helper-text size and colour
+instead of large grey italics.
 
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
