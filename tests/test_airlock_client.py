@@ -66,6 +66,22 @@ def test_bearer_and_json(http):
                          "expires_at", "key_id"}
 
 
+@pytest.mark.parametrize("field, value", [
+    ("form", "in\ntake"), ("form", "\ud800"), ("id", "../x"), ("key_id", "<b>"),
+    ("token_hash", "h" * 200), ("config_version", "a b"), ("envelope", {"v": 1}),
+    ("envelope", "x" * 70_000),
+])
+def test_submission_labels_from_the_server_must_be_plain(http, field, value):
+    """ids, hashes, form names and versions are short plain tokens by
+    construction. Anything else means the server is not behaving, and it is
+    refused here rather than carried into the screens."""
+    _, url = http
+    Handler.routes[("GET", "/admin/submissions")] = (
+        200, json.dumps({"submissions": [dict(SUB, **{field: value})]}).encode())
+    with pytest.raises(AirLockConnectionError):
+        AirLockClient(url, "k").list_submissions()
+
+
 def test_list_submissions(http):
     _, url = http
     Handler.routes[("GET", "/admin/submissions")] = (

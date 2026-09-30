@@ -396,6 +396,53 @@ def test_consent_signed_before_the_wording_was_edited_still_imports(client, app_
     assert f"consent version {signed_version}" in upload
 
 
+def _replace_intake_plaintext(airlock_server, inv, raw: bytes):
+    """Re-encrypt the intake with bytes no form helper would produce."""
+    sub = next(s for s in airlock_server.submissions if s["form"] == "intake")
+    aad = ac.build_aad(inv["token_hash"], "intake", sub["config_version"],
+                       sub["consent_version"])
+    sub["envelope"] = ac.encrypt_for_testing(
+        raw, airlock_server.public_keys[sub["key_id"]], sub["key_id"], aad)
+
+
+@pytest.mark.parametrize("raw, shown", [
+    (b"[" * 40_000, "not valid JSON"),
+    (json.dumps(fx.intake_payload()).replace("Ada", "\\ud800Ada").encode(), "Ada"),
+])
+def test_hostile_intake_reaches_the_review_screen_not_a_crash(client, app_db, airlock_server,
+                                                              raw, shown):
+    """Whatever a submission holds, the review screen must open: it is where
+    the problem is reported and where Discard lives. Both of these were a 500."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    _submit_both(airlock_server, inv)
+    _replace_intake_plaintext(airlock_server, inv, raw)
+    client.post("/airlock/check")
+    r = client.get(f"/airlock/review/{inv['id']}")
+    page = r.data.decode()
+    assert r.status_code == 200 and shown in page
+    assert f"/airlock/review/{inv['id']}/discard" in page
+
+
+def test_an_unexpected_error_opening_a_form_is_reported_not_raised(client, app_db,
+                                                                   airlock_server, monkeypatch):
+    from web.blueprints import airlock as bp
+
+    def boom(*_a, **_k):
+        raise RuntimeError("anything at all")
+    monkeypatch.setattr(bp, "parse_intake", boom)
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/check")
+    r = client.get(f"/airlock/review/{inv['id']}")
+    page = r.data.decode()
+    assert r.status_code == 200 and "intake form could not be read" in page
+    assert "Import into client file" not in page
+    assert f"/airlock/review/{inv['id']}/discard" in page
+    assert client.post(f"/airlock/review/{inv['id']}/import").status_code == 400
+
+
 def test_invalid_submission_lists_problems(client, app_db, airlock_server):
     _issue(client, app_db)
     inv = _latest(app_db)
