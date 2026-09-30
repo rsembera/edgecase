@@ -92,6 +92,12 @@ def inject_static_version():
 
 
 @app.context_processor
+def inject_app_version():
+    from core.config import APP_VERSION, APP_RELEASE_NAME
+    return {'app_version': APP_VERSION, 'app_release_name': APP_RELEASE_NAME}
+
+
+@app.context_processor
 def inject_password_policy():
     """One source of truth for the password rule.
 

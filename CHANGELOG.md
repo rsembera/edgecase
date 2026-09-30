@@ -1,5 +1,14 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — About shows the exact version
+
+The About box said "v2.0 Strugatsky" through 2.0.1–2.0.4. The version now
+lives in one place, `APP_VERSION` / `APP_RELEASE_NAME` in core/config.py,
+and the About box shows it ("v2.0.4 Strugatsky"). tests/test_version.py
+fails if pyproject.toml or setup_app.py (both Info.plist version keys)
+disagree with it. Release_Checklist step 2 updated. Tests red on the
+previous commit.
+
 ### 2026-09-30 — About: credits
 
 The About box's credits add Claude Opus 5.5 (AirLock build, testing and
