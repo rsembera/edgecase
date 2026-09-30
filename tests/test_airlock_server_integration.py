@@ -302,7 +302,8 @@ def _page(browser):
     return page
 
 
-def _configure(app_db, airlock, **cfg_changes):
+def _configure(app_db, airlock, website="maplestreet.example", **cfg_changes):
+    app_db.set_setting("website", website)
     app_db.set_setting("airlock_server_url", airlock["admin"])
     app_db.set_setting("airlock_public_url", airlock["public"])
     app_db.set_setting("airlock_admin_key", airlock["key"])
@@ -402,6 +403,10 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
     page.click("button:has-text('Send consent form')")
     page.wait_for_selector("h2:has-text('Thank you')")
     assert "Maple Street Therapy" in page.inner_text("main")
+    link = page.locator("main a")
+    assert link.inner_text() == "Return to maplestreet.example"
+    assert link.get_attribute("href") == "https://maplestreet.example/"
+    assert "noreferrer" in link.get_attribute("rel")
     assert page.problems == []
 
     # What the browser encrypted is exactly what EdgeCase expects
@@ -426,7 +431,7 @@ def test_browser_fills_both_forms_and_edgecase_imports(client, app_db, airlock, 
 
 
 def test_browser_minor_intake_with_two_guardians(client, app_db, airlock, browser):
-    _configure(app_db, airlock)
+    _configure(app_db, airlock, website="javascript:alert(1)")   # never becomes a link
     inv = _issue(client, app_db, forms="intake", is_minor="1")
     page = _page(browser)
     _unlock(page, airlock, inv)
@@ -446,6 +451,7 @@ def test_browser_minor_intake_with_two_guardians(client, app_db, airlock, browse
     page.fill("#f-g2-name", "Alan Turing")
     page.click("button:has-text('Send intake form')")
     page.wait_for_selector("h2:has-text('Thank you')")
+    assert page.locator("main a").count() == 0
     assert page.problems == []
 
     intake = _open_submissions(app_db, airlock)["intake"]

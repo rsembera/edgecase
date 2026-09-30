@@ -15,6 +15,21 @@ submission is in and not yet imported or discarded; it goes back to Send
 after either. Docs: Intake_Service_Plan wording. 4 new tests, red on the
 previous commit.
 
+Later the same day: rows where the client filled in a field that is empty
+on file get a **Reject** box too (the import already honoured it; the screen
+lacked the box), replacing the "Added" mark; the "—" under On file shows it
+is an addition. Test red on the previous commit; an import test guards the
+rejected-addition case.
+
+AirLock server (edgecase-airlock `f1b4089`, deployed): the logo's white
+background blends into the light page (`mix-blend-mode: multiply`); in dark
+mode, where multiply would blacken it, it sits on a small white tile. The
+thank-you page links back to the practice website from Settings ("Return to
+lightinextension.ca", `rel="noopener noreferrer"`); only http/https
+addresses ever become a link. Links use the page's accent colour. Browser
+tests: the link and its address (red before the change); a `javascript:`
+website gives no link.
+
 ### 2026-09-29 — AirLock: shorter link, Copy as link (branch `airlock`)
 
 Link tokens are now 128-bit (22 characters, was 256-bit / 43), halving the

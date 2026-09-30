@@ -338,6 +338,15 @@ def test_keep_on_file_overrides_the_clients_answer(app_db, tmp_path):
     assert profile["phone"] == "613-555-0101"
 
 
+def test_a_rejected_addition_leaves_the_field_empty(app_db, tmp_path):
+    cid = a_client(app_db, email="old@example.com")
+    inv = complete_invitation(app_db, client_id=cid)
+    _import(app_db, inv, tmp_path, keep=["referral_source"])
+    profile = app_db.get_profile_entry(cid)
+    assert not profile["referral_source"]
+    assert profile["emergency_contact_name"] == "Charles Babbage"
+
+
 def test_blank_answers_never_erase_the_file(app_db, tmp_path):
     cid = a_client(app_db, additional_info="Referred by Dr. B", work_phone="613-555-0200")
     inv = complete_invitation(app_db, client_id=cid)
