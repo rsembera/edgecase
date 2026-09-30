@@ -1,5 +1,23 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock security review, part 4: date of birth is YYYY-MM-DD only; retired keys kept while a submission waits (branch `airlock`)
+
+Import checked the date of birth with `date.fromisoformat`, which also
+accepts `19901210` and week dates such as `1990-W50-1`; either would have
+been stored in the Profile as typed. The shape is now checked first
+(`_ISO_DATE`, ASCII digits only). The page always sends YYYY-MM-DD, so only a
+hand-made submission could have done it.
+
+`airlock_prune_retired_keys` dropped a retired key once no open, unexpired
+invitation used it, which did not count an invitation whose forms were in
+and waiting for review: prune after a key rotation and that submission could
+never be opened. 'complete' invitations now keep their key until they are
+imported or discarded. Nothing calls the prune yet, so this never happened;
+it would have the first time rotation was wired to a button.
+
+Tests: the two date spellings and the waiting submission were red before the
+fixes.
+
 ### 2026-09-30 — AirLock security review, part 3: nothing in a submission can stop the review screen opening (branch `airlock`)
 
 Two payloads turned the review screen into a 500, which also put Discard out

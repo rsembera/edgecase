@@ -220,6 +220,23 @@ def test_expired_invitation_does_not_pin_a_retired_key(app_db):
     assert app_db.airlock_prune_retired_keys(now=t0 + 2 * 86400) == [inv["key_id"]]
 
 
+def test_a_submission_waiting_for_review_keeps_its_retired_key(app_db):
+    """'complete' means the forms are in and waiting to be reviewed. They can
+    only be opened with the key they were encrypted to, so that key must
+    survive rotation and pruning until the submission is imported or
+    discarded, however long that takes."""
+    t0 = 1_800_000_000
+    inv = app_db.create_intake_invitation("Waiting", required_forms=("intake",),
+                                          ttl_days=1, now=t0)
+    app_db.record_intake_form_received(inv["id"], "intake")
+    assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
+    app_db.airlock_rotate_keypair()
+    assert app_db.airlock_prune_retired_keys(now=t0 + 60 * 86400) == []
+    assert inv["key_id"] in app_db.airlock_private_keys()
+    app_db.revoke_intake_invitation(inv["id"])              # discarded on review
+    assert app_db.airlock_prune_retired_keys(now=t0 + 60 * 86400) == [inv["key_id"]]
+
+
 # ---------------------------------------------------------------------------
 # invitations
 # ---------------------------------------------------------------------------
