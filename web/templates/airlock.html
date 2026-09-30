@@ -52,6 +52,7 @@
         </div>
         {% if ready %}
         <div class="al-table-wrap"><table class="al-table">
+            <colgroup><col class="al-col-name"><col class="al-col-status"><col class="al-col-date"><col class="al-col-action"></colgroup>
             <thead><tr><th>Invited</th><th>Issued</th><th>Forms</th><th></th></tr></thead>
             <tbody>
             {% for r in ready %}
@@ -74,15 +75,22 @@
         <h3>Waiting for the client</h3>
         {% if open_rows %}
         <div class="al-table-wrap"><table class="al-table">
+            <colgroup><col class="al-col-name"><col class="al-col-status"><col class="al-col-date"><col class="al-col-action"></colgroup>
             <thead><tr><th>Invited</th><th>Status</th><th>Expires</th><th></th></tr></thead>
             <tbody>
             {% for r in open_rows %}
             <tr>
                 <td>{% if r.client_id %}<a href="{{ url_for('clients.client_file', client_id=r.client_id) }}">{{ r.display_name }}</a>{% else %}{{ r.display_name }}{% endif %}{% if r.email %} <span class="al-muted">{{ r.email }}</span>{% endif %}</td>
-                <td><span class="status-badge {{ 'issued' if r.effective_status == 'issued' else 'partial' }}">
-                    {{ 'Sent' if r.effective_status == 'issued' else 'Partly done' }}</span></td>
+                <td><span class="status-badge {{ r.effective_status }}">
+                    {{ {'issued': 'Sent', 'partial': 'Partly done', 'expired': 'Expired'}[r.effective_status] }}</span></td>
                 <td>{{ r.expires_fmt }}</td>
-                <td class="al-actions"><a class="btn-small btn-secondary" href="{{ url_for('airlock.invitation', invitation_id=r.id) }}">Link &amp; PIN</a></td>
+                <td class="al-actions">{% if r.effective_status == 'expired' %}
+                    <form method="post" action="{{ url_for('airlock.revoke', invitation_id=r.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-small btn-secondary"
+                                title="Remove from this list. Sending the client a new invitation also replaces it.">Dismiss</button>
+                    </form>{% else %}
+                    <a class="btn-small btn-secondary" href="{{ url_for('airlock.invitation', invitation_id=r.id) }}">Link &amp; PIN</a>{% endif %}</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -92,23 +100,5 @@
         {% endif %}
     </div>
 
-    <!-- History -->
-    {% if closed %}
-    <div class="al-section">
-        <h3>Recent</h3>
-        <div class="al-table-wrap"><table class="al-table">
-            <thead><tr><th>Invited</th><th>Status</th><th>Issued</th></tr></thead>
-            <tbody>
-            {% for r in closed %}
-            <tr>
-                <td>{% if r.client_id %}<a href="{{ url_for('clients.client_file', client_id=r.client_id) }}">{{ r.display_name }}</a>{% else %}{{ r.display_name }}{% endif %}</td>
-                <td><span class="status-badge {{ r.effective_status }}">{{ r.effective_status|capitalize }}</span></td>
-                <td>{{ r.issued_fmt }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table></div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

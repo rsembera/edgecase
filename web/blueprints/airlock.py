@@ -29,6 +29,7 @@ db = None
 # reflected into the page.
 MESSAGES = {
     'revoked': ('ok', 'Invitation revoked.'),
+    'dismissed': ('ok', 'Expired invitation dismissed.'),
     'revoke_remote_failed': ('warn', 'Revoked here, but the AirLock server could not be '
                                      'told. The link may keep working until it expires; '
                                      'nothing it submits can be imported.'),
@@ -166,9 +167,9 @@ def _render_invitations(message=None, error=None, checked=None, unmatched=0, sta
     return render_template(
         'airlock.html',
         ready=[r for r in rows if r['effective_status'] == 'complete'],
-        open_rows=[r for r in rows if r['effective_status'] in ('issued', 'partial')],
-        closed=[r for r in rows if r['effective_status'] in
-                ('imported', 'revoked', 'expired')][:25],
+        # Expired ones stay until dismissed or replaced, so a client who
+        # never did their forms doesn't just vanish from the page.
+        open_rows=[r for r in rows if r['effective_status'] in ('issued', 'partial', 'expired')],
         message=message, error=error, checked=checked, unmatched=unmatched,
         ttl_days=db.get_setting('airlock_ttl_days', '14')), status
 
@@ -241,6 +242,11 @@ def invite(client_id):
         db.delete_unsent_intake_invitation(inv['id'])
         return render_template('airlock_invite.html',
                                error=f'{e} The invitation was not created.', **ctx), 502
+    # The new invitation replaces any expired one for this client.
+    for old in db.list_intake_invitations(include_closed=True):
+        if (old['client_id'] == client_id and old['id'] != inv['id']
+                and db.invitation_effective_status(old) == 'expired'):
+            db.revoke_intake_invitation(old['id'])
     return redirect(url_for('airlock.invitation', invitation_id=inv['id'], new=1))
 
 
@@ -268,7 +274,7 @@ def revoke(invitation_id):
     inv = db.get_intake_invitation(invitation_id)
     if inv is None or not db.revoke_intake_invitation(invitation_id):
         return redirect(url_for('airlock.invitations'))
-    msg = 'revoked'
+    msg = 'dismissed' if db.invitation_effective_status(inv) == 'expired' else 'revoked'
     try:
         airlock_client.client_from_settings(db).revoke_invitation(inv['token_hash'])
     except AirLockConnectionError:

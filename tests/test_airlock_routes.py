@@ -366,3 +366,39 @@ def test_destructive_buttons_use_the_app_modal(client, app_db, airlock_server):
     client.post("/airlock/check")
     page = client.get(f"/airlock/review/{inv['id']}").data.decode()
     assert 'id="al-confirm-modal"' in page and "alConfirm('al-discard-form'" in page
+
+
+def _expired(app_db, client_id):
+    import time
+    return app_db.create_intake_invitation("Ada L.", client_id=client_id, ttl_days=1,
+                                           now=int(time.time()) - 3 * 86400)
+
+
+def test_expired_invitations_wait_to_be_dismissed(client, app_db, airlock_server):
+    """An expired invitation stays on the page, marked Expired, until dismissed,
+    so a client who never did their forms doesn't just drop off the list."""
+    inv = _expired(app_db, fx.a_client(app_db))
+    page = client.get("/airlock").data.decode()
+    assert "Expired</span>" in page and "Dismiss</button>" in page
+    assert f"/airlock/invitations/{inv['id']}/revoke" in page
+    r = client.post(f"/airlock/invitations/{inv['id']}/revoke")
+    assert "msg=dismissed" in r.headers["Location"]
+    page = client.get(r.headers["Location"]).data.decode()
+    assert "Expired invitation dismissed." in page and "Dismiss</button>" not in page
+
+
+def test_a_new_invitation_replaces_an_expired_one(client, app_db, airlock_server):
+    cid = fx.a_client(app_db)
+    old = _expired(app_db, cid)
+    other = _expired(app_db, fx.a_client(app_db, first="Grace", file_number="C-2"))
+    _issue(client, app_db, client_id=cid)
+    assert app_db.get_intake_invitation(old["id"])["status"] == "revoked"
+    assert app_db.get_intake_invitation(other["id"])["status"] == "issued"   # other client
+
+
+def test_closed_invitations_are_not_listed(client, app_db, airlock_server):
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    client.post(f"/airlock/invitations/{inv['id']}/revoke")
+    page = client.get("/airlock").data.decode()
+    assert "Recent" not in page and "Revoked" not in page and "Ada Lovelace" not in page
