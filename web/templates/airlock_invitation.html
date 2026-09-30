@@ -30,10 +30,8 @@
         {% if link %}
         <div class="al-secret" id="al-link">{{ link }}</div>
         <div class="al-copy-buttons">
-            <button type="button" class="btn-small" onclick="alCopyAsLink(this)"
-                    title="Paste into an email: the words “Open your forms” become the link">Copy as link</button>
-            <button type="button" class="btn-small btn-secondary" onclick="alCopy('al-link', this)"
-                    title="The plain address, for a text message">Copy</button>
+            <button type="button" class="btn-small" onclick="alCopy('al-link', this)"
+                    title="In Mail, select your own words and press ⌘K to paste it as a link">Copy</button>
         </div>
         {% else %}
         <div class="al-notice warn">Set the client form address in Settings → AirLock to see the full link.</div>
@@ -74,22 +72,6 @@ function alFlash(btn, label) {
 function alCopy(id, btn) {
     const text = document.getElementById(id).textContent.trim();
     navigator.clipboard.writeText(text).then(() => alFlash(btn, 'Copied'));
-}
-
-// Puts two versions on the clipboard: "Open your forms" as a link, for
-// mail programs that paste formatting, and the plain address for those that
-// don't. Where the window cannot copy formatting, it copies the address.
-function alCopyAsLink(btn) {
-    const url = document.getElementById('al-link').textContent.trim();
-    const safe = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    const html = '<a href="' + safe + '">Open your forms</a>';
-    const plain = () => navigator.clipboard.writeText(url)
-        .then(() => alFlash(btn, 'Copied address only'));
-    if (typeof ClipboardItem === 'undefined') { plain(); return; }
-    navigator.clipboard.write([new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([url], { type: 'text/plain' }),
-    })]).then(() => alFlash(btn, 'Copied'), plain);
 }
 </script>
 {% include "partials/airlock_confirm.html" %}

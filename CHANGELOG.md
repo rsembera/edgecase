@@ -1,5 +1,13 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock invitation page: "Copy as link" removed
+
+First real use: in Apple Mail the pasted link came in Safari's default font
+(Safari restyles HTML written to the clipboard), and Paste and Match Style
+dropped the link. The invitation page now has a single **Copy** (the plain
+address); its tooltip says to select your own words in Mail and press ⌘K.
+Test red on the previous commit.
+
 ### 2026-09-30 — AirLock admin key field: masked text instead of a password field
 
 Entering the AirLock admin key in Settings made Safari offer to save it as a
