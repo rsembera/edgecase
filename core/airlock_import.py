@@ -90,6 +90,7 @@ _PHONE = re.compile(r"^[0-9+().\-\s]{3,}(?:\s*(?:x|ext\.?)\s*\d{1,6})?$", re.I)
 # A full number: area code and all (10), up to an international 12, counted
 # without any extension. Same limits as the Client Profile.
 PHONE_MIN_DIGITS, PHONE_MAX_DIGITS = 10, 12
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 _PHONE_EXT = re.compile(r"\s*(?:x|ext\.?)\s*\d{1,6}$", re.I)
 # Characters that are not text: controls, zero-width and direction marks, the
 # byte-order mark, the two "not a character" code points, and surrogate
@@ -146,6 +147,10 @@ def _clean(value, max_len, kind, label, problems):
         return ""
     if kind == "date":
         try:
+            # The shape first: fromisoformat alone also accepts "19901210"
+            # and week dates like "1990-W50-1".
+            if not _ISO_DATE.match(text):
+                raise ValueError(text)
             d = date.fromisoformat(text)
         except ValueError:
             problems.append(f"{label}: not a date (YYYY-MM-DD)")
