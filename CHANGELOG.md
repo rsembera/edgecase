@@ -22,6 +22,10 @@ AirLock template calls confirm/alert/prompt; both pages carry the modal; a
 Chromium test drives EdgeCase's real invitation page and styles through
 Cancel, Escape and Revoke.
 
+Invitation page: the link's Copy as link / Copy buttons sit on their own row
+under the link, left-aligned; the PIN has its own Copy button (it copies the
+bare digits; the gaps are letter-spacing).
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client
