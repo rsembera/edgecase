@@ -12,7 +12,7 @@ and tested end to end against EdgeCase; client form pages done
 (`airlock/static/`: WebCrypto in `crypto.js`, tested in Node and in Chromium
 through EdgeCase import). Deployed 2026-09-27: running on Sentinel as a
 user service (public listener 127.0.0.1:8093 behind nginx; admin listener
-100.116.129.95:8094, Tailscale only), deployed by `git push sentinel main`;
+on the Tailscale address, port 8094), deployed by `git push sentinel main`;
 deployment files and steps in the AirLock repo's `deploy/` and README.
 Pending: public hostname (DNS, then `deploy/setup_nginx.sh`), the real admin
 key, and Richard's first live test.

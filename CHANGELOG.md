@@ -319,7 +319,7 @@ reach you" heading is keyed on the cell phone, so email now sits under
 
 AirLock runs on Sentinel as a systemd user service (like Palestra): public
 listener on 127.0.0.1:8093 for nginx, admin listener on the Tailscale address
-only (100.116.129.95:8094, verified unreachable from the LAN), data in
+only (port 8094, verified unreachable from the LAN), data in
 `~/.local/share/airlock`. `git push sentinel main` from the AirLock repo
 deploys through a post-receive hook (checkout, venv refresh, restart, failure
 report). The repo's new `deploy/` holds the unit, the hook, the nginx
