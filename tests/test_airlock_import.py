@@ -109,12 +109,22 @@ def test_unknown_fields_are_ignored():
     assert set(out["fields"]) == set(ai.INTAKE_FIELDS)
 
 
+@pytest.mark.parametrize("number", ["(613) 221-9737", "+16132219737", "613-555-0100 x12",
+                                    "613 555 0100 ext. 4", "+44 20 7946 0958"])
+def test_full_phone_numbers_are_accepted(number):
+    assert parsed_intake(phone=number)["fields"]["phone"] == number
+
+
 @pytest.mark.parametrize("overrides, fragment", [
     ({"first_name": ""}, "First name is required"),
     ({"last_name": "   "}, "Last name is required"),
     ({"email": "", "phone": ""}, "contact the client"),
     ({"email": "not-an-email"}, "not an email"),
     ({"phone": "call me maybe"}, "not a phone"),
+    ({"phone": "613123456"}, "not a full phone number"),
+    ({"home_phone": "555-0101"}, "not a full phone number"),
+    ({"work_phone": "1234567890123"}, "not a full phone number"),
+    ({"emergency_contact_phone": "613 555 010 x12"}, "not a full phone number"),
     ({"date_of_birth": "10/12/1990"}, "not a date"),
     ({"date_of_birth": "2999-01-01"}, "out of range"),
     ({"date_of_birth": "1850-01-01"}, "out of range"),

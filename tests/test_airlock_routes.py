@@ -151,8 +151,36 @@ def test_invite_page(client, app_db, airlock_server):
     page = client.get(f"/airlock/invite/{cid}").data.decode()
     assert "Ada Lovelace" in page and "C-1" in page
     assert re.search(r'name="is_minor" value="1"[^>]*\s+checked', page)   # from the Profile
+
+
+def test_one_invitation_at_a_time(client, app_db, airlock_server):
+    cid = fx.a_client(app_db)
     _issue(client, app_db, client_id=cid)
-    assert "already has an open invitation" in client.get(f"/airlock/invite/{cid}").data.decode()
+    first = _latest(app_db)
+
+    page = client.get(f"/airlock/invite/{cid}").data.decode()
+    assert "already has intake forms out" in page and 'name="forms"' not in page
+    assert f"/airlock/invitations/{first['id']}" in page
+    r = _issue(client, app_db, client_id=cid)
+    assert r.status_code == 409
+    assert len(app_db.list_intake_invitations(include_closed=True)) == 1
+
+    _submit_both(airlock_server, first)            # in, awaiting review
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/invite/{cid}").data.decode()
+    assert "waiting for your review" in page and f"/airlock/review/{first['id']}" in page
+    assert _issue(client, app_db, client_id=cid).status_code == 409
+
+    client.post(f"/airlock/review/{first['id']}/discard")
+    assert _issue(client, app_db, client_id=cid).status_code == 302
+    assert _latest(app_db)["id"] != first["id"]
+
+
+def test_revoking_frees_the_client_for_a_new_invitation(client, app_db, airlock_server):
+    cid = fx.a_client(app_db)
+    _issue(client, app_db, client_id=cid)
+    client.post(f"/airlock/invitations/{_latest(app_db)['id']}/revoke")
+    assert _issue(client, app_db, client_id=cid).status_code == 302
 
 
 def test_client_file_has_the_send_button_only_when_configured(client, app_db, airlock_server):
@@ -167,7 +195,8 @@ def test_client_file_links_to_review_while_a_submission_waits(client, app_db, ai
     _issue(client, app_db, client_id=cid)
     inv = _latest(app_db)
     page = client.get(f"/client/{cid}").data.decode()
-    assert f"/airlock/invite/{cid}" in page                  # still waiting: Send
+    assert re.search(r'<a href="/airlock"[^>]*>(?:(?!</a>).)*Intake forms sent', page, re.S)
+    assert f"/airlock/invite/{cid}" not in page
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")
     page = client.get(f"/client/{cid}").data.decode()
@@ -358,8 +387,9 @@ def test_check_when_server_unreachable(client, app_db, airlock_server):
 def test_every_form_carries_a_csrf_token(client, app_db, airlock_server):
     _issue(client, app_db)
     inv = _latest(app_db)
+    fresh = fx.a_client(app_db, first="Grace", file_number="C-9")   # nothing out yet
     pages = ["/airlock", f"/airlock/invitations/{inv['id']}",
-             f"/airlock/invite/{inv['client_id']}"]
+             f"/airlock/invite/{fresh}"]
     htmls = [client.get(p).data.decode() for p in pages]
     _submit_both(airlock_server, inv)
     client.post("/airlock/check")

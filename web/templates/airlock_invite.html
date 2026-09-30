@@ -20,14 +20,19 @@
 
     {% if error %}<div class="al-notice error">{{ error }}</div>{% endif %}
 
-    {% if open_invs %}
+    {% if in_progress == 'review' %}
     <div class="al-notice warn">
-        {{ name }} already has an open invitation
-        (<a href="{{ url_for('airlock.invitation', invitation_id=open_invs[0].id) }}">link &amp; PIN</a>).
-        A new one works alongside it; revoke the old one if you no longer need it.
+        {{ name }}’s forms are in and waiting for your review:
+        <a href="{{ url_for('airlock.review', invitation_id=in_progress_id) }}">review them</a>.
+        Import or discard them before sending new ones.
     </div>
-    {% endif %}
-
+    {% elif in_progress == 'waiting' %}
+    <div class="al-notice warn">
+        {{ name }} already has intake forms out
+        (<a href="{{ url_for('airlock.invitation', invitation_id=in_progress_id) }}">link &amp; PIN</a>).
+        To send new ones, revoke that invitation first.
+    </div>
+    {% else %}
     <p class="al-muted">The client gets a link and a 6-digit PIN. Send the link by email and give
         the PIN another way, such as on your consultation call. What they submit comes back to
         this file: you review it beside what’s already here before anything changes.</p>
@@ -59,5 +64,6 @@
             <button type="submit" class="btn">Create invitation</button>
         </div>
     </form>
+    {% endif %}
 </div>
 {% endblock %}

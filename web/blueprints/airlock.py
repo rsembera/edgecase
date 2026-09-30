@@ -57,7 +57,7 @@ def init_blueprint(database):
 def _airlock_nav():
     try:
         return {'airlock_enabled': bool(db) and airlock_client.is_enabled(db),
-                'airlock_review_id': db.invitation_awaiting_review}
+                'airlock_in_progress': db.client_intake_in_progress}
     except Exception:
         return {'airlock_enabled': False}
 
@@ -227,12 +227,15 @@ def invite(client_id):
     if client is None:
         return "Client not found", 404
     profile = db.get_profile_entry(client_id) or {}
-    open_invs = [i for i in db.list_intake_invitations() if i['client_id'] == client_id]
+    in_progress, in_progress_id = db.client_intake_in_progress(client_id)
     ctx = {'client': client, 'name': _client_name(client), 'profile': profile,
-           'open_invs': open_invs, 'ttl_days': db.get_setting('airlock_ttl_days', '14'),
+           'in_progress': in_progress, 'in_progress_id': in_progress_id,
+           'ttl_days': db.get_setting('airlock_ttl_days', '14'),
            'has_consent': bool(airlock_config.load_config(db)['consent_text'])}
     if request.method != 'POST':  # GET, and the HEAD probe base.html sends before navigating
         return render_template('airlock_invite.html', **ctx)
+    if in_progress:   # one invitation per client at a time (decided 2026-09-30)
+        return render_template('airlock_invite.html', **ctx), 409
 
     forms = ('intake', 'consent') if request.form.get('forms', 'both') == 'both' else ('intake',)
     if 'consent' in forms and not ctx['has_consent']:
