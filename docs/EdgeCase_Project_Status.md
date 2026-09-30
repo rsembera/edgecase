@@ -274,11 +274,18 @@ In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
    (it now lives in Sentinel's `~/.config/airlock/env`; still in both repos'
    history, where it is harmless: reachable only inside the tailnet, and the
    admin API needs its key). The server repo stays private for now (Richard,
-   2026-09-30). Still open for going public: the website's
-   security page (not started).
-3. Richard's real consent text (the current one is a placeholder).
-4. Consent/privacy wording saying intake can be done online and how it is
-   protected (Richard's decision as PHIPA custodian; Claude drafts).
+   2026-09-30). Still open for going public: generalizing the README and
+   `deploy/` for other servers (they are written for Sentinel; fine until
+   then), and the website's
+   security page (not started). Distribution, when public: source only, for
+   practitioners who run their own server. Richard will not host AirLock for
+   anyone else (decided 2026-09-30).
+3. Richard's real consent text: prepared 2026-09-30 from
+   `~/Nexus/intake-consent-forms/Consent.pdf` (letterhead and signature lines
+   dropped; the online form has both). Richard enters it on the Consent page,
+   which stamps its version.
+4. Online-forms wording: drafted 2026-09-30 as an "Online forms" section in
+   that consent text; Richard's decision as PHIPA custodian.
 5. Merge `airlock` into main; back up; bring up on the Mac against real data.
 
 Notes: from inside the home network the public hostname doesn't load
