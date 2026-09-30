@@ -600,3 +600,24 @@ def test_browser_revoke_uses_the_app_modal(client, app_db, airlock, browser):
     assert "msg=revoked" in r.headers["Location"]
     assert app_db.get_intake_invitation(inv["id"])["status"] == "revoked"
     assert dialogs == []
+
+
+def test_browser_marks_required_fields_not_optional_ones(client, app_db, airlock, browser):
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, file_number="WEB-R")
+    page = _page(browser)
+    page.goto(f"{airlock['public']}/i#{inv['token']}")
+    page.wait_for_selector("#pin")
+    assert page.inner_text(".brand").lower() == "secure client forms"
+    assert "separately" not in page.inner_text("#pin-help")
+    page.fill("#pin", inv["pin"])
+    page.click("button:has-text('Continue')")
+    page.wait_for_selector("#intake-form")
+    for name in ("first_name", "last_name"):
+        assert page.inner_text(f"label[for=f-{name}]").endswith("(required)")
+    for name in ("middle_name", "date_of_birth", "gender", "email", "emergency_contact_name"):
+        label = page.inner_text(f"label[for=f-{name}]")
+        assert "(required)" not in label and "(optional)" not in label, name
+    assert page.inner_text("label[for=typed_name]").endswith("(required)")
+    assert "at least one way to reach you" in page.inner_text("#intake-form")
+    assert page.problems == []

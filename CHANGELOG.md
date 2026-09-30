@@ -33,6 +33,16 @@ invitations stay under "Waiting for the client", marked Expired, with a
 drop off; sending that client a new invitation replaces the expired one.
 Names link in the app's colour; the two tables share column widths.
 
+AirLock server: optional ntfy ping when a client finishes their forms
+(`AIRLOCK_NTFY_URL`, set on Sentinel in `~/.config/airlock/env`; no client
+details, normal priority, sent in the background). Client page: the PIN
+help no longer says the PIN came separately; a small "Secure client forms"
+line above the letterhead; required fields are marked "(required)" instead
+of every optional one being marked "(optional)", with a note that one email
+or phone is needed; the iOS date field fits the card and stays readable when
+Safari autofills it. Browser test for the marks and wording (red on the old
+page).
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client
