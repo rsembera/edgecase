@@ -258,10 +258,10 @@ guardians. Expired/Dismiss and Discard are covered by tests.
 
 **Security pass (2026-09-30):** done on Apollo against a local instance;
 findings, fixes and tests in CHANGELOG (parts 1–5) and the threat model in
-`docs/Intake_Service_Plan.md`. The server fixes are on GitHub (through `b416e46`)
-but **not yet deployed to Sentinel**: the live server still has the shared
-rate-limit bucket until `git push sentinel main` (in that repository `main`
-tracks `sentinel`, so a bare `git push` is a deploy).
+`docs/Intake_Service_Plan.md`. The server fixes are deployed to Sentinel
+(`b416e46`, 2026-09-30 11:52; service up on the Tailscale admin address,
+pinned dependencies installed, public page 200, admin 401 without the key).
+In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
 
 **Before real clients:**
 1. ~~Finish the tests above.~~ Done 2026-09-30.
@@ -269,7 +269,7 @@ tracks `sentinel`, so a bare `git push` is a deploy).
    was the wrong way round: PIN guesses were already limited per link (five
    wrong, ever, from any address); it was the per-address limit that did not
    work in production. Remaining before the server repo goes public: deploy
-   the fixes; decide whether the Tailscale address in
+   the fixes (done 2026-09-30); decide whether the Tailscale address in
    `deploy/airlock.service` (and the repository's history) should be a
    placeholder; the README's security wording (done) and the website's
    security page (not started).
