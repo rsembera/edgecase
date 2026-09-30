@@ -654,8 +654,8 @@ def test_head_probe_does_not_contact_the_server(client, app_db, airlock_server):
 
 
 def test_admin_key_field_is_not_a_password_field():
-    """Safari offers to save anything typed in a password field, and ignores
-    autocomplete="off" there; the admin key is masked text instead."""
+    """The admin key is masked text, not a password field (Safari still offers
+    to save it; kept as is, CHANGELOG 2026-09-30)."""
     from pathlib import Path
     html = (Path(__file__).resolve().parent.parent / "web/templates/settings.html").read_text()
     field = re.search(r'<input[^>]*id="airlock_admin_key"[^>]*>', html).group(0)
