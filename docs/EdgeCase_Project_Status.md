@@ -250,16 +250,16 @@ review. Design and decisions: `docs/Intake_Service_Plan.md`; day-by-day
 detail: CHANGELOG. Server: private repo `rsembera/edgecase-airlock`, live at
 airlock.lightinextension.ca (deploy: `git push sentinel main`).
 
-**State (2026-09-29):** first live round trip done — invitation from the
-client file, phone submit, ntfy ping, review, import into the file.
+**State (2026-09-30):** live testing done — review screen (Reject, one blank
+mark, phones compared by digits), client-file button states (Send / Waiting
+for client / Review intake forms), one invitation per client, phone tidying
+and checks on the client page, logo blend and website link, minor with
+guardians. Expired/Dismiss and Discard are covered by tests.
 
-**Next session:** restart `edgecase-testing` (EDGECASE_DATA=~/edgecase-airlock-test
-on Apollo), send a fresh invitation, and **screenshot the review screen before
-importing** (not yet seen). Then test: minor with guardians, intake only, an
-expired invitation (Dismiss), Discard, the PDFs in the file.
+**Next session:** the adversarial security pass (item 2 below).
 
 **Before real clients:**
-1. Finish the tests above.
+1. ~~Finish the tests above.~~ Done 2026-09-30.
 2. Adversarial security pass (gates making the server repo public). Known
    gap: PIN attempts are limited per network address but not yet per link,
    as the plan calls for.
