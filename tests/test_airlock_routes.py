@@ -402,3 +402,28 @@ def test_closed_invitations_are_not_listed(client, app_db, airlock_server):
     client.post(f"/airlock/invitations/{inv['id']}/revoke")
     page = client.get("/airlock").data.decode()
     assert "Recent" not in page and "Revoked" not in page and "Ada Lovelace" not in page
+
+
+def test_opening_the_page_checks_for_submissions(client, app_db, airlock_server):
+    """The ntfy ping says "open AirLock": the page fetches on its own."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    _submit_both(airlock_server, inv)
+    page = client.get("/airlock").data.decode()               # no Check click
+    assert f"/airlock/review/{inv['id']}" in page
+    assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
+
+
+def test_page_still_opens_when_the_server_is_unreachable(client, app_db, airlock_server):
+    _issue(client, app_db)
+    airlock_server.fail.add("list_submissions")
+    r = client.get("/airlock")
+    assert r.status_code == 200
+    assert b"Showing what was last received." in r.data
+    assert b"Waiting for the client" in r.data
+
+
+def test_head_probe_does_not_contact_the_server(client, app_db, airlock_server):
+    airlock_server.calls.clear()
+    assert client.head("/airlock").status_code == 200
+    assert "list_submissions" not in airlock_server.calls
