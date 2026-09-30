@@ -291,9 +291,9 @@ In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
    `~/edgecase-pre-airlock-20260930`; admin key regenerated (old one void;
    the Apollo test install needs the new one); Test connection OK. Round trip
    on the Mac's `edgecase-testing` done 2026-09-30. **AirLock is in
-   production use from 2026-09-30.** The first real client is also the first
-   use of the real install's own encryption key (review shows any problem
-   before anything is written).
+   production use from 2026-09-30.** First real intake and consent received
+   and imported the same evening (18:29); the real install's own key is
+   proven.
 
 Notes: every EdgeCase that talks to the server (the Mac, `edgecase-testing`,
 the Apollo test install) pushes its own setup (letterhead, consent text, key)
