@@ -241,7 +241,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 
 ## CURRENT WORK IN PROGRESS
 
-### AirLock online intake & consent — branch `airlock` (not merged)
+### AirLock online intake & consent — in production since 2026-09-30 (merged to main)
 
 Clients fill in the intake (the client-facing part of the Client Profile)
 and sign the consent online; answers are encrypted in their browser, held on
@@ -289,9 +289,11 @@ In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
 5. ~~Merge `airlock` into main; back up; bring up on the Mac.~~ Done
    2026-09-30: fast-forward, 1077 passed on the Mac, file snapshot in
    `~/edgecase-pre-airlock-20260930`; admin key regenerated (old one void;
-   the Apollo test install needs the new one); Test connection OK. Remaining:
-   one round trip on the Mac's `edgecase-testing` (not the real database:
-   clients cannot be deleted outside retention).
+   the Apollo test install needs the new one); Test connection OK. Round trip
+   on the Mac's `edgecase-testing` done 2026-09-30. **AirLock is in
+   production use from 2026-09-30.** The first real client is also the first
+   use of the real install's own encryption key (review shows any problem
+   before anything is written).
 
 Notes: every EdgeCase that talks to the server (the Mac, `edgecase-testing`,
 the Apollo test install) pushes its own setup (letterhead, consent text, key)
