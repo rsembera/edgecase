@@ -43,10 +43,10 @@
                     <td>{{ r.label }}</td>
                     <td class="al-value">{{ r.on_file_display or '—' }}</td>
                     <td class="al-value">{{ r.submitted_display or '—' }}</td>
-                    <td class="al-actions">{% if r.status == 'changed' %}
+                    <td class="al-actions">{% if r.status in ('changed', 'new') %}
                         <label class="checkbox-label-inline">
                             <input type="checkbox" name="keep" value="{{ r.key }}" class="checkbox-auto"> Reject
-                        </label>{% elif r.status == 'new' %}<span class="al-muted">Added</span>{% endif %}</td>
+                        </label>{% endif %}</td>
                 </tr>
                 {% endfor %}
                 </tbody>

@@ -186,6 +186,9 @@ def test_review_marks_rows_to_reject_and_blanks_one_way(client, app_db, airlock_
     client.post("/airlock/check")
     review = client.get(f"/airlock/review/{inv['id']}").data.decode()
     assert re.search(r'name="keep" value="email"[^>]*>\s*Reject', review)
+    # an answer for a field empty on file can be rejected too
+    assert re.search(r'class="al-new">\s*<td>Gender</td>', review)
+    assert re.search(r'name="keep" value="gender"[^>]*>\s*Reject', review)
     assert "Keep on file" not in review and "(left blank)" not in review
     assert "differ from the file" in review and "will change" not in review
 
