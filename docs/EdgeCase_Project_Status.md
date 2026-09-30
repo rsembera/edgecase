@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 23, 2026  
+**Last Updated:** September 29, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -240,6 +240,38 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ---
 
 ## CURRENT WORK IN PROGRESS
+
+### AirLock online intake & consent — branch `airlock` (not merged)
+
+Clients fill in the intake (the client-facing part of the Client Profile)
+and sign the consent online; answers are encrypted in their browser, held on
+Sentinel as ciphertext, and imported into their existing client file after
+review. Design and decisions: `docs/Intake_Service_Plan.md`; day-by-day
+detail: CHANGELOG. Server: private repo `rsembera/edgecase-airlock`, live at
+airlock.lightinextension.ca (deploy: `git push sentinel main`).
+
+**State (2026-09-29):** first live round trip done — invitation from the
+client file, phone submit, ntfy ping, review, import into the file.
+
+**Next session:** restart `edgecase-testing` (EDGECASE_DATA=~/edgecase-airlock-test
+on Apollo), send a fresh invitation, and **screenshot the review screen before
+importing** (not yet seen). Then test: minor with guardians, intake only, an
+expired invitation (Dismiss), Discard, the PDFs in the file.
+
+**Before real clients:**
+1. Finish the tests above.
+2. Adversarial security pass (gates making the server repo public). Known
+   gap: PIN attempts are limited per network address but not yet per link,
+   as the plan calls for.
+3. Richard's real consent text (the current one is a placeholder).
+4. Consent/privacy wording saying intake can be done online and how it is
+   protected (Richard's decision as PHIPA custodian; Claude drafts).
+5. Merge `airlock` into main; back up; bring up on the Mac against real data.
+
+Notes: from inside the home network the public hostname doesn't load
+(router loopback); a Pi-hole local record `airlock.lightinextension.ca →
+192.168.0.200` fixes that, optional. Phones on mobile data (or iCloud
+Private Relay) are unaffected.
 
 ### Attachment Encryption v2 (Argon2id / AES-256-GCM) — started June 14, 2026
 

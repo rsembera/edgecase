@@ -172,7 +172,7 @@ after the import commits.
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/airlock` | GET | Invitations: ready to review, open, recent (issuing is from the client file) |
+| `/airlock` | GET | Checks the server for submissions on every visit, then lists ready to review and waiting (incl. expired, with Dismiss). Issuing is from the client file |
 | `/airlock/check` | POST | Fetch submissions, record forms received, clean up imported/revoked |
 | `/airlock/invite/<client_id>` | GET, POST | Send intake forms from a client file: create locally with the client's id, push hash + PIN; deleted again if the push fails |
 | `/airlock/invitations/<id>` | GET | Link and PIN for an open invitation |
