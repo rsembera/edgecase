@@ -4,7 +4,7 @@
 
 Decided: a client has one invitation at a time (reverses "a new one works
 alongside it"). The client file's button follows the invitation: **Send
-intake forms** → **Intake forms sent** (to the AirLock page) while it is out
+intake forms** → **Waiting for client** (to the AirLock page) while it is out
 → **Review intake forms** once the forms are in → Send again after import,
 discard or revoke. `/airlock/invite/<id>` refuses a second invitation (409)
 and its page explains instead of showing the form, linking to the link & PIN
