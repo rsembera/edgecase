@@ -2406,3 +2406,8 @@ body.parchment .session-badge-upload {
     background: #e8e0d0;
     color: #2c2416;
 }
+
+/* A secret typed into a plain text field, shown as dots. Used where a
+   password field would make the browser offer to save it (the AirLock
+   admin key); Safari ignores autocomplete="off" on password fields. */
+.masked-input { -webkit-text-security: disc; }

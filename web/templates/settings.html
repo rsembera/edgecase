@@ -517,7 +517,9 @@ details[open] .settings-section-header .arrow {
             <div class="form-group">
                 <label for="airlock_admin_key">Admin key</label>
                 <div id="airlock_key_entry">
-                    <input type="password" id="airlock_admin_key" autocomplete="off">
+                    <input type="text" id="airlock_admin_key" class="masked-input" autocomplete="off"
+                           autocapitalize="off" autocorrect="off" spellcheck="false"
+                           data-1p-ignore data-lpignore="true">
                     <small class="helper-text" id="airlock_key_hint">From your AirLock server's setup</small>
                 </div>
                 <div id="airlock_key_saved" style="display:none;">

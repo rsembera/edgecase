@@ -631,3 +631,15 @@ def test_head_probe_does_not_contact_the_server(client, app_db, airlock_server):
     airlock_server.calls.clear()
     assert client.head("/airlock").status_code == 200
     assert "list_submissions" not in airlock_server.calls
+
+
+def test_admin_key_field_is_not_a_password_field():
+    """Safari offers to save anything typed in a password field, and ignores
+    autocomplete="off" there; the admin key is masked text instead."""
+    from pathlib import Path
+    html = (Path(__file__).resolve().parent.parent / "web/templates/settings.html").read_text()
+    field = re.search(r'<input[^>]*id="airlock_admin_key"[^>]*>', html).group(0)
+    assert 'type="text"' in field and "masked-input" in field
+    assert 'autocomplete="off"' in field and 'spellcheck="false"' in field
+    css = (Path(__file__).resolve().parent.parent / "web/static/css/shared.css").read_text()
+    assert re.search(r"\.masked-input\s*{[^}]*-webkit-text-security:\s*disc", css)
