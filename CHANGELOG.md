@@ -26,6 +26,13 @@ Invitation page: the link's Copy as link / Copy buttons sit on their own row
 under the link, left-aligned; the PIN has its own Copy button (it copies the
 bare digits; the gaps are letter-spacing).
 
+AirLock page: the Recent list is gone (imported invitations are recorded in
+the client's AirLock entry; revoked ones were deliberate). Expired
+invitations stay under "Waiting for the client", marked Expired, with a
+**Dismiss** button, so a client who never did their forms doesn't silently
+drop off; sending that client a new invitation replaces the expired one.
+Names link in the app's colour; the two tables share column widths.
+
 ### 2026-09-29 — AirLock invitations come from the client file; import fills it in (branch `airlock`)
 
 Decided: every client has a file before intake goes out (inquiry → client

@@ -19,6 +19,12 @@
 .al-table td { padding: 0.55rem 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 .al-table td.al-actions { text-align: right; white-space: nowrap; }
 .al-table-wrap { overflow-x: auto; }
+/* The page's tables share column widths so they line up. */
+.al-table:has(colgroup) { table-layout: fixed; }
+.al-col-name { width: 34%; } .al-col-status { width: 22%; }
+.al-col-date { width: 24%; } .al-col-action { width: 20%; }
+.al-table a:not(.btn-small) { color: var(--color-primary-dark); text-decoration: none; font-weight: 500; }
+.al-table a:not(.btn-small):hover { text-decoration: underline; }
 
 .status-badge.issued { background: #DBEAFE; color: #1E40AF; }
 .status-badge.complete { background: #FEF3C7; color: #92400E; }
