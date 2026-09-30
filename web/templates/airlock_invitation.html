@@ -28,14 +28,12 @@
     <div class="al-section">
         <h3>Link</h3>
         {% if link %}
-        <div class="al-copy-row">
-            <div class="al-secret" id="al-link">{{ link }}</div>
-            <div class="al-copy-buttons">
-                <button type="button" class="btn-small" onclick="alCopyAsLink(this)"
-                        title="Paste into an email: the words “Open your forms” become the link">Copy as link</button>
-                <button type="button" class="btn-small btn-secondary" onclick="alCopy('al-link', this)"
-                        title="The plain address, for a text message">Copy</button>
-            </div>
+        <div class="al-secret" id="al-link">{{ link }}</div>
+        <div class="al-copy-buttons">
+            <button type="button" class="btn-small" onclick="alCopyAsLink(this)"
+                    title="Paste into an email: the words “Open your forms” become the link">Copy as link</button>
+            <button type="button" class="btn-small btn-secondary" onclick="alCopy('al-link', this)"
+                    title="The plain address, for a text message">Copy</button>
         </div>
         {% else %}
         <div class="al-notice warn">Set the client form address in Settings → AirLock to see the full link.</div>
@@ -44,6 +42,7 @@
         <h3>PIN</h3>
         <div class="al-copy-row">
             <div class="al-pin" id="al-pin">{{ inv.pin }}</div>
+            <button type="button" class="btn-small btn-secondary" onclick="alCopy('al-pin', this)">Copy</button>
         </div>
         <p class="al-muted">Anyone with both the link and the PIN can fill in the forms as this client, until they are submitted or the link expires.</p>
     </div>
