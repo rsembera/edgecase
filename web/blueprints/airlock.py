@@ -56,7 +56,8 @@ def init_blueprint(database):
 @airlock_bp.app_context_processor
 def _airlock_nav():
     try:
-        return {'airlock_enabled': bool(db) and airlock_client.is_enabled(db)}
+        return {'airlock_enabled': bool(db) and airlock_client.is_enabled(db),
+                'airlock_review_id': db.invitation_awaiting_review}
     except Exception:
         return {'airlock_enabled': False}
 

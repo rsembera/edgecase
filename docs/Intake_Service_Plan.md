@@ -347,7 +347,7 @@ Phase 1 closed. Richard's answers to the open questions:
    signed consent PDF, with provenance notes (invitation, typed names,
    versions). Each submission is shown on a review screen (Import / Discard)
    before anything is written, each answer beside what the file holds. The
-   client's answer replaces the file's unless Richard ticks "Keep on file"
+   client's answer replaces the file's unless Richard ticks "Reject"
    for that field; an answer left blank never erases anything. A changed
    name updates the client; the file number never changes.
 7. **Publication:** the AirLock repo stays private until the adversarial

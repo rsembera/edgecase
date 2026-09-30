@@ -142,6 +142,16 @@ class AirLockMixin:
         return [r for r in rows
                 if self.invitation_effective_status(r, now) in OPEN_STATUSES]
 
+    def invitation_awaiting_review(self, client_id):
+        """The id of this client's newest invitation whose forms are all in
+        and not yet imported or discarded, else None."""
+        cur = self.connect().cursor()
+        cur.execute("SELECT id FROM intake_invitations WHERE client_id = ? "
+                    "AND status = 'complete' ORDER BY issued_at DESC, id DESC LIMIT 1",
+                    (client_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
     # ------------------------------------------------------------------
     # invitations: writes
     # ------------------------------------------------------------------

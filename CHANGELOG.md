@@ -1,5 +1,20 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock review: Reject, one blank mark, phones by digits; Review button in the client file (branch `airlock`)
+
+From the first look at the review screen. The per-row checkbox is now
+labelled **Reject** (it always meant "keep what's on file, not the client's
+answer"); its helper sentence is gone and the count reads "N fields differ
+from the file". Blanks show "—" on both sides instead of "—" and "(left
+blank)". Phone numbers are compared by their digits, ignoring punctuation,
+spaces and a leading +1, so an autofilled `+16132219737` against
+`6132219737` on file is no change and the file keeps its format; a dropped
+extension still counts as a change. The client file's **Send intake forms**
+button becomes **Review intake forms** (to that submission's review) while a
+submission is in and not yet imported or discarded; it goes back to Send
+after either. Docs: Intake_Service_Plan wording. 4 new tests, red on the
+previous commit.
+
 ### 2026-09-29 — AirLock: shorter link, Copy as link (branch `airlock`)
 
 Link tokens are now 128-bit (22 characters, was 256-bit / 43), halving the

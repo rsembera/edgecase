@@ -255,6 +255,20 @@ def _review_fields(intake, is_minor):
     return out
 
 
+def _is_phone(key):
+    return key.endswith("phone")
+
+
+def _phone_digits(value):
+    """A phone number reduced to its digits, without a leading North American
+    country code, so '+16132219737', '1 613 221 9737' and '(613) 221-9737'
+    compare equal. An extension's digits stay, so dropping one is a change."""
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    return digits
+
+
 def review_rows(db, client_id, intake, is_minor) -> list:
     """What the client submitted beside what the file holds, one row per
     field. status: 'same', 'new' (file blank), 'changed', or 'blank' (the
@@ -267,7 +281,8 @@ def review_rows(db, client_id, intake, is_minor) -> list:
         held = "" if held is None else str(held)
         if not submitted:
             status = "blank"
-        elif held == submitted:
+        elif held == submitted or (_is_phone(key) and _phone_digits(held) and
+                                   _phone_digits(held) == _phone_digits(submitted)):
             status = "same"
         elif not held:
             status = "new"
@@ -315,7 +330,7 @@ def import_client(db, invitation_id, intake: dict, consent: dict | None, *,
     the client id.
 
     The client's answer replaces what is on file, except for keys in `keep`
-    (the practitioner ticked "keep what's on file") and answers left blank,
+    (the practitioner ticked "Reject") and answers left blank,
     which change nothing. The PDFs go into a new locked Upload entry.
 
     Raises AirLockImportError (nothing written) if the invitation is not
