@@ -107,6 +107,11 @@ def _get_data_root():
 # Determine data root based on mode
 DATA_ROOT = _get_data_root()
 
+# The version, in one place. pyproject.toml and setup_app.py must match it
+# (tests/test_version.py); the About box shows it. Bump all three at release.
+APP_VERSION = "2.0.4"
+APP_RELEASE_NAME = "Strugatsky"
+
 # Key directories
 DATA_DIR = DATA_ROOT / 'data'
 ASSETS_DIR = DATA_ROOT / 'assets'

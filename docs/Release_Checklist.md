@@ -32,9 +32,11 @@ docs beyond this line).
 
 1. **Gates** — full test suite green, ruff silent, tree clean. Regression
    tests proven red against prior code before this point, CHANGELOG current.
-2. **Version bump** — pyproject.toml, setup_app.py (CFBundleVersion +
-   CFBundleShortVersionString). Grep for the old version string; check the
-   About modal.
+2. **Version bump** — `APP_VERSION` (and `APP_RELEASE_NAME` for a new
+   release family) in core/config.py, pyproject.toml, setup_app.py
+   (CFBundleVersion + CFBundleShortVersionString). tests/test_version.py
+   fails until all three agree; the About box reads `APP_VERSION`. Grep for
+   the old version string.
 3. **Tag** — `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`.
    If late fixes land after tagging, move the tag (`git tag -f`, force-push)
    *before* building, so the bundles match the tagged source exactly.
