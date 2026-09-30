@@ -75,7 +75,10 @@ class AirLockMixin:
         return {kid: meta["private_pem"] for kid, meta in self._airlock_keys().items()}
 
     def airlock_prune_retired_keys(self, now=None) -> list:
-        """Drop retired keys that no open, unexpired invitation uses.
+        """Drop retired keys that nothing can still need: no open, unexpired
+        invitation uses them, and no submitted invitation is waiting for
+        review under them ('complete': its forms can only be opened with the
+        key they were encrypted to, and review has no deadline).
         Returns the key ids removed."""
         now = int(time.time()) if now is None else now
         keys = self._airlock_keys()
@@ -83,8 +86,8 @@ class AirLockMixin:
         cur = conn.cursor()
         cur.execute(
             "SELECT DISTINCT key_id FROM intake_invitations "
-            f"WHERE status IN ({','.join('?' * len(OPEN_STATUSES))}) "
-            "AND expires_at > ?",
+            f"WHERE (status IN ({','.join('?' * len(OPEN_STATUSES))}) "
+            "AND expires_at > ?) OR status = 'complete'",
             (*OPEN_STATUSES, now))
         in_use = {row[0] for row in cur.fetchall()}
         removed = [kid for kid, meta in keys.items()
