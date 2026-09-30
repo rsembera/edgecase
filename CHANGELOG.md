@@ -1,5 +1,30 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock security review, part 3: nothing in a submission can stop the review screen opening (branch `airlock`)
+
+Two payloads turned the review screen into a 500, which also put Discard out
+of reach (the button is on that screen): JSON nested too deep to parse
+(Python raises RecursionError, which the `ValueError` handlers missed), and a
+surrogate half in a field (`"\ud800"` is valid JSON and a valid Python
+string, but cannot be encoded, so rendering the page failed). Now:
+`parse_intake`, `parse_consent` and `decrypt_envelope` treat too-deep JSON as
+"not valid JSON" / undecryptable; `_clean` strips surrogate halves, the
+byte-order mark and U+FFFE/U+FFFF along with the other non-text characters;
+and `_open` reports anything unexpected as "The … form could not be read"
+(logged with its traceback) instead of raising. The envelope version must be
+the integer 1 (`True` and `1.0` compared equal to it).
+
+What the server says about each submission is checked before it is used
+(`airlock_client.list_submissions`): id, token hash, form name, key id and
+versions must be short plain tokens, and the envelope a string within the
+size limit; anything else is "an unreadable reply". A misbehaving server
+cannot feed odd strings into the screens.
+
+Tests (red before the fix): both payloads through the real review route, an
+arbitrary exception while opening a form, too-deep JSON at each parser, the
+half-character stripping, the strict version, and eight malformed
+submission records.
+
 ### 2026-09-30 — AirLock security review, part 1: the server (edgecase-airlock `3a336a9`..`ae9ea21`, not yet deployed)
 
 The adversarial pass (Project Status, "Before real clients", item 2), run

@@ -151,10 +151,29 @@ def test_parse_intake_rejects(overrides, fragment):
 
 @pytest.mark.parametrize("raw", [b"not json", b"[]", enc({"form": "consent"}),
                                  enc({"form": "intake", "fields": "x"}),
-                                 b"\xff\xfe"])
+                                 b"\xff\xfe",
+                                 b"[" * 40_000,                     # nested too deep
+                                 b'{"form":"intake","fields":' + b"[" * 40_000])
 def test_parse_intake_rejects_shapes(raw):
     with pytest.raises(ai.AirLockImportError):
         ai.parse_intake(raw, is_minor=False)
+
+
+def test_parse_consent_rejects_json_nested_too_deep():
+    with pytest.raises(ai.AirLockImportError):
+        ai.parse_consent(b"[" * 40_000)
+
+
+def test_half_characters_are_stripped():
+    """JSON can carry half of a surrogate pair ("\\ud800"), which Python
+    accepts as a string but cannot encode: it crashed the review page when it
+    was rendered and would crash the database write. Stripped like any other
+    character that is not text, along with the byte-order mark and the two
+    "not a character" code points."""
+    raw = json.dumps(intake_payload()).replace("Ada", "\\ud800A\\udfffd\\ufeffa\\uffff")
+    fields = ai.parse_intake(raw.encode(), is_minor=False)["fields"]
+    assert fields["first_name"] == "Ada"
+    fields["first_name"].encode("utf-8")
 
 
 def test_all_problems_reported_together():

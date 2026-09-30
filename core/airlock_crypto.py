@@ -180,7 +180,7 @@ def decrypt_envelope(envelope, private_keys: dict, aad: bytes) -> bytes:
             envelope = json.loads(raw)
         if not isinstance(envelope, dict):
             raise AirLockDecryptError("envelope is not an object")
-        if envelope.get("v") != ENVELOPE_VERSION:
+        if type(envelope.get("v")) is not int or envelope["v"] != ENVELOPE_VERSION:
             raise AirLockDecryptError("unsupported envelope version")
 
         kid = envelope.get("kid")
@@ -205,9 +205,11 @@ def decrypt_envelope(envelope, private_keys: dict, aad: bytes) -> bytes:
         return AESGCM(key).decrypt(iv, ct, aad)
     except AirLockDecryptError:
         raise
-    except (InvalidTag, ValueError, TypeError, KeyError, UnicodeError) as exc:
+    except (InvalidTag, ValueError, TypeError, KeyError, UnicodeError,
+            RecursionError) as exc:
         # ValueError covers json.JSONDecodeError, binascii.Error (bad
-        # base64) and off-curve points.
+        # base64) and off-curve points. RecursionError is what json raises
+        # for an envelope nested too deep to parse.
         raise AirLockDecryptError(type(exc).__name__) from None
 
 

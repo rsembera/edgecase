@@ -91,7 +91,12 @@ _PHONE = re.compile(r"^[0-9+().\-\s]{3,}(?:\s*(?:x|ext\.?)\s*\d{1,6})?$", re.I)
 # without any extension. Same limits as the Client Profile.
 PHONE_MIN_DIGITS, PHONE_MAX_DIGITS = 10, 12
 _PHONE_EXT = re.compile(r"\s*(?:x|ext\.?)\s*\d{1,6}$", re.I)
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
+# Characters that are not text: controls, zero-width and direction marks, the
+# byte-order mark, the two "not a character" code points, and surrogate
+# halves (JSON can carry one as "\ud800"; Python accepts it as a string but
+# cannot encode it, so it would crash the page or the database write).
+_CONTROL = re.compile("[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e"
+                      "\u2066-\u2069\ufeff\ufffe\uffff\ud800-\udfff]")
 
 
 def _phone_main_digits(text):
@@ -168,7 +173,7 @@ def parse_intake(plaintext: bytes, is_minor: bool) -> dict:
     problems = []
     try:
         data = json.loads(plaintext)
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):   # RecursionError: nested too deep
         raise AirLockImportError(["Intake: not valid JSON"]) from None
     if not isinstance(data, dict) or data.get("form") != "intake":
         raise AirLockImportError(["Intake: wrong form type"])
@@ -226,7 +231,7 @@ def parse_consent(plaintext: bytes) -> dict:
     problems = []
     try:
         data = json.loads(plaintext)
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):
         raise AirLockImportError(["Consent: not valid JSON"]) from None
     if not isinstance(data, dict) or data.get("form") != "consent":
         raise AirLockImportError(["Consent: wrong form type"])

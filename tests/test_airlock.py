@@ -100,6 +100,7 @@ def test_tampering_fails(keypair, field):
                 "iv": ac.b64u_encode(b"\x00" * 12), "ct": ac.b64u_encode(b"\x00" * 32)}),
     json.dumps({"v": 1, "kid": "k", "epk": 5, "iv": None, "ct": []}),
     "x" * (ac.MAX_ENVELOPE_BYTES + 1),
+    "[" * 40_000,                         # nested too deep: RecursionError inside json
 ])
 def test_malformed_envelopes_raise_the_one_error(keypair, bad):
     """Every hostile shape surfaces as AirLockDecryptError, never as some
@@ -108,6 +109,16 @@ def test_malformed_envelopes_raise_the_one_error(keypair, bad):
     _, pem, _ = keypair
     with pytest.raises(ac.AirLockDecryptError):
         ac.decrypt_envelope(bad, {"k": pem}, AAD)
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1"])
+def test_envelope_version_must_be_the_integer_one(keypair, version):
+    """True == 1 and 1.0 == 1 in Python; neither is version 1."""
+    kid, pem, public = keypair
+    env = json.loads(ac.encrypt_for_testing(PAYLOAD, public, kid, AAD))
+    env["v"] = version
+    with pytest.raises(ac.AirLockDecryptError):
+        ac.decrypt_envelope(json.dumps(env), {kid: pem}, AAD)
 
 
 def test_aad_rejects_newlines():

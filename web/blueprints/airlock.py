@@ -12,7 +12,8 @@ submissions on the server to be reviewed again.
 """
 import time
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import (Blueprint, current_app, jsonify, redirect, render_template, request,
+                   url_for)
 
 from core import airlock_client, airlock_config, airlock_crypto
 from core import airlock_import as ai
@@ -157,6 +158,12 @@ def _open(inv, subs):
                 problems.extend(f'{form.capitalize()}: {p}' for p in e.problems)
             else:
                 problems.append(f'The {form} form could not be decrypted.')
+        except Exception:
+            # A submission is hostile input. Whatever it manages to trip, the
+            # review screen still has to open: that is where the problem is
+            # shown and where Discard is.
+            current_app.logger.exception('AirLock: unexpected error opening the %s form', form)
+            problems.append(f'The {form} form could not be read.')
     for form in inv['required_forms']:
         if form not in latest:
             problems.append(f'The {form} form has not arrived.')

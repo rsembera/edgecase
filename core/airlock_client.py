@@ -17,12 +17,18 @@ Settings:
 Uses urllib only: no new dependency for a handful of JSON calls.
 """
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
 
 TIMEOUT_SECONDS = 15
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+MAX_ENVELOPE_BYTES = 64 * 1024      # as core/airlock_crypto and the server
+# Submission ids, token hashes, form names, key ids and versions are short
+# plain tokens by construction. Versions may be empty (no consent text).
+_LABEL = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
+_VERSION = re.compile(r"[A-Za-z0-9_-]{0,128}\Z")
 
 
 class AirLockConnectionError(Exception):
@@ -114,7 +120,7 @@ class AirLockClient:
         out = []
         for s in subs:
             try:
-                out.append({
+                sub = {
                     "id": str(s["id"]),
                     "token_hash": str(s["token_hash"]),
                     "form": str(s["form"]),
@@ -123,10 +129,17 @@ class AirLockClient:
                     "consent_version": str(s.get("consent_version") or ""),
                     "envelope": s["envelope"],
                     "received_at": int(s["received_at"]),
-                })
+                }
+                if not (all(_LABEL.match(sub[k]) for k in ("id", "token_hash", "form", "key_id"))
+                        and all(_VERSION.match(sub[k])
+                                for k in ("config_version", "consent_version"))
+                        and isinstance(sub["envelope"], str)
+                        and len(sub["envelope"]) <= MAX_ENVELOPE_BYTES):
+                    raise ValueError("not a submission")
             except (KeyError, TypeError, ValueError):
                 raise AirLockConnectionError(
                     "The AirLock server sent an unreadable reply.") from None
+            out.append(sub)
         return out
 
     def delete_submission(self, submission_id):
