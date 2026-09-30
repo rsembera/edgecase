@@ -1,5 +1,14 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock admin key field no longer prompts Safari to save it
+
+Entering the AirLock admin key in Settings made Safari offer to save it as a
+password for localhost (Safari ignores `autocomplete="off"` on password
+fields). The field is now plain text shown as dots (`.masked-input`,
+`-webkit-text-security: disc`, in shared.css), with autocorrect, spellcheck
+and password-manager hints off. EdgeCase's own password fields are unchanged.
+Test red on the previous commit.
+
 ### 2026-09-30 — AirLock security review, part 5: admin bind check, pins, the threat model rewritten (branch `airlock`; server `859046b`..`23d19fb`, not yet deployed)
 
 Server: the admin API's "not on every interface" check compared the setting
