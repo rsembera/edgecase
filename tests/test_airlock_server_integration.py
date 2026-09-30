@@ -80,6 +80,8 @@ def _browser_submit(public_url, token, pin, form, payload):
     status, info = _post(public_url + "/i/unlock", {"token": token, "pin": pin})
     assert status == 200, info
     cfg = info["config"]
+    if form == "consent":    # the page signs the text the server showed it, nothing else
+        payload = dict(payload, consent_text=cfg["consent_text"])
     token_hash = ac.token_hash(token)
     aad = ac.build_aad(token_hash, form, cfg["config_version"], cfg["consent_version"])
     env = ac.encrypt_for_testing(json.dumps(payload).encode(), info["public_key"],

@@ -172,6 +172,15 @@ letterhead as on statements) containing the full consent text, typed name,
 consent version, submission timestamp and invitation ID, and attaches it to
 the client file. A Communication entry records the import.
 
+**The text must be one EdgeCase sent (2026-09-30, security review).** The
+client's browser puts the consent text into the payload, so on its own it
+proves nothing. When a submission is opened, EdgeCase checks that the text
+hashes to the consent version it was signed under (the version is in the
+associated data, so the client cannot choose it) and that this version is in
+EdgeCase's own list of versions it has sent to the server. A consent that
+fails either check is shown on the review screen with the reason and cannot
+be imported.
+
 **Signature:** typed name plus checkbox. No drawn signatures: they add
 complexity on phones and no legal weight.
 
