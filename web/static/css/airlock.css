@@ -45,6 +45,8 @@
           letter-spacing: 0.25em; }
 .al-copy-row { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1rem; }
 .al-copy-row .al-secret { flex: 1; }
+.al-copy-buttons { display: flex; flex-direction: column; gap: 0.4rem; }
+.al-copy-buttons .btn-small { white-space: nowrap; }
 
 .al-review-grid { display: grid; grid-template-columns: minmax(10rem, 14rem) 1fr;
                   gap: 0.35rem 1rem; font-size: 0.95rem; }
