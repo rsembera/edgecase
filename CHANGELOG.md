@@ -1,5 +1,12 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — Dropdown menu icons centred on their labels
+
+The icons in the Manage, new-entry and ledger menus sat slightly below
+their text (aligned to the text baseline). `.dropdown-item` is now a flex
+row with `align-items: center`. Test (`tests/test_css_layout.py`) red on the
+previous commit.
+
 ### 2026-09-30 — AirLock invitation page: "Copy as link" removed
 
 First real use: in Apple Mail the pasted link came in Safari's default font
