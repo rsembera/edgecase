@@ -26,6 +26,13 @@ MAX_LOGO_BYTES = 300 * 1024
 LOGO_BOX = (600, 300)
 
 SETTING_KEY = "airlock_form_config"
+# Versions of every consent text this EdgeCase has sent to the server, oldest
+# first. Import only accepts a signed consent whose version is in this list
+# (or is the current text's): the text a client signs comes back from the
+# server inside their submission, and this is EdgeCase's own record of what
+# it could legitimately be.
+CONSENT_VERSIONS_KEY = "airlock_consent_versions"
+MAX_CONSENT_VERSIONS = 500
 
 
 def default_config():
@@ -65,6 +72,42 @@ def save_config(db, cfg):
 def _hash(obj) -> str:
     blob = json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()[:16]
+
+
+def consent_version_of(text: str) -> str:
+    """The version of a consent text: a short hash of the text itself, so the
+    same wording always has the same version, here and on the server."""
+    return _hash({"consent_text": text}) if text else ""
+
+
+def _sent_consent_versions(db) -> list:
+    try:
+        stored = json.loads(db.get_setting(CONSENT_VERSIONS_KEY, "") or "[]")
+    except ValueError:
+        return []
+    return [v for v in stored if isinstance(v, str)] if isinstance(stored, list) else []
+
+
+def remember_consent_version(db, version: str):
+    """Record a consent version as sent to the server. Called just before
+    every push, so the record can only run ahead of the server, never behind."""
+    if not version:
+        return
+    sent = _sent_consent_versions(db)
+    if version in sent:
+        return
+    db.set_setting(CONSENT_VERSIONS_KEY,
+                   json.dumps((sent + [version])[-MAX_CONSENT_VERSIONS:]))
+
+
+def known_consent_versions(db) -> set:
+    """Every consent version a client could legitimately have signed: the
+    ones sent to the server, plus the current text's."""
+    known = set(_sent_consent_versions(db))
+    current = consent_version_of(load_config(db)["consent_text"])
+    if current:
+        known.add(current)
+    return known
 
 
 def reencode_logo(raw: bytes):
@@ -107,7 +150,7 @@ def build_bundle(db, cfg, assets_path):
         "practice_name", "therapist_name", "credentials", "registration_info",
         "address", "phone", "website", "email")}
     logo = _logo_png(db, assets_path)
-    consent_version = _hash({"consent_text": cfg["consent_text"]}) if cfg["consent_text"] else ""
+    consent_version = consent_version_of(cfg["consent_text"])
     bundle = {
         "practice": practice,
         "logo_png": base64.b64encode(logo).decode("ascii") if logo else None,

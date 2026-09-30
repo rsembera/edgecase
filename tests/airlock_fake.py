@@ -55,8 +55,15 @@ class FakeServer:
         self.submissions = [s for s in self.submissions if s["id"] != submission_id]
 
     # the browser's part ------------------------------------------------------
-    def submit(self, token_hash, form, payload, config_version="cfg-1",
-               consent_version="consent-1", received_at=1_790_000_000, tamper=False):
+    def submit(self, token_hash, form, payload, config_version=None,
+               consent_version=None, received_at=1_790_000_000, tamper=False):
+        """The real server only accepts a form under the versions of the
+        bundle it currently holds, so those are the defaults here."""
+        held = getattr(self, "config", None) or {}
+        if config_version is None:
+            config_version = held.get("config_version") or "cfg-1"
+        if consent_version is None:
+            consent_version = held.get("consent_version") or "consent-1"
         server_inv = self.invitations[token_hash]
         kid = server_inv["key_id"]
         aad = ac.build_aad(token_hash, form, config_version, consent_version)

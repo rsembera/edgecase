@@ -1,5 +1,68 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-09-30 — AirLock security review, part 1: the server (edgecase-airlock `3a336a9`..`ae9ea21`, not yet deployed)
+
+The adversarial pass (Project Status, "Before real clients", item 2), run
+against a local instance on Apollo; the live server was not touched. Server
+findings, each with a test that failed before the fix:
+
+- **The rate limit was one bucket for everyone** (`3a336a9`). Waitress strips
+  `X-Forwarded-For` by default, so behind nginx the app saw every client as
+  127.0.0.1: 30 junk requests every 10 minutes, with no link, locked all
+  clients out of unlocking and submitting. The header now reaches the app
+  when `AIRLOCK_TRUST_PROXY=1`. Flask's test client skips waitress, which is
+  why the suite never saw it; `tests/test_serve.py` now drives the real
+  listeners over sockets (`serve.build_servers`).
+- **The recorded "known gap" was the wrong way round.** PIN guesses were
+  already limited per link: five wrong PINs, ever, from any address, then
+  even the right PIN is refused. Proven through waitress with sixty addresses
+  guessing in parallel (`ae9ea21`, a guard test: it passes on the old code).
+  No per-link rate limit was built; it would add nothing to the lockout.
+- **JSON nested too deep to parse** (`ba92afb`) raised RecursionError, which
+  neither Flask's `get_json(silent=True)` nor the envelope check caught: a
+  500 and a traceback in the log, from anyone, before the rate limit. Now a
+  plain 400; the rate limit runs before the body is read; internal errors
+  answer in JSON with no detail; the envelope version must be the integer 1.
+- **A key id keeps its first public key** (`d14d3ce`). `PUT /admin/public-key`
+  used to replace the key under an existing id, so a stolen admin key could
+  have open invitations encrypt to another key and then download the
+  results. Re-sending the same key (EdgeCase does before every invitation)
+  is still fine; a different key gets 409.
+- **The rate limiter never forgot an address** (`8296076`): its clean-up only
+  removed entries that were already empty, and nothing emptied them. Now
+  swept once a minute and capped at 50,000 addresses (newcomers are refused
+  while it is full of live ones). IPv6 clients are limited per /64.
+
+Checked and sound on the server: static-file path tricks (404), no admin
+routes on the public app, unknown link and wrong PIN indistinguishable, no
+secrets anywhere in the repository's history.
+
+### 2026-09-30 — AirLock security review, part 2: a signed consent must be a text EdgeCase sent (branch `airlock`)
+
+The consent text a client signs travels inside their encrypted form, and
+their browser put it there. Import printed whatever it said onto the
+letterhead as the signed consent, under the real version number: a client who
+rewrote the wording before signing got their wording on file. Two checks now
+run when a submission is opened (`airlock_import.consent_version_problem`):
+the text must be the one its version names (the version is a hash of the
+text, and is fixed by the encryption rather than by the client), and that
+version must be one this EdgeCase sent to the server. EdgeCase keeps its own
+list for the second check (`airlock_consent_versions` in settings, recorded
+by `_push_setup` just before every push), so a text planted on the server by
+a stolen admin key, or by the server itself, is refused too. A consent that
+fails is still shown on the review screen, so it can be read, with the reason;
+Import is not offered. A consent signed before the wording was edited still
+imports, as signed.
+
+Tests: altered wording and a planted text are both refused and nothing is
+written (red before the fix: both imported); signed-then-edited still
+imports. The stand-in server now submits under the versions it holds, as the
+real one enforces, and the fixture's consent text is the one the test
+payloads carry. The cross-repo end-to-end test's hand-written "browser" was
+itself signing a text other than the one the server showed (the new check
+caught it); it now signs what it is shown, as the page does. The real
+Chromium tests passed unchanged.
+
 ### 2026-09-30 — AirLock: one invitation per client; phone numbers tidied and checked (branch `airlock`)
 
 Decided: a client has one invitation at a time (reverses "a new one works

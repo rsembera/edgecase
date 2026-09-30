@@ -34,7 +34,7 @@ import uuid
 from datetime import date, datetime
 from pathlib import Path
 
-from core import config
+from core import airlock_config, config
 
 # The intake form is the client-facing part of the Client Profile, fixed, in
 # the Profile's order. Must match AirLock's airlock/validation.FIELDS.
@@ -230,14 +230,38 @@ def parse_consent(plaintext: bytes) -> dict:
         raise AirLockImportError(["Consent: not valid JSON"]) from None
     if not isinstance(data, dict) or data.get("form") != "consent":
         raise AirLockImportError(["Consent: wrong form type"])
-    text = _clean(data.get("consent_text"), MAX_CONSENT_TEXT, "multiline",
-                  "Consent text", problems)
+    raw_text = data.get("consent_text")
+    text = _clean(raw_text, MAX_CONSENT_TEXT, "multiline", "Consent text", problems)
     if not text:
         problems.append("Consent: no consent text")
     attestation = _attestation(data.get("attestation"), problems, "Consent signature")
     if problems:
         raise AirLockImportError(problems)
-    return {"consent_text": text, "attestation": attestation}
+    # The version of the text exactly as it arrived, before any cleaning:
+    # consent_version_problem() compares it with the version it was signed under.
+    return {"consent_text": text, "attestation": attestation,
+            "text_version": airlock_config.consent_version_of(raw_text)}
+
+
+def consent_version_problem(consent, signed_version, known_versions):
+    """Why a parsed consent cannot be accepted as signed, or None.
+
+    The consent text a client signs travels inside their encrypted form, and
+    their browser put it there. Two things must hold before it goes on the
+    letterhead as the signed consent:
+      - the text is the one its version names (a client who rewrote the
+        wording before signing fails here: the version is a hash of the text,
+        and the version is fixed by the encryption, not by the client);
+      - that version is one this EdgeCase sent to the server (a text planted
+        on the server, by a stolen admin key or the server itself, fails here).
+    """
+    if consent.get("text_version") != signed_version:
+        return ("The consent text in this submission is not the wording it was issued "
+                "with: it was changed before it was signed.")
+    if signed_version not in known_versions:
+        return ("The consent text in this submission is one this EdgeCase never sent "
+                "to the AirLock server.")
+    return None
 
 
 # ---------------------------------------------------------------------------

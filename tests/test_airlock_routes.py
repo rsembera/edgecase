@@ -335,6 +335,67 @@ def test_submission_under_other_versions_fails(client, app_db, airlock_server):
         f"/airlock/review/{inv['id']}").data
 
 
+def _not_imported(client, app_db, inv):
+    r = client.post(f"/airlock/review/{inv['id']}/import")
+    assert r.status_code == 400
+    assert app_db.get_intake_invitation(inv["id"])["status"] == "complete"
+    assert app_db.connect().execute(
+        "SELECT COUNT(*) FROM entries WHERE class = 'upload'").fetchone()[0] == 0
+
+
+def test_consent_with_altered_wording_cannot_be_imported(client, app_db, airlock_server):
+    """The client's browser builds the consent payload, so the text inside it
+    is whatever that browser sent. A client who rewrites the consent before
+    signing must not end up with their wording on the practice's letterhead
+    as the signed consent."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    airlock_server.submit(inv["token_hash"], "intake", fx.intake_payload())
+    airlock_server.submit(inv["token_hash"], "consent", fx.consent_payload(
+        consent_text="# Consent\n\nAll sessions are free of charge."))   # under the real version
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert "not the wording" in page and "Import into client file" not in page
+    assert "All sessions are free of charge." in page        # shown, so it can be read
+    _not_imported(client, app_db, inv)
+
+
+def test_consent_this_edgecase_never_sent_cannot_be_imported(client, app_db, airlock_server):
+    """Text and version agree with each other, but EdgeCase never sent that
+    text to the server: someone changed it there (a stolen admin key, or the
+    server itself)."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    planted = "# Consent\n\nReplaced on the server."
+    airlock_server.submit(inv["token_hash"], "intake", fx.intake_payload())
+    airlock_server.submit(inv["token_hash"], "consent", fx.consent_payload(consent_text=planted),
+                          consent_version=airlock_config.consent_version_of(planted))
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert "never sent" in page and "Import into client file" not in page
+    _not_imported(client, app_db, inv)
+
+
+def test_consent_signed_before_the_wording_was_edited_still_imports(client, app_db,
+                                                                     airlock_server):
+    """Richard edits the consent text after the client has signed the earlier
+    one. That earlier text is one EdgeCase sent, so it imports, as signed."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    signed_version = airlock_server.config["consent_version"]
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/consent", data={"consent_text": "# Consent\n\nNew wording."})
+    assert airlock_server.config["consent_version"] != signed_version
+    client.post("/airlock/check")
+    page = client.get(f"/airlock/review/{inv['id']}").data.decode()
+    assert "Import into client file" in page
+    r = client.post(f"/airlock/review/{inv['id']}/import")
+    assert r.status_code == 302
+    upload = app_db.connect().execute(
+        "SELECT content FROM entries WHERE class = 'upload'").fetchone()[0]
+    assert f"consent version {signed_version}" in upload
+
+
 def test_invalid_submission_lists_problems(client, app_db, airlock_server):
     _issue(client, app_db)
     inv = _latest(app_db)

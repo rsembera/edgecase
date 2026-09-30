@@ -84,6 +84,7 @@ def _push_setup(client):
     client.put_public_key(kid, public)
     bundle = airlock_config.build_bundle(db, airlock_config.load_config(db),
                                          str(get_assets_path()))
+    airlock_config.remember_consent_version(db, bundle['consent_version'])
     client.put_config(bundle)
     return bundle
 
@@ -120,7 +121,10 @@ def _open(inv, subs):
     """Decrypt and parse one invitation's submissions. Returns
     (intake, consent, versions, received_at, problems). The AAD is built from
     EdgeCase's own record of the invitation; only the versions come from the
-    server, and decryption fails unless they are the ones the browser used."""
+    server, and decryption fails unless they are the ones the browser used.
+    A consent is also checked against EdgeCase's own record of the texts it
+    has sent out (ai.consent_version_problem); one that fails is still
+    returned, so the review can show what it says, but it cannot be imported."""
     keys = db.airlock_private_keys()
     intake = consent = None
     versions, received, problems = {}, 0, []
@@ -142,6 +146,11 @@ def _open(inv, subs):
             else:
                 consent = parse_consent(plaintext)
                 versions['consent_version'] = sub['consent_version']
+                problem = ai.consent_version_problem(
+                    consent, sub['consent_version'],
+                    airlock_config.known_consent_versions(db))
+                if problem:
+                    problems.append(problem)
             received = max(received, sub['received_at'])
         except (airlock_crypto.AirLockDecryptError, ValueError) as e:
             if isinstance(e, AirLockImportError):
