@@ -282,13 +282,26 @@ In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
    anyone else (decided 2026-09-30).
 3. Richard's real consent text: prepared 2026-09-30 from
    `~/Nexus/intake-consent-forms/Consent.pdf` (letterhead and signature lines
-   dropped; the online form has both). Richard enters it on the Consent page,
-   which stamps its version.
+   dropped; the online form has both). Entered on the Mac's Consent page
+   2026-09-30.
 4. Online-forms wording: drafted 2026-09-30 as an "Online forms" section in
    that consent text; Richard's decision as PHIPA custodian.
-5. Merge `airlock` into main; back up; bring up on the Mac against real data.
+5. ~~Merge `airlock` into main; back up; bring up on the Mac.~~ Done
+   2026-09-30: fast-forward, 1077 passed on the Mac, file snapshot in
+   `~/edgecase-pre-airlock-20260930`; admin key regenerated (old one void;
+   the Apollo test install needs the new one); Test connection OK. Remaining:
+   one round trip on the Mac's `edgecase-testing` (not the real database:
+   clients cannot be deleted outside retention).
 
-Notes: from inside the home network the public hostname doesn't load
+Notes: every EdgeCase that talks to the server (the Mac, `edgecase-testing`,
+the Apollo test install) pushes its own setup (letterhead, consent text, key)
+with each invitation, consent save or Test connection; the latest push wins.
+**Never send a test invitation while a real client has forms out:** their
+page would change under them and their forms could fail to import. The next
+real invitation puts the real setup back, so testing between clients needs
+no clean-up.
+
+From inside the home network the public hostname doesn't load
 (router loopback); a Pi-hole local record `airlock.lightinextension.ca →
 192.168.0.200` fixes that and is in place (added 2026-09-30). Phones on mobile data (or iCloud
 Private Relay) are unaffected.
