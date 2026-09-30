@@ -29,6 +29,16 @@ MAX_ENVELOPE_BYTES = 64 * 1024      # as core/airlock_crypto and the server
 # plain tokens by construction. Versions may be empty (no consent text).
 _LABEL = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 _VERSION = re.compile(r"[A-Za-z0-9_-]{0,128}\Z")
+# The server's admin key is 43 URL-safe characters (secrets.token_urlsafe(32)).
+# Anything else pasted into Settings (other text on the clipboard) is refused
+# rather than sent, where a non-Latin-1 character would crash the request.
+_ADMIN_KEY = re.compile(r"[A-Za-z0-9_-]{1,200}\Z")
+BAD_KEY_MESSAGE = ("That isn't an AirLock admin key (it should be letters, digits, "
+                   "- and _ only).")
+
+
+def valid_admin_key(key: str) -> bool:
+    return bool(_ADMIN_KEY.match(key or ""))
 
 
 class AirLockConnectionError(Exception):
@@ -58,6 +68,10 @@ class AirLockClient:
     # -- transport -------------------------------------------------------
 
     def _request(self, method, path, body=None):
+        if not valid_admin_key(self.admin_key):
+            raise AirLockConnectionError(
+                "The saved AirLock admin key isn't a valid key. Enter it again in "
+                "Settings → AirLock.")
         data = None if body is None else json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
             self.base_url + path, data=data, method=method,

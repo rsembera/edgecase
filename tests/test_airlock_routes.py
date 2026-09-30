@@ -85,6 +85,26 @@ def test_settings_validation(client, app_db, body):
     assert app_db.get_setting("airlock_server_url") == ""
 
 
+@pytest.mark.parametrize("pasted", [
+    "Please provide at least 24 hours’ notice.",     # the clipboard held other text
+    "abc def", "key\nkey", "k" * 201, "clé",
+])
+def test_settings_refuse_something_that_is_not_an_admin_key(client, app_db, pasted):
+    r = client.post("/api/airlock_settings", json={
+        "server_url": "http://x", "public_url": "https://f.ca", "admin_key": pasted})
+    assert r.status_code == 400 and "admin key" in r.get_json()["error"]
+    assert app_db.get_setting("airlock_admin_key") == ""
+
+
+@pytest.mark.parametrize("saved", ["24 hours’ notice", "abc def"])
+def test_a_bad_saved_key_is_reported_not_a_crash(saved):
+    # saved before the check existed: the request is refused before anything
+    # is sent, as a connection error every screen already reports plainly
+    ac_client = airlock_client.AirLockClient("http://sentinel.invalid:1", saved)
+    with pytest.raises(AirLockConnectionError, match="Enter it again"):
+        ac_client.put_public_key("k1", "pub")
+
+
 def test_turn_off(client, app_db, airlock_server):
     assert client.post("/api/airlock_settings", json={"disable": True}).get_json()["success"]
     assert not airlock_client.is_enabled(app_db)
