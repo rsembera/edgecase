@@ -17,6 +17,12 @@ packaging manifest. Confirmed against real servers on scratch data: the
 2.0.4 code returns the login page for both fetches, this returns the PDF.
 tests/test_desktop_ticket.py.
 
+**The Mac build now requires macOS 27** (2.0.4 ran on 26). A bundle's
+real minimum is whatever the build Mac's Python was compiled for, and the
+build Mac is on 27. `setup_app.py` now declares that figure instead of a
+hard-coded 10.15, and `packaging/check_macos_floor.sh` measures the built
+app against it, so the label is honest. The Linux package is unaffected.
+
 This release carries only this fix. The rest of the 2026-11-11 code
 review, and the Wait List, follow in 2.0.6 once they have been lived with.
 
