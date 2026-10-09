@@ -18,7 +18,24 @@ the running app is covered by the declarations below, so this file cannot
 drift out of date again without a test failing.
 """
 
+import sysconfig
+
 from setuptools import setup
+
+
+def _macos_floor():
+    """Minimum macOS the bundle can actually run on.
+
+    py2app bundles the build machine's (Homebrew) Python, whose extension
+    modules are compiled for that machine's macOS. A hardcoded
+    LSMinimumSystemVersion is only a label: 2.0.4 said 10.15 but needed 26.
+    Deriving it from the build Python keeps the label honest. Bundled native
+    libraries can raise the floor further; packaging/check_macos_floor.sh
+    measures the built .app and fails if they do.
+    """
+    target = sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET') or '0'
+    return target if '.' in str(target) else f'{target}.0'
+
 
 APP = ['desktop.py']
 APP_NAME = 'EdgeCase Equalizer'
@@ -72,7 +89,7 @@ OPTIONS = {
         'CFBundleVersion': '2.0.4',
         'CFBundleShortVersionString': '2.0.4',
         'NSHighResolutionCapable': True,
-        'LSMinimumSystemVersion': '10.15',
+        'LSMinimumSystemVersion': _macos_floor(),
         'NSRequiresAquaSystemAppearance': False,
     },
     'packages': THIRD_PARTY_PACKAGES + FIRST_PARTY_PACKAGES,

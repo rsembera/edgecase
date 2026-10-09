@@ -14,6 +14,19 @@ production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 825 tests as of 2026-09-23.
 
+**DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
+macOS is whatever the build machine's Homebrew Python was compiled for.
+2.0.4 needs 26.0 (it declared 10.15; the site said 12+, corrected
+2026-10-09). The build Mac is now on macOS 27 and its Python targets 27, so
+a 2.0.5 built as-is needs **27** and drops anyone still on 26.
+`setup_app.py` now declares the build Python's target automatically and
+`packaging/check_macos_floor.sh` verifies the built .app, so whatever we
+choose, the label will be honest. Options: (a) accept 27: every Apple
+Silicon Mac can run it, and that's simplest; (b) build with python.org
+Python (targets old macOS) plus low-target native libs (sqlcipher via
+conda-forge), tested in a UTM VM; (c) build on a macOS 26 UTM VM. Update
+README + site (download.html, docs/installation.html) to the measured floor.
+
 - **2026-09-23 — Backups: same-second names can't collide; concurrent
   backups serialize.** Ported from Hermanubis. Two backups of one type in
   one second shared a name, and the second silently replaced the first zip
