@@ -1,5 +1,22 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-09 — macOS floor: declared honestly, verified at build
+
+`LSMinimumSystemVersion` is only a label. py2app bundles the build Mac's
+Homebrew Python, whose extension modules target that Mac's macOS. The 2.0.4
+DMG declared 10.15 and the website said 12+, but every lib-dynload module
+(and sqlcipher3) needs 26.0, so it would install on older systems and crash
+at launch. (Found via MailRepo, which had the same bug.) `setup_app.py` now
+declares the build Python's `MACOSX_DEPLOYMENT_TARGET` instead of a
+hardcoded value. tests/test_macos_floor.py fails if the declared floor is
+below it; it was red against 10.15. The new `packaging/check_macos_floor.sh`
+measures the built .app (highest `minos` of any Mach-O) and fails if it
+exceeds the declared value. It is wired into Mac_Packaging_Guide step 5 and
+Release_Checklist step 4. README and website now say macOS 26+ for 2.0.4;
+the README's download links are updated from 1.0.0 to 2.0.4. The shipped
+2.0.4 binary is unchanged. Open for 2.0.5: the build Mac is on 27, so an
+as-is build needs 27 (see Project Status).
+
 ### 2026-09-30 — About shows the exact version
 
 The About box said "v2.0 Strugatsky" through 2.0.1–2.0.4. The version now

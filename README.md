@@ -12,8 +12,8 @@ Web-based for convenience, but single-user and local-only by design. Your data s
 
 Pre-built packages are available:
 
-- **macOS** (Apple Silicon): [EdgeCase-1.0.0.dmg](https://edgecaseequalizer.ca/downloads/EdgeCase-1.0.0.dmg)
-- **Linux** (Debian/Ubuntu x86_64): [edgecase_1.0.0_amd64.deb](https://edgecaseequalizer.ca/downloads/edgecase_1.0.0_amd64.deb)
+- **macOS** (Apple Silicon, macOS 26 or later): [EdgeCase-2.0.4.dmg](https://edgecaseequalizer.ca/downloads/EdgeCase-2.0.4.dmg)
+- **Linux** (Debian/Ubuntu x86_64): [edgecase_2.0.4_amd64.deb](https://edgecaseequalizer.ca/downloads/edgecase_2.0.4_amd64.deb)
 
 Or run from source (see below).
 

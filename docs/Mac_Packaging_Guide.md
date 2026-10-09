@@ -100,6 +100,19 @@ codesign --verify --deep --strict "dist/EdgeCase Equalizer.app"
 spctl --assess --type exec "dist/EdgeCase Equalizer.app"
 ```
 
+### 5. Verify the macOS floor
+
+```bash
+packaging/check_macos_floor.sh
+```
+
+`LSMinimumSystemVersion` is only a label; the real minimum is the highest
+`minos` of any Mach-O in the bundle, which with Homebrew Python is the build
+machine's macOS. `setup_app.py` declares the build Python's deployment
+target; this script measures the built bundle and fails if anything bundled
+needs more than declared. The version it prints goes in the README and on
+the website (download.html, docs/installation.html).
+
 ## Notarization
 
 ### 1. Create a ZIP for notarization

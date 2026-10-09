@@ -36,6 +36,7 @@ packaging/*
 !packaging/icons/*
 !packaging/dmg_background.png
 !packaging/build_deb.sh
+!packaging/check_macos_floor.sh
 
 # Local data (not for distribution)
 data/

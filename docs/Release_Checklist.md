@@ -43,7 +43,11 @@ docs beyond this line).
 4. **Mac build** — per Mac_Packaging_Guide.md: py2app, sign all .so/.dylib
    then the bundle, notarize (`notarytool --wait`), staple, `spctl` assess,
    build the dmg. Verify the bundle's Info.plist version and spot-check that
-   a recently changed file inside the bundle matches HEAD.
+   a recently changed file inside the bundle matches HEAD. Run
+   `packaging/check_macos_floor.sh`: it must pass, and the macOS version it
+   prints is what README, download.html and docs/installation.html must say.
+   The floor follows the build machine's macOS (Homebrew Python), so an OS
+   upgrade on the build Mac raises it.
 5. **Linux build** — `packaging/build_deb.sh X.Y.Z` on the build machine
    (pulls first; script prints the SHA-256).
 6. **Checksums** — `shasum -a 256` both artifacts. Write
