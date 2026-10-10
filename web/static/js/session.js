@@ -552,7 +552,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!saveBtn) return;
         const dirty = isDirty();
         saveBtn.disabled = !dirty;
-        saveBtn.textContent = dirty ? 'Save Changes' : 'No Changes';
+        // Write the label ONLY when it changes — an identical textContent
+        // assignment still replaces the text node, and during the blur
+        // caused by pressing Save that makes WebKit drop the click
+        // (see form-guard.js).
+        const label = dirty ? 'Save Changes' : 'No Changes';
+        if (saveBtn.textContent !== label) saveBtn.textContent = label;
     };
 
     const markUserEdited = () => { userEdited = true; refreshSaveButton(); };
