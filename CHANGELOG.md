@@ -1,5 +1,21 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-09 — Save Edits needed a second click
+
+Editing a Communication entry's text and clicking "Save Edits" did nothing;
+a second click saved. Pressing the button blurs the edited field, whose
+`change` event re-ran the dirty-state refresh, which re-assigned the
+button's `textContent` — same words, but a new text node. WebKit (the
+desktop shell, Safari) only fires `click` if the node pressed is still
+there on release, so the click was dropped. Clicking the button's padding
+rather than its label worked, which made it look intermittent. The refresh
+now writes the label only when it changes. Fixed in both copies of the
+pattern: form-guard.js (communication, absence, item, upload, profile) and
+session.js (locked-session "Save Changes"). Reproduced and confirmed fixed
+in a real WKWebView; tests/test_save_button_first_click.py drives the real
+forms in Chromium and pins the invariant WebKit depends on (the pressed
+label node survives the blur). Both tests red against the previous code.
+
 ### 2026-10-09 — macOS floor: declared honestly, verified at build
 
 `LSMinimumSystemVersion` is only a label. py2app bundles the build Mac's

@@ -74,7 +74,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!saveBtn) return;
             const dirty = isDirty();
             saveBtn.disabled = !dirty;
-            saveBtn.textContent = dirty ? activeLabel : 'No Changes';
+            // Write the label ONLY when it changes. Assigning textContent
+            // replaces the button's text node even with an identical
+            // string, and this runs mid-click: pressing Save blurs the
+            // edited field, whose `change` lands here between mousedown
+            // and mouseup. WebKit then finds the pressed node detached
+            // and never fires `click` — Save needed a second click.
+            const label = dirty ? activeLabel : 'No Changes';
+            if (saveBtn.textContent !== label) saveBtn.textContent = label;
         };
 
         let userEdited = false;
