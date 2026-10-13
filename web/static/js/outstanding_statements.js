@@ -290,9 +290,11 @@ function findUnbilled() {
     // refuses it too).
     if (endDate < startDate) {  // YYYY-MM-DD compares as text
         container.innerHTML = `
-            <div class="warning-box" style="margin-bottom: 0;">
-                The To date (${formatRangeDate(endDate)}) is before the From date
-                (${formatRangeDate(startDate)}). Pick a To date on or after the From date.
+            <div class="unbilled-results">
+                <div class="warning-box" style="margin-bottom: 0;">
+                    The To date (${formatRangeDate(endDate)}) is before the From date
+                    (${formatRangeDate(startDate)}). Pick a To date on or after the From date.
+                </div>
             </div>
         `;
         return;
@@ -318,6 +320,7 @@ function findUnbilled() {
             if (data.clients && data.clients.length > 0) {
                 let html = `
                     <div class="unbilled-results">
+                        ${beforeNote}
                         <h4>Clients with Unbilled Sessions (${data.clients.length})</h4>
                         <div class="select-all-row">
                             <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
@@ -345,10 +348,11 @@ function findUnbilled() {
                     </div>
                 `;
                 
-                container.innerHTML = beforeNote + html;
+                container.innerHTML = html;
             } else {
-                container.innerHTML = beforeNote + `
+                container.innerHTML = `
                     <div class="unbilled-results">
+                        ${beforeNote}
                         <p style="color: #718096; padding: 1rem 0;">No unbilled sessions found for the selected date range.</p>
                     </div>
                 `;
@@ -357,8 +361,10 @@ function findUnbilled() {
         .catch(error => {
             console.error('Error finding unbilled:', error);
             container.innerHTML = `
-                <div class="error-box" style="margin-bottom: 0;">
-                    ${escapeHtml(error.message || 'Error searching for unbilled sessions')}
+                <div class="unbilled-results">
+                    <div class="error-box" style="margin-bottom: 0;">
+                        ${escapeHtml(error.message || 'Error searching for unbilled sessions')}
+                    </div>
                 </div>
             `;
         });
