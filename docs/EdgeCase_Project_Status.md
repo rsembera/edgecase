@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** September 29, 2026  
+**Last Updated:** October 13, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -12,7 +12,7 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
-825 tests as of 2026-09-23.
+1096 tests as of 2026-10-13.
 
 **DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
 macOS is whatever the build machine's Homebrew Python was compiled for.
@@ -27,6 +27,22 @@ Python (targets old macOS) plus low-target native libs (sqlcipher via
 conda-forge), tested in a UTM VM; (c) build on a macOS 26 UTM VM. Update
 README + site (download.html, docs/installation.html) to the measured floor.
 
+- **2026-10-13 — Statements: an inverted date range (To before From) is
+  named, not reported as "No unbilled sessions found".** Find Unbilled
+  checks before the request and says which date is wrong; find-unbilled
+  and generate refuse an inverted range with a 400. A failed search shows
+  the server's message in place of results instead of a generic alert.
+  Same day: the "unbilled entries from before this range" note was
+  unstyled on that page (its class lived only in login.html) — now the
+  shared amber warning box; all Find Unbilled notices share the results
+  area's divider and spacing. Rick confirmed working same day.
+- **2026-10-09 — Save Edits needed a second click after editing a field
+  (WebKit).** Pressing Save blurred the field, whose `change` re-wrote the
+  button label mid-click, and WebKit dropped the click. Affected every
+  dirty-state Save button (communication, absence, item, upload, profile,
+  locked session). Reproduced in WKWebView; the regression test drives the
+  real forms in Chromium (tests/test_save_button_first_click.py). Rick
+  confirmed working same day.
 - **2026-09-23 — Backups: same-second names can't collide; concurrent
   backups serialize.** Ported from Hermanubis. Two backups of one type in
   one second shared a name, and the second silently replaced the first zip
