@@ -283,11 +283,27 @@ function setDateInDropdowns(prefix, date) {
 function findUnbilled() {
     const startDate = getDateFromDropdowns('start');
     const endDate = getDateFromDropdowns('end');
+    const container = document.getElementById('unbilled-results');
+
+    // An inverted range would come back empty and read as "nothing to
+    // bill". Say what is actually wrong, before asking the server (which
+    // refuses it too).
+    if (endDate < startDate) {  // YYYY-MM-DD compares as text
+        container.innerHTML = `
+            <div class="warning-box" style="margin-bottom: 0;">
+                The To date (${formatRangeDate(endDate)}) is before the From date
+                (${formatRangeDate(startDate)}). Pick a To date on or after the From date.
+            </div>
+        `;
+        return;
+    }
     
     fetch(`/statements/find-unbilled?start=${startDate}&end=${endDate}`)
-        .then(response => response.json())
+        .then(response => response.json().then(data => {
+            if (!response.ok) throw new Error(data.error || 'Unknown error');
+            return data;
+        }))
         .then(data => {
-            const container = document.getElementById('unbilled-results');
             let beforeNote = '';
             if (data.earlier_unbilled) {
                 const eu = data.earlier_unbilled;
@@ -340,8 +356,22 @@ function findUnbilled() {
         })
         .catch(error => {
             console.error('Error finding unbilled:', error);
-            alert('Error searching for unbilled sessions');
+            container.innerHTML = `
+                <div class="error-box" style="margin-bottom: 0;">
+                    ${escapeHtml(error.message || 'Error searching for unbilled sessions')}
+                </div>
+            `;
         });
+}
+
+/**
+ * "2026-09-30" -> "September 30, 2026" (built from the parts, so no
+ * timezone shift off the UTC midnight that new Date("2026-09-30") gives).
+ */
+function formatRangeDate(ymd) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-CA',
+        { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 /**

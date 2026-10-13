@@ -59,6 +59,12 @@ def find_unbilled():
     end_year, end_month, end_day = int(end_parts[0]), int(end_parts[1]), int(end_parts[2])
     end_day = min(end_day, calendar.monthrange(end_year, end_month)[1])
     end_ts = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
+
+    if end_ts < start_ts:
+        # An empty result here would read as "nothing to bill" when the
+        # range simply excludes everything. Same check in generate().
+        return jsonify({'success': False,
+                        'error': 'The To date is before the From date.'}), 400
     
     conn = db.connect()
     cursor = conn.cursor()
@@ -208,6 +214,10 @@ def generate_statements():
         end_ts = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
     except (ValueError, IndexError, TypeError, AttributeError) as e:
         return jsonify({'success': False, 'error': f'Invalid date format: {e}'}), 400
+
+    if end_ts < start_ts:
+        return jsonify({'success': False,
+                        'error': 'The To date is before the From date.'}), 400
     
     now = int(time.time())
     conn = db.connect()

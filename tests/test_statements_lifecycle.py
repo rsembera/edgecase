@@ -528,3 +528,50 @@ def test_find_unbilled_no_straggler_note_when_none(client, app_db):
     _add_locked_session(app_db, cid)
     payload = client.get("/statements/find-unbilled", query_string=RANGE).get_json()
     assert payload["earlier_unbilled"] is None
+
+
+# --- inverted date range (end before start) ---
+#
+# Oct 2026: From Oct 1 / To Sep 30 answered "No unbilled sessions found for
+# the selected date range", which reads as a fact about the data when it is
+# a fact about the range. Both routes now refuse an inverted range with a
+# 400 naming the problem; outstanding_statements.js also catches it before
+# the request and shows the same message in place of results.
+
+INVERTED = {"start": "2026-10-01", "end": "2026-09-30"}
+
+
+def test_find_unbilled_rejects_end_before_start(client, app_db):
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid, date=(2026, 9, 15))
+
+    resp = client.get("/statements/find-unbilled", query_string=INVERTED)
+    assert resp.status_code == 400
+    payload = resp.get_json()
+    assert payload["success"] is False
+    assert "before" in payload["error"].lower()
+    assert "clients" not in payload
+
+
+def test_generate_rejects_end_before_start(client, app_db):
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid, date=(2026, 9, 15))
+
+    resp = client.post(
+        "/statements/generate",
+        json={"client_ids": [cid], "start_date": INVERTED["start"],
+              "end_date": INVERTED["end"]},
+    )
+    assert resp.status_code == 400
+    assert "before" in resp.get_json()["error"].lower()
+
+
+def test_same_day_range_is_not_inverted(client, app_db):
+    """From == To is a one-day range, not an error."""
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid, date=(2026, 9, 15))
+
+    resp = client.get("/statements/find-unbilled",
+                      query_string={"start": "2026-09-15", "end": "2026-09-15"})
+    assert resp.status_code == 200
+    assert cid in {c["id"] for c in resp.get_json()["clients"]}
