@@ -309,7 +309,7 @@ function findUnbilled() {
                 const eu = data.earlier_unbilled;
                 const plural = eu.count === 1 ? 'entry' : 'entries';
                 beforeNote = `
-                    <div class="data-loss-notice" style="margin-bottom: 0.75rem;">
+                    <div class="warning-box" style="margin-bottom: 0.75rem;">
                         ${eu.count} unbilled ${plural} from before this range (earliest ${eu.earliest}).
                         Widen the range start to include ${eu.count === 1 ? 'it' : 'them'}.
                     </div>`;

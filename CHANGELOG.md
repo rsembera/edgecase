@@ -1,5 +1,14 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-13 — Statements: "earlier unbilled" note was unstyled
+
+The "N unbilled entries from before this range" note under Find Unbilled
+used `.data-loss-notice`, a class styled only inside login.html, so on the
+statements page it rendered as plain text. It now uses the shared amber
+`.warning-box`, matching the inverted-range notice beside it.
+tests/test_css_layout.py checks that every class the note uses is defined
+in a stylesheet the page loads; red on the previous code.
+
 ### 2026-10-13 — Statements: inverted date range is named, not silently empty
 
 Find Unbilled with a To date before the From date answered "No unbilled
