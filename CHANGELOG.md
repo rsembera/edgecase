@@ -9,6 +9,11 @@ statements page it rendered as plain text. It now uses the shared amber
 tests/test_css_layout.py checks that every class the note uses is defined
 in a stylesheet the page loads; red on the previous code.
 
+Follow-up: the notices (earlier-unbilled, inverted range, search error) sat
+flush against the Find Unbilled button. They now render inside the same
+`.unbilled-results` wrapper as the results list, so every outcome of Find
+Unbilled gets the same divider and spacing.
+
 ### 2026-10-13 — Statements: inverted date range is named, not silently empty
 
 Find Unbilled with a To date before the From date answered "No unbilled
