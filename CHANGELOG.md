@@ -1,5 +1,19 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-13 — Statements: inverted date range is named, not silently empty
+
+Find Unbilled with a To date before the From date answered "No unbilled
+sessions found for the selected date range" — a statement about the data
+when the problem was the range. The page now checks before asking the
+server and shows "The To date (September 30, 2026) is before the From date
+(October 1, 2026). Pick a To date on or after the From date." in place of
+results. `/statements/find-unbilled` and `/statements/generate` refuse an
+inverted range with a 400 naming the problem (same day From/To stays a
+valid one-day range). A failed Find Unbilled now shows the server's message
+in place of results instead of a generic alert. Tests in
+tests/test_statements_lifecycle.py; the two rejection tests red on the
+previous code.
+
 ### 2026-10-09 — Save Edits needed a second click
 
 Editing a Communication entry's text and clicking "Save Edits" did nothing;
