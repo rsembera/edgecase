@@ -292,6 +292,16 @@ findings, fixes and tests in CHANGELOG (parts 1–5) and the threat model in
 pinned dependencies installed, public page 200, admin 401 without the key).
 In that repository `main` tracks `sentinel`, so a bare `git push` is a deploy.
 
+**Monitoring (2026-10-20):** Homepage tile "AirLock" (Apps; status dot on
+`https://airlock.lightinextension.ca/i`, which AirLock itself serves: a 200
+there proves DNS, certificate, nginx and app; `/` is a deliberate nginx 404).
+Uptime Kuma: "AirLock (client page)", keyword `Secure client forms` with
+certificate-expiry notification, and "AirLock (admin)",
+`http://<tailscale>:8094/` accepting **401** (up and still demanding its key).
+Boot race fixed the same day: on 2026-10-16 the service started before
+tailscaled had the admin address and failed once; the unit now waits up to
+60 s for that address (`ExecStartPre`), installed on Sentinel.
+
 **Before real clients:**
 1. ~~Finish the tests above.~~ Done 2026-09-30.
 2. ~~Adversarial security pass.~~ Done 2026-09-30. The recorded "known gap"

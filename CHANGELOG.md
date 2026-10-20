@@ -1,5 +1,22 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-20 — AirLock on Sentinel: monitoring, boot race, README
+
+Monitoring: a Homepage tile ("AirLock", status dot on the client page
+`/i`, which AirLock serves itself) and two Uptime Kuma monitors (the client
+page by keyword, with certificate-expiry notification; the admin API
+accepting 401). Both checked from inside their containers first.
+
+Boot race: at the 2026-10-16 reboot the user service started before
+tailscaled had brought up the admin address, failed to bind, and recovered
+on the automatic restart five seconds later. A user unit cannot order itself
+after the system's tailscaled, so `deploy/airlock.service` now waits up to
+60 s for the address (`ExecStartPre`; tested on Sentinel both ways: present
+passes at once, absent fails after 60 s with a clear log line). README
+status brought up to date (in production since 2026-09-30) and its summary
+corrected (import fills an existing client file; it never creates one).
+edgecase-airlock `a8787af`.
+
 ### 2026-10-13 — Statements: "earlier unbilled" note was unstyled
 
 The "N unbilled entries from before this range" note under Find Unbilled
