@@ -167,13 +167,21 @@ def mark_sent(portion_id):
         shutil.rmtree(temp_pdf_path.parent, ignore_errors=True)
         return jsonify({'success': False, 'error': f'PDF generation failed: {str(e)}'}), 500
     
-    # Create Communication entry - description varies based on skip_email
+    # Create Communication entry. In generate-only mode (View, not Email)
+    # nothing was sent to anyone, so the auto-created entry is an internal
+    # administrative note that the statement exists — NOT to_client/email.
+    # The portion goes to 'sent' below either way, so there is no later
+    # EdgeCase email pass; however the statement actually reaches the client
+    # (printed in session, mailed) is recorded as a separate, manually
+    # created Communication.
     if skip_email:
         comm_description = f"Statement Generated - {billing_period}"
         comm_content = f"Statement generated for {billing_period}."
+        comm_recipient, comm_type = 'internal_note', 'administrative'
     else:
         comm_description = f"Statement Sent - {billing_period}"
         comm_content = email_body
+        comm_recipient, comm_type = 'to_client', 'email'
     
     # Get time format preference
     time_format = db.get_setting('time_format', '12h')
@@ -187,13 +195,15 @@ def mark_sent(portion_id):
             client_id, class, created_at, modified_at,
             description, content, comm_recipient, comm_type, comm_date, comm_time,
             locked
-        ) VALUES (?, 'communication', ?, ?, ?, ?, 'to_client', 'email', ?, ?, 1)
+        ) VALUES (?, 'communication', ?, ?, ?, ?, ?, ?, ?, ?, 1)
     """, (
         portion['client_id'],
         now,
         now,
         comm_description,
         comm_content,
+        comm_recipient,
+        comm_type,
         now,
         comm_time
     ))

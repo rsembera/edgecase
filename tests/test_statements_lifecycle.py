@@ -262,6 +262,73 @@ def test_mark_sent_skip_email_records_attachment_and_sets_status(
     assert str(tmp_path) in filepath
 
 
+def test_mark_sent_skip_email_labels_communication_as_internal_admin(
+        client, app_db, tmp_path, monkeypatch):
+    """Generate-only mode (View, not Email) must NOT record the auto-created
+    Communication as to_client/email — nothing was sent to anyone. It is an
+    internal administrative note that the statement exists. Whatever route
+    the statement later takes to the client (printed in session, mailed) is
+    a separate, manually created Communication; the portion is already
+    'sent' after this call, so there is no later EdgeCase email pass that
+    would record one."""
+    import web.blueprints.statements.delivery as st
+    from pathlib import Path
+
+    monkeypatch.setattr(st, "ATTACHMENTS_DIR", tmp_path / "attachments")
+
+    def _fake_pdf(database, portion_id, out_path, assets_dir):
+        p = Path(out_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.4 test\n")
+
+    monkeypatch.setattr(st, "generate_statement_pdf", _fake_pdf)
+
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    portion_id = _portions(app_db, cid)[0]["id"]
+
+    resp = client.post(f"/statements/mark-sent/{portion_id}?skip_email=1")
+    assert resp.status_code == 200
+
+    conn = app_db.connect()
+    cur = conn.cursor()
+    cur.execute("SELECT comm_recipient, comm_type FROM entries "
+                "WHERE class = 'communication'")
+    assert tuple(cur.fetchone()) == ("internal_note", "administrative")
+
+
+def test_mark_sent_email_mode_labels_communication_to_client_email(
+        client, app_db, tmp_path, monkeypatch):
+    """The email path keeps to_client/email — the fix for generate-only mode
+    must not bleed into the real send."""
+    import web.blueprints.statements.delivery as st
+    from pathlib import Path
+
+    monkeypatch.setattr(st, "ATTACHMENTS_DIR", tmp_path / "attachments")
+
+    def _fake_pdf(database, portion_id, out_path, assets_dir):
+        p = Path(out_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.4 test\n")
+
+    monkeypatch.setattr(st, "generate_statement_pdf", _fake_pdf)
+
+    cid = _make_client(app_db)
+    _add_locked_session(app_db, cid)
+    _generate(client, cid)
+    portion_id = _portions(app_db, cid)[0]["id"]
+
+    resp = client.post(f"/statements/mark-sent/{portion_id}")
+    assert resp.status_code == 200
+
+    conn = app_db.connect()
+    cur = conn.cursor()
+    cur.execute("SELECT comm_recipient, comm_type FROM entries "
+                "WHERE class = 'communication'")
+    assert tuple(cur.fetchone()) == ("to_client", "email")
+
+
 def test_email_preview_composes_without_side_effects(client, app_db):
     """/email-preview returns the composed recipient/subject/body and changes
     NOTHING: no PDF, no communication entry, portion stays 'ready'. This is

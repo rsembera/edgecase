@@ -1,5 +1,17 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-10-24 — Statements: View-only generation no longer logs a "To Client / Email"
+
+Generating a statement with View (not Email) auto-creates a Communication
+entry recording that the statement exists. It was labelled To Client /
+Email — a claim about a delivery that never happened. It is now Internal
+Note / Administrative, the same labels the payment path uses for its own
+auto-created entries. The Email path is unchanged. How the statement
+actually reaches the client (printed in session, mailed) remains a
+separate, manually created Communication, as before. Two tests in
+tests/test_statements_lifecycle.py pin both paths; the View-mode test red
+on the previous code.
+
 ### 2026-10-20 — AirLock on Sentinel: monitoring, boot race, README
 
 Monitoring: a Homepage tile ("AirLock", status dot on the client page
