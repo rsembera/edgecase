@@ -352,6 +352,25 @@ def view_statement_pdf(portion_id):
     return _serve_statement_pdf(portion_id, as_attachment=False)
 
 
+AUTOMATION_DENIED_MSG = (
+    "macOS is not allowing EdgeCase to control Mail. Enable it under "
+    "System Settings > Privacy & Security > Automation > EdgeCase Equalizer "
+    "> Mail, then try again. (A macOS major upgrade clears this permission.)"
+)
+
+
+def describe_applescript_failure(stderr):
+    """Turn osascript's stderr into a message that says what to do.
+
+    -1743 is "Not authorized to send Apple events": the Automation permission
+    is missing or switched off. Everything else is returned as-is.
+    """
+    stderr = stderr or ''
+    if '-1743' in stderr or 'Not authorized to send Apple events' in stderr:
+        return AUTOMATION_DENIED_MSG
+    return stderr
+
+
 @statements_bp.route('/send-applescript-email', methods=['POST'])
 def send_applescript_email():
     """Send email via AppleScript (Mac Mail.app)."""
@@ -425,12 +444,18 @@ def send_applescript_email():
         end tell
         '''
     
+    # 60s, not 10: the first send after a macOS major upgrade (which wipes
+    # the Automation permission list) raises a "allow EdgeCase to control
+    # Mail?" dialog that is attached to this osascript process. Killing the
+    # process at 10s dismissed the dialog before it could be answered and
+    # left macOS reporting EdgeCase as blocked (2026-10-28, after the macOS
+    # 27 upgrade). Sixty seconds is time to find and answer the dialog.
     try:
         result = subprocess.run(
             ['osascript', '-e', applescript],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=60
         )
         
         # Clean up temp PDF after AppleScript has attached it. Only ever
@@ -451,11 +476,15 @@ def send_applescript_email():
                 pass  # Non-critical, OS will eventually clean temp
         
         if result.returncode != 0:
-            return jsonify({'success': False, 'error': result.stderr})
+            return jsonify({'success': False,
+                            'error': describe_applescript_failure(result.stderr)})
         
         return jsonify({'success': True})
         
     except subprocess.TimeoutExpired:
-        return jsonify({'success': False, 'error': 'AppleScript timed out'})
+        return jsonify({'success': False, 'error': (
+            'Mail did not respond within 60 seconds. If macOS showed a '
+            '"allow EdgeCase to control Mail" dialog, answer it and try again.'
+        )})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
