@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** October 13, 2026  
+**Last Updated:** October 28, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -12,7 +12,7 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
-1096 tests as of 2026-10-13.
+1099 tests as of 2026-10-28.
 
 **DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
 macOS is whatever the build machine's Homebrew Python was compiled for.
@@ -27,6 +27,20 @@ Python (targets old macOS) plus low-target native libs (sqlcipher via
 conda-forge), tested in a UTM VM; (c) build on a macOS 26 UTM VM. Update
 README + site (download.html, docs/installation.html) to the measured floor.
 
+- **2026-10-28 — Statements: osascript email timeout 60s (was 10s);
+  Automation denial explained.** A send failed with "AppleScript timed
+  out" because Mail.app had stopped answering Apple events (it crashed
+  shortly after); the mailto fallback did its job. Ten seconds left no
+  slack for a cold Mail launch or the first-run "allow EdgeCase to control
+  Mail" dialog, which is attached to the osascript process and dies with
+  it. osascript's -1743 is now translated into instructions naming the
+  System Settings pane. Running from source, so not yet lived with.
+- **2026-10-24 — Statements: View-only generation logs Internal Note /
+  Administrative, not To Client / Email.** Nothing is sent in that mode;
+  the old labels claimed a delivery that never happened. Email path
+  unchanged. Existing mislabelled entries left alone (description already
+  says "Generated"; a raw fix would bypass edit history on locked
+  entries). Rick confirmed the reasoning same day.
 - **2026-10-13 — Statements: an inverted date range (To before From) is
   named, not reported as "No unbilled sessions found".** Find Unbilled
   checks before the request and says which date is wrong; find-unbilled
