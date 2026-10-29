@@ -329,6 +329,25 @@ def test_mark_sent_email_mode_labels_communication_to_client_email(
     assert tuple(cur.fetchone()) == ("to_client", "email")
 
 
+def test_applescript_permission_denial_is_explained():
+    """osascript's -1743 ("Not authorized to send Apple events") means the
+    macOS Automation permission for Mail is missing — which a macOS major
+    upgrade silently clears. The user must be told where to turn it on, not
+    shown the raw stderr."""
+    from web.blueprints.statements.delivery import (
+        describe_applescript_failure, AUTOMATION_DENIED_MSG)
+
+    raw = ('execution error: Not authorized to send Apple events to Mail. '
+           '(-1743)')
+    assert describe_applescript_failure(raw) == AUTOMATION_DENIED_MSG
+    assert 'Automation' in AUTOMATION_DENIED_MSG
+
+    # Anything else passes through untouched.
+    other = "execution error: Mail got an error: Can't get account 1. (-1728)"
+    assert describe_applescript_failure(other) == other
+    assert describe_applescript_failure(None) == ''
+
+
 def test_email_preview_composes_without_side_effects(client, app_db):
     """/email-preview returns the composed recipient/subject/body and changes
     NOTHING: no PDF, no communication entry, portion stays 'ready'. This is
