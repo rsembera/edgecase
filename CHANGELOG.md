@@ -1,17 +1,18 @@
 # EdgeCase Equalizer - Changelog
 
-### 2026-10-28 — Statements: AppleScript email survives the macOS permission prompt
+### 2026-10-28 — Statements: longer osascript timeout; Automation denial explained
 
-First statement email after the macOS 27 upgrade (2026-09-14) failed with
-"AppleScript timed out" and a macOS notice that EdgeCase was blocked from
-sending. A major upgrade clears the Automation permission list; the
-re-prompt is attached to the osascript process, and the route's 10-second
-timeout killed that process before the dialog could be answered, which
-dismissed the dialog and left no entry in the list. The mailto fallback
-then ran as designed (draft + downloaded PDF). The timeout is now 60
-seconds, the timeout message says to look for the dialog, and osascript's
--1743 ("Not authorized to send Apple events") is translated into
-instructions naming the System Settings pane. Test for the translation in
+A statement email failed with "AppleScript timed out" and a macOS notice
+that EdgeCase was blocked from sending; the mailto fallback ran as
+designed (draft + downloaded PDF). Cause was Mail.app itself not answering
+Apple events (it crashed shortly after; a bare `osascript` from the
+terminal hung the same way) — not permissions, which were intact. Two
+hardening changes came out of the investigation: the osascript timeout is
+60 seconds instead of 10, so a slow Mail launch or a first-run Automation
+prompt (which is attached to the osascript process and dies with it) is
+not cut off; and osascript's -1743 ("Not authorized to send Apple events")
+is translated into instructions naming the System Settings pane rather
+than shown raw. Test for the translation in
 tests/test_statements_lifecycle.py.
 
 ### 2026-10-24 — Statements: View-only generation no longer logs a "To Client / Email"

@@ -444,12 +444,12 @@ def send_applescript_email():
         end tell
         '''
     
-    # 60s, not 10: the first send after a macOS major upgrade (which wipes
-    # the Automation permission list) raises a "allow EdgeCase to control
-    # Mail?" dialog that is attached to this osascript process. Killing the
-    # process at 10s dismissed the dialog before it could be answered and
-    # left macOS reporting EdgeCase as blocked (2026-10-28, after the macOS
-    # 27 upgrade). Sixty seconds is time to find and answer the dialog.
+    # 60s, not 10. Ten seconds is not enough for a cold Mail launch, and the
+    # first-run "allow EdgeCase to control Mail?" dialog is attached to this
+    # osascript process — kill the process and the dialog dies unanswered.
+    # (2026-10-28: a 10s timeout fired when Mail itself had stopped
+    # answering Apple events; a longer wait would not have saved that one,
+    # but it exposed how little slack the old value left.)
     try:
         result = subprocess.run(
             ['osascript', '-e', applescript],
