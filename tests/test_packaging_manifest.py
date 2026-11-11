@@ -109,8 +109,8 @@ def test_templates_are_bundled(manifest):
 
 
 def test_practice_data_directories_are_not_bundled(manifest):
-    """assets/ in a working copy holds the practice's own logo and signature;
-    it was listed as a resource and shipped in every Mac build up to 2.0.4."""
+    """assets/ and the other data directories in a working copy belong to
+    the practice, not the app, and must never be listed as resources."""
     resources = set(manifest.OPTIONS["resources"])
     assert not resources & {"assets", "data", "attachments", "backups"}
 

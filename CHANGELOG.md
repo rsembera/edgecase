@@ -24,12 +24,9 @@ hard-coded 10.15, and `packaging/check_macos_floor.sh` measures the built
 app against it, so the label is honest. The Linux package is unaffected.
 
 **The Mac bundle no longer includes the build machine's `assets/` folder.**
-`setup_app.py` listed it as a resource, so every Mac download up to 2.0.4
-carried the developer's own practice logo and signature files (encrypted,
-and unreadable without his master password and salt, but not something to
-ship) and two personal background images from `web/static/user_backgrounds`.
-2.0.5 is built from a clean checkout, `assets` is no longer a resource, and
-a test keeps practice-data directories out of the manifest.
+`setup_app.py` listed it as a resource, and the installed app never reads
+a bundled copy. 2.0.5 is built from a clean checkout, `assets` is no longer
+a resource, and a test keeps practice-data directories out of the manifest.
 
 This release carries only these fixes. The rest of the 2026-11-11 code
 review, and the Wait List, follow in 2.0.6 once they have been lived with.
@@ -226,10 +223,8 @@ shown red against the previous code.
     `title`, an error message).
 
 - **The Mac bundle no longer includes the working copy's `assets/`
-  folder.** `setup_app.py` listed it as a resource, so every Mac download
-  up to 2.0.4 carried the developer's own practice logo and signature
-  files (encrypted, unreadable without his master password and salt) and
-  two personal background images from `web/static/user_backgrounds`.
+  folder.** `setup_app.py` listed it as a resource; the installed app
+  never reads a bundled copy.
   Found while building the 2.0.5 hotfix, which is built from a clean
   worktree of its tag; the same fix is on the `hotfix-2.0.5` branch.
 

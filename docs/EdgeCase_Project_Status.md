@@ -21,10 +21,11 @@ checkout of the tag) are on the website and the GitHub release; packages
 also kept in `dist/release-2.0.5/`. Richard viewed and downloaded a PDF
 attachment in the packaged app on a copy of `edgecase-testing` before
 publishing. `main` carries version 2.0.5 until it is released as 2.0.6.
-Still open: remove the 2.0.4 packages from the site docroot; decide about
-the DMG assets on the 2.0.0-2.0.4 GitHub releases, which contain the
-bundled `assets/` files; install 2.0.5 in /Applications; `git pull` on
-Apollo.
+The 2.0.4 packages are off the site docroot and the older Mac dmgs are no
+longer offered. The GitHub repository was recreated on 2026-11-11 from a
+rewritten history: every commit ID from before that date changed, release
+dates on GitHub show that day, and any older clone must be re-cloned, not
+pulled. Still open: install 2.0.5 in /Applications.
 
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
 review fixes"). Before 2.0.6 is built:

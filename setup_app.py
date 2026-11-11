@@ -115,14 +115,12 @@ OPTIONS = {
         'PyQt5',
         'PyQt6',
     ],
-    # NOT 'assets': in a working copy that directory is the practice's own
-    # data (the uploaded logo and signature live there beside icon.icns),
-    # and bundling it shipped those files — encrypted, but the practice's —
-    # inside every Mac download up to 2.0.4. The installed app keeps its
-    # assets under Application Support and never reads a bundled copy; the
-    # icon is taken from 'iconfile' above. Build from a clean checkout
-    # (a git worktree of the tag): web/static/user_backgrounds is untracked
-    # personal data too, and 'web/static' is bundled whole.
+    # NOT 'assets': in a working copy that directory holds the practice's
+    # own data beside icon.icns, and it must never be bundled. The installed
+    # app keeps its assets under Application Support and never reads a
+    # bundled copy; the icon is taken from 'iconfile' above. Build from a
+    # clean checkout (a git worktree of the tag): web/static/user_backgrounds
+    # is untracked working-copy data too, and 'web/static' is bundled whole.
     'resources': [
         'web/templates',
         'web/static',
