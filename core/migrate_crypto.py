@@ -106,7 +106,7 @@ def _candidate_files(paths: _Paths):
                   if p.is_file() and not p.name.startswith(".")]
     if paths.assets_dir.exists():
         files += [p for p in paths.assets_dir.iterdir()
-                  if p.is_file() and p.stem in ("logo", "signature")]
+                  if p.is_file() and config.is_practice_asset(p)]
     return files
 
 

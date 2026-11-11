@@ -106,6 +106,58 @@ def encrypt_file(filepath: str, password: str) -> None:
         raise
 
 
+def upgrade_legacy_file(filepath: str, password: str) -> str:
+    """Bring one v1 (Fernet) file on a migrated install up to the current
+    format, in place and atomically.
+
+    The encryption upgrade walks a fixed set of files, and for a while that
+    set missed the logo and signature (core.config.is_practice_asset), so a
+    migrated install can still be holding them as Fernet blobs. They keep
+    opening only as long as the master password never changes, because the
+    Fernet key is derived from the password itself. This re-encrypts such a
+    file under the current file key, which survives password changes.
+
+    Returns 'upgraded', 'current' (already v2), 'not_migrated' (a v1
+    install: nothing to do), 'unrecognised' (not an encrypted file), or
+    'failed' (a Fernet blob the current password no longer opens).
+    """
+    from core import encryption_v2 as _v2
+    if not _v2.keyinfo_exists():
+        return 'not_migrated'
+    with open(filepath, 'rb') as f:
+        blob = f.read()
+    if _v2.is_v2(blob):
+        return 'current'
+    if not _v2.is_v1(blob):
+        return 'unrecognised'
+    # _get_salt() would mint a NEW salt if the file were missing; a new
+    # salt cannot open an old blob, so do not create one for the attempt.
+    if not (DATA_DIR / '.salt').exists():
+        return 'failed'
+    try:
+        plaintext = _get_fernet(password).decrypt(blob)
+    except Exception:
+        return 'failed'
+
+    _db_key_hex, file_key = _v2.get_keys(password)
+    encrypted = _v2.encrypt_bytes(file_key, plaintext)
+    tmp_path = f'{filepath}.tmp'
+    try:
+        with open(tmp_path, 'wb') as f:
+            f.write(encrypted)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, filepath)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
+    return 'upgraded'
+
+
 def decrypt_file_to_bytes(filepath: str, password: str) -> bytes:
     """Decrypt a file and return the plaintext bytes.
 

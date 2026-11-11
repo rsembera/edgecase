@@ -271,6 +271,31 @@ def _post_open_maintenance(db):
     except Exception as e:
         print(f"[Attachments] rename pass error: {e}")
 
+    # Logo / signature left in the old format by an encryption upgrade that
+    # did not know their names (see core.encryption.upgrade_legacy_file).
+    try:
+        _upgrade_legacy_assets(db)
+    except Exception as e:
+        print(f"[Assets] legacy upgrade error: {e}")
+
+
+def _upgrade_legacy_assets(db):
+    from core import config
+    from core.encryption import upgrade_legacy_file
+    if not db.password or not config.ASSETS_DIR.exists():
+        return
+    for path in config.ASSETS_DIR.iterdir():
+        if not (path.is_file() and config.is_practice_asset(path)):
+            continue
+        outcome = upgrade_legacy_file(str(path), db.password)
+        if outcome == 'upgraded':
+            print("[Assets] re-encrypted a logo/signature file left in the "
+                  "old format")
+        elif outcome == 'failed':
+            print("[Assets] a logo/signature file is in the old format and "
+                  "the current password does not open it — upload it again "
+                  "in Settings")
+
 
 def _restore_login_context():
     """What the login screen needs to say about a just-restored practice.

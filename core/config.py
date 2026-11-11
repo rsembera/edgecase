@@ -10,6 +10,7 @@ Priority for data location:
 """
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -118,6 +119,30 @@ ASSETS_DIR = DATA_ROOT / 'assets'
 ATTACHMENTS_DIR = DATA_ROOT / 'attachments'
 BACKUPS_DIR = DATA_ROOT / 'backups'
 MODELS_DIR = DATA_ROOT / 'models'
+
+
+# Practice assets: the logo and signature the practitioner uploaded.
+# Settings stores them as <32 hex>.<ext> (web/blueprints/settings.py);
+# installs from before that naming have logo.<ext> / signature.<ext>.
+# Everything that must carry them along — backup, restore, the encryption
+# upgrade, key rotation — asks this one function. Until 2026-11-11 each of
+# those had its own copy of the OLD rule (stem == logo/signature), so
+# every logo and signature uploaded since the rename was silently left out
+# of backups and never re-encrypted. Other files in assets/ (the app icon)
+# are not practice data.
+_ASSET_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif'}
+_UUID_STEM = re.compile(r'^[0-9a-f]{32}$')
+
+
+def is_practice_asset(path) -> bool:
+    """True for an uploaded logo or signature file in assets/."""
+    path = Path(path)
+    if path.name.startswith('.'):
+        return False
+    if path.stem in ('logo', 'signature'):
+        return True
+    return (bool(_UUID_STEM.match(path.stem))
+            and path.suffix.lower() in _ASSET_EXTENSIONS)
 
 
 def get_assets_path():

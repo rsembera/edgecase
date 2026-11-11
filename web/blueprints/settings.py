@@ -313,6 +313,20 @@ def view_signature():
         return Response(f'Error: {str(e)}', status=500)
 
 
+def _remove_replaced_asset(previous, current):
+    """Delete the file a new logo/signature upload replaces. Uploads get a
+    fresh random name each time, so without this every replaced image stayed
+    in assets/ (and, now that assets are backed up, in every backup)."""
+    if not previous or previous == current:
+        return
+    try:
+        old_path = ASSETS_DIR / Path(previous).name
+        if old_path.is_file():
+            old_path.unlink()
+    except OSError as e:
+        print(f"[Assets] could not remove replaced file: {e}")
+
+
 @settings_bp.route('/upload_logo', methods=['POST'])
 def upload_logo():
     """Handle logo upload"""
@@ -351,12 +365,14 @@ def upload_logo():
         
         conn = db.connect()
         cursor = conn.cursor()
+        previous = db.get_setting('logo_filename', '')
         cursor.execute("""
             INSERT INTO settings (key, value, modified_at)
             VALUES ('logo_filename', ?, ?)
             ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
         """, (filename, modified_at, filename, modified_at))
         conn.commit()
+        _remove_replaced_asset(previous, filename)
         
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
@@ -401,12 +417,14 @@ def upload_signature():
         
         conn = db.connect()
         cursor = conn.cursor()
+        previous = db.get_setting('signature_filename', '')
         cursor.execute("""
             INSERT INTO settings (key, value, modified_at)
             VALUES ('signature_filename', ?, ?)
             ON CONFLICT(key) DO UPDATE SET value = ?, modified_at = ?
         """, (filename, modified_at, filename, modified_at))
         conn.commit()
+        _remove_replaced_asset(previous, filename)
         
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:

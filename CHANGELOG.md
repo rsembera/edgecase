@@ -51,6 +51,21 @@ shown red against the previous code.
   confirmation dialog says so.
   tests/test_review_records_integrity.py (five red before).
 
+- **The logo and signature now travel with the practice.** Uploads are
+  stored as `<32 hex>.<ext>`, but backup, restore, the encryption upgrade
+  and key rotation each still matched only the old fixed names (`logo.*`,
+  `signature.*`). Every logo and signature uploaded since the rename was
+  therefore absent from backups, and was never re-encrypted by an upgrade
+  — on a migrated install they stayed Fernet blobs keyed to the password
+  itself, readable only until the master password next changed, at which
+  point statements would have printed without them (the PDF code swallows
+  the decrypt error). One rule, `core.config.is_practice_asset`, now
+  serves all four. At login, any logo/signature still in the old format is
+  re-encrypted under the current file key
+  (`core.encryption.upgrade_legacy_file`); one the current password no
+  longer opens is reported and left alone. A new upload also removes the
+  file it replaces. tests/test_practice_assets.py (four red before).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

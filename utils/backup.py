@@ -22,6 +22,7 @@ from pathlib import Path
 
 # Use config for all paths so EDGECASE_DATA override works
 from core.config import DATA_ROOT, DATA_DIR, ATTACHMENTS_DIR, ASSETS_DIR, BACKUPS_DIR
+from core.config import is_practice_asset
 
 # Backups and every other manifest read-modify-write run one at a time.
 # A manual "Back up now" can still be running when logout, the session
@@ -164,14 +165,12 @@ def get_all_backup_files():
                 rel_path = filepath.relative_to(DATA_ROOT)
                 files[str(rel_path)] = filepath
     
-    # Assets (logo and signature only)
+    # Assets (logo and signature only — see core.config.is_practice_asset)
     if ASSETS_DIR.exists():
         for filepath in ASSETS_DIR.iterdir():
-            if filepath.is_file() and not filepath.name.startswith('.'):
-                # Only include logo and signature files
-                if filepath.stem in ('logo', 'signature'):
-                    rel_path = filepath.relative_to(DATA_ROOT)
-                    files[str(rel_path)] = filepath
+            if filepath.is_file() and is_practice_asset(filepath):
+                rel_path = filepath.relative_to(DATA_ROOT)
+                files[str(rel_path)] = filepath
     
     return files
 
@@ -1194,11 +1193,14 @@ def complete_restore():
     staged_assets = RESTORE_STAGING_DIR / 'assets'
     if staged_assets.exists():
         for filepath in staged_assets.iterdir():
-            if filepath.is_file() and filepath.stem in ('logo', 'signature'):
+            if filepath.is_file() and is_practice_asset(filepath):
+                ASSETS_DIR.mkdir(parents=True, exist_ok=True)
                 target = ASSETS_DIR / filepath.name
-                # Remove any existing logo/signature with different extension
-                for existing in ASSETS_DIR.glob(f'{filepath.stem}.*'):
-                    existing.unlink()
+                if filepath.stem in ('logo', 'signature'):
+                    # Legacy fixed names: remove any existing copy with a
+                    # different extension
+                    for existing in ASSETS_DIR.glob(f'{filepath.stem}.*'):
+                        existing.unlink()
                 shutil.copy2(filepath, target)
     
     # Clean up staging
