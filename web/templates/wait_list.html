@@ -25,8 +25,7 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Added</th>
-                <th>Waiting</th>
+                <th>Waiting Since</th>
                 <th>Contact</th>
                 <th>Note</th>
                 <th></th>
@@ -36,14 +35,16 @@
             {% for client in waiting %}
             <tr>
                 <td><a href="{{ url_for('clients.client_file', client_id=client.id) }}">{{ client.full_name }}</a></td>
-                <td class="nowrap">{{ client.added_display }}</td>
-                <td class="nowrap">{{ client.waiting_display }}</td>
-                <td>
+                <td class="nowrap">
+                    <div>{{ client.added_display }}</div>
+                    <div class="waitlist-duration">{{ client.waiting_display }}</div>
+                </td>
+                <td class="waitlist-contact">
                     {% if client.phone %}<div>{{ client.phone }}</div>{% endif %}
                     {% if client.email %}<div>{{ client.email }}</div>{% endif %}
                     {% if not client.phone and not client.email %}-{% endif %}
                 </td>
-                <td>{{ client.waitlist_note or '' }}</td>
+                <td class="waitlist-note">{{ client.waitlist_note or '' }}</td>
                 <td class="waitlist-actions">
                     <button type="button" class="btn btn-small btn-secondary waitlist-remove-btn"
                             data-name="{{ client.full_name }}"

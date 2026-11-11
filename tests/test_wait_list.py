@@ -189,7 +189,7 @@ def test_waiting_for_labels():
     from web.blueprints.clients import _waiting_for
     now = int(time.time())
     day = 86400
-    assert _waiting_for(now - 3600, now) == "Today"
+    assert _waiting_for(now - 3600, now) == "Added today"
     assert _waiting_for(now - day, now) == "1 day"
     assert _waiting_for(now - 10 * day, now) == "10 days"
     assert _waiting_for(now - 21 * day, now) == "3 weeks"

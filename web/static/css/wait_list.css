@@ -16,9 +16,36 @@
     color: #1A2B3C;
 }
 
+/* shared.css tables are fixed-layout, single-line, ellipsis-truncated and
+   clickable-row. This one sizes columns to their content and wraps, so
+   contact details and notes are never cut off. */
 .waitlist-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
+}
+
+.waitlist-table td {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.waitlist-table tbody tr {
+    cursor: default;
+}
+
+.waitlist-table .waitlist-contact {
+    overflow-wrap: anywhere;
+}
+
+.waitlist-table .waitlist-note {
+    width: 35%;
+}
+
+.waitlist-table .waitlist-duration {
+    color: #5B6571;
+    font-size: 0.8125rem;
 }
 
 .waitlist-table th,

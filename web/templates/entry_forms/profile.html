@@ -290,12 +290,14 @@
         <!-- Wait List (Inactive clients only) -->
         {% if client.type.is_system_locked %}
         <input type="hidden" name="waitlist_present" value="1">
-        <div class="form-row-full section-border-top">
+        <div class="section-divider"></div>
+        <h3 class="section-heading">Wait List</h3>
+        <div class="form-row-full">
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="on_waitlist" name="on_waitlist" value="1"
                            {% if client.waitlisted_at %}checked{% endif %}>
-                    <span>On wait list{% if waitlisted_since %} (since {{ waitlisted_since }}){% endif %}</span>
+                    <span>Client is on the wait list{% if waitlisted_since %} (since {{ waitlisted_since }}){% endif %}</span>
                 </label>
             </div>
         </div>
