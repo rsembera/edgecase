@@ -490,8 +490,15 @@ class StatementPDFGenerator:
                 # remainder so G1 + G2 always equals the full line (and
                 # the statement totals match the portion amounts computed
                 # by core.billing.split_guardian_amounts).
-                g1_fee = min(quantize_cents(fee * g1_percent / 100), fee)
-                g1_base = min(quantize_cents(base * g1_percent / 100), base)
+                # The clamp follows the line's SIGN, exactly as in
+                # split_guardian_amounts: on a credit line (a negative item)
+                # a bare min() hands guardian 1 the whole amount, and the
+                # PDF's lines then disagree with the portion it is billing.
+                def _share(amount):
+                    part = quantize_cents(amount * g1_percent / 100)
+                    return min(part, amount) if amount >= 0 else max(part, amount)
+                g1_fee = _share(fee)
+                g1_base = _share(base)
                 if guardian_number == 1:
                     fee, base = g1_fee, g1_base
                 else:

@@ -178,6 +178,12 @@ def edit_link_group(group_id):
         client_type = db.get_client_type(client['type_id'])
         client['type'] = client_type
         if client_type['name'] not in ['Inactive', 'Deleted']:
+            # Profile fees, as on the Add form: the default for a member
+            # being added to this group.
+            profile = db.get_profile_entry(client['id']) or {}
+            client['profile_base_fee'] = profile.get('session_base') or 0
+            client['profile_tax_rate'] = profile.get('session_tax_rate') or 0
+            client['profile_total_fee'] = profile.get('session_total') or 0
             active_clients.append(client)
     
     # Add type info to group members

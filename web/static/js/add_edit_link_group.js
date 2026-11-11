@@ -251,9 +251,12 @@ function updateMemberFees() {
                 defaultTax = savedMember.member_tax_rate || 0;
                 defaultTotal = savedMember.member_total_fee || 0;
             } else {
-                defaultBase = client.type.session_base_price || 0;
-                defaultTax = client.type.session_tax_rate || 0;
-                defaultTotal = client.type.session_fee || 0;
+                // A member being added to an existing group: start from their
+                // Profile fee. (This read fee fields off the client TYPE, which
+                // stopped carrying fees long ago, so it always came out as 0.)
+                defaultBase = client.profile_base_fee || 0;
+                defaultTax = client.profile_tax_rate || 0;
+                defaultTotal = client.profile_total_fee || 0;
             }
         } else {
             defaultBase = client.profile_base_fee || 0;

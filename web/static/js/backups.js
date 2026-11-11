@@ -671,7 +671,7 @@ async function loadFolderContents(path) {
         const data = await response.json();
         
         if (data.error) {
-            listEl.innerHTML = `<div class="folder-list-error">${data.error}</div>`;
+            listEl.innerHTML = `<div class="folder-list-error">${escapeHtml(data.error)}</div>`;
             return;
         }
         
@@ -698,7 +698,7 @@ async function loadFolderContents(path) {
                     <div class="folder-item${inaccessible}" 
                          data-path="${escapeHtml(folder.path)}"
                          ${folder.inaccessible ? '' : `onclick="navigateToFolder('${escapeJs(folder.path)}')" `}
-                         title="${folder.inaccessible ? 'Permission denied' : folder.path}">
+                         title="${folder.inaccessible ? 'Permission denied' : escapeHtml(folder.path)}">
                         <i data-lucide="folder" class="folder-item-icon"></i>
                         <span class="folder-item-name">${escapeHtml(folder.name)}</span>
                         ${lockIcon}

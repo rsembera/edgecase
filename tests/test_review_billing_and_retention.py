@@ -159,3 +159,25 @@ def test_find_unbilled_includes_inactive_clients_and_marks_them(client, app_db):
 
     assert [(c['id'], c['inactive'], c['unbilled_total']) for c in listed] == \
         [(cid, True, 100.0)]
+
+
+# ---- statement PDF lines agree with the portion on a credit line ---------------
+
+def test_pdf_splits_a_credit_line_by_percentage_like_the_portion_does(app_db):
+    from core.billing import split_guardian_amounts
+    from pdf.generator import StatementPDFGenerator
+
+    profile = {'is_minor': 1, 'guardian1_name': 'G One', 'has_guardian2': 1,
+               'guardian2_name': 'G Two', 'guardian1_pays_percent': 50}
+    entries = [
+        {'class': 'session', 'session_date': 0, 'base_fee': 300.0, 'fee': 300.0},
+        {'class': 'item', 'item_date': 0, 'description': 'Credit',
+         'base_price': -100.0, 'fee': -100.0, 'guardian1_amount': None},
+    ]
+    portions = dict(split_guardian_amounts(entries, profile, Decimal('200.00')))
+    generator = StatementPDFGenerator(app_db)
+
+    for guardian in (1, 2):
+        _table, total = generator._build_line_items_table(
+            entries, 'CAD', guardian_number=guardian, profile=profile)
+        assert total == portions[guardian] == Decimal('100.00')

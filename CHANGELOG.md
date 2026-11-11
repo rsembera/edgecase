@@ -176,6 +176,17 @@ shown red against the previous code.
   amounts go through `money_text()`. A dollar practice reads exactly as
   before. tests/test_review_currency_symbol.py.
 
+- **Found while finishing the audit:**
+  - The statement PDF split a credit line (a negative item) between two
+    guardians with a bare `min()`, handing guardian 1 the whole credit, so
+    the PDF's lines disagreed with the portion being billed. It now uses
+    the same sign-aware clamp as `core.billing.split_guardian_amounts`.
+  - Adding a member to an existing link group prefilled their fee as 0:
+    the script read fee fields off the client type, which stopped carrying
+    fees long ago. It uses the member's Profile fee, as the Add form does.
+  - Two unescaped values in the backup folder picker (a folder path in a
+    `title`, an error message).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

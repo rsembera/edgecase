@@ -119,3 +119,16 @@ def test_export_with_an_impossible_date_is_refused_not_widened(client, app_db):
              '&end_year=2026&end_month=11&end_day=31')
     assert client.get(f'/client/{cid}/export/pdf?{query}').status_code == 400
     assert client.get(f'/client/{cid}/export/calculate?{query}').status_code == 400
+
+
+def test_link_group_edit_page_carries_profile_fees_for_new_members(client, app_db):
+    a, b, c = (_client(app_db, f'LG-{n}') for n in (1, 2, 3))
+    app_db.add_entry({'client_id': c, 'class': 'profile', 'description': 'p',
+                      'session_base': 140.0, 'session_tax_rate': 0,
+                      'session_total': 140.0})
+    group_id = app_db.create_link_group(
+        [a, b], 'couples', 50,
+        {str(a): {'base_fee': 80, 'tax_rate': 0, 'total_fee': 80},
+         str(b): {'base_fee': 80, 'tax_rate': 0, 'total_fee': 80}})
+    page = client.get(f'/links/{group_id}/edit').get_data(as_text=True)
+    assert '"profile_total_fee": 140.0' in page
