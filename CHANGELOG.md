@@ -1,5 +1,43 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — 2.0.5: desktop app could not open or download files
+
+**View PDF, Download attachment and every other file open in the desktop
+app returned the login page instead of the file.** `desktop.py` fetches
+files for the system viewer and the Downloads folder with a plain Python
+request, which has no session cookie; since sessions became per-client
+(2026-06-09) that request has been redirected to login, and the login
+page's HTML was what got saved or opened. Every desktop build from 2.0.0
+to 2.0.4 is affected. Running EdgeCase in a browser was never affected.
+
+The shell now authorises each fetch with a ticket it mints in-process:
+single-use, 30 seconds, GET-only, loopback-only (`web/session_state.py`).
+Redirects are no longer followed. `requests` is now declared in the Mac
+packaging manifest. Confirmed against real servers on scratch data: the
+2.0.4 code returns the login page for both fetches, this returns the PDF.
+tests/test_desktop_ticket.py.
+
+**The Mac build now requires macOS 27** (2.0.4 ran on 26). A bundle's
+real minimum is whatever the build Mac's Python was compiled for, and the
+build Mac is on 27. `setup_app.py` now declares that figure instead of a
+hard-coded 10.15, and `packaging/check_macos_floor.sh` measures the built
+app against it, so the label is honest. The Linux package is unaffected.
+
+**The Mac bundle no longer includes the build machine's `assets/` folder.**
+`setup_app.py` listed it as a resource, so every Mac download up to 2.0.4
+carried the developer's own practice logo and signature files (encrypted,
+and unreadable without his master password and salt, but not something to
+ship) and two personal background images from `web/static/user_backgrounds`.
+2.0.5 is built from a clean checkout, `assets` is no longer a resource, and
+a test keeps practice-data directories out of the manifest.
+
+This release carries only these fixes. The rest of the 2026-11-11 code
+review, and the Wait List, follow in 2.0.6 once they have been lived with.
+
+Released 2026-11-11 from branch `hotfix-2.0.5` (tag `v2.0.5`). The same
+fixes are on `main` as part of the review fixes below, which are not yet
+released.
+
 ### 2026-11-11 — Code review fixes
 
 A full read-through of the codebase (findings list: project doc

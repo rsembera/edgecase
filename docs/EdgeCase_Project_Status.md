@@ -7,35 +7,34 @@
 
 ---
 
-## QUEUED FOR 2.0.5 (in git, not yet released)
+## QUEUED FOR 2.0.6 (in git, not yet released)
 
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 1176 tests as of 2026-11-11.
 
-**2.0.5 hotfix in progress (2026-11-11)** — branch `hotfix-2.0.5`, tag
-`v2.0.5`: only the desktop View PDF/Download fix, the honest macOS floor
-(27), and a clean Mac bundle. Built and signed in a worktree at
-`/tmp/ec-hotfix` (`dist/EdgeCase Equalizer.app`). **Blocked on:** the
-`EdgeCase Notarization` keychain profile is missing (re-store it with
-`xcrun notarytool store-credentials`, Mac_Packaging_Guide.md), and Apollo
-was unreachable for the `.deb`. Build the `.deb` from a clean checkout of
-the tag, not Apollo's working copy (`web/` is copied whole). After 2.0.5
-ships: remove older DMGs from the site and decide about the DMG assets on
-older GitHub releases, which contain the bundled `assets/` files; then
-`main` becomes 2.0.6 and needs the 2.0.5 CHANGELOG entry merged in.
+**2.0.5 released 2026-11-11** — branch `hotfix-2.0.5`, tag `v2.0.5`: only
+the desktop View PDF/Download fix, the honest macOS floor (27), and a clean
+Mac bundle. Notarized dmg and the `.deb` (built on Apollo from a clean
+checkout of the tag) are on the website and the GitHub release; packages
+also kept in `dist/release-2.0.5/`. Richard viewed and downloaded a PDF
+attachment in the packaged app on a copy of `edgecase-testing` before
+publishing. `main` carries version 2.0.5 until it is released as 2.0.6.
+Still open: remove the 2.0.4 packages from the site docroot; decide about
+the DMG assets on the 2.0.0-2.0.4 GitHub releases, which contain the
+bundled `assets/` files; install 2.0.5 in /Applications; `git pull` on
+Apollo.
 
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
-review fixes"). Before 2.0.5 is built:
+review fixes"). Before 2.0.6 is built:
 
-- **Click through View PDF and Download attachment in the 2.0.5 build.**
+- **View PDF and Download attachment: fixed in 2.0.5 (released).**
   Confirmed 2026-11-11 against real servers on scratch data: the 2.0.4
   code (tag `v2.0.4`, and the installed 2.0.4 bundle carries the same
   `desktop.py`) returns the LOGIN PAGE for both fetches — **View PDF and
   Download are broken in the released 2.0.4 desktop app** — and `main`
-  returns the PDF. Not yet clicked in an actual packaged window.
-  This is the reason to ship 2.0.5 in days rather than weeks.
+  returns the PDF. Clicked in the packaged 2.0.5 window 2026-11-11.
 - **Look at the new in-app dialogs.** `showMessage()` / `confirmDialog()`
   replaced sixty `alert()` calls and are tested for presence and wiring,
   not appearance. Easy ones to trigger: delete an attachment (confirm),
@@ -54,7 +53,7 @@ read for the session timer, statements page, AI Scribe and dialogs, and
 swept for HTML injection; the rest (pickers, settings page, form guards)
 was not read line by line.
 
-**DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
+**macOS floor — decided 2026-11-11: accept 27 (option a).** The bundle's real minimum
 macOS is whatever the build machine's Homebrew Python was compiled for.
 2.0.4 needs 26.0 (it declared 10.15; the site said 12+, corrected
 2026-10-09). The build Mac is now on macOS 27 and its Python targets 27, so
