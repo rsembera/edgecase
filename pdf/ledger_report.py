@@ -160,6 +160,11 @@ def generate_ledger_report_pdf(db, start_ts, end_ts, output_path, include_detail
     total_income = sum((quantize_cents(e[2]) for e in income_entries), dec(0))
     total_expenses = sum((quantize_cents(e[2]) for e in expense_entries), dec(0))
     tax_collected = sum((quantize_cents(e[5] or 0) for e in income_entries), dec(0))
+    # Plus tax on credit applied to statements in the period: it is stored on
+    # the allocation rows, and the ledger entries are never rewritten to
+    # carry it (core/db/ledger.py get_credit_tax_applied).
+    tax_collected += db.get_credit_tax_applied(
+        start_ts, end_ts, client['id'] if client else None)
     tax_paid = sum((quantize_cents(e[6] or 0) for e in expense_entries), dec(0))
     
     # Create document

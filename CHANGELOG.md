@@ -144,6 +144,17 @@ shown red against the previous code.
   - A client export with an impossible date is refused instead of silently
     dropping the date limit.
 
+- **Tax on overpayments is counted.** Money that arrives as credit settles
+  nothing yet and so carries no tax on its ledger entry; when a later
+  statement consumes the credit the tax goes on the allocation row, and
+  the recorded ledger entry is — deliberately — never rewritten. The
+  ledger totals, the report preview and the report PDF summed only ledger
+  entries, so tax collected was short by that share ($13 reported against
+  $26 collected in the reproduction). They now add
+  `get_credit_tax_applied()`: the entry stays as recorded and the tax is
+  counted in the period the credit was applied.
+  tests/test_review_credit_tax.py.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

@@ -337,6 +337,40 @@ class LedgerMixin:
         
         return entries
 
+    def get_credit_tax_applied(self, start_date: int = None,
+                               end_date: int = None, client_id: int = None):
+        """Tax on credit that was applied to a statement in the period.
+
+        A payment's tax is pro-rated against the statements it settles and
+        stored on the ledger entry. Money that arrives as an overpayment
+        settles nothing yet, so it carries no tax at the time; when a later
+        statement consumes the credit, the tax is worked out and stored on
+        that allocation row — but the ledger entry is deliberately never
+        rewritten (see consume_credit). Reports that summed only the ledger
+        entries therefore under-reported tax collected by exactly this
+        amount. They add this figure instead: the ledger entry stays as
+        recorded, and the tax is counted in the period the credit was
+        applied. Returned as Decimal.
+        """
+        from core.money import dec, quantize_cents
+        clauses, params = ["is_credit = 1", "tax_amount IS NOT NULL"], []
+        if start_date:
+            clauses.append("created_at >= ?")
+            params.append(start_date)
+        if end_date:
+            clauses.append("created_at <= ?")
+            params.append(end_date)
+        if client_id:
+            clauses.append("client_id = ?")
+            params.append(client_id)
+        cursor = self.connect().cursor()
+        cursor.execute("SELECT tax_amount FROM payment_allocations WHERE "
+                       + " AND ".join(clauses), params)
+        total = dec(0)
+        for (tax,) in cursor.fetchall():
+            total += dec(tax)
+        return quantize_cents(total)
+
     def get_ledger_totals(self, start_date: int = None, end_date: int = None) -> dict:
         """
         Calculate total income, expenses, and net for a date range.
@@ -387,7 +421,8 @@ class LedgerMixin:
         
         
         total_income = income_row[0]
-        total_tax_collected = income_row[1]
+        total_tax_collected = income_row[1] + float(
+            self.get_credit_tax_applied(start_date, end_date))
         total_expenses = expense_row[0]
         total_tax_paid = expense_row[1]
         

@@ -624,7 +624,11 @@ def calculate_report():
     """, (start_ts, end_ts) + income_params)
     row = cursor.fetchone()
     total_income = row[0] or 0
-    tax_collected = row[1] or 0
+    # Plus tax on credit applied to statements in the period, which lives
+    # on the allocation rows, not the ledger entries (get_credit_tax_applied).
+    tax_collected = money_float(
+        (row[1] or 0) + float(db.get_credit_tax_applied(
+            start_ts, end_ts, client['id'] if client else None)))
     
     cursor.execute(f"""
         SELECT COALESCE(SUM(total_amount), 0) as total,
