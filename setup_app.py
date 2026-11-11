@@ -49,6 +49,14 @@ THIRD_PARTY_PACKAGES = [
     'pypdf',
     'PIL',
     'markdown',
+    # desktop.py (View PDF / Download) and the AI model download call
+    # `requests` from inside functions; nothing in the suite imported it, so
+    # tests/test_packaging_manifest.py never saw that it was undeclared.
+    'requests',
+    'urllib3',
+    'certifi',
+    'charset_normalizer',
+    'idna',
 ]
 
 # First-party packages. Everything under these is bundled, so the crypto v2/v3
@@ -69,8 +77,8 @@ OPTIONS = {
         'CFBundleName': APP_NAME,
         'CFBundleDisplayName': APP_NAME,
         'CFBundleIdentifier': 'ca.lightinextension.edgecase',
-        'CFBundleVersion': '2.0.4',
-        'CFBundleShortVersionString': '2.0.4',
+        'CFBundleVersion': '2.0.5',
+        'CFBundleShortVersionString': '2.0.5',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.15',
         'NSRequiresAquaSystemAppearance': False,

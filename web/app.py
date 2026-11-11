@@ -419,6 +419,12 @@ def require_login():
     # (another device in LAN mode, or any local process) gets full access
     # the moment anyone is logged in anywhere. Require the session marker
     # set by auth.login so the cookie is the actual per-client credential.
+    # The desktop shell fetching a file for the system viewer / Downloads
+    # folder: no cookie, but a single-use ticket it minted in-process
+    # (web/session_state.py).
+    from web.session_state import redeem_desktop_ticket
+    if redeem_desktop_ticket():
+        return
     if not session.get('authenticated'):
         if is_api_request():
             return jsonify({'success': False, 'error': 'not_authenticated', 'message': 'Please log in'}), 401

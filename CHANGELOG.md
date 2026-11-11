@@ -1,5 +1,25 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — 2.0.5: desktop app could not open or download files
+
+**View PDF, Download attachment and every other file open in the desktop
+app returned the login page instead of the file.** `desktop.py` fetches
+files for the system viewer and the Downloads folder with a plain Python
+request, which has no session cookie; since sessions became per-client
+(2026-06-09) that request has been redirected to login, and the login
+page's HTML was what got saved or opened. Every desktop build from 2.0.0
+to 2.0.4 is affected. Running EdgeCase in a browser was never affected.
+
+The shell now authorises each fetch with a ticket it mints in-process:
+single-use, 30 seconds, GET-only, loopback-only (`web/session_state.py`).
+Redirects are no longer followed. `requests` is now declared in the Mac
+packaging manifest. Confirmed against real servers on scratch data: the
+2.0.4 code returns the login page for both fetches, this returns the PDF.
+tests/test_desktop_ticket.py.
+
+This release carries only this fix. The rest of the 2026-11-11 code
+review, and the Wait List, follow in 2.0.6 once they have been lived with.
+
 ### 2026-09-08 — Absence and Item forms: date/time pickers rendered empty
 
 `absence.html` and `item.html` had `{% block extra_js %}` nested inside
