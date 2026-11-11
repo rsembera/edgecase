@@ -12,7 +12,32 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
-1113 tests as of 2026-11-11.
+1167 tests as of 2026-11-11.
+
+**2026-11-11 code review** — fixes landed the same day (CHANGELOG, "Code
+review fixes"; full findings in the project doc
+`claude/Code_Review_2026-11-11.md`). Before 2.0.5 is built:
+
+- **Click through View PDF and Download attachment in the packaged app.**
+  The desktop file-ticket fix is tested at the request level only.
+- **Behaviour changes to live with:** Inactive clients now appear in Find
+  Unbilled; uploads lock on save; retention years are calendar years;
+  logout from a stale tab no longer locks the practice; a "billing error"
+  write-off on a guardian split unlinks entries only once both portions
+  are written off.
+
+Still open from the review:
+
+- Tax on overpayments: credit applied to a later statement carries tax on
+  its allocation row, but the ledger entry's `tax_amount` is never
+  updated, so tax collected is under-reported by that share. Needs a
+  decision (the "never rewrite a recorded entry" rule vs. reporting from
+  allocations). Only matters for practices that charge tax.
+- ~60 `alert()`/`confirm()` calls still to convert to in-app modals
+  (settings.js 25, outstanding_statements.js 14).
+- AI Scribe does not say when the model stops at its length limit.
+- "$" is hard-coded on the statements page and in edit-history lines.
+- Not yet read: PDF layout code, most of the JavaScript, `tools/`.
 
 **DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
 macOS is whatever the build machine's Homebrew Python was compiled for.
