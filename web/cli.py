@@ -66,9 +66,17 @@ def _run_shutdown_backup(db, label="Shutdown"):
                         print(f"[{label}] Post-backup command error: {cmd_error}")
             else:
                 print(f"[{label}] No changes since last backup")
+            backup.clear_backup_error()
             backup.record_backup_check()
     except Exception as e:
         print(f"[{label}] Backup warning: {e}")
+        # Nobody is watching a console as the session ends; keep the
+        # failure for the next login (utils.backup.record_backup_error).
+        try:
+            from utils import backup
+            backup.record_backup_error(e)
+        except Exception:
+            pass
 
 
 def _cleanup():

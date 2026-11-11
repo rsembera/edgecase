@@ -66,6 +66,30 @@ shown red against the previous code.
   longer opens is reported and left alone. A new upload also removes the
   file it replaces. tests/test_practice_assets.py (four red before).
 
+- **Desktop app: View PDF and Download attachment fetch the file again.**
+  `desktop.py` fetches files for the system viewer and the Downloads
+  folder with a plain Python request, which has no session cookie. Since
+  sessions became per-client (2026-06-09) that request was redirected to
+  the login page, and the login page's HTML was what got saved or opened.
+  The shell now authorises each fetch with a ticket it mints in-process:
+  single-use, 30 seconds, GET-only, loopback-only. Redirects are no longer
+  followed. Request-level tests only (tests/test_desktop_ticket.py) —
+  **needs a click-through in the packaged app before the next release.**
+- **A failed automatic backup is no longer silent.** The backup that runs
+  at logout, timeout and window close only printed its error, and the
+  "Automatic Backup Failed" modal on the home page was never fed by
+  anything. The failure is now kept in the manifest and shown once at each
+  login until a backup succeeds.
+- **A new backup folder starts with a full backup.** After switching
+  folders the new one received only incrementals until the next weekly
+  full, and could not be restored from on its own.
+- **Reset Database removes the key files.** `.keyinfo`, `.salt`,
+  `.secret_key` and the rest of the crypto state were left behind, so
+  setting up again with a different password failed ("Invalid master
+  password") and the old password and recovery key still worked. Reset
+  also releases the database handle. tests/test_review_backup_and_reset.py
+  (four red before).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

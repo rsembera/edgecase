@@ -669,6 +669,27 @@ def reset_database():
             wal_path = Path(DATA_DIR) / f'edgecase.db{ext}'
             if wal_path.exists():
                 wal_path.unlink()
+
+        # Delete the key material and every piece of crypto state. Leaving
+        # .keyinfo behind made the next setup derive its keys from the OLD
+        # key file: a different password was refused ("Invalid master
+        # password") and only the old password — and the old recovery key
+        # — still worked, on what was supposed to be a clean slate.
+        from core import encryption as _v1, encryption_v2 as _v2
+        key_files = [Path(_v2.KEYINFO_FILE)] + [
+            Path(DATA_DIR) / name for name in (
+                '.keyinfo', '.salt', '.secret_key', '.rk_pending',
+                '.rotate_pending', '.master_rotation_state', '.v2_migrating',
+                '.restore_unverified', 'edgecase.db.v2new')]
+        for key_file in key_files:
+            if key_file.exists():
+                key_file.unlink()
+        _v2._key_cache.clear()
+        _v1._fernet_cache.clear()
+
+        # The practice is gone: nothing may keep using the old handle.
+        from flask import current_app
+        current_app.config['db'] = None
         
         # Delete attachments directory contents
         attachments_path = Path(ATTACHMENTS_DIR)

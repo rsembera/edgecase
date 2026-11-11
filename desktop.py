@@ -147,12 +147,27 @@ class Api:
     def __init__(self, port):
         self.port = port
     
+    def _fetch(self, url):
+        """GET a file from the local server on the webview's behalf.
+
+        The webview's session cookie is HttpOnly and never reaches Python,
+        so the request is authorised by a single-use ticket instead (see
+        web/session_state.py). Redirects are not followed: a redirect here
+        can only be "go to the login page", and following it used to save
+        the login page's HTML as if it were the document.
+        """
+        import requests
+        from web.app import app
+        from web.session_state import DESKTOP_TICKET_HEADER, issue_desktop_ticket
+        return requests.get(
+            f'http://localhost:{self.port}{url}',
+            headers={DESKTOP_TICKET_HEADER: issue_desktop_ticket(app)},
+            allow_redirects=False, timeout=120)
+
     def open_file(self, url):
         """Download file and open in default system application."""
-        import requests
         try:
-            full_url = f'http://localhost:{self.port}{url}'
-            response = requests.get(full_url)
+            response = self._fetch(url)
             
             if response.status_code == 200:
                 filename = self._get_filename(response, url)
@@ -172,10 +187,8 @@ class Api:
     
     def download_file(self, url):
         """Download file to user's Downloads folder. Returns filename on success."""
-        import requests
         try:
-            full_url = f'http://localhost:{self.port}{url}'
-            response = requests.get(full_url)
+            response = self._fetch(url)
             
             if response.status_code == 200:
                 filename = self._get_filename(response, url)

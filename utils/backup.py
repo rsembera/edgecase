@@ -493,6 +493,15 @@ def create_backup(backup_dir=None, db=None):
             last_full_date = datetime.fromisoformat(last_full['created_at']).date()
             if (datetime.now().date() - last_full_date).days >= 7:
                 need_full = True
+            # A different folder from the one holding the current chain's
+            # full backup starts its own chain. An incremental written
+            # there would depend on a full that lives somewhere else, so
+            # the new folder — usually a cloud folder chosen precisely for
+            # disaster recovery — could not be restored from on its own
+            # until the next weekly full.
+            target_dir = Path(backup_dir) if backup_dir else BACKUPS_DIR
+            if _same_dir(target_dir, resolve_backup_dir(last_full)) is False:
+                need_full = True
         else:
             need_full = True  # No full backup exists
     
@@ -500,6 +509,14 @@ def create_backup(backup_dir=None, db=None):
         return create_full_backup(backup_dir, db=db)
     else:
         return create_incremental_backup(backup_dir, db=db)
+
+
+def _same_dir(a, b):
+    """True/False if both paths resolve and can be compared; None if not."""
+    try:
+        return Path(a).expanduser().resolve() == Path(b).expanduser().resolve()
+    except OSError:
+        return None
 
 
 @_serialized
@@ -1560,6 +1577,42 @@ def record_backup_check():
     manifest = load_manifest()
     manifest['last_backup_check'] = datetime.now().isoformat()
     save_manifest(manifest)
+
+
+@_serialized
+def record_backup_error(message):
+    """Remember that an automatic backup failed.
+
+    The automatic backup runs as the session ends (logout, timeout, window
+    close), so there is no page left to show a failure on, and until
+    2026-11-11 the only trace was a line on a console the desktop app does
+    not have. The failure is kept in the manifest and shown at the next
+    login; a successful backup clears it.
+    """
+    manifest = load_manifest()
+    manifest['last_backup_error'] = {
+        'message': str(message), 'at': datetime.now().isoformat()}
+    save_manifest(manifest)
+
+
+@_serialized
+def clear_backup_error():
+    manifest = load_manifest()
+    if manifest.get('last_backup_error'):
+        manifest['last_backup_error'] = None
+        save_manifest(manifest)
+
+
+def get_backup_error():
+    """The pending automatic-backup failure as a sentence, or None."""
+    try:
+        error = load_manifest().get('last_backup_error')
+    except Exception:
+        return None
+    if not error:
+        return None
+    when = (error.get('at') or '')[:16].replace('T', ' at ')
+    return f"{error.get('message')} (automatic backup of {when})"
 
 
 def get_backup_status():

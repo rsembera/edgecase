@@ -113,6 +113,7 @@ def backup_now():
         # Passing db lets it checkpoint the WAL itself and run
         # PRAGMA integrity_check on the zipped database copy.
         result = backup.create_backup(location, db=db)
+        backup.clear_backup_error()
         
         if result is None:
             return jsonify({

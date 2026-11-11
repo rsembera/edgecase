@@ -285,6 +285,13 @@ def index():
     
     # Check for backup warning (pop so it only shows once)
     backup_warning = session.pop('backup_warning', None)
+    if not backup_warning and not session.get('backup_error_shown'):
+        # A failed automatic backup from the end of an earlier session:
+        # shown once per login, and again each login until one succeeds.
+        from utils import backup as backup_utils
+        backup_warning = backup_utils.get_backup_error()
+        if backup_warning:
+            session['backup_error_shown'] = True
     
     # Get currency for display
     currency = db.get_setting('currency', 'CAD')

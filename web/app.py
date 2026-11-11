@@ -474,6 +474,10 @@ def require_login():
     # marker set at login AND belong to the current unlock: a cookie from
     # an earlier one is not logged in (web/session_state.py).
     from web import session_state
+    # The desktop shell fetching a file for the system viewer / Downloads
+    # folder: no cookie, but a single-use ticket it minted in-process.
+    if session_state.redeem_desktop_ticket():
+        return
     if not session_state.session_is_current():
         if is_api_request():
             return jsonify({'success': False, 'error': 'not_authenticated', 'message': 'Please log in'}), 401
