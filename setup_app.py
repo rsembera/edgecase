@@ -114,10 +114,15 @@ OPTIONS = {
         'PyQt5',
         'PyQt6',
     ],
+    # NOT 'assets': in a working copy that directory is the practice's own
+    # data (the uploaded logo and signature live there beside icon.icns),
+    # and bundling it shipped those files — encrypted, but the practice's —
+    # inside every Mac download up to 2.0.4. The installed app keeps its
+    # assets under Application Support and never reads a bundled copy; the
+    # icon is taken from 'iconfile' above.
     'resources': [
         'web/templates',
         'web/static',
-        'assets',
     ],
 }
 
