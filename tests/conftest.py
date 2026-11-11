@@ -155,6 +155,11 @@ def client(app_db, monkeypatch):
     prev_db = flask_app.config.get("db")
     flask_app.config["db"] = app_db
     init_all_blueprints(app_db)
+    # The harness injects a database without logging in, so there is no
+    # session epoch; clear any left by a test that did log in for real
+    # (web/session_state.py treats "no epoch" as valid only under TESTING).
+    flask_app.config["SESSION_EPOCH"] = None
+    flask_app.config["SESSION_ACTIVITY"] = {}
 
     with flask_app.test_client() as c:
         with c.session_transaction() as sess:

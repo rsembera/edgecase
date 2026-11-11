@@ -16,6 +16,21 @@ shown red against the previous code.
   the net logging showed no route that relied on the old behaviour.
   tests/test_request_rollback.py.
 
+- **Session rules** (new `web/session_state.py`). Three holes, one
+  design. (1) `/api/keepalive` never checked expiry, so one call revived a
+  session that had been idle for hours, with no password; it now refuses
+  an expired session. (2) `GET /logout` needed no cookie, so any request
+  at all (another device in LAN mode, a link on a web page) closed the
+  database on whoever was working; logout now locks the practice only for
+  a session that is actually logged in. (3) A stale cookie on a second
+  device hit the timeout branch and closed the database under the active
+  one. Each unlock from a locked state now mints an epoch carried in the
+  cookie, so a cookie from an earlier unlock is simply not logged in; and
+  when a session times out while another is in active use, only the idle
+  one is ended. A second login while unlocked joins the current epoch, so
+  two devices still work side by side. tests/test_session_rules.py (four
+  red before).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

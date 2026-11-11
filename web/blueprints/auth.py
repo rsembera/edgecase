@@ -13,6 +13,10 @@ import json
 import os
 import tempfile
 
+from web.session_state import (ensure_epoch, start_session, session_is_current,
+                               session_expired, another_session_active,
+                               forget_session)
+
 auth_bp = Blueprint('auth', __name__)
 
 # Serialises the moment /logout takes ownership of the open database (see
@@ -390,12 +394,8 @@ def login():
                 db.close()
                 _clear_failed_attempts()
                 migrate_token = _store_migration_handoff(password)
-                session.clear()
-                session.permanent = True
-                session['authenticated'] = True
-                session['login_time'] = int(time.time())
-                session['last_activity'] = time.time()
-                session.modified = True
+                ensure_epoch()
+                start_session()
                 return render_template(
                     'upgrading.html',
                     migrate_token=migrate_token,
@@ -404,18 +404,16 @@ def login():
 
             # Success! Store db in app config
             _post_open_maintenance(db)
+            # Before the database is attached: a login from a locked state
+            # mints a new session epoch; one made while the practice is
+            # already unlocked joins the current one (web/session_state.py).
+            ensure_epoch()
             current_app.config['db'] = db
             
             # Clear failed login attempts on success
             _clear_failed_attempts()
             
-            # Clear any old session data first, then set new values
-            session.clear()
-            session.permanent = True  # Use PERMANENT_SESSION_LIFETIME
-            session['authenticated'] = True
-            session['login_time'] = int(time.time())
-            session['last_activity'] = time.time()  # Set immediately to prevent timeout race
-            session.modified = True
+            start_session()
             
             # Initialize all blueprints with the database
             from web.app import init_all_blueprints
@@ -550,12 +548,8 @@ def _route_into_rotation(password, restore_ctx):
 
     _clear_failed_attempts()
     token = _store_migration_handoff(password)
-    session.clear()
-    session.permanent = True
-    session['authenticated'] = True
-    session['login_time'] = int(time.time())
-    session['last_activity'] = time.time()
-    session.modified = True
+    ensure_epoch()
+    start_session()
     return render_template(
         'rotating.html', rotate_token=token,
         resuming=master_rotation.rotation_in_progress())
@@ -1186,6 +1180,21 @@ def logout():
     second, concurrent backup check. Now the duplicate finds nothing and
     just redirects.
     """
+    # Only a session that is actually logged in may lock the practice.
+    # /logout is reachable without authentication (it has to be: it is
+    # where an expired page lands), so without this any request at all —
+    # another device, a stale cookie, a link on a web page — closed the
+    # database on whoever was working.
+    live_db = current_app.config.get('db')
+    if not session_is_current():
+        session.clear()
+        return redirect(url_for('auth.login'))
+    if live_db and session_expired(live_db) and another_session_active(live_db):
+        # An idle session logging itself out while another is in use:
+        # end this one only.
+        forget_session()
+        return redirect(url_for('auth.login', timeout=1))
+
     with _logout_claim_lock:
         db = current_app.config.get('db')
         current_app.config['db'] = None
@@ -1193,7 +1202,7 @@ def logout():
         from web.cli import _run_shutdown_backup
         _run_shutdown_backup(db, label="Logout")
         db.close()
-    session.clear()
+    forget_session()
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/change-password', methods=['GET', 'POST'])

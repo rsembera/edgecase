@@ -464,30 +464,23 @@ def require_login():
     # The unlocked database is app-global, so it cannot by itself prove
     # *this* client logged in — without this check, any cookieless request
     # (another device in LAN mode, or any local process) gets full access
-    # the moment anyone is logged in anywhere. Require the session marker
-    # set by auth.login so the cookie is the actual per-client credential.
-    if not session.get('authenticated'):
+    # the moment anyone is logged in anywhere. The cookie must carry the
+    # marker set at login AND belong to the current unlock: a cookie from
+    # an earlier one is not logged in (web/session_state.py).
+    from web import session_state
+    if not session_state.session_is_current():
         if is_api_request():
             return jsonify({'success': False, 'error': 'not_authenticated', 'message': 'Please log in'}), 401
         return redirect(url_for('auth.login'))
-    
-    # Get session timeout from database (default 30 minutes)
-    try:
-        timeout_minutes = int(db.get_setting('session_timeout', '30'))
-        if timeout_minutes == 0:  # "Never" option
-            session['last_activity'] = time.time()
-            return
-        session_timeout = timeout_minutes * 60
-    except (ValueError, TypeError):
-        session_timeout = 30 * 60
-    
-    # Check session timeout
-    last_activity = session.get('last_activity')
+
     now = time.time()
-    
-    if last_activity:
-        elapsed = now - last_activity
-        if elapsed > session_timeout:
+    if session_state.session_expired(db, now):
+        if session_state.another_session_active(db, now):
+            # This session sat idle while another is in use (the iPad left
+            # open, work continuing on the Mac). End this one only: closing
+            # the database would discard whatever is unsaved in the other.
+            session_state.forget_session()
+        else:
             # Session expired - claim the db, then run backup. Claiming
             # under the same lock /logout uses means a second request
             # arriving after the timeout (two tabs on wake, parallel
@@ -505,16 +498,17 @@ def require_login():
                 except Exception as e:
                     print(f"[Timeout] Backup error: {e}")
                 claimed.close()
+            session_state.forget_session()
 
-            # Now clear everything
-            session.clear()
-            if is_api_request():
-                return jsonify({'success': False, 'error': 'session_expired', 'message': 'Session timed out. Please log in again'}), 401
-            return redirect(url_for('auth.login', timeout=1))
-    
+        if is_api_request():
+            return jsonify({'success': False, 'error': 'session_expired', 'message': 'Session timed out. Please log in again'}), 401
+        return redirect(url_for('auth.login', timeout=1))
+
     # Update last activity timestamp
-    session['last_activity'] = now
-    
+    session_state.touch(now)
+    if session_state.timeout_seconds(db) is None:  # "Never" option
+        return
+
     # Check for restore completion message (show once)
     if 'restore_shown' not in session:
         restore_info = app.config.pop('RESTORE_COMPLETED', None)
@@ -530,8 +524,9 @@ def require_login():
 @app.route('/api/session-status')
 def session_status():
     """Return session timeout status for frontend warning system."""
+    from web import session_state
     db = app.config.get('db')
-    if not db:
+    if not db or not session_state.session_is_current():
         return jsonify({'logged_in': False})
     
     try:
@@ -576,12 +571,19 @@ def session_status():
 @app.route('/api/keepalive', methods=['POST'])
 def keepalive():
     """Extend session when user clicks 'Stay Logged In'."""
+    from web import session_state
     db = app.config.get('db')
-    if not db:
+    if not db or not session_state.session_is_current():
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
-    # Update last activity timestamp
-    session['last_activity'] = time.time()
+
+    # This endpoint is exempt from require_login (the warning modal must be
+    # able to reach it), so it has to apply the timeout itself: a session
+    # that has already expired stays expired. Without this, one keepalive
+    # brought a two-hour-idle session back with no password.
+    if session_state.session_expired(db):
+        return jsonify({'success': False, 'error': 'session_expired'}), 401
+
+    session_state.touch()
     return jsonify({'success': True})
 
 
