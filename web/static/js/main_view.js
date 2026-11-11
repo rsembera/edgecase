@@ -91,6 +91,15 @@ function toggleDropdown(id) {
     });
     
     dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+
+    // If the open menu runs past the bottom of the window, scroll the page
+    // just far enough to bring all of it into view.
+    if (dropdown.style.display === 'block') {
+        const overflow = dropdown.getBoundingClientRect().bottom - window.innerHeight;
+        if (overflow > 0) {
+            window.scrollBy({ top: overflow + 16, behavior: 'smooth' });
+        }
+    }
 }
 
 /**

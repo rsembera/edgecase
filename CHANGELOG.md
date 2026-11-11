@@ -28,6 +28,10 @@ Deliberately left out: the checkbox on Add Client (the file is created at
 first contact, consent to wait comes later), manual reordering, and
 review reminders (the list is consulted when a slot opens).
 
+The extra Manage item pushed Logout off the bottom of a default-height
+window, so opening any main-view dropdown that overruns the window now
+scrolls the page just far enough to show all of it.
+
 13 tests in tests/test_wait_list.py; the three guard tests (type change
 clears the list, via the data layer and via the route; a Profile post
 without the section changes nothing) red with the guards removed.
