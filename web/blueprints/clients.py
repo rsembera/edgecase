@@ -679,9 +679,9 @@ def retention_check():
     # Format dates for display
     from datetime import datetime
     for client in clients_due:
-        client['first_contact_display'] = datetime.fromtimestamp(client['first_contact']).strftime('%b %-d, %Y')
-        client['last_contact_display'] = datetime.fromtimestamp(client['last_contact']).strftime('%b %-d, %Y')
-        client['retain_until_display'] = datetime.fromtimestamp(client['retain_until']).strftime('%b %-d, %Y')
+        client['first_contact_display'] = datetime.fromtimestamp(client['first_contact']).strftime('%Y-%m-%d')
+        client['last_contact_display'] = datetime.fromtimestamp(client['last_contact']).strftime('%Y-%m-%d')
+        client['retain_until_display'] = datetime.fromtimestamp(client['retain_until']).strftime('%Y-%m-%d')
     
     return jsonify({'clients_due': clients_due})
 
@@ -759,7 +759,7 @@ def wait_list():
         parts = [client['first_name'], client.get('middle_name'), client['last_name']]
         client['full_name'] = ' '.join(p for p in parts if p)
         client['added_display'] = datetime.fromtimestamp(
-            client['waitlisted_at']).strftime('%b %-d, %Y')
+            client['waitlisted_at']).strftime('%Y-%m-%d')
         client['waiting_display'] = _waiting_for(client['waitlisted_at'], now)
 
     return render_template('wait_list.html', waiting=waiting)
