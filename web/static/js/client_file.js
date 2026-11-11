@@ -38,8 +38,38 @@ function toggleMonth(monthId) {
 }
 
 /**
+ * Keep an open dropdown menu fully on screen.
+ *
+ * The menu opens below its button. If it would run past the bottom of the
+ * window it opens above the button instead; if it does not fit there either,
+ * the page is scrolled just far enough to show all of it: up when the page
+ * can scroll up that far, otherwise the menu goes back below the button and
+ * the page scrolls down.
+ * @param {HTMLElement} dropdown - the menu, already displayed
+ */
+function keepDropdownOnScreen(dropdown) {
+    const MARGIN = 16;
+    dropdown.classList.remove('dropdown-menu-up');
+
+    const below = dropdown.getBoundingClientRect();
+    const overflowBelow = below.bottom - (window.innerHeight - MARGIN);
+    if (overflowBelow <= 0) return;
+
+    dropdown.classList.add('dropdown-menu-up');
+    const above = dropdown.getBoundingClientRect();
+    const overflowAbove = MARGIN - above.top;
+    if (overflowAbove <= 0) return;
+
+    if (window.scrollY >= overflowAbove) {
+        window.scrollBy({ top: -overflowAbove, behavior: 'smooth' });
+    } else {
+        dropdown.classList.remove('dropdown-menu-up');
+        window.scrollBy({ top: overflowBelow, behavior: 'smooth' });
+    }
+}
+
+/**
  * Toggle dropdown menu visibility, closing all others first
- * Includes edge detection for dropdowns near bottom of viewport
  * @param {string} dropdownId - ID of dropdown element to toggle
  */
 function toggleDropdown(dropdownId) {
@@ -58,21 +88,9 @@ function toggleDropdown(dropdownId) {
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         dropdown.style.display = 'block';
         
-        // Edge detection for add-entry-dropdown
+        // The New menu is tall; keep all of it on screen
         if (dropdownId === 'add-entry-dropdown') {
-            // Reset position first
-            dropdown.classList.remove('dropdown-menu-up');
-            
-            // Check if dropdown extends beyond viewport
-            const rect = dropdown.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const spaceBelow = viewportHeight - rect.top;
-            const dropdownHeight = rect.height;
-            
-            // If not enough space below, flip upward
-            if (spaceBelow < dropdownHeight + 20) {
-                dropdown.classList.add('dropdown-menu-up');
-            }
+            keepDropdownOnScreen(dropdown);
         }
     } else {
         dropdown.style.display = 'none';

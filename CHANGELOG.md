@@ -1,5 +1,17 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — Client file: the New menu stays on screen
+
+The New menu in a client file opened above its button whenever it did not
+fit below, even when there was no room above either, so its top items could
+be cut off (a short file in a short window was enough). It now does what
+the main view's menus do and moves the page: it opens below if it fits,
+above if only that fits, and otherwise scrolls just far enough to show the
+whole menu: up when the page can scroll up that far, down when it cannot.
+`keepDropdownOnScreen()` in `web/static/js/client_file.js`;
+tests/test_client_file_dropdown.py runs it under node (skipped where node
+is not installed).
+
 ### 2026-11-11 — 2.0.5: desktop app could not open or download files
 
 **View PDF, Download attachment and every other file open in the desktop
