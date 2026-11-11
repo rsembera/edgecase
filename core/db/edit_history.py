@@ -4,7 +4,34 @@ Extracted from core/database.py (Step 3). Relies on self.connect() from the
 base Database class.
 """
 import json
+import os
+import re
 import time
+
+# The only markup an edit-history description may carry: the <del>/<strong>
+# pair written by web.utils.generate_content_diff (which escapes the note
+# text before adding them).
+_HISTORY_TAG_RE = re.compile(r'(</?(?:del|strong)>)')
+
+
+def sanitize_history_html(text):
+    """Make an edit-history description safe to render as HTML.
+
+    Descriptions are shown with |safe so the diff markup works, but most
+    of a description is plain values written straight in ("Emergency
+    Contact: old -> new") — and a value can come from an AirLock intake
+    form typed by someone outside the practice. Everything except the
+    diff tags themselves has its angle brackets escaped here, at render
+    time, so history already stored is covered as well as new lines.
+    Diff text is escaped before it is tagged, so it contains no raw
+    brackets and passes through unchanged.
+    """
+    if not text:
+        return text
+    parts = _HISTORY_TAG_RE.split(str(text))
+    return ''.join(
+        part if i % 2 else part.replace('<', '&lt;').replace('>', '&gt;')
+        for i, part in enumerate(parts))
 
 
 
@@ -133,6 +160,9 @@ class EditHistoryMixin:
             'tax_rate': None,
             'fee': None,
             'base_price': None,  # For Item entries
+            # The amendment trail holds word-level diffs of the very text
+            # being removed, so it goes too.
+            'edit_history': None,
             # Mark as redacted
             'is_redacted': 1,
             'redacted_at': int(time.time()),
@@ -149,12 +179,36 @@ class EditHistoryMixin:
             values.append(value)
         
         values.append(entry_id)
-        
-        cursor.execute(f"""
-            UPDATE entries 
-            SET {', '.join(set_clauses)}
-            WHERE id = ?
-        """, values)
-        
-        conn.commit()
+
+        # Files attached to the entry are part of what was put in the wrong
+        # place. Rows go in the same transaction as the redaction; the files
+        # come off disk only after the commit, so a failed commit cannot
+        # leave rows pointing at files that are gone.
+        cursor.execute("SELECT filepath FROM attachments WHERE entry_id = ?",
+                       (entry_id,))
+        attachment_paths = [row[0] for row in cursor.fetchall()]
+
+        try:
+            cursor.execute("DELETE FROM attachments WHERE entry_id = ?",
+                           (entry_id,))
+            cursor.execute(f"""
+                UPDATE entries
+                SET {', '.join(set_clauses)}
+                WHERE id = ?
+            """, values)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
+        from core.config import resolve_attachment_path
+        for stored in attachment_paths:
+            if not stored:
+                continue
+            try:
+                path = resolve_attachment_path(stored)
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError as e:
+                print(f"[Redaction] Could not delete attachment file: {e}")
         return True

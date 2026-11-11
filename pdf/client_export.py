@@ -211,6 +211,11 @@ def format_edit_history(edit_history_json, styles):
             else:
                 edit_text = f"{timestamp_str}: Changes made"
             
+            # Escape stray angle brackets in plain values first, so only the
+            # generated diff tags reach ReportLab's parser as markup.
+            from core.db.edit_history import sanitize_history_html
+            edit_text = sanitize_history_html(edit_text)
+
             # Convert HTML tags to ReportLab-compatible markup
             edit_text = edit_text.replace('<del>', '<strike>').replace('</del>', '</strike>')
             edit_text = edit_text.replace('<strong>', '<b>').replace('</strong>', '</b>')

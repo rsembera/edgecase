@@ -29,7 +29,7 @@
 <div id="redact-confirm-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
         <h3>Confirm Redaction</h3>
-        <p>This will <strong>permanently remove all content</strong> from this entry. The entry will be marked as [REDACTED] and cannot be restored.</p>
+        <p>This will <strong>permanently remove all content</strong> from this entry, including its edit history and any attached files. The entry will be marked as [REDACTED] and cannot be restored.</p>
         <p>Are you sure you want to proceed?</p>
         <form method="POST" action="{{ url_for('entries.redact_entry', client_id=client.id, entry_id=entry.id) }}" id="redact-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

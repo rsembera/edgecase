@@ -245,7 +245,13 @@ def edit_session(client_id, entry_id):
             session_data['description'] = f"Session {session_entry['session_number']}"
         
         # Check if this is a draft save (or AI Scribe - treat as draft)
-        is_draft_save = request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1'
+        # Draft and AI Scribe saves exist only for UNLOCKED drafts. The form hides
+        # both buttons once an entry is locked, but a stale tab still has them —
+        # and honouring the flag there rewrote a locked note with no amendment
+        # trail. On a locked entry the flag is ignored: it is an amendment.
+        already_locked = db.is_entry_locked(entry_id)
+        is_draft_save = (not already_locked) and (
+            request.form.get('save_draft') == '1' or request.form.get('ai_scribe') == '1')
 
         # Only lock and track history if NOT a draft save
         if not is_draft_save:
@@ -366,7 +372,7 @@ def edit_session(client_id, entry_id):
         renumber_sessions(client_id)
         
         # Check if AI Scribe button was clicked - redirect there instead
-        if request.form.get('ai_scribe'):
+        if request.form.get('ai_scribe') and not already_locked:
             return redirect(url_for('ai.scribe_page', entry_id=entry_id))
         
         return redirect(url_for('clients.client_file', client_id=client_id))

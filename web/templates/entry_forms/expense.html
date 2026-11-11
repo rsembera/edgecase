@@ -182,7 +182,7 @@
                 {% for edit in edit_history %}
                 <div class="edit-history-item">
                     <div class="edit-history-timestamp">{{ edit.timestamp_formatted }}</div>
-                    <div class="edit-history-changes">{{ edit.changes | safe }}</div>
+                    <div class="edit-history-changes">{{ edit.changes | close_tags | safe }}</div>
                 </div>
                 {% endfor %}
             </div>

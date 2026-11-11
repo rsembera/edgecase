@@ -390,7 +390,13 @@ def close_tags(html_string):
     """
     if not html_string:
         return html_string
-    
+
+    # Escape everything that is not one of the generated diff tags. Most of
+    # a description is plain values written straight in, and until
+    # 2026-11-11 those reached the page unescaped (core.db.edit_history).
+    from core.db.edit_history import sanitize_history_html
+    html_string = sanitize_history_html(html_string)
+
     # Count unclosed tags
     open_strong = html_string.count('<strong>') - html_string.count('</strong>')
     open_del = html_string.count('<del>') - html_string.count('</del>')

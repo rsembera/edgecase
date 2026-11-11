@@ -31,6 +31,26 @@ shown red against the previous code.
   two devices still work side by side. tests/test_session_rules.py (four
   red before).
 
+- **A locked session can no longer be rewritten without an amendment
+  entry.** The edit route skipped the edit history whenever the form
+  posted Save Draft or AI Scribe — buttons the form hides once an entry is
+  locked, but a stale tab still has. On a locked entry the flag is now
+  ignored and the save is logged like any other amendment.
+- **Edit-history values are escaped when shown.** Descriptions render
+  with `|safe` so the diff markup works, but most of a description is
+  plain values written straight in ("Emergency Contact: old → new"), and
+  those reached the page as live HTML — including values typed into an
+  AirLock intake form by someone outside the practice. One sanitizer
+  (`core.db.edit_history.sanitize_history_html`) now escapes everything
+  except the generated `<del>`/`<strong>` tags, at render time, so history
+  already stored is covered too. The client export PDF uses the same
+  function.
+- **Redaction removes the edit history and attached files** as well as
+  the content. The history held word-level diffs of the text being
+  removed, and attachments on the entry were left in place. The
+  confirmation dialog says so.
+  tests/test_review_records_integrity.py (five red before).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person
