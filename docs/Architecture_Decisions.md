@@ -1810,3 +1810,113 @@ as much as for the two local entries: a release that hides a column with
 clinical text in it would be a defect, and deleting the GitHub release would
 strand that user with no upgrade path. So 2.0.2 stays published, 2.0.3 is
 Latest, and its notes say plainly what moved and where.
+
+---
+
+## 2026-11-11 — Decisions from the full code review
+
+A read-through of the whole codebase (findings and status: project doc
+`claude/Code_Review_2026-11-11.md`; fixes: CHANGELOG). The ones that are
+decisions rather than repairs:
+
+### One connection per thread needs a rollback net
+
+`Database.connect()` gives each worker thread one connection, reused across
+requests. A handler that fails between its first write and its commit leaves
+those writes pending, and the next request on that thread commits them.
+**Decision:** `web/app.py` rolls back any transaction still open when a request
+ends. Per-route try/rollback blocks stay, because they also produce the right
+error response; the net is what makes forgetting one harmless.
+
+### A cookie is good only for the unlock it was issued under
+
+The unlocked database is app-global, so the cookie is the only thing that says
+"this browser logged in". Each unlock from a locked state mints an **epoch**,
+held in app config and in the cookie; a cookie from an earlier unlock is not
+logged in. A second login while unlocked joins the current epoch, so two
+devices can work side by side. Expiry is decided on the server in one place
+(`web/session_state.py`), so `/api/keepalive` cannot revive an expired session.
+**When one session times out while another is active, only the idle one is
+ended** — closing the database would discard unsaved work in the other.
+Explicit logout from a live session still locks the practice for everyone.
+
+*Rejected:* per-session server-side records with their own expiry sweep. A
+session that goes silent can only be noticed on someone's next request, and a
+timer thread to close the database unprompted was more machinery than a
+single-user app warrants.
+
+### Desktop file fetches use a ticket, not the cookie
+
+The desktop shell opens PDFs and downloads attachments with a Python request,
+outside the webview, and the session cookie is HttpOnly. **Decision:** the
+shell mints a ticket in-process — single-use, 30 seconds, GET-only,
+loopback-only — and the request gate accepts it in place of a session. Passing
+file bytes through the webview bridge instead would have meant base64-encoding
+attachments of up to 50 MB.
+
+### Edit-history markup is sanitized at render, not at write
+
+Descriptions mix generated `<del>`/`<strong>` diff tags with plain values
+written straight in, and are shown with `|safe`. Escaping at write time would
+have left every stored description unprotected. **Decision:** one function
+(`core.db.edit_history.sanitize_history_html`) escapes everything except the
+generated tags when a description is displayed, in the page and in the export
+PDF alike.
+
+### Redaction removes the trail and the files
+
+A redaction exists for content filed against the wrong client. The entry's
+edit history holds word-level diffs of that content, and its attachments are
+part of it. **Decision:** both go with the content. The reason, date and entry
+type remain.
+
+### Tax on credit is reported from the allocation, never written back
+
+Credit carries no tax when it arrives (it settles nothing yet); the tax is
+worked out when a later statement consumes it and stored on that allocation
+row. The rule that a recorded ledger entry is never rewritten stands.
+**Decision:** reports add `get_credit_tax_applied()` to tax collected, counted
+in the period the credit was applied.
+
+### Retention: whole years are calendar years
+
+The type form stores N years as N × 365 days, which is short by the leap days —
+"10 years" fell due two days early. **Decision:** a period that is a whole
+multiple of 365 days is applied as calendar years (Feb 29 rolls forward to
+Mar 1); anything else is a plain count of days. No stored values change.
+
+### Inactive clients are billable
+
+Find Unbilled used to exclude Inactive clients, so the last sessions of a
+client made Inactive before billing never surfaced. **Decision:** they are
+included and marked "Inactive". Statement generation never excluded them.
+
+### Uploads lock on save
+
+Every other entry type locks on first save; uploads never did, so their edits
+were never logged. **Decision:** uploads lock on save. One created earlier
+locks at its next save.
+
+### Billing-error write-off, narrowed
+
+Unlinks only session/absence/item entries (payments recorded against the
+statement keep their link), and on a guardian split only once every portion
+has been written off as a billing error — otherwise the same sessions could be
+re-billed while the other guardian's share is still being collected.
+
+### One rule for "practice assets"
+
+Backup, restore, the encryption upgrade and key rotation each carried their own
+copy of "which files in assets/ are the logo and signature", and all four went
+stale together when uploads were renamed. **Decision:**
+`core.config.is_practice_asset` is the only definition. *Lesson:* a filter
+duplicated across the backup and crypto paths fails silently in all of them at
+once; anything those paths must agree on belongs in one function.
+
+### No browser dialogs, enforced
+
+The standing rule had eroded to sixty `alert()` calls. `shared_utils.js` now
+provides `showMessage()`, `confirmDialog()` and `confirmSubmit()`, and
+`tests/test_no_browser_dialogs.py` fails the suite if a browser dialog call
+appears in the scripts or templates.
+

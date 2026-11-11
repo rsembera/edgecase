@@ -231,7 +231,9 @@ def login()
 @auth_bp.route('/logout')
 def logout()
 ```
-**Purpose:** Close database and clear session
+**Purpose:** Close database and clear session. Only a session that is
+currently logged in locks the practice; a request with no session, or with a
+cookie from an earlier unlock, is just redirected (see `web/session_state.py`).
 
 **Returns:** Redirect to login
 
@@ -1031,7 +1033,8 @@ def outstanding_statements()
 @statements_bp.route('/find-unbilled', methods=['GET'])
 def find_unbilled()
 ```
-**Purpose:** Find clients with unbilled entries for statement generation
+**Purpose:** Find clients with unbilled entries for statement generation.
+Inactive clients are included (since 2026-11-11) and flagged `inactive`.
 
 **Returns:** JSON with unbilled clients and entries
 
@@ -1313,7 +1316,8 @@ def session_status()
 @app.route('/api/keepalive', methods=['POST'])
 def keepalive()
 ```
-**Purpose:** Reset session timeout on user activity
+**Purpose:** Reset session timeout on user activity. Returns 401 for a
+session that is not logged in or has already timed out — it cannot revive one.
 
 ---
 

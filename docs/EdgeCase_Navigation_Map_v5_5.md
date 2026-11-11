@@ -114,6 +114,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 ├── web/
 │   ├── app.py                   # Flask app initialization (~505 lines)
 │   ├── utils.py                 # Shared web utilities incl. diff engine (~390 lines)
+│   ├── session_state.py         # Who counts as logged in: unlock epoch, expiry, desktop file tickets
 │   ├── cli.py                   # Command-line interface
 │   └── blueprints/
 │       ├── ai.py                # AI Scribe routes
@@ -152,7 +153,7 @@ EdgeCase Equalizer is a web-based practice management system for independent the
 │   ├── favicons/
 │   └── img/                     # Background images
 ├── models/                      # AI model (git-ignored): gemma-4-12B-it-QAT-Q4_0.gguf
-├── tests/                       # 31 test files, 642 tests (pytest; cheap-KDF switch in conftest)
+├── tests/                       # 77 test files, 1176 tests (pytest; cheap-KDF switch in conftest)
 ├── docs/                        # Navigation Map, Project Status, Architecture Decisions, etc.
 ├── assets/                      # Practice logo, signature
 ├── attachments/                 # Encrypted file uploads
