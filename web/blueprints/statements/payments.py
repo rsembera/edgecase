@@ -509,7 +509,7 @@ def write_off_statement():
     """Write off a statement portion."""
     db = get_db()
     
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     portion_id = data.get('portion_id')
     reason = data.get('reason')  # 'uncollectible', 'waived', 'billing_error', 'other'
     note = data.get('note', '')
@@ -538,6 +538,17 @@ def write_off_statement():
     
     columns = [col[0] for col in cursor.description]
     portion = dict(zip(columns, row))
+
+    # Only something still open can be written off. Without this a second
+    # click (or a stale page) wrote the same portion off again — and for
+    # "uncollectible" booked a second Bad Debt expense for money that was
+    # only owed once.
+    if portion['status'] not in ('ready', 'sent', 'partial'):
+        return jsonify({
+            'success': False,
+            'error': 'This statement has already been '
+                     + ('written off.' if portion['status'] == 'written_off'
+                        else 'settled.')}), 409
     
     # Build client name
     name_parts = [portion['first_name']]
@@ -556,13 +567,27 @@ def write_off_statement():
         WHERE id = ?
     """, (reason, now, note if note else None, portion_id))
     
-    # If billing error, unlink entries so they can be edited and re-billed
+    # If billing error, unlink the billed entries so they can be edited and
+    # re-billed. Two limits on that:
+    #  - Only the session/absence/item lines. Payments recorded against the
+    #    statement carry its id too, and are not "billed entries".
+    #  - On a guardian split, only once EVERY portion of the statement has
+    #    been written off as a billing error. Unlinking while the other
+    #    guardian's portion still stands would put the same sessions on a
+    #    second statement while the first is still being collected.
     if reason == 'billing_error':
         cursor.execute("""
-            UPDATE entries 
-            SET statement_id = NULL 
-            WHERE statement_id = ?
+            SELECT COUNT(*) FROM statement_portions
+            WHERE statement_entry_id = ?
+            AND NOT (status = 'written_off' AND write_off_reason = 'billing_error')
         """, (portion['statement_entry_id'],))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                UPDATE entries
+                SET statement_id = NULL
+                WHERE statement_id = ?
+                AND class IN ('session', 'absence', 'item')
+            """, (portion['statement_entry_id'],))
     
     # Build description for Communication entry
     reason_labels = {

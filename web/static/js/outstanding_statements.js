@@ -334,7 +334,7 @@ function findUnbilled() {
                         <div class="unbilled-client">
                             <input type="checkbox" class="client-checkbox" value="${client.id}" data-amount="${client.unbilled_total}">
                             <span class="client-name">${escapeHtml(client.name)}</span>
-                            <span class="file-number">${escapeHtml(client.file_number)}</span>
+                            <span class="file-number">${escapeHtml(client.file_number)}${client.inactive ? ' · Inactive' : ''}</span>
                             <span class="unbilled-amount">$${client.unbilled_total.toFixed(2)}</span>
                         </div>
                     `;

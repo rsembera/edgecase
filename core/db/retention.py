@@ -30,8 +30,9 @@ class RetentionMixin:
         RETENTION CLOCK ANCHORING.
         """
 
-        retention_seconds = (retention_days or 0) * 24 * 60 * 60
-        standard_retain_until = last_contact + retention_seconds
+        retention_days = retention_days or 0
+        standard_retain_until = RetentionMixin._add_retention(
+            last_contact, retention_days)
 
         if is_minor and dob_str:
             try:
@@ -44,12 +45,35 @@ class RetentionMixin:
                     # still gets the age-of-majority extension. Falling through
                     # to standard retention would be the unsafe, shorter direction.
                     eighteenth_birthday = dob.replace(year=dob.year + 18, month=3, day=1)
-                after_majority = int(eighteenth_birthday.timestamp()) + retention_seconds
+                after_majority = RetentionMixin._add_retention(
+                    int(eighteenth_birthday.timestamp()), retention_days)
                 return max(standard_retain_until, after_majority)
             except (ValueError, TypeError):
                 return standard_retain_until
 
         return standard_retain_until
+
+    @staticmethod
+    def _add_retention(start_ts, retention_days):
+        """start + retention period, as a timestamp.
+
+        Periods are stored in days, and the type form stores N years as
+        N x 365. Counting those as days comes up short by the leap days in
+        between: "10 years" from 2016-11-11 fell due on 2026-11-09, two
+        days BEFORE ten years had passed — the wrong direction for a rule
+        that says "at least". A whole number of 365-day years is therefore
+        applied as calendar years (Feb 29 rolls forward to Mar 1, the
+        later date). Anything else is a plain count of days, as entered.
+        """
+        if retention_days and retention_days % 365 == 0:
+            start = datetime.fromtimestamp(start_ts)
+            years = retention_days // 365
+            try:
+                end = start.replace(year=start.year + years)
+            except ValueError:  # Feb 29 -> no such day in the target year
+                end = start.replace(year=start.year + years, month=3, day=1)
+            return int(end.timestamp())
+        return start_ts + retention_days * 24 * 60 * 60
 
     def get_clients_due_for_deletion(self):
         """

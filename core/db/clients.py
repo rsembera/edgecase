@@ -422,6 +422,53 @@ class ClientMixin:
 
         return quantize_cents(total)
 
+    def get_unbilled_total_all(self) -> Decimal:
+        """get_unbilled_total summed over every (non-deleted) client, in
+        one query. Same predicate and fee resolution; used by the home
+        page, which used to call the per-client version once per client."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT e.class, e.fee, e.base_fee, e.base_price
+            FROM entries e
+            JOIN clients c ON c.id = e.client_id
+            WHERE c.is_deleted = 0
+            AND e.class IN ('session', 'absence', 'item')
+            AND e.statement_id IS NULL
+            AND e.locked = 1
+            AND (
+                (e.class = 'session' AND e.fee > 0)
+                OR (e.class = 'absence' AND (e.fee > 0 OR e.base_fee > 0))
+                OR (e.class = 'item' AND (e.fee != 0 OR e.base_price != 0))
+            )
+        """)
+        total = dec(0)
+        for entry_class, fee, base_fee, base_price in cursor.fetchall():
+            if not fee:
+                if entry_class == 'item':
+                    fee = base_price or 0
+                elif entry_class == 'absence':
+                    fee = base_fee or 0
+                else:
+                    fee = 0
+            total += dec(fee)
+        return quantize_cents(total)
+
+    def count_sessions_between(self, start_ts: int, end_ts: int) -> int:
+        """Sessions (not consultations) dated in the range, across all
+        non-deleted clients. Sessions with no date are simply not counted."""
+        cursor = self.connect().cursor()
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM entries e
+            JOIN clients c ON c.id = e.client_id
+            WHERE c.is_deleted = 0
+            AND e.class = 'session'
+            AND COALESCE(e.is_consultation, 0) = 0
+            AND e.session_date BETWEEN ? AND ?
+        """, (start_ts, end_ts))
+        return cursor.fetchone()[0]
+
     def get_outstanding_balance(self, client_id: int) -> Decimal:
         """Total still owing on this client's generated statement portions.
 

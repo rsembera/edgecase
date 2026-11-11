@@ -169,12 +169,11 @@ def index():
     month_start = datetime(now.year, now.month, 1, 0, 0, 0)
     month_start_ts = int(month_start.timestamp())
     
-    sessions_this_month = 0
-    for client in all_clients:
-        entries = db.get_client_entries(client['id'], entry_class='session')
-        sessions_this_month += sum(1 for e in entries 
-                                   if month_start_ts <= e.get('session_date', 0) <= now_ts
-                                   and not e.get('is_consultation'))
+    # One COUNT, not a walk over every client's sessions: the old loop
+    # loaded every session row in the practice — notes included — on every
+    # visit to this page, and a single session without a date made the
+    # comparison raise and the page return a 500.
+    sessions_this_month = db.count_sessions_between(month_start_ts, now_ts)
     
     # Count pending invoices (statement portions not fully paid)
     pending_invoices = db.count_pending_invoices()
@@ -185,8 +184,7 @@ def index():
     # Deliberately date-unbounded: last month's unbilled work still counts
     # (changed 2026-08-01; the old month-scoped version read $0.00 every
     # 1st of the month while statements were still ungenerated).
-    unbilled_total = sum((db.get_unbilled_total(c['id']) for c in all_clients),
-                         Decimal('0'))
+    unbilled_total = db.get_unbilled_total_all()
                     
     # Get current date and time
     current_date = now.strftime('%B %d, %Y')

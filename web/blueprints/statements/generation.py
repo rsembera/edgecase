@@ -72,6 +72,12 @@ def find_unbilled():
     # Find billable entries (sessions, absences, items) that aren't linked to a statement
     # and fall within the date range
     # Exclude consultations (fee=0) and pro bono sessions
+    #
+    # Inactive clients ARE included (decided 2026-11-11). They used to be
+    # filtered out here, so the last sessions of a client made Inactive
+    # before month-end billing never appeared — not in this list and not in
+    # the "earlier unbilled" notice — while the client file and the home
+    # page went on showing the amount. They are marked in the list instead.
     cursor.execute("""
         SELECT 
             e.id,
@@ -87,14 +93,14 @@ def find_unbilled():
             c.file_number,
             c.first_name,
             c.middle_name,
-            c.last_name
+            c.last_name,
+            ct.is_system_locked AS is_inactive
         FROM entries e
         JOIN clients c ON e.client_id = c.id
         JOIN client_types ct ON c.type_id = ct.id
         WHERE e.class IN ('session', 'absence', 'item')
         AND e.statement_id IS NULL
         AND e.locked = 1
-        AND ct.name != 'Inactive'
         AND (
             (e.class = 'session' AND e.session_date BETWEEN ? AND ? AND e.fee > 0)
             OR (e.class = 'absence' AND e.absence_date BETWEEN ? AND ? AND (e.fee > 0 OR e.base_fee > 0))
@@ -122,6 +128,7 @@ def find_unbilled():
                 'id': client_id, 
                 'file_number': entry['file_number'],
                 'name': ' '.join(name_parts),
+                'inactive': bool(entry['is_inactive']),
                 'entries': [],
                 'unbilled_total': 0
             }
@@ -163,7 +170,6 @@ def find_unbilled():
         WHERE e.class IN ('session', 'absence', 'item')
         AND e.statement_id IS NULL
         AND e.locked = 1
-        AND ct.name != 'Inactive'
         AND (
             (e.class = 'session' AND e.session_date < ? AND e.fee > 0)
             OR (e.class = 'absence' AND e.absence_date < ? AND (e.fee > 0 OR e.base_fee > 0))

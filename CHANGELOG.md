@@ -97,6 +97,30 @@ shown red against the previous code.
   briefly left `main` red in d435c3c — the gate was chained with `;`
   instead of `&&`).
 
+- **Write-off is guarded.** A portion can be written off only while it is
+  open; a second click used to succeed and, for "uncollectible", book a
+  second Bad Debt expense. A "billing error" write-off now unlinks only
+  the session/absence/item lines (it was also clearing the link on payment
+  entries), and on a guardian split only once every portion of the
+  statement has been written off as a billing error — otherwise the same
+  sessions could be re-billed while the other guardian's share was still
+  being collected.
+- **Retention counts years as calendar years.** The type form stores N
+  years as N × 365 days, which falls short by the leap days: "10 years"
+  from 2016-11-11 came due on 2026-11-09. A whole number of 365-day years
+  is now applied as calendar years (Feb 29 rolls forward to Mar 1); other
+  periods are still a plain count of days.
+- **Home page.** "Sessions this month" loaded every session row in the
+  practice, notes included, on every visit (about a second at 12,000
+  sessions), and a single undated session made the page return a 500. It
+  is one COUNT now, and the unbilled total is one query instead of one per
+  client.
+- **Inactive clients appear in Find Unbilled** (decided 2026-11-11),
+  marked "Inactive". They were filtered out, so the last sessions of a
+  client made Inactive before billing never surfaced there or in the
+  "earlier unbilled" notice, while the client file went on showing the
+  amount. tests/test_review_billing_and_retention.py (nine red before).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person
