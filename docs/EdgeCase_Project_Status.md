@@ -17,8 +17,13 @@ reason to, or once these have a few weeks of daily use behind them.
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
 review fixes"). Before 2.0.5 is built:
 
-- **Click through View PDF and Download attachment in the packaged app.**
-  The desktop file-ticket fix is tested at the request level only.
+- **Click through View PDF and Download attachment in the 2.0.5 build.**
+  Confirmed 2026-11-11 against real servers on scratch data: the 2.0.4
+  code (tag `v2.0.4`, and the installed 2.0.4 bundle carries the same
+  `desktop.py`) returns the LOGIN PAGE for both fetches — **View PDF and
+  Download are broken in the released 2.0.4 desktop app** — and `main`
+  returns the PDF. Not yet clicked in an actual packaged window.
+  This is the reason to ship 2.0.5 in days rather than weeks.
 - **Look at the new in-app dialogs.** `showMessage()` / `confirmDialog()`
   replaced sixty `alert()` calls and are tested for presence and wiring,
   not appearance. Easy ones to trigger: delete an attachment (confirm),
