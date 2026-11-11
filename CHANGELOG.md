@@ -1,5 +1,21 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — Code review fixes
+
+A full read-through of the codebase (findings list: project doc
+`claude/Code_Review_2026-11-11.md`). Each fix below has a regression test
+shown red against the previous code.
+
+- **Unfinished writes no longer leak into the next request.** Each worker
+  thread reuses one database connection, so a handler that failed between
+  its first write and its commit left those writes pending, and the next
+  request on that thread committed them (reproduced: a mark-sent that
+  failed copying the PDF left an orphan "Statement Generated" entry that
+  an unrelated settings save then committed). `web/app.py` now rolls back
+  any transaction still open when a request ends. A full-suite run with
+  the net logging showed no route that relied on the old behaviour.
+  tests/test_request_rollback.py.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

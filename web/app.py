@@ -289,6 +289,36 @@ def close_db_connection(exception=None):
             except Exception:
                 pass  # never let teardown mask the real response/error
 
+@app.teardown_request
+def rollback_unfinished_transaction(exception=None):
+    """Never let one request's unfinished writes ride into the next.
+
+    Database.connect() hands every request on a worker thread the same
+    connection. A handler that raises (or returns an error) after its
+    first INSERT/UPDATE but before commit() leaves those writes pending in
+    the connection's implicit transaction — and the NEXT request served by
+    that thread commits them along with its own. Found 2026-11-11: a
+    mark-sent that failed while copying the PDF left its "Statement
+    Generated" entry pending, and an unrelated settings save committed it.
+
+    A request that finished its work has committed, so a transaction still
+    open here is by definition unfinished: roll it back. This is the net
+    under every route; the per-route try/rollback blocks stay, since they
+    also produce the right error response.
+    """
+    db = app.config.get('db')
+    if db is None:
+        return
+    try:
+        conn = getattr(db._local, 'conn', None)
+        if conn is not None and conn.in_transaction:
+            conn.rollback()
+            print(f"[DB] Rolled back unfinished writes from "
+                  f"{request.method} {request.path}")
+    except Exception:
+        pass  # never let teardown mask the real response/error
+
+
 # Store restore result for display (if any)
 if _restore_result and 'error' not in _restore_result:
     app.config['RESTORE_COMPLETED'] = _restore_result
