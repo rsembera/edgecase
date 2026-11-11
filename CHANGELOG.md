@@ -187,6 +187,14 @@ shown red against the previous code.
   - Two unescaped values in the backup folder picker (a folder path in a
     `title`, an error message).
 
+- **The Mac bundle no longer includes the working copy's `assets/`
+  folder.** `setup_app.py` listed it as a resource, so every Mac download
+  up to 2.0.4 carried the developer's own practice logo and signature
+  files (encrypted, unreadable without his master password and salt) and
+  two personal background images from `web/static/user_backgrounds`.
+  Found while building the 2.0.5 hotfix, which is built from a clean
+  worktree of its tag; the same fix is on the `hotfix-2.0.5` branch.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

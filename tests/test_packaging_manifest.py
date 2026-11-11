@@ -106,3 +106,11 @@ def test_templates_are_bundled(manifest):
     """The recovery-key screens live in web/templates; a build that drops them
     would fail only when a user hits the upgrade path."""
     assert "web/templates" in manifest.OPTIONS["resources"]
+
+
+def test_practice_data_directories_are_not_bundled(manifest):
+    """assets/ in a working copy holds the practice's own logo and signature;
+    it was listed as a resource and shipped in every Mac build up to 2.0.4."""
+    resources = set(manifest.OPTIONS["resources"])
+    assert not resources & {"assets", "data", "attachments", "backups"}
+

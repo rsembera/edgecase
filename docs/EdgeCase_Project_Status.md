@@ -14,6 +14,18 @@ production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
 1176 tests as of 2026-11-11.
 
+**2.0.5 hotfix in progress (2026-11-11)** — branch `hotfix-2.0.5`, tag
+`v2.0.5`: only the desktop View PDF/Download fix, the honest macOS floor
+(27), and a clean Mac bundle. Built and signed in a worktree at
+`/tmp/ec-hotfix` (`dist/EdgeCase Equalizer.app`). **Blocked on:** the
+`EdgeCase Notarization` keychain profile is missing (re-store it with
+`xcrun notarytool store-credentials`, Mac_Packaging_Guide.md), and Apollo
+was unreachable for the `.deb`. Build the `.deb` from a clean checkout of
+the tag, not Apollo's working copy (`web/` is copied whole). After 2.0.5
+ships: remove older DMGs from the site and decide about the DMG assets on
+older GitHub releases, which contain the bundled `assets/` files; then
+`main` becomes 2.0.6 and needs the 2.0.5 CHANGELOG entry merged in.
+
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
 review fixes"). Before 2.0.5 is built:
 
