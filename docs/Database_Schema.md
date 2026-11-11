@@ -64,6 +64,8 @@ CREATE TABLE clients (
     created_at INTEGER NOT NULL,
     modified_at INTEGER NOT NULL,
     is_deleted INTEGER DEFAULT 0,
+    waitlisted_at INTEGER,          -- added by migration
+    waitlist_note TEXT,             -- added by migration
     FOREIGN KEY (type_id) REFERENCES client_types(id)
 );
 ```
@@ -73,6 +75,8 @@ CREATE TABLE clients (
 - `session_offset`: Starting session number for migrated clients
 - `retention_days`: Set when moving to Inactive status (snapshots the type's retention_period)
 - `is_deleted`: Soft delete flag (0 = active, 1 = deleted)
+- `waitlisted_at`: When the client joined the wait list (NULL = not waiting). Flag and queue position in one; Inactive clients only, cleared by `update_client` when the type leaves Inactive
+- `waitlist_note`: Short note shown on the Wait List page (e.g. availability)
 
 ---
 

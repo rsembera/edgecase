@@ -85,7 +85,8 @@ class ClientMixin:
     # Allowed column names for dynamic UPDATE queries (security: prevents SQL injection via column names)
     ALLOWED_CLIENT_COLUMNS = frozenset({
         'file_number', 'first_name', 'middle_name', 'last_name', 'type_id',
-        'session_offset', 'retention_days', 'is_deleted', 'modified_at'
+        'session_offset', 'retention_days', 'is_deleted', 'modified_at',
+        'waitlisted_at', 'waitlist_note'
     })
 
     ALLOWED_ENTRY_COLUMNS = frozenset({
@@ -159,6 +160,14 @@ class ClientMixin:
 
         now = int(time.time())
 
+        # The wait list only exists for Inactive clients. Any type change to
+        # something else drops the client off it, here rather than in the
+        # route, so no path can leave a hidden tick on an Active file.
+        if client_data.get('type_id') is not None \
+                and not self._is_inactive_type(client_data['type_id']):
+            client_data = dict(client_data,
+                               waitlisted_at=None, waitlist_note=None)
+
         # Build UPDATE statement dynamically based on provided fields
         set_clauses = []
         values = []
@@ -185,6 +194,84 @@ class ClientMixin:
         
         return True
     
+    # ------------------------------------------------------------------
+    # WAIT LIST
+    # ------------------------------------------------------------------
+
+    def _is_inactive_type(self, type_id) -> bool:
+        """True if type_id is the seeded Inactive workflow type.
+
+        Matched on is_system_locked, not the name — same rule as the
+        retention sweep (core/db/retention.py).
+        """
+        cursor = self.connect().cursor()
+        cursor.execute("SELECT is_system_locked FROM client_types WHERE id = ?",
+                       (type_id,))
+        row = cursor.fetchone()
+        return bool(row and row[0])
+
+    def set_client_waitlist(self, client_id: int, on_list: bool,
+                            note: Optional[str] = None) -> bool:
+        """Put a client on the wait list, update their note, or take them off.
+
+        Only Inactive clients can be on the list; returns False (and changes
+        nothing) for anyone else. The date is stamped once, when the client
+        joins, and kept on later saves so editing the note never costs them
+        their place in line.
+        """
+        client = self.get_client(client_id)
+        if not client or client.get('is_deleted'):
+            return False
+
+        conn = self.connect()
+        cursor = conn.cursor()
+        now = int(time.time())
+
+        if not on_list:
+            cursor.execute("""
+                UPDATE clients
+                SET waitlisted_at = NULL, waitlist_note = NULL, modified_at = ?
+                WHERE id = ?
+            """, (now, client_id))
+            conn.commit()
+            return True
+
+        if not self._is_inactive_type(client['type_id']):
+            return False
+
+        cursor.execute("""
+            UPDATE clients
+            SET waitlisted_at = COALESCE(waitlisted_at, ?),
+                waitlist_note = ?, modified_at = ?
+            WHERE id = ?
+        """, (now, (note or '').strip() or None, now, client_id))
+        conn.commit()
+        return True
+
+    def get_waitlist(self) -> List[Dict[str, Any]]:
+        """Clients on the wait list, longest-waiting first, with contact
+        details from their profile."""
+        conn = self.connect()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT c.id, c.file_number, c.first_name, c.middle_name,
+                   c.last_name, c.waitlisted_at, c.waitlist_note,
+                   (SELECT phone FROM entries
+                    WHERE client_id = c.id AND class = 'profile'
+                    LIMIT 1) AS phone,
+                   (SELECT email FROM entries
+                    WHERE client_id = c.id AND class = 'profile'
+                    LIMIT 1) AS email
+            FROM clients c
+            JOIN client_types ct ON c.type_id = ct.id
+            WHERE c.waitlisted_at IS NOT NULL
+              AND c.is_deleted = 0
+              AND ct.is_system_locked = 1
+            ORDER BY c.waitlisted_at ASC, c.id ASC
+        """)
+        return [dict(row) for row in cursor.fetchall()]
+
     def search_clients(self, search_term: str) -> List[Dict[str, Any]]:
         """Search clients by name, file number, email, or phone."""
         conn = self.connect()

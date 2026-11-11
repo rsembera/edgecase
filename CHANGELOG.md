@@ -1,5 +1,37 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — Wait List
+
+First inquiry that may have to wait for an opening. A waitlisted person
+has consented, so they have a client file; they are not being seen, so
+the file is Inactive and retention runs as for any other Inactive file.
+The wait list is therefore a flag on an Inactive client, not a third
+client type — the retention sweep is keyed to the Inactive type and a
+"Waiting" type would have sat outside it. The main-view filters stay
+about type; the list gets its own page.
+
+- **Profile:** an "On wait list" checkbox, rendered only when the client
+  is Inactive, and a short note field that appears when it is ticked.
+- **Storage:** `clients.waitlisted_at` (the date ticked — flag and queue
+  position in one) and `clients.waitlist_note`. The date is stamped once,
+  so editing the note keeps the place in line. Both are cleared whenever
+  the type leaves Inactive, enforced in `update_client` so no route can
+  leave a hidden tick on an Active file.
+- **Manage → Wait List** (just above Deleted): name (links to the file),
+  date added, time waiting, phone/email, note; longest-waiting first.
+  Remove asks for confirmation in an in-app modal, since re-adding stamps
+  a new date. Removal leaves the file Inactive.
+- Adding, removing and note changes are recorded in the Profile's edit
+  history.
+
+Deliberately left out: the checkbox on Add Client (the file is created at
+first contact, consent to wait comes later), manual reordering, and
+review reminders (the list is consulted when a slot opens).
+
+13 tests in tests/test_wait_list.py; the three guard tests (type change
+clears the list, via the data layer and via the route; a Profile post
+without the section changes nothing) red with the guards removed.
+
 ### 2026-10-28 — Statements: longer osascript timeout; Automation denial explained
 
 A statement email failed with "AppleScript timed out" and a macOS notice

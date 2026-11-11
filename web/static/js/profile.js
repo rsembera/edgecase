@@ -214,6 +214,15 @@ if (sessionTotal) {
     });
 }
 
+// Wait list note toggle (the checkbox only exists for Inactive clients)
+const onWaitlist = document.getElementById('on_waitlist');
+if (onWaitlist) {
+    onWaitlist.addEventListener('change', function() {
+        document.getElementById('waitlist-fields').style.display =
+            this.checked ? 'block' : 'none';
+    });
+}
+
 // Guardian section toggle
 const isMinor = document.getElementById('is_minor');
 const guardianFields = document.getElementById('guardian-fields');

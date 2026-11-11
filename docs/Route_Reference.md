@@ -710,6 +710,21 @@ def deleted_clients()
 
 ---
 
+### Wait List
+
+```python
+@clients_bp.route('/wait-list')
+def wait_list()
+
+@clients_bp.route('/wait-list/<int:client_id>/remove', methods=['POST'])
+def wait_list_remove(client_id)
+```
+**Purpose:** Inactive clients flagged "On wait list" in their Profile, longest-waiting first; remove takes one off the list (file stays Inactive) and redirects back
+
+**Returns:** `wait_list.html`
+
+---
+
 ### Export Entries
 
 ```python

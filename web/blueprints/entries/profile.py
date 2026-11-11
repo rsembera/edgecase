@@ -23,6 +23,31 @@ def edit_profile(client_id):
     profile = db.get_profile_entry(client_id)
     
     if request.method == 'POST':
+        # Wait list. The fields are only rendered for Inactive clients, and
+        # waitlist_present marks a form that actually carried them — an
+        # unticked checkbox and a form without the section look the same
+        # otherwise, and the second must not take anyone off the list.
+        waitlist_posted = (bool(client['type'].get('is_system_locked'))
+                           and 'waitlist_present' in request.form)
+        was_on_list = bool(client.get('waitlisted_at'))
+        old_wait_note = client.get('waitlist_note') or ''
+        now_on_list = bool(request.form.get('on_waitlist')) if waitlist_posted else was_on_list
+        new_wait_note = ((request.form.get('waitlist_note') or '').strip()
+                         if waitlist_posted and now_on_list else
+                         (old_wait_note if now_on_list else ''))
+        waitlist_changes = []
+        if now_on_list != was_on_list:
+            waitlist_changes.append(
+                "Wait List: Added" if now_on_list else "Wait List: Removed")
+        if now_on_list and new_wait_note != old_wait_note:
+            if old_wait_note and new_wait_note:
+                waitlist_changes.append(
+                    f"Wait List Note: {old_wait_note} → {new_wait_note}")
+            elif old_wait_note:
+                waitlist_changes.append("Wait List Note: Cleared")
+            else:
+                waitlist_changes.append("Wait List Note: Added")
+
         # Prepare profile data
         profile_data = {
             'client_id': client_id,
@@ -288,6 +313,8 @@ def edit_profile(client_id):
                     new_pct = profile_data.get('guardian2_pays_percent') or 0
                     changes.append(f"Guardian 2 Pays: {old_pct}% → {new_pct}%")
                 
+                changes.extend(waitlist_changes)
+
                 if changes:
                     change_desc = "; ".join(changes)
                     db.add_to_edit_history(profile['id'], change_desc)
@@ -322,6 +349,9 @@ def edit_profile(client_id):
         if 'provider_id' in request.form:
             db.set_client_provider(client_id,
                                    request.form.get('provider_id') or None)
+
+        if waitlist_posted:
+            db.set_client_waitlist(client_id, now_on_list, new_wait_note)
 
         return redirect(url_for('clients.client_file', client_id=client_id))
     
@@ -362,4 +392,7 @@ def edit_profile(client_id):
                          edit_history=edit_history,
                          insurance_providers=insurance_providers,
                          current_provider=current_provider,
-                         retention_info=retention_info)
+                         retention_info=retention_info,
+                         waitlisted_since=(
+                             datetime.fromtimestamp(client['waitlisted_at']).strftime('%B %d, %Y')
+                             if client.get('waitlisted_at') else None))

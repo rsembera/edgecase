@@ -604,6 +604,15 @@ class Database(SettingsMixin, ClientTypeMixin, EditHistoryMixin, LinkMixin, Clie
                            "ADD COLUMN provider_id INTEGER REFERENCES "
                            "insurance_providers(id)")
 
+        # Wait list: waitlisted_at is both the flag and the queue position
+        # (NULL = not waiting). Only meaningful on Inactive clients — see
+        # core/db/clients.py (update_client clears both when the type
+        # leaves Inactive).
+        if 'waitlisted_at' not in client_columns:
+            cursor.execute("ALTER TABLE clients ADD COLUMN waitlisted_at INTEGER")
+        if 'waitlist_note' not in client_columns:
+            cursor.execute("ALTER TABLE clients ADD COLUMN waitlist_note TEXT")
+
         # AirLock invitations (online intake & consent; see core/db/airlock.py
         # and docs/Intake_Service_Plan.md). Additive: the table appears on
         # next launch and stays empty unless AirLock is used. token and pin

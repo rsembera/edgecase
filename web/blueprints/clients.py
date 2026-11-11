@@ -733,6 +733,50 @@ def deleted_clients():
     
     return render_template('deleted_clients.html', deleted=deleted)
 
+
+def _waiting_for(since_ts, now_ts):
+    """Plain-language wait length for the Wait List page."""
+    days = max(0, int((now_ts - since_ts) // 86400))
+    if days == 0:
+        return 'Today'
+    if days < 14:
+        return f"{days} day{'s' if days != 1 else ''}"
+    if days < 60:
+        return f"{days // 7} weeks"
+    return f"{days // 30} months"
+
+
+@clients_bp.route('/wait-list')
+def wait_list():
+    """Inactive clients who have consented to wait for an opening,
+    longest-waiting first."""
+    import time
+    from datetime import datetime
+
+    waiting = db.get_waitlist()
+    now = int(time.time())
+    for client in waiting:
+        parts = [client['first_name'], client.get('middle_name'), client['last_name']]
+        client['full_name'] = ' '.join(p for p in parts if p)
+        client['added_display'] = datetime.fromtimestamp(
+            client['waitlisted_at']).strftime('%Y-%m-%d')
+        client['waiting_display'] = _waiting_for(client['waitlisted_at'], now)
+
+    return render_template('wait_list.html', waiting=waiting)
+
+
+@clients_bp.route('/wait-list/<int:client_id>/remove', methods=['POST'])
+def wait_list_remove(client_id):
+    """Take a client off the wait list. They stay Inactive, with retention
+    running as before."""
+    client = db.get_client(client_id)
+    if client and client.get('waitlisted_at'):
+        db.set_client_waitlist(client_id, False)
+        profile = db.get_profile_entry(client_id)
+        if profile and db.is_entry_locked(profile['id']):
+            db.add_to_edit_history(profile['id'], "Wait List: Removed")
+    return redirect(url_for('clients.wait_list'))
+
 @clients_bp.route('/client/<int:client_id>/export')
 def export_client(client_id):
     """Show the export page for a client."""

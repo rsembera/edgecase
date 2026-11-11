@@ -2,7 +2,7 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** October 28, 2026  
+**Last Updated:** November 11, 2026  
 **Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
 
 ---
@@ -12,7 +12,7 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
-1099 tests as of 2026-10-28.
+1113 tests as of 2026-11-11.
 
 **DECIDE BEFORE BUILDING 2.0.5 — macOS floor.** The bundle's real minimum
 macOS is whatever the build machine's Homebrew Python was compiled for.
@@ -27,6 +27,13 @@ Python (targets old macOS) plus low-target native libs (sqlcipher via
 conda-forge), tested in a UTM VM; (c) build on a macOS 26 UTM VM. Update
 README + site (download.html, docs/installation.html) to the measured floor.
 
+- **2026-11-11 — Wait List (feature — subject to the lived-with rule).**
+  An "On wait list" checkbox and note on the Profile, shown only for
+  Inactive clients; Manage → Wait List page, longest-waiting first, with
+  remove. Stored as `clients.waitlisted_at` / `waitlist_note`, cleared
+  when the type leaves Inactive, so retention runs untouched. Built for
+  the first real wait-list inquiry; not yet used in production. 1113
+  tests.
 - **2026-10-28 — Statements: osascript email timeout 60s (was 10s);
   Automation denial explained.** A send failed with "AppleScript timed
   out" because Mail.app had stopped answering Apple events (it crashed
