@@ -25,7 +25,13 @@ The 2.0.4 packages are off the site docroot and the older Mac dmgs are no
 longer offered. The GitHub repository was recreated on 2026-11-11 from a
 rewritten history: every commit ID from before that date changed, release
 dates on GitHub show that day, and any older clone must be re-cloned, not
-pulled. Still open: install 2.0.5 in /Applications.
+pulled. 2.0.5 is installed in /Applications on the Mac;
+Apollo's installed copy is still 2.0.2 (needs `sudo apt install` of the 2.0.5 `.deb`).
+
+**For the 2.0.6 release (website):** `features.html` lists "No waitlist
+management" among the things EdgeCase does not do; remove that line and
+document the Wait List when 2.0.6 ships. The website working copy is at
+`/Users/rick/Websites/edgecase-website`.
 
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
 review fixes"). Before 2.0.6 is built:
