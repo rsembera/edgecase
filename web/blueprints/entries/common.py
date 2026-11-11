@@ -10,7 +10,7 @@ import os
 from flask import Blueprint
 
 from core.config import DATA_ROOT
-from core.money import money_float
+from core.money import format_currency, money_float
 
 # Blueprint name MUST stay 'entries' — url_for('entries.<fn>') is used throughout
 # the templates, so the endpoint prefix cannot change.
@@ -55,6 +55,15 @@ def safe_money(value, default=None):
         return money_float(value)
     except (ValueError, TypeError, ArithmeticError):
         return default
+
+
+def money_text(amount):
+    """An amount as shown in edit-history lines, in the practice's currency.
+
+    These lines used to hard-code "$", whatever Settings said.
+    """
+    currency = get_db().get_setting('currency', 'CAD')
+    return format_currency(amount, currency, thousands=False)
 
 
 def safe_int(value, default=None):

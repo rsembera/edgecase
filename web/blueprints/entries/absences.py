@@ -6,7 +6,7 @@ from datetime import datetime
 
 from flask import render_template, request, redirect, url_for
 from web.utils import get_link_group_fees
-from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money
+from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, money_text
 
 
 @entries_bp.route('/client/<int:client_id>/absence', methods=['GET', 'POST'])
@@ -165,8 +165,8 @@ def edit_absence(client_id, entry_id):
             if old_absence.get('base_fee') != absence_data.get('base_fee'):
                 old_base = old_absence.get('base_fee')
                 new_base = absence_data.get('base_fee')
-                old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                old_str = money_text(old_base) if old_base is not None else "None"
+                new_str = money_text(new_base) if new_base is not None else "None"
                 changes.append(f"Base Price: {old_str} → {new_str}")
             
             if old_absence.get('tax_rate') != absence_data.get('tax_rate'):
@@ -179,8 +179,8 @@ def edit_absence(client_id, entry_id):
             if old_absence.get('fee') != absence_data.get('fee'):
                 old_fee = old_absence.get('fee')
                 new_fee = absence_data.get('fee')
-                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                old_str = money_text(old_fee) if old_fee is not None else "None"
+                new_str = money_text(new_fee) if new_fee is not None else "None"
                 changes.append(f"Total Fee: {old_str} → {new_str}")
             
             # Content (with smart word-level diff)

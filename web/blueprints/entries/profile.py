@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 
 from flask import render_template, request, redirect, url_for
-from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int
+from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int, money_text
 
 
 @entries_bp.route('/client/<int:client_id>/profile', methods=['GET', 'POST'])
@@ -222,8 +222,8 @@ def edit_profile(client_id):
                         new_base = float(new_base) if new_base else None
                     # Only log if there's an actual change (not None → None)
                     if old_base is not None or new_base is not None:
-                        old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                        new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                        old_str = money_text(old_base) if old_base is not None else "None"
+                        new_str = money_text(new_base) if new_base is not None else "None"
                         changes.append(f"Session Fee Base: {old_str} → {new_str}")
                 
                 if old_profile.get('session_tax_rate') != profile_data.get('session_tax_rate'):
@@ -250,8 +250,8 @@ def edit_profile(client_id):
                         new_fee = float(new_fee) if new_fee else None
                     # Only log if there's an actual change (not None → None)
                     if old_fee is not None or new_fee is not None:
-                        old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                        new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                        old_str = money_text(old_fee) if old_fee is not None else "None"
+                        new_str = money_text(new_fee) if new_fee is not None else "None"
                         changes.append(f"Session Fee Total: {old_str} → {new_str}")
                 
                 # Default session duration

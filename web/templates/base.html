@@ -288,6 +288,7 @@
     
 <!-- Shared utilities (escapeHtml, autoResizeTextarea, calculateThreeWayFee, color palette)
          Must load before page-specific scripts -->
+    <script>window.CURRENCY_SYMBOL = {{ currency_symbol|tojson }};</script>
     <script src="{{ url_for('static', filename='js/shared_utils.js', v=static_v) }}"></script>
 
     <!-- Choices.js for styled dropdowns -->

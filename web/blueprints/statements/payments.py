@@ -6,7 +6,7 @@ from flask import request, jsonify
 from datetime import datetime
 import calendar
 import time
-from core.money import dec, quantize_cents, money_float, to_cents
+from core.money import dec, format_currency, quantize_cents, money_float, to_cents
 from core.billing import apply_payment, prorata_tax, propose_allocation
 from web.blueprints.statements.common import statements_bp, get_db
 
@@ -607,7 +607,8 @@ def write_off_statement():
         dec(portion['amount_due']) - dec(portion['amount_paid']))
     content_parts = [
         f"**Statement:** {portion['statement_description']}",
-        f"**Amount Written Off:** ${amount_owing:.2f}",
+        "**Amount Written Off:** " + format_currency(
+            amount_owing, db.get_setting('currency', 'CAD'), thousands=False),
         f"**Reason:** {reason_label}"
     ]
     if note:

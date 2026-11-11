@@ -214,7 +214,7 @@ function displayPreview(data) {
  * @returns {string} Formatted currency string
  */
 function formatCurrency(amount) {
-    return '$' + Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return window.CURRENCY_SYMBOL + Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /**

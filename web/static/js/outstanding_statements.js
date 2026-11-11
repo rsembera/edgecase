@@ -335,7 +335,7 @@ function findUnbilled() {
                             <input type="checkbox" class="client-checkbox" value="${client.id}" data-amount="${client.unbilled_total}">
                             <span class="client-name">${escapeHtml(client.name)}</span>
                             <span class="file-number">${escapeHtml(client.file_number)}${client.inactive ? ' · Inactive' : ''}</span>
-                            <span class="unbilled-amount">$${client.unbilled_total.toFixed(2)}</span>
+                            <span class="unbilled-amount">${window.CURRENCY_SYMBOL}${client.unbilled_total.toFixed(2)}</span>
                         </div>
                     `;
                 });
@@ -444,7 +444,7 @@ function generateStatements(btnEl) {
             if (skipped.length > 0) {
                 // Negative totals format as -$40.00, not $-40.00
                 const names = skipped.map(s =>
-                    `${s.name} (-$${Math.abs(s.total).toFixed(2)})`).join(', ');
+                    `${s.name} (-${window.CURRENCY_SYMBOL}${Math.abs(s.total).toFixed(2)})`).join(', ');
                 message += `. No statement for ${names} — credits exceed charges `
                          + `for this period, so those entries stay unbilled and `
                          + `will appear on the next statement that covers them.`;
@@ -713,7 +713,7 @@ function renderPayerLine(data) {
         text += ' — ' + data.payer_label;
     }
     if (data.credit > 0) {
-        text += ` · $${data.credit.toFixed(2)} on account`;
+        text += ` · ${window.CURRENCY_SYMBOL}${data.credit.toFixed(2)} on account`;
     }
     document.getElementById('payment-payer').textContent = text;
 }
@@ -739,7 +739,7 @@ function renderAllocationRows(data) {
                 ${escapeHtml(portion.description)}
                 <span class="allocation-date">${escapeHtml(portion.date)}</span>
             </td>
-            <td class="numeric">$${portion.amount_owing.toFixed(2)}</td>
+            <td class="numeric">${window.CURRENCY_SYMBOL}${portion.amount_owing.toFixed(2)}</td>
             <td class="numeric">
                 <input type="number" class="allocation-input"
                        step="0.01" min="0" max="${portion.amount_owing}"
@@ -822,15 +822,15 @@ function updateAllocationSummary() {
     const remainder = Math.round((amount - applied) * 100) / 100;
 
     if (remainder < 0) {
-        summary.textContent = `Applied $${applied.toFixed(2)}, which is more than `
-                            + `the $${amount.toFixed(2)} received.`;
+        summary.textContent = `Applied ${window.CURRENCY_SYMBOL}${applied.toFixed(2)}, which is more than `
+                            + `the ${window.CURRENCY_SYMBOL}${amount.toFixed(2)} received.`;
         summary.classList.add('over');
     } else if (remainder > 0) {
-        summary.textContent = `Applied $${applied.toFixed(2)} · $${remainder.toFixed(2)} `
+        summary.textContent = `Applied ${window.CURRENCY_SYMBOL}${applied.toFixed(2)} · ${window.CURRENCY_SYMBOL}${remainder.toFixed(2)} `
                             + `held as credit on the client's account.`;
         summary.classList.remove('over');
     } else {
-        summary.textContent = `Applied $${applied.toFixed(2)} of $${amount.toFixed(2)}.`;
+        summary.textContent = `Applied ${window.CURRENCY_SYMBOL}${applied.toFixed(2)} of ${window.CURRENCY_SYMBOL}${amount.toFixed(2)}.`;
         summary.classList.remove('over');
     }
 }
@@ -913,13 +913,13 @@ function confirmPayment() {
         const applied = allocationTotal();
         // Numbers only — safe as HTML.
         errorBox.innerHTML =
-            `<strong>Amount received is $${amount.toFixed(2)}, but only $${applied.toFixed(2)} `
-            + `is applied to statements.</strong> The other $${leftover.toFixed(2)} would be held `
+            `<strong>Amount received is ${window.CURRENCY_SYMBOL}${amount.toFixed(2)}, but only ${window.CURRENCY_SYMBOL}${applied.toFixed(2)} `
+            + `is applied to statements.</strong> The other ${window.CURRENCY_SYMBOL}${leftover.toFixed(2)} would be held `
             + `as credit on the client's account.<br><br>`
-            + `If the client paid $${applied.toFixed(2)}: change <em>Amount received</em> to `
-            + `$${applied.toFixed(2)}.<br>`
-            + `If the client really paid $${amount.toFixed(2)}: press Confirm again to hold `
-            + `$${leftover.toFixed(2)} as credit.`;
+            + `If the client paid ${window.CURRENCY_SYMBOL}${applied.toFixed(2)}: change <em>Amount received</em> to `
+            + `${window.CURRENCY_SYMBOL}${applied.toFixed(2)}.<br>`
+            + `If the client really paid ${window.CURRENCY_SYMBOL}${amount.toFixed(2)}: press Confirm again to hold `
+            + `${window.CURRENCY_SYMBOL}${leftover.toFixed(2)} as credit.`;
         errorBox.style.display = 'block';
         return;
     }
@@ -941,7 +941,7 @@ function confirmPayment() {
             hidePaymentModal();
             let message = 'Payment recorded';
             if (data.credit > 0) {
-                message += `. $${data.credit.toFixed(2)} is held as credit on the `
+                message += `. ${window.CURRENCY_SYMBOL}${data.credit.toFixed(2)} is held as credit on the `
                          + `client's account.`;
             }
             showSuccessModal(message, 'Success');
@@ -973,7 +973,7 @@ function showWriteOffModal(portionId, amountOwing) {
     document.getElementById('writeoff-note-group').style.display = 'none';
     document.getElementById('writeoff-hint').textContent = '';
     document.getElementById('writeoff-error').style.display = 'none';
-    document.getElementById('writeoff-amount-text').textContent = '$' + amountOwing.toFixed(2);
+    document.getElementById('writeoff-amount-text').textContent = window.CURRENCY_SYMBOL + amountOwing.toFixed(2);
     
     document.getElementById('writeoff-modal').classList.add('visible');
 }

@@ -92,6 +92,19 @@ def inject_static_version():
 
 
 @app.context_processor
+def inject_currency_symbol():
+    """The practice's currency symbol, for script on every page
+    (window.CURRENCY_SYMBOL in base.html). '$' until a practice is open."""
+    from core.money import get_currency_symbol
+    db = app.config.get('db')
+    try:
+        code = db.get_setting('currency', 'CAD') if db else 'CAD'
+    except Exception:
+        code = 'CAD'
+    return {'currency_symbol': get_currency_symbol(code)}
+
+
+@app.context_processor
 def inject_app_version():
     from core.config import APP_VERSION, APP_RELEASE_NAME
     return {'app_version': APP_VERSION, 'app_release_name': APP_RELEASE_NAME}

@@ -8,7 +8,7 @@ import time
 import sqlcipher3 as sqlite3
 from flask import render_template, request, redirect, url_for
 from web.utils import parse_date_from_form, get_today_date_parts, get_link_group_fees
-from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int, renumber_sessions
+from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, safe_int, renumber_sessions, money_text
 
 
 @entries_bp.route('/client/<int:client_id>/session', methods=['GET', 'POST'])
@@ -296,8 +296,8 @@ def edit_session(client_id, entry_id):
                 if old_session.get('base_fee') != session_data.get('base_fee'):
                     old_base = old_session.get('base_fee')
                     new_base = session_data.get('base_fee')
-                    old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                    new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                    old_str = money_text(old_base) if old_base is not None else "None"
+                    new_str = money_text(new_base) if new_base is not None else "None"
                     changes.append(f"Base Fee: {old_str} → {new_str}")
                 
                 if old_session.get('tax_rate') != session_data.get('tax_rate'):
@@ -310,8 +310,8 @@ def edit_session(client_id, entry_id):
                 if old_session.get('fee') != session_data.get('fee'):
                     old_fee = old_session.get('fee')
                     new_fee = session_data.get('fee')
-                    old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                    new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                    old_str = money_text(old_fee) if old_fee is not None else "None"
+                    new_str = money_text(new_fee) if new_fee is not None else "None"
                     changes.append(f"Total Fee: {old_str} → {new_str}")
                 
                 # Consultation/Pro Bono

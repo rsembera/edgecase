@@ -135,7 +135,7 @@ function updateGuardianFeeDisplay(total) {
     
     if (feeDisplay) {
         if (total && total > 0) {
-            feeDisplay.textContent = '$' + total.toFixed(2);
+            feeDisplay.textContent = window.CURRENCY_SYMBOL + total.toFixed(2);
         } else {
             feeDisplay.textContent = '(Not set - configure above)';
         }
@@ -164,12 +164,12 @@ function updateGuardianAmountsDisplay() {
     // G1 gets exact percentage, G2 gets remainder to ensure exact total
     const guardian1Amount = Math.round(sessionFee * guardian1Percent) / 100;
     
-    let html = `<strong>Primary Guardian (${guardian1Percent}%):</strong> $${guardian1Amount.toFixed(2)}`;
+    let html = `<strong>Primary Guardian (${guardian1Percent}%):</strong> ${window.CURRENCY_SYMBOL}${guardian1Amount.toFixed(2)}`;
     
     if (hasSecondGuardian) {
         const guardian2Percent = parseInt(document.getElementById('guardian2_amount').value) || 0;
         const guardian2Amount = Math.round((sessionFee - guardian1Amount) * 100) / 100;
-        html += `<br><strong>Second Guardian (${guardian2Percent}%):</strong> $${guardian2Amount.toFixed(2)}`;
+        html += `<br><strong>Second Guardian (${guardian2Percent}%):</strong> ${window.CURRENCY_SYMBOL}${guardian2Amount.toFixed(2)}`;
     }
     
     amountsDisplay.innerHTML = html;

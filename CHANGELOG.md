@@ -169,6 +169,13 @@ shown red against the previous code.
   says so; a proofread of a long note used to come back looking as though
   the model had deleted its ending. tests/test_review_scribe_truncation.py.
 
+- **The currency symbol follows Settings.** "$" was hard-coded in the
+  statements page script, the profile fee display, the report preview,
+  the fee lines of the edit history and the write-off note. Pages now get
+  `window.CURRENCY_SYMBOL` from the practice's currency, and edit-history
+  amounts go through `money_text()`. A dollar practice reads exactly as
+  before. tests/test_review_currency_symbol.py.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

@@ -8,7 +8,7 @@ import time
 from flask import render_template, request, redirect, url_for
 from core.money import money_float
 from web.utils import get_today_date_parts, save_uploaded_files
-from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money
+from web.blueprints.entries.common import entries_bp, get_db, safe_float, safe_money, money_text
 
 
 @entries_bp.route('/client/<int:client_id>/item', methods=['GET', 'POST'])
@@ -172,8 +172,8 @@ def edit_item(client_id, entry_id):
             if old_item.get('base_price') != item_data.get('base_price'):
                 old_base = old_item.get('base_price')
                 new_base = item_data.get('base_price')
-                old_str = f"${old_base:.2f}" if old_base is not None else "None"
-                new_str = f"${new_base:.2f}" if new_base is not None else "None"
+                old_str = money_text(old_base) if old_base is not None else "None"
+                new_str = money_text(new_base) if new_base is not None else "None"
                 changes.append(f"Base Price: {old_str} → {new_str}")
             
             if old_item.get('tax_rate') != item_data.get('tax_rate'):
@@ -186,8 +186,8 @@ def edit_item(client_id, entry_id):
             if old_item.get('fee') != item_data.get('fee'):
                 old_fee = old_item.get('fee')
                 new_fee = item_data.get('fee')
-                old_str = f"${old_fee:.2f}" if old_fee is not None else "None"
-                new_str = f"${new_fee:.2f}" if new_fee is not None else "None"
+                old_str = money_text(old_fee) if old_fee is not None else "None"
+                new_str = money_text(new_fee) if new_fee is not None else "None"
                 changes.append(f"Total Fee: {old_str} → {new_str}")
             
             # Content (with smart word-level diff)
