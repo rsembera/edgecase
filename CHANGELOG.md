@@ -121,6 +121,29 @@ shown red against the previous code.
   "earlier unbilled" notice, while the client file went on showing the
   amount. tests/test_review_billing_and_retention.py (nine red before).
 
+- **Smaller fixes** (tests/test_review_small_fixes.py, ten red before):
+  - A Profile save with no date of birth no longer logs "Date of Birth:
+    None → None" every time.
+  - A blank consultation duration in Settings no longer makes the schedule
+    page return a 500 for every client.
+  - Renaming a client type to a name already in use shows the "already
+    exists" message instead of a 500; a blank retention value is 0.
+  - Item edits round fee and guardian amounts to cents, as creation does.
+  - **Uploads lock on save** like every other entry type (decided
+    2026-11-11), so later edits are recorded. An upload from before this
+    locks at its next save.
+  - The allocation backfill no longer prints a "skipped" line at every
+    launch for payments whose statement went with a disposed client.
+  - Cached keys (and the password strings they were filed under) are
+    dropped when the practice is locked: logout, timeout, window close.
+  - Ledger entry delete and payment reversal remove attachment files only
+    after the database commit.
+  - A disposed client's file number is not reissued; the ledger still
+    carries their payments under it.
+  - `.ics` notes no longer carry a bare carriage return per line.
+  - A client export with an impossible date is refused instead of silently
+    dropping the date limit.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

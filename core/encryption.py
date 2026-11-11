@@ -70,6 +70,19 @@ def _get_fernet(password: str) -> Fernet:
     return fernet
 
 
+def forget_keys() -> None:
+    """Drop every cached key and the password strings they are filed under.
+
+    Called when the practice is locked (logout, timeout, window close).
+    The caches exist so key derivation runs once per session; left alone
+    they kept the master password and the database key in memory for as
+    long as the process lived, locked or not.
+    """
+    from core import encryption_v2 as _v2
+    _fernet_cache.clear()
+    _v2._key_cache.clear()
+
+
 def encrypt_file(filepath: str, password: str) -> None:
     """Encrypt a file in place.
 

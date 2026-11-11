@@ -33,6 +33,7 @@ def escape_ics_text(text):
     """
     if not text:
         return ''
+    text = text.replace('\r\n', '\n').replace('\r', '\n')  # form text is CRLF
     text = text.replace('\\', '\\\\')  # Backslash first!
     text = text.replace(';', '\\;')
     text = text.replace(',', '\\,')
@@ -323,7 +324,11 @@ def schedule_for_client(client_id):
         individual_duration = client_type['session_duration']
     
     # Consultation duration from settings
-    consultation_duration = int(db.get_setting('consultation_duration', '50'))
+    # Settings saves whatever is in the field, including nothing.
+    try:
+        consultation_duration = int(db.get_setting('consultation_duration', '50') or 50)
+    except (ValueError, TypeError):
+        consultation_duration = 50
     
     # Link group info by format (duration + member file numbers)
     link_group_durations = {}

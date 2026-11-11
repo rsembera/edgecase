@@ -1227,6 +1227,8 @@ def logout():
         from web.cli import _run_shutdown_backup
         _run_shutdown_backup(db, label="Logout")
         db.close()
+        from core.encryption import forget_keys
+        forget_keys()
     forget_session()
     return redirect(url_for('auth.login'))
 

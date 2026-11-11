@@ -292,6 +292,8 @@ def run_desktop():
                     _run_shutdown_backup(db, label="Window Close")
                     db.close()
                     app.config['db'] = None
+                    from core.encryption import forget_keys
+                    forget_keys()
                     print("Backup complete.")
         except Exception as e:
             print(f"Shutdown backup error: {e}")

@@ -485,14 +485,16 @@ def reverse_payment():
         cursor.execute(
             "DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
 
-        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
-        if upload_dir.exists():
-            shutil.rmtree(upload_dir)
-
         # ---- delete the income entry ---------------------------------------
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
 
         conn.commit()
+
+        # Files only after the commit, so a failed reversal cannot leave the
+        # payment in place with its attachments gone.
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
+        if upload_dir.exists():
+            shutil.rmtree(upload_dir, ignore_errors=True)
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False,

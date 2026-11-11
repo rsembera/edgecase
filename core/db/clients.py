@@ -51,6 +51,13 @@ class ClientMixin:
         conn = self.connect()
         cursor = conn.cursor()
         cursor.execute("SELECT 1 FROM clients WHERE file_number = ?", (file_number,))
+        if cursor.fetchone() is not None:
+            return True
+        # A file number retired with a disposed client stays retired: the
+        # ledger still carries that client's payments under it, and reusing
+        # it would put them on the new client's Payment Record.
+        cursor.execute("SELECT 1 FROM archived_clients WHERE file_number = ?",
+                       (file_number,))
         return cursor.fetchone() is not None
 
     def get_client(self, client_id: int) -> Optional[Dict[str, Any]]:

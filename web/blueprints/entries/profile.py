@@ -158,7 +158,9 @@ def edit_profile(client_id):
                             changes.append(f"{label}: Added")
                 
                 # Date of Birth
-                if old_profile.get('date_of_birth') != profile_data.get('date_of_birth'):
+                # '' (the form) and NULL (the stored value) both mean "not
+                # set"; comparing them raw logged "None → None" on every save.
+                if (old_profile.get('date_of_birth') or '') != (profile_data.get('date_of_birth') or ''):
                     old_dob = old_profile.get('date_of_birth') or 'None'
                     new_dob = profile_data.get('date_of_birth') or 'None'
                     changes.append(f"Date of Birth: {old_dob} → {new_dob}")

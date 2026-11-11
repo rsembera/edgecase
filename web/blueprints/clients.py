@@ -917,7 +917,9 @@ def calculate_export(client_id):
                 # End of day
                 end_date = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
         except (ValueError, TypeError):
-            pass
+            # Not "pass": dropping the limit would count (and then export)
+            # records outside the range that was asked for.
+            return jsonify({'error': 'Invalid date range'}), 400
     
     # Count entries by type
     counts = {
@@ -1023,7 +1025,8 @@ def export_client_pdf(client_id):
             if end_year:
                 end_date = int(datetime(end_year, end_month, end_day, 23, 59, 59).timestamp())
         except (ValueError, TypeError):
-            pass
+            # An export is a release of records: never widen it silently.
+            return "Invalid date range", 400
     
     # Generate PDF
     try:

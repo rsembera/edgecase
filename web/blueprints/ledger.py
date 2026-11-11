@@ -281,18 +281,21 @@ def delete_income_entry(entry_id):
         }), 409
     
     try:
-        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
-        if os.path.exists(upload_dir):
-            shutil.rmtree(upload_dir)
-        
         conn = db.connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
         conn.commit()
-        
+
+        # Files only after the commit: a failed delete must not leave the
+        # entry in place with its attachments already gone from disk.
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
+        if os.path.exists(upload_dir):
+            shutil.rmtree(upload_dir, ignore_errors=True)
+
         return "", 200
     except Exception as e:
+        db.connect().rollback()
         print(f"Error deleting income entry: {e}")
         return f"Error: {str(e)}", 500
 
@@ -463,18 +466,21 @@ def delete_expense_entry(entry_id):
         return "Expense entry not found", 404
     
     try:
-        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
-        if os.path.exists(upload_dir):
-            shutil.rmtree(upload_dir)
-        
         conn = db.connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM attachments WHERE entry_id = ?", (entry_id,))
         cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
         conn.commit()
-        
+
+        # Files only after the commit: a failed delete must not leave the
+        # entry in place with its attachments already gone from disk.
+        upload_dir = ATTACHMENTS_DIR / 'ledger' / str(entry_id)
+        if os.path.exists(upload_dir):
+            shutil.rmtree(upload_dir, ignore_errors=True)
+
         return "", 200
     except Exception as e:
+        db.connect().rollback()
         print(f"Error deleting expense entry: {e}")
         return f"Error: {str(e)}", 500
 

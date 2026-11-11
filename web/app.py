@@ -508,6 +508,8 @@ def require_login():
                 except Exception as e:
                     print(f"[Timeout] Backup error: {e}")
                 claimed.close()
+                from core.encryption import forget_keys
+                forget_keys()
             session_state.forget_session()
 
         if is_api_request():

@@ -63,7 +63,7 @@ def add_type():
     """Add a new client type"""
     if request.method == 'POST':
         # Convert retention value + unit to days
-        retention_value = int(request.form.get('retention_value', 0))
+        retention_value = int(request.form.get('retention_value') or 0)
         retention_unit = request.form.get('retention_unit', 'months')
         
         if retention_unit == 'days':
@@ -124,7 +124,7 @@ def edit_type(type_id):
             return redirect(url_for('types.manage_types'))
         
         # Convert retention value + unit to days
-        retention_value = int(request.form.get('retention_value', 0))
+        retention_value = int(request.form.get('retention_value') or 0)
         retention_unit = request.form.get('retention_unit', 'months')
         
         if retention_unit == 'days':
@@ -143,7 +143,15 @@ def edit_type(type_id):
             'retention_period': retention_days
         }
         
-        db.update_client_type(type_id, type_data)
+        try:
+            db.update_client_type(type_id, type_data)
+        except Exception as e:
+            error_message = ("A type with that name already exists."
+                             if "UNIQUE constraint" in str(e) else str(e))
+            return render_template('add_edit_type.html', type=type_obj,
+                                   colors=COLOR_PALETTE, error=error_message,
+                                   retention_value=retention_value,
+                                   retention_unit=retention_unit)
         return redirect(url_for('types.manage_types'))
     
     # Calculate retention_value and retention_unit for display

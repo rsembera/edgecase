@@ -131,9 +131,9 @@ def edit_item(client_id, entry_id):
             'item_time': request.form.get('item_time', ''),
             'base_price': old_item.get('base_price') if is_billed else safe_money(request.form.get('base_price')),
             'tax_rate': old_item.get('tax_rate') if is_billed else safe_float(request.form.get('tax_rate'), 0),
-            'fee': old_item.get('fee') if is_billed else safe_float(request.form.get('fee'), 0),
-            'guardian1_amount': old_item.get('guardian1_amount') if is_billed else safe_float(g1_amount),
-            'guardian2_amount': old_item.get('guardian2_amount') if is_billed else safe_float(g2_amount),
+            'fee': old_item.get('fee') if is_billed else safe_money(request.form.get('fee'), 0),
+            'guardian1_amount': old_item.get('guardian1_amount') if is_billed else safe_money(g1_amount),
+            'guardian2_amount': old_item.get('guardian2_amount') if is_billed else safe_money(g2_amount),
             'content': request.form.get('content', '')
         }
         

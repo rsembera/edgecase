@@ -356,6 +356,7 @@ class AllocationMixin:
         now = int(_time.time())
         created = 0
         skipped = 0
+        orphaned = 0
 
         for entry in candidates:
             cursor.execute("""
@@ -367,7 +368,10 @@ class AllocationMixin:
             portions = [dict(row) for row in cursor.fetchall()]
 
             if not portions:
-                skipped += 1
+                # The statement is gone — its client was disposed of under
+                # retention. Nothing to allocate to, now or ever; counting
+                # it as "skipped" printed a line at every launch from then on.
+                orphaned += 1
                 continue
 
             if len(portions) == 1:
@@ -395,6 +399,7 @@ class AllocationMixin:
         conn.commit()
 
         result = {'created': created, 'skipped_ambiguous': skipped,
+                  'skipped_no_statement': orphaned,
                   'already_allocated': already}
         if verbose and (created or skipped):
             # Silent when there is nothing to report — this runs at every

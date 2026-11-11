@@ -39,6 +39,11 @@ def create_upload(client_id):
         descriptions = request.form.getlist('file_descriptions[]')
         save_uploaded_files(files, descriptions, entry_id, db, client_id=client_id)
 
+        # Locked on save like every other entry type (decided 2026-11-11),
+        # so later edits are recorded. Uploads were never locked, which left
+        # the change-history code in edit_upload with nothing to run on.
+        db.lock_entry(entry_id)
+
         return redirect(url_for('clients.client_file', client_id=client_id))
     
     # GET - show form
@@ -133,6 +138,11 @@ def edit_upload(client_id, entry_id):
             db.add_to_edit_history(entry_id, "; ".join(changes))
 
         db.update_entry(entry_id, upload_data, allow_locked=True)
+
+        # An upload from before uploads were locked: this save is its
+        # "first save", so it locks now and later edits are recorded.
+        if not db.is_entry_locked(entry_id):
+            db.lock_entry(entry_id)
 
         return redirect(url_for('clients.client_file', client_id=client_id))
     
