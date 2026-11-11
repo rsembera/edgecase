@@ -452,12 +452,12 @@ function generateStatements(btnEl) {
 
             showSuccessModal(message, 'Success');
         } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
+            showMessage('Error: ' + (data.error || 'Unknown error'));
         }
     })
     .catch(error => {
         console.error('Error generating statements:', error);
-        alert('Error generating statements');
+        showMessage('Error generating statements');
     }), 'Generating...');
 }
 
@@ -488,12 +488,12 @@ function markSent(portionId) {
                 document.getElementById('email-body').value = data.body;
                 document.getElementById('email-modal').classList.add('visible');
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showMessage('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error loading email preview:', error);
-            alert('Error loading email preview');
+            showMessage('Error loading email preview');
         }));
 }
 
@@ -534,12 +534,12 @@ function confirmSendEmail() {
                     triggerMailtoEmail(data);
                 }
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showMessage('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error marking sent:', error);
-            alert('Error marking statement as sent');
+            showMessage('Error marking statement as sent');
         }), 'Sending...');
 }
 
@@ -572,13 +572,13 @@ function generateOnly(portionId) {
                 setTimeout(() => window.location.reload(), 500);
             } else {
                 if (pdfWindow) pdfWindow.close();
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showMessage('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             if (pdfWindow) pdfWindow.close();
             console.error('Error generating statement:', error);
-            alert('Error generating statement');
+            showMessage('Error generating statement');
         }));
 }
 
@@ -637,13 +637,13 @@ function triggerAppleScriptEmail(data) {
             // Delay reload so Mail.app keeps focus after activate
             setTimeout(() => window.location.reload(), 2000);
         } else {
-            alert('AppleScript email failed: ' + result.error + '\n\nFalling back to mailto...');
+            showMessage('AppleScript email failed: ' + result.error + '\n\nFalling back to mailto...');
             triggerMailtoEmail(data);
         }
     })
     .catch(error => {
         console.error('AppleScript error:', error);
-        alert('AppleScript email failed. Falling back to mailto...');
+        showMessage('AppleScript email failed. Falling back to mailto...');
         triggerMailtoEmail(data);
     });
 }
@@ -681,7 +681,7 @@ function showPaymentForm(portionId) {
         .then(response => response.json())
         .then(data => {
             if (!data.success) {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showMessage('Error: ' + (data.error || 'Unknown error'));
                 return;
             }
             currentProposal = data;
@@ -699,7 +699,7 @@ function showPaymentForm(portionId) {
         })
         .catch(error => {
             console.error('Error loading payment proposal:', error);
-            alert('Error loading outstanding statements for this client');
+            showMessage('Error loading outstanding statements for this client');
         });
 }
 
@@ -1056,12 +1056,12 @@ function confirmWriteOff() {
             hideWriteOffModal();
             showSuccessModal('Statement written off', 'Success');
         } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
+            showMessage('Error: ' + (data.error || 'Unknown error'));
         }
     })
     .catch(error => {
         console.error('Error writing off statement:', error);
-        alert('Error writing off statement');
+        showMessage('Error writing off statement');
     }), 'Saving...');
 }
 

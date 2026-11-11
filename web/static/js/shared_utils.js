@@ -143,3 +143,100 @@ const COLOR_PALETTE = {
 function getColors(colorKey) {
     return COLOR_PALETTE[colorKey] || COLOR_PALETTE.green;
 }
+
+
+// ============================================================================
+// In-app dialogs
+//
+// EdgeCase does not use the browser's showMessage()/confirm(): they look foreign,
+// block the page, and behave differently in the desktop shell. These two
+// build a modal in the app's own style on demand, so any page that loads
+// this file can use them without carrying markup. Text goes in through
+// textContent, never innerHTML. tests/test_no_browser_dialogs.py keeps the
+// browser versions from coming back.
+// ============================================================================
+
+function _appDialog(message, title, buttons) {
+    return new Promise(function (resolve) {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal active app-dialog';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+
+        const box = document.createElement('div');
+        box.className = 'modal-content unsaved-changes-modal-content';
+
+        if (title) {
+            const heading = document.createElement('h3');
+            heading.textContent = title;
+            box.appendChild(heading);
+        }
+
+        const text = document.createElement('p');
+        text.style.whiteSpace = 'pre-line';
+        text.textContent = message;
+        box.appendChild(text);
+
+        const actions = document.createElement('div');
+        actions.className = 'unsaved-changes-modal-actions';
+
+        function close(value) {
+            document.removeEventListener('keydown', onKey, true);
+            overlay.remove();
+            resolve(value);
+        }
+        function onKey(event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                close(buttons[0].value);
+            }
+        }
+
+        buttons.forEach(function (spec) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = spec.primary ? 'btn' : 'btn btn-secondary';
+            button.textContent = spec.label;
+            button.addEventListener('click', function () { close(spec.value); });
+            actions.appendChild(button);
+            if (spec.primary) setTimeout(function () { button.focus(); }, 0);
+        });
+
+        box.appendChild(actions);
+        overlay.appendChild(box);
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(overlay);
+    });
+}
+
+/**
+ * Show a message with an OK button. Returns a Promise that resolves when
+ * it is dismissed — chain on it for anything that must wait (a redirect).
+ */
+function showMessage(message, title) {
+    return _appDialog(String(message), title || '',
+                      [{ label: 'OK', value: undefined, primary: true }]);
+}
+
+/**
+ * Ask a yes/no question. Resolves true if confirmed, false otherwise
+ * (Cancel, or Escape).
+ */
+function confirmDialog(message, options) {
+    options = options || {};
+    return _appDialog(String(message), options.title || '', [
+        { label: options.cancelLabel || 'Cancel', value: false },
+        { label: options.confirmLabel || 'OK', value: true, primary: true },
+    ]);
+}
+
+/**
+ * For <form onsubmit="return confirmSubmit(this, '...')">: holds the
+ * submission until the question is answered.
+ */
+function confirmSubmit(form, message, options) {
+    confirmDialog(message, options).then(function (ok) {
+        if (ok) form.submit();   // submit() does not re-fire onsubmit
+    });
+    return false;
+}

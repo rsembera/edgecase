@@ -16,11 +16,11 @@ function deleteGroup(groupId, groupName) {
             if (response.ok) {
                 window.location.reload();
             } else {
-                alert('Error deleting link group');
+                showMessage('Error deleting link group');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error deleting link group');
+            showMessage('Error deleting link group');
         }
     };
 }

@@ -163,7 +163,7 @@ document.getElementById('generate-btn').addEventListener('click', function() {
     const includeAbsences = document.getElementById('include_absences').checked;
     
     if (!includeSessions && !includeItems && !includeAbsences) {
-        alert('Please select at least one entry type to include.');
+        showMessage('Please select at least one entry type to include.');
         return;
     }
     

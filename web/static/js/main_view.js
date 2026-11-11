@@ -484,14 +484,14 @@ function confirmDeletion() {
             closeRetentionModal();
             window.location.reload();
         } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
+            showMessage('Error: ' + (data.error || 'Unknown error'));
             btn.disabled = false;
             updateDeleteButton();
         }
     })
     .catch(error => {
         console.error('Error deleting clients:', error);
-        alert('An error occurred while deleting clients.');
+        showMessage('An error occurred while deleting clients.');
         btn.disabled = false;
         updateDeleteButton();
     });

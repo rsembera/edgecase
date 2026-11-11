@@ -155,6 +155,20 @@ shown red against the previous code.
   counted in the period the credit was applied.
   tests/test_review_credit_tax.py.
 
+- **No browser dialogs.** Sixty `alert()` calls and two `confirm()`s had
+  crept in against the standing rule. `shared_utils.js` now provides
+  `showMessage()`, `confirmDialog()` and `confirmSubmit()`, which build a
+  modal in the app's own style on demand (text via `textContent`), and
+  every call site uses them. Where a redirect followed an alert (the
+  password-change page) it now waits for the message to be dismissed.
+  tests/test_no_browser_dialogs.py sweeps the JavaScript and templates so
+  they stay out.
+- **AI Scribe says when a result is cut short.** If the model stops
+  because it ran out of tokens or context rather than because it
+  finished, the stream's final event carries `truncated` and the page
+  says so; a proofread of a long note used to come back looking as though
+  the model had deleted its ending. tests/test_review_scribe_truncation.py.
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

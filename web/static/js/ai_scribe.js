@@ -175,6 +175,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             if (data.done) {
                                 onGenerationComplete();
+                                if (data.truncated) {
+                                    showMessage(
+                                        'The model ran out of room before it finished, so the ' +
+                                        'generated text is cut short. Review it carefully before ' +
+                                        'applying anything — or work on the note in shorter sections.',
+                                        'Result Is Incomplete');
+                                }
                             }
                             
                             if (data.error) {

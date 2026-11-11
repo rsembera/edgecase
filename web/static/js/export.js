@@ -137,7 +137,7 @@ function calculateExport() {
     const dateRange = getDateRange();
     
     if (entryTypes.length === 0) {
-        alert('Please select at least one entry type to export.');
+        showMessage('Please select at least one entry type to export.');
         return;
     }
     
@@ -181,7 +181,7 @@ function calculateExport() {
         })
         .catch(error => {
             console.error('Error calculating export:', error);
-            alert('Error calculating export. Please try again.');
+            showMessage('Error calculating export. Please try again.');
         });
 }
 
@@ -194,7 +194,7 @@ function generateExport() {
     const dateRange = getDateRange();
     
     if (entryTypes.length === 0) {
-        alert('Please select at least one entry type to export.');
+        showMessage('Please select at least one entry type to export.');
         return;
     }
     

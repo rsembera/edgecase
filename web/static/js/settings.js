@@ -294,12 +294,12 @@ async function uploadBackground() {
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('Please select a file first');
+        showMessage('Please select a file first');
         return;
     }
     
     if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
+        showMessage('Please upload an image file');
         return;
     }
     
@@ -337,10 +337,10 @@ async function uploadBackground() {
             
             setTimeout(() => statusDiv.style.display = 'none', 3000);
         } else {
-            alert('Upload failed: ' + result.error);
+            showMessage('Upload failed: ' + result.error);
         }
     } catch (error) {
-        alert('Upload failed: ' + error.message);
+        showMessage('Upload failed: ' + error.message);
     }
 }
 
@@ -352,7 +352,7 @@ async function deleteBackground() {
     const selectedValue = select.value;
     
     if (!selectedValue.startsWith('user:')) {
-        alert('Can only delete user-uploaded backgrounds');
+        showMessage('Can only delete user-uploaded backgrounds');
         return;
     }
     
@@ -382,11 +382,11 @@ async function deleteBackground() {
                 await loadBackgroundOptions();
                 setTimeout(() => statusDiv.style.display = 'none', 3000);
             } else {
-                alert('Delete failed: ' + result.error);
+                showMessage('Delete failed: ' + result.error);
             }
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Delete failed: ' + error.message);
+            showMessage('Delete failed: ' + error.message);
         }
     });
 }
@@ -529,7 +529,7 @@ async function savePracticeInfo() {
     // Validate phone
     const practicePhone = document.getElementById('practice-phone').value;
     if (practicePhone && !validatePhone(practicePhone)) {
-        alert('Practice phone must be 10-15 digits');
+        showMessage('Practice phone must be 10-15 digits');
         document.getElementById('practice-phone').style.borderColor = '#e53e3e';
         return;
     }
@@ -561,10 +561,10 @@ async function savePracticeInfo() {
         if (result.success) {
             showSectionStatus('practice-info-status');
         } else {
-            alert('Failed to save practice information');
+            showMessage('Failed to save practice information');
         }
     } catch (error) {
-        alert('Failed to save practice information: ' + error.message);
+        showMessage('Failed to save practice information: ' + error.message);
     }
 }
 
@@ -671,7 +671,7 @@ async function uploadLogo() {
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
+        showMessage('Please upload an image file');
         fileInput.value = '';
         return;
     }
@@ -699,10 +699,10 @@ async function uploadLogo() {
                 previewContainer.style.display = 'block';
             }
         } else {
-            alert('Upload failed: ' + result.error);
+            showMessage('Upload failed: ' + result.error);
         }
     } catch (error) {
-        alert('Upload failed: ' + error.message);
+        showMessage('Upload failed: ' + error.message);
     }
 }
 
@@ -716,7 +716,7 @@ async function uploadSignature() {
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
+        showMessage('Please upload an image file');
         fileInput.value = '';
         return;
     }
@@ -744,10 +744,10 @@ async function uploadSignature() {
                 previewContainer.style.display = 'block';
             }
         } else {
-            alert('Upload failed: ' + result.error);
+            showMessage('Upload failed: ' + result.error);
         }
     } catch (error) {
-        alert('Upload failed: ' + error.message);
+        showMessage('Upload failed: ' + error.message);
     }
 }
 
@@ -772,11 +772,11 @@ async function deleteLogo() {
                 if (previewContainer) previewContainer.style.display = 'none';
                 showSectionStatus('statement-status', '✓ Logo deleted!');
             } else {
-                alert('Delete failed: ' + result.error);
+                showMessage('Delete failed: ' + result.error);
             }
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Delete failed: ' + error.message);
+            showMessage('Delete failed: ' + error.message);
         }
     });
 }
@@ -802,11 +802,11 @@ async function deleteSignature() {
                 if (previewContainer) previewContainer.style.display = 'none';
                 showSectionStatus('statement-status', '✓ Signature deleted!');
             } else {
-                alert('Delete failed: ' + result.error);
+                showMessage('Delete failed: ' + result.error);
             }
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Delete failed: ' + error.message);
+            showMessage('Delete failed: ' + error.message);
         }
     });
 }
@@ -1214,10 +1214,10 @@ async function saveStatementSettings() {
         if (result.success) {
             showSectionStatus('statement-status');
         } else {
-            alert('Failed to save statement settings');
+            showMessage('Failed to save statement settings');
         }
     } catch (error) {
-        alert('Failed to save statement settings: ' + error.message);
+        showMessage('Failed to save statement settings: ' + error.message);
     }
 }
 
@@ -1435,7 +1435,7 @@ async function unloadAIModel() {
             loadAIStatus();
         }
     } catch (error) {
-        alert('Failed to unload model: ' + error.message);
+        showMessage('Failed to unload model: ' + error.message);
     }
 }
 
@@ -1477,7 +1477,7 @@ async function confirmDeleteAIModel() {
             throw new Error(data.error || 'Delete failed');
         }
     } catch (error) {
-        alert('Failed to delete model: ' + error.message);
+        showMessage('Failed to delete model: ' + error.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i data-lucide="trash-2" class="icon-sm icon-inline"></i> Delete';
@@ -1861,7 +1861,7 @@ async function testAirLock() {
 }
 
 async function disableAirLock() {
-    if (!confirm('Turn off AirLock? Invitations stay in EdgeCase; you can turn it back on later.')) return;
+    if (!(await confirmDialog('Turn off AirLock? Invitations stay in EdgeCase; you can turn it back on later.', { title: 'Turn Off AirLock', confirmLabel: 'Turn Off' }))) return;
     const r = await fetch('/api/airlock_settings', { method: 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ disable: true }) });
     if ((await r.json()).success) {

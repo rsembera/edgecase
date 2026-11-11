@@ -137,12 +137,12 @@ function calculateTotals() {
             if (data.success) {
                 displayPreview(data);
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showMessage('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error calculating totals:', error);
-            alert('Error calculating totals');
+            showMessage('Error calculating totals');
         });
 }
 

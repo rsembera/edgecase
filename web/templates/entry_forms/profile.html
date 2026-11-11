@@ -587,10 +587,10 @@ async function confirmDelete() {
             window.location.href = '/';
         } else {
             const data = await response.json();
-            alert('Error deleting client: ' + (data.error || 'Unknown error'));
+            showMessage('Error deleting client: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
-        alert('Error deleting client: ' + error.message);
+        showMessage('Error deleting client: ' + error.message);
     }
 }
 

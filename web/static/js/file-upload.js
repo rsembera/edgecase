@@ -140,13 +140,13 @@ function confirmDelete() {
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Error deleting attachment');
+            showMessage('Error deleting attachment');
             closeDeleteModal();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error deleting attachment');
+        showMessage('Error deleting attachment');
         closeDeleteModal();
     });
 }

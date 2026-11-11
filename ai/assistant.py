@@ -19,6 +19,11 @@ from core.config import MODELS_DIR
 # concurrent use, and an unload racing a stream can segfault.
 _llm = None
 _llm_lock = threading.Lock()
+# Why the most recent generate() stopped: 'stop' (finished), 'length' (ran
+# out of tokens or context — the text is cut short), or None. Read by the
+# stream route once generation ends; single-user, one generation at a time
+# (generate() holds _llm_lock for its whole stream).
+last_finish_reason = None
 _model_loaded = False
 
 # Default model configuration
@@ -385,7 +390,8 @@ def generate(prompt: str, system_prompt: str = None, max_tokens: int = None,
     the SSE consumer starts iterating) and released in a finally, so a
     client disconnect (GeneratorExit) also releases it.
     """
-    global _llm
+    global _llm, last_finish_reason
+    last_finish_reason = None
 
     if max_tokens is None:
         max_tokens = GENERATION_PARAMS['max_tokens']
@@ -421,6 +427,9 @@ def generate(prompt: str, system_prompt: str = None, max_tokens: int = None,
 
             for chunk in stream:
                 if chunk and "choices" in chunk and len(chunk["choices"]) > 0:
+                    reason = chunk["choices"][0].get("finish_reason")
+                    if reason:
+                        last_finish_reason = reason
                     delta = chunk["choices"][0].get("delta", {})
                     if "content" in delta:
                         token = delta["content"]

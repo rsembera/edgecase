@@ -270,8 +270,13 @@ def ai_process():
                 # Send each token as an SSE event
                 yield f"data: {json.dumps({'token': token})}\n\n"
             
-            # Send completion event
-            yield f"data: {json.dumps({'done': True})}\n\n"
+            # Send completion event. 'truncated' means the model stopped
+            # because it ran out of room, not because it finished: the text
+            # is cut short, and a proofread of a long note would otherwise
+            # look like the model deleted its ending.
+            from ai import assistant as _assistant
+            truncated = _assistant.last_finish_reason == 'length'
+            yield f"data: {json.dumps({'done': True, 'truncated': truncated})}\n\n"
             
         except Exception as e:
             # Send error event
