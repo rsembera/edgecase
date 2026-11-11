@@ -27,6 +27,9 @@ def imported_app_modules():
                  "core.money", "utils.backup", "pdf.generator", "ai.assistant",
                  "web.cli"):
         importlib.import_module(name)
+    # desktop.py and web/blueprints/ai.py import `requests` inside
+    # functions; importing either module does not reach it.
+    importlib.import_module("requests")
     return dict(sys.modules)
 
 

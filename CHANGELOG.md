@@ -90,6 +90,13 @@ shown red against the previous code.
   also releases the database handle. tests/test_review_backup_and_reset.py
   (four red before).
 
+- **`requests` is declared in the Mac packaging manifest.** `desktop.py`
+  and the AI model download import it inside functions, and nothing in the
+  suite had imported it, so the manifest test never noticed it was
+  missing from `setup_app.py`. The new desktop test surfaced it (and
+  briefly left `main` red in d435c3c — the gate was chained with `;`
+  instead of `&&`).
+
 ### 2026-11-11 — Wait List
 
 First inquiry that may have to wait for an opening. A waitlisted person

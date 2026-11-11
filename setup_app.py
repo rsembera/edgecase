@@ -66,6 +66,15 @@ THIRD_PARTY_PACKAGES = [
     'pypdf',
     'PIL',
     'markdown',
+    # desktop.py (View PDF / Download) and the AI model download call
+    # `requests` from inside functions. Until 2026-11-11 nothing in the test
+    # suite imported it, so tests/test_packaging_manifest.py never saw that
+    # it was undeclared.
+    'requests',
+    'urllib3',
+    'certifi',
+    'charset_normalizer',
+    'idna',
 ]
 
 # First-party packages. Everything under these is bundled, so the crypto v2/v3
