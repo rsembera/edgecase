@@ -142,10 +142,11 @@ def test_edgecase_and_airlock_end_to_end(client, app_db, airlock):
     assert app_db.get_client(cid)["file_number"] == "E2E-001"
     assert "Stress at work." in app_db.get_profile_entry(cid)["additional_info"]
 
-    # Submissions removed from the server; the link is dead
+    # Submissions removed from the server; the link is spent, and says the
+    # forms arrived rather than "contact your therapist"
     assert airlock["store"].submissions() == []
     status, body = _post(airlock["public"] + "/i/unlock", {"token": token, "pin": inv["pin"]})
-    assert status == 410 and body["error"] == "closed"
+    assert status == 410 and body["error"] == "received"
 
 
 def test_revoke_reaches_the_real_server(client, app_db, airlock):
@@ -663,3 +664,161 @@ def test_browser_tidies_phone_numbers_and_flags_short_ones(client, app_db, airlo
     page.wait_for_selector("#consent-form")
     assert _open_submissions(app_db, airlock)["intake"]["fields"]["phone"] == "(613) 221-9737"
     assert page.problems == []
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-11 review of the form page
+# ---------------------------------------------------------------------------
+
+def _lose_first_reply(page):
+    """The next submit reaches the server, but its reply never reaches the
+    page (a phone on a weak signal). Later submits go through normally."""
+    state = {"lost": False}
+
+    def handler(route):
+        if state["lost"]:
+            route.continue_()
+            return
+        state["lost"] = True
+        route.fetch()
+        route.abort()
+    page.unroute("**/i/submit")
+    page.route("**/i/submit", handler)
+
+
+def test_browser_resend_after_a_lost_reply_moves_on(client, app_db, airlock, browser):
+    """The retry used to be told "This link is no longer active... contact
+    your therapist", with the Send button disabled, although the form was
+    safely on the server."""
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db)
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    _lose_first_reply(page)
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector(".notice--error:not([hidden])")
+    assert "reach the server" in page.inner_text(".notice--error")
+    assert len(airlock["store"].submissions()) == 1
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("#consent-form")                 # on to the next form
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    _lose_first_reply(page)                                 # and again on the last form
+    page.click("button:has-text('Send consent form')")
+    page.wait_for_selector(".notice--error:not([hidden])")
+    page.click("button:has-text('Send consent form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    assert sorted(s["form"] for s in airlock["store"].submissions()) == ["consent", "intake"]
+    _import(client, app_db, inv)
+
+
+def test_browser_reopening_a_finished_link_says_the_forms_arrived(client, app_db, airlock,
+                                                                  browser):
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, forms="intake")
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    again = _page(browser)
+    _unlock(again, airlock, inv)
+    again.wait_for_selector("h2:has-text('Thank you')")
+    text = again.inner_text("main")
+    assert "already been received" in text and "contact your therapist" not in text
+
+
+def test_browser_spaces_are_not_an_answer(client, app_db, airlock, browser):
+    """A required field or a signature holding only spaces passed the page,
+    was sent, and was then refused by import, with the link already spent."""
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db)
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    page.check("#agreed")
+    page.fill("#f-first_name", "   ")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_timeout(700)
+    assert airlock["store"].submissions() == []
+    assert page.eval_on_selector("#f-first_name", "el => el.validationMessage")
+    page.fill("#f-first_name", "Ada")
+    page.fill("#typed_name", "  ")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_timeout(700)
+    assert airlock["store"].submissions() == []
+    assert page.eval_on_selector("#typed_name", "el => el.validationMessage")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("#consent-form")
+    page.check("#agreed")
+    page.fill("#typed_name", "   ")
+    page.click("button:has-text('Send consent form')")
+    page.wait_for_timeout(700)
+    assert len(airlock["store"].submissions()) == 1
+    assert page.eval_on_selector("#typed_name", "el => el.validationMessage")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send consent form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    _import(client, app_db, inv)
+
+
+def test_browser_a_second_guardian_added_then_removed_does_not_block(client, app_db, airlock,
+                                                                    browser):
+    """Something invalid typed for a second guardian, then the box unticked:
+    the hidden field still failed its check, so Send did nothing at all and
+    showed no message."""
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, forms="intake", is_minor="1")
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    page.fill("#f-g1-name", "Grace Hopper")
+    page.check("#has-guardian-2")
+    page.fill("#f-g2-name", "Alan Turing")
+    page.fill("#f-g2-email", "alan@")
+    page.fill("#f-g2-phone", "555")
+    page.uncheck("#has-guardian-2")
+    page.check("#agreed")
+    page.fill("#typed_name", "Grace Hopper")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    assert page.problems == []
+    intake = _open_submissions(app_db, airlock)["intake"]
+    assert [g["name"] for g in intake["guardians"]] == ["Grace Hopper"]
+    _import(client, app_db, inv)
+
+
+def test_browser_accepts_a_long_international_number(client, app_db, airlock, browser):
+    """Numbers run to 15 digits; the page and import stopped at 12, so a
+    German or Chinese mobile (13) could not be given at all."""
+    _configure(app_db, airlock)
+    inv = _issue(client, app_db, forms="intake")
+    page = _page(browser)
+    _unlock(page, airlock, inv)
+    page.wait_for_selector("#intake-form")
+    _fill_adult(page)
+    page.fill("#f-emergency_contact_phone", "+49 1512 3456789")
+    page.fill("#f-work_phone", "+1234567890123456")            # 16 digits: not a number
+    page.check("#agreed")
+    page.fill("#typed_name", "Ada Lovelace")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_timeout(700)
+    assert airlock["store"].submissions() == []
+    assert page.eval_on_selector("#f-work_phone", "el => el.validationMessage")
+    assert not page.eval_on_selector("#f-emergency_contact_phone", "el => el.validationMessage")
+    page.fill("#f-work_phone", "")
+    page.click("button:has-text('Send intake form')")
+    page.wait_for_selector("h2:has-text('Thank you')")
+    cid = _import(client, app_db, inv)
+    assert app_db.get_profile_entry(cid)["emergency_contact_phone"] == "+49 1512 3456789"

@@ -1,5 +1,47 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-11 — AirLock review: form page, phone numbers, forms gone from the server
+
+A review of the AirLock server (`edgecase-airlock`) and its form page ahead
+of the next client. No security findings; the fixes are about a client
+getting stuck. Server side: edgecase-airlock `70dcc1d`, deployed.
+
+**A form sent again after a lost reply was told the link was dead.** If a
+form reached the server but the reply did not reach the phone, the retry
+answered "This link is no longer active… contact your therapist" and
+disabled Send, although the form was stored. The server now answers a
+resend with what is left to do, and the page moves on. A finished link that
+is reopened says the forms were received. Both only after the PIN.
+
+**Only spaces counted as an answer.** A first name, last name, guardian
+name or typed signature of spaces passed the page and was sent; import then
+refused it, with the link already used. The page now refuses it.
+
+**A second guardian added and then removed could block Send silently.**
+Something invalid typed in the second guardian's fields stayed in force
+after the box was unticked. Hidden fields are now switched off.
+
+**Phone numbers up to 15 digits** (was 12), the longest there is, on the
+AirLock page, AirLock import (`PHONE_MAX_DIGITS`), the Client Profile and
+the practice's number in Settings. A German or Chinese mobile is 13.
+
+**The Client Profile rewrote phone numbers it did not understand.**
+`formatPhoneNumber()` in `web/static/js/profile.js` runs on every phone
+field when the Profile opens. It kept digits only, so a number imported
+with an extension ("(613) 555-0100 x12") became "613555010012", and a
+leading + was dropped; saving the Profile then stored that. Extensions and
+the + are now kept, and an extension can be typed. Found while raising the
+limit. tests/test_profile_phone_format.py (node).
+
+**An invitation whose forms had left the server could not be cleared.** The
+server deletes forms not imported within 30 days. The invitation stayed
+under "Ready to review", where Review answered only "nothing ready to
+review". Review now opens, says the forms are gone, and offers Discard.
+
+Tests: five browser tests in tests/test_airlock_server_integration.py,
+tests/test_airlock_routes.py, tests/test_airlock_import.py; each shown red
+first.
+
 ### 2026-11-11 — Client file: the New menu stays on screen
 
 The New menu in a client file opened above its button whenever it did not

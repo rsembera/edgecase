@@ -589,14 +589,14 @@ function formatPhoneNumber(e) {
     // Remove all non-digit characters
     let cleaned = rawValue.replace(/\D/g, '');
     
-    // Limit to 12 digits (international support)
-    cleaned = cleaned.substring(0, 12);
+    // Limit to 15 digits (the longest international number)
+    cleaned = cleaned.substring(0, 15);
     
     // Only format if exactly 10 digits (North American format)
     if (cleaned.length === 10) {
         e.target.value = '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
     } else {
-        // For 11-12 digits or incomplete, just return digits as-is
+        // For 11-15 digits or incomplete, just return digits as-is
         e.target.value = cleaned;
     }
 }

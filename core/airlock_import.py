@@ -87,9 +87,10 @@ UPLOAD_DESCRIPTION_INTAKE_ONLY = "Intake (AirLock)"
 
 _EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$")
 _PHONE = re.compile(r"^[0-9+().\-\s]{3,}(?:\s*(?:x|ext\.?)\s*\d{1,6})?$", re.I)
-# A full number: area code and all (10), up to an international 12, counted
-# without any extension. Same limits as the Client Profile.
-PHONE_MIN_DIGITS, PHONE_MAX_DIGITS = 10, 12
+# A full number: area code and all (10), up to the longest international
+# number there is (15, the E.164 limit), counted without any extension. Same
+# limits as the Client Profile (web/static/js/profile.js) and the AirLock page.
+PHONE_MIN_DIGITS, PHONE_MAX_DIGITS = 10, 15
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 _PHONE_EXT = re.compile(r"\s*(?:x|ext\.?)\s*\d{1,6}$", re.I)
 # Characters that are not text: controls, zero-width and direction marks, the

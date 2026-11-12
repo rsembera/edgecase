@@ -11,7 +11,7 @@
     <div class="page-header">
         <div>
             <h2><i data-lucide="inbox" class="page-icon"></i>Review: {{ inv.display_name }}</h2>
-            <p class="page-subtitle">Received {{ received_fmt }}. Nothing is saved until you choose Import.</p>
+            <p class="page-subtitle">{% if received_fmt %}Received {{ received_fmt }}. {% endif %}Nothing is saved until you choose Import.</p>
         </div>
         <a href="{{ url_for('airlock.invitations') }}" class="btn">
             <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 0.35rem;"></i> Back

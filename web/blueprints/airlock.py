@@ -49,6 +49,10 @@ MESSAGES = {
 }
 
 
+FORMS_GONE = ('The forms are no longer on the AirLock server, which removes forms that were '
+              'not imported within 30 days. The client will need to fill them in again.')
+
+
 def init_blueprint(database):
     global db
     db = database
@@ -329,8 +333,13 @@ def review(invitation_id):
     except AirLockConnectionError as e:
         return _invitations_with_error(str(e))
     inv = db.get_intake_invitation(invitation_id)
-    if inv['status'] != 'complete' or invitation_id not in by_inv:
+    if inv['status'] != 'complete':
         return redirect(url_for('airlock.invitations', msg='not_ready'))
+    if invitation_id not in by_inv:
+        # Complete here, nothing there: the server removes forms that were not
+        # imported within 30 days. The review screen still opens, because
+        # that is where Discard is; otherwise the row could never be cleared.
+        return _render_review(inv, None, None, 0, [FORMS_GONE])
     intake, consent, versions, received, problems = _open(inv, by_inv[invitation_id])
     return _render_review(inv, intake, consent, received, problems)
 

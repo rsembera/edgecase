@@ -110,7 +110,10 @@ def test_unknown_fields_are_ignored():
 
 
 @pytest.mark.parametrize("number", ["(613) 221-9737", "+16132219737", "613-555-0100 x12",
-                                    "613 555 0100 ext. 4", "+44 20 7946 0958"])
+                                    "613 555 0100 ext. 4", "+44 20 7946 0958",
+                                    "+49 1512 3456789",          # 13 digits (German mobile)
+                                    "+86 138 0013 8000 x12",
+                                    "+123 4567 8901 2345"])       # 15: the longest there is
 def test_full_phone_numbers_are_accepted(number):
     assert parsed_intake(phone=number)["fields"]["phone"] == number
 
@@ -123,7 +126,7 @@ def test_full_phone_numbers_are_accepted(number):
     ({"phone": "call me maybe"}, "not a phone"),
     ({"phone": "613123456"}, "not a full phone number"),
     ({"home_phone": "555-0101"}, "not a full phone number"),
-    ({"work_phone": "1234567890123"}, "not a full phone number"),
+    ({"work_phone": "1234567890123456"}, "not a full phone number"),      # 16 digits
     ({"emergency_contact_phone": "613 555 010 x12"}, "not a full phone number"),
     ({"date_of_birth": "10/12/1990"}, "not a date"),
     # Python's date parser also takes these ISO spellings; the Profile holds YYYY-MM-DD only

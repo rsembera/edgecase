@@ -666,3 +666,26 @@ def test_admin_key_field_is_not_a_password_field():
     assert 'autocomplete="off"' in field and 'spellcheck="false"' in field
     css = (Path(__file__).resolve().parent.parent / "web/static/css/shared.css").read_text()
     assert re.search(r"\.masked-input\s*{[^}]*-webkit-text-security:\s*disc", css)
+
+
+def test_review_of_forms_no_longer_on_the_server_can_be_discarded(client, app_db, airlock_server):
+    """The server removes forms not imported within 30 days. The invitation
+    then stayed under "Ready to review" for good: Review only answered
+    "nothing ready to review", and Discard lives on the review screen."""
+    _issue(client, app_db)
+    inv = _latest(app_db)
+    _submit_both(airlock_server, inv)
+    client.post("/airlock/check")
+    assert _latest(app_db)["status"] == "complete"
+    airlock_server.submissions = []                       # the server's housekeeping
+    r = client.get(f"/airlock/review/{inv['id']}")
+    assert r.status_code == 200
+    page = r.data.decode()
+    assert "no longer on the AirLock server" in page
+    assert f"/airlock/review/{inv['id']}/discard" in page
+    assert f"/airlock/review/{inv['id']}/import" not in page
+    assert "Received ." not in page
+    r = client.post(f"/airlock/review/{inv['id']}/discard")
+    assert "msg=discarded" in r.headers["Location"]
+    assert _latest(app_db)["status"] == "revoked"
+    assert inv["display_name"].encode() not in client.get("/airlock?checked=0").data

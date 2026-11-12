@@ -26,30 +26,39 @@ function closeValidationModal() {
  * @returns {string} Formatted phone number or raw digits
  */
 function formatPhoneNumber(value) {
-    // Remove all non-digit characters
-    let cleaned = value.replace(/\D/g, '');
-    
-    // Limit to 12 digits (international support)
-    cleaned = cleaned.substring(0, 12);
-    
+    // An extension ("x12", "ext. 12") is kept apart from the number, as
+    // " x12": this runs on every phone field when the Profile opens, and it
+    // used to run a stored extension into the number's own digits.
+    const m = value.match(PHONE_EXT);
+    const ext = m ? ' x' + m[1].substring(0, 6) : '';
+    const main = m ? value.slice(0, m.index) : value;
+    // A leading + (an international number) stays
+    const plus = main.trim().startsWith('+') ? '+' : '';
+    const cleaned = main.replace(/\D/g, '').substring(0, PHONE_MAX_DIGITS);
+
     // Only format if exactly 10 digits (North American format)
-    if (cleaned.length === 10) {
-        return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
+    if (!plus && cleaned.length === 10) {
+        return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10) + ext;
     }
-    
-    // For 11-12 digits or incomplete, just return digits as-is
-    return cleaned;
+
+    // International or incomplete: the digits as they are
+    return plus + cleaned + ext;
 }
 
+// The longest international number there is (E.164). Same limits as AirLock
+// (core/airlock_import.py PHONE_MIN_DIGITS / PHONE_MAX_DIGITS).
+const PHONE_MAX_DIGITS = 15;
+const PHONE_EXT = /\s*(?:x|ext\.?)\s*(\d*)$/i;
+
 /**
- * Validate phone number has 10-12 digits
+ * Validate phone number has 10-15 digits, not counting an extension
  * @param {string} phoneValue - Phone value to validate
  * @returns {boolean} True if valid or empty
  */
 function validatePhone(phoneValue) {
     if (!phoneValue) return true; // Empty is okay
-    const digitsOnly = phoneValue.replace(/\D/g, '');
-    return digitsOnly.length >= 10 && digitsOnly.length <= 12;
+    const digitsOnly = phoneValue.replace(PHONE_EXT, '').replace(/\D/g, '');
+    return digitsOnly.length >= 10 && digitsOnly.length <= PHONE_MAX_DIGITS;
 }
 
 // Add event listeners to all phone inputs (including guardian phones)
@@ -372,7 +381,7 @@ document.getElementById('profile-form').addEventListener('submit', function(e) {
     
     phoneInputs.forEach(input => {
         if (input.element && input.element.value && !validatePhone(input.element.value)) {
-            errors.push('• ' + input.label + ' must be 10-12 digits');
+            errors.push('• ' + input.label + ' must be 10-15 digits');
             input.element.style.borderColor = '#e53e3e';
         } else if (input.element) {
             input.element.style.borderColor = '#e2e8f0';
