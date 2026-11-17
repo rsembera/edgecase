@@ -1,0 +1,22 @@
+{# Put the stat cards in the order the user dragged them into.
+   Include directly after the container, with storage_key and container_id set.
+   Inline on purpose: it runs while the page is still being parsed, so the first
+   paint already has the saved order. Applied from an end-of-body script, the
+   cards showed in their default order and then jumped.
+   Dragging and saving the order live in card_drag.js. #}
+<script>
+(function () {
+    try {
+        var order = JSON.parse(localStorage.getItem({{ storage_key|tojson }}));
+        var container = document.getElementById({{ container_id|tojson }});
+        if (!Array.isArray(order) || !container) return;
+        var cards = {};
+        container.querySelectorAll('.stat-card[data-card-id]').forEach(function (card) {
+            cards[card.dataset.cardId] = card;
+        });
+        order.forEach(function (id) {
+            if (Object.prototype.hasOwnProperty.call(cards, id)) container.appendChild(cards[id]);
+        });
+    } catch (e) { /* unreadable saved order: keep the default */ }
+})();
+</script>

@@ -1,5 +1,22 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-16 — Stat cards no longer jump into place on the main view
+
+**Returning to the main view, the stat cards showed in their default order
+and then jumped to the user's order.** The dragged order is kept in the
+browser's localStorage and was applied by `main_view.js` once the whole page
+and all its scripts had loaded — and, on the main view, only after the
+time-format request had come back — so the default order was painted first.
+The order is now applied by a small inline script directly after the cards
+(`components/_card_order.html`), while the page is still being parsed, on
+both the main view and the Ledger. A saved order that cannot be read now
+leaves the default order instead of stopping the rest of the page's start-up.
+Dragging and saving are unchanged, and existing saved orders carry over.
+
+Regression test `tests/test_card_order_first_paint.py` (browser): with every
+external script withheld, the cards are still in the saved order. Red against
+the old code on both pages.
+
 ### 2026-11-11 — AirLock review: form page, phone numbers, forms gone from the server
 
 A review of the AirLock server (`edgecase-airlock`) and its form page ahead

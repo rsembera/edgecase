@@ -517,7 +517,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadTimeFormat();
     syncClock();
     
-    loadCardOrder('mainViewCardOrder', 'stats-container');
     initCardDragDrop('mainViewCardOrder', 'stats-container');
     initFilterDropdown();
     initSearch();

@@ -1,29 +1,13 @@
 /**
  * Shared drag-and-drop functionality for stat cards
  * Used by main_view.js and ledger.js
+ *
+ * The saved order is applied by templates/components/_card_order.html,
+ * inline after the container, so it is in place before the first paint.
  */
 
 let draggedCard = null;
 let hasMoved = false;
-
-/**
- * Load saved card order from localStorage and reorder cards
- * @param {string} storageKey - localStorage key for this view's card order
- * @param {string} containerId - ID of the container element
- */
-function loadCardOrder(storageKey, containerId) {
-    const savedOrder = localStorage.getItem(storageKey);
-    if (!savedOrder) return;
-    
-    const orderArray = JSON.parse(savedOrder);
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    orderArray.forEach(cardId => {
-        const card = container.querySelector(`[data-card-id="${cardId}"]`);
-        if (card) container.appendChild(card);
-    });
-}
 
 /**
  * Save current card order to localStorage
