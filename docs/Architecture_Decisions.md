@@ -1920,3 +1920,33 @@ provides `showMessage()`, `confirmDialog()` and `confirmSubmit()`, and
 `tests/test_no_browser_dialogs.py` fails the suite if a browser dialog call
 appears in the scripts or templates.
 
+---
+
+## 2026-11-21 — AI Scribe: long notes in sections, not a bigger context
+
+**Problem.** The context (4096 tokens on a 16 GB machine) must hold prompt,
+note and output together, so a note over roughly 1,400 words was cut short.
+
+**Rejected: a larger context.** 8192 tokens roughly doubles the model's
+working memory on top of the 6.5 GB of weights. Richard's 16 GB Mac already
+sat at ~7 GB of swap in ordinary use; a trial made the machine crawl and run
+hot. (The trial loaded a second copy of the model beside the app's own, so it
+overstated the cost — but there was no slack to spend either way.) A bigger
+context also only moves the limit; it does not remove it.
+
+**Decision.** Split a note that does not fit (`ai/sections.py`) and run each
+section through the same prompts. Break at paragraph gaps first, then line
+breaks, then sentence ends. Only notes over the limit are sectioned; the
+limit is computed per action from the loaded model's context, the prompt's
+real token count and how much each action is expected to grow its input.
+
+**The prompts are deliberately unchanged.** A hint such as "this is part of
+a longer note" would be a new prompt rule, and prompt rules are verified on
+the model before they ship (see AI SCRIBE PROMPT ENGINEERING). The cost is
+that the model sees one section at a time: harmless for Proofread, possibly
+visible at the seams for Write Up and Expand. If it is, fix it with a
+verified prompt rule, not an unverified one.
+
+**A cut section stops the run.** Continuing would leave a gap in the middle
+of a clinical note, which is harder to notice than a missing ending.
+

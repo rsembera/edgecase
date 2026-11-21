@@ -1,5 +1,32 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-21 — AI Scribe: long notes go through in sections
+
+**A long session note came back cut off mid-sentence ("Result Is
+Incomplete").** Reported from production. The model's working room on a
+16 GB Mac is 4096 tokens, and it has to hold the instructions, the note and
+the rewritten note together — about 1,400 words of note for Proofread, less
+for Write Up and Expand. The message itself dates from the November 11
+review; before it, the same note would have lost its ending silently.
+
+A note that does not fit is now split at paragraph breaks into sections of
+similar size, each section goes through with the unchanged prompts, and the
+results are streamed back joined by the note's own breaks. If a paragraph is
+itself too long it is divided at line breaks, then sentences. A note that
+fits goes through in one pass exactly as before. If a section is still cut
+short, the Scribe stops there and says so rather than carrying on and
+burying the gap mid-note. One-pass limits on a 16 GB machine, measured with
+the real tokenizer: Proofread ~1,400 words, Write Up ~1,100, Expand ~850,
+Condense ~1,500.
+
+Doubling the model's context instead was tried and dropped: see
+Architecture Decisions. New: `ai/sections.py`, `context_size()` and
+`count_tokens()` in `ai/assistant.py`. `tests/test_scribe_sections.py` (12
+tests, stand-in model; the route tests red against the old route).
+
+**Not yet tried on the real model:** how Write Up and Expand read across a
+section seam (the model sees one section at a time).
+
 ### 2026-11-16 — Stat cards no longer jump into place on the main view
 
 **Returning to the main view, the stat cards showed in their default order

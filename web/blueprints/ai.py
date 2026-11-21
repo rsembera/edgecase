@@ -228,7 +228,7 @@ def ai_process():
     Process text with AI and stream the response.
     
     POST JSON:
-        action: 'writeup', 'proofread', 'expand', or 'contract'
+        action: 'writeup', 'proofread', 'expand', or 'condense'
         text: The notes to process
     
     Returns: Server-Sent Events stream
@@ -255,27 +255,49 @@ def ai_process():
     
     # Build prompts
     try:
-        user_prompt = build_prompt(action, text)
         system_prompt = get_system_prompt()
+        empty_prompt = build_prompt(action, '')
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     
     temperature = _action_temperature(action)
 
+    # A note too long for the model's context goes through in sections,
+    # split at paragraph breaks; one that fits is a single section and is
+    # handled exactly as before. See ai/sections.py.
+    from ai import context_size, count_tokens, GENERATION_PARAMS
+    from ai import assistant as _assistant
+    from ai.sections import section_budget, split_into_sections, trim_stream
+    overhead = count_tokens(system_prompt) + count_tokens(empty_prompt)
+    budget = section_budget(action, context_size(),
+                            GENERATION_PARAMS['max_tokens'], overhead)
+    sections = split_into_sections(text, budget, count_tokens)
+
     def generate_stream():
         """Generator that yields SSE events."""
         try:
-            for token in generate(user_prompt, system_prompt=system_prompt,
-                                  temperature=temperature):
-                # Send each token as an SSE event
-                yield f"data: {json.dumps({'token': token})}\n\n"
-            
-            # Send completion event. 'truncated' means the model stopped
-            # because it ran out of room, not because it finished: the text
-            # is cut short, and a proofread of a long note would otherwise
-            # look like the model deleted its ending.
-            from ai import assistant as _assistant
-            truncated = _assistant.last_finish_reason == 'length'
+            truncated = False
+            for section, separator in sections:
+                tokens = generate(build_prompt(action, section),
+                                  system_prompt=system_prompt,
+                                  temperature=temperature)
+                if len(sections) > 1:
+                    tokens = trim_stream(tokens)
+                for token in tokens:
+                    # Send each token as an SSE event
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+
+                # 'truncated' means the model stopped because it ran out of
+                # room, not because it finished: the text is cut short, and
+                # a proofread of a long note would otherwise look like the
+                # model deleted its ending. Stop there: carrying on with the
+                # next section would bury the gap in the middle of the note.
+                if _assistant.last_finish_reason == 'length':
+                    truncated = True
+                    break
+                if separator:
+                    yield f"data: {json.dumps({'token': separator})}\n\n"
+
             yield f"data: {json.dumps({'done': True, 'truncated': truncated})}\n\n"
             
         except Exception as e:

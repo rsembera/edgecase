@@ -367,6 +367,29 @@ def unload_model():
         print("[AI Scribe] Model unloaded")
 
 
+def context_size() -> int:
+    """Context window of the loaded model, in tokens."""
+    llm = _llm
+    try:
+        return int(llm.n_ctx())
+    except Exception:
+        return _get_system_config()['n_ctx']
+
+
+def count_tokens(text: str) -> int:
+    """Number of tokens the loaded model makes of `text`.
+
+    Falls back to a deliberately high estimate (a token per three
+    characters) if the model cannot be asked: overestimating only makes
+    the Scribe section a note slightly earlier than it had to.
+    """
+    llm = _llm
+    try:
+        return len(llm.tokenize(text.encode('utf-8'), add_bos=False, special=False))
+    except Exception:
+        return max(1, len(text) // 3)
+
+
 def generate(prompt: str, system_prompt: str = None, max_tokens: int = None,
              temperature: float = None) -> Generator[str, None, None]:
     """

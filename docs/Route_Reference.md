@@ -114,10 +114,12 @@ def ai_process()
 **Purpose:** Process text with AI (Write Up, Proofread, Expand, Condense)
 
 **POST JSON Data:**
-- `action` (str): 'write_up', 'proofread', 'expand', or 'condense'
+- `action` (str): 'writeup', 'proofread', 'expand', or 'condense'
 - `text` (str): Input text to process
 
-**Returns:** SSE stream with generated output
+**Returns:** SSE stream with generated output; the final event is `{done, truncated}`
+
+A note too long for the model's context is processed in sections (`ai/sections.py`) and streamed back as one text.
 
 ---
 
