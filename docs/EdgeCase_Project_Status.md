@@ -2,8 +2,8 @@
 
 **Owner:** Richard  
 **Development Partner:** Claude  
-**Last Updated:** November 11, 2026  
-**Status:** v2.0.4 released September 8, 2026 - In Production Use Since January 3, 2026
+**Last Updated:** November 28, 2026  
+**Status:** v2.0.5 released November 11, 2026 - In Production Use Since January 3, 2026
 
 ---
 
@@ -12,7 +12,7 @@
 Fixes that have landed on `main` since 2.0.4 and are being lived with in
 production before a release carries them. Not urgent; ship when there's a
 reason to, or once these have a few weeks of daily use behind them.
-1176 tests as of 2026-11-11.
+1242 tests as of 2026-11-28.
 
 **2.0.5 released 2026-11-11** — branch `hotfix-2.0.5`, tag `v2.0.5`: only
 the desktop View PDF/Download fix, the honest macOS floor (27), and a clean
@@ -31,6 +31,34 @@ pulled. 2.0.5 is installed on both the Mac (/Applications) and Apollo.
 management" among the things EdgeCase does not do; remove that line and
 document the Wait List when 2.0.6 ships. The website working copy is at
 `/Users/rick/Websites/edgecase-website`.
+
+**Landed since 2.0.5, being lived with (decided 2026-11-28: no urgency,
+wait a few weeks before 2.0.6):**
+
+- **2026-11-28 — A failed post-backup command says so**, is shown at the
+  next login and is run again at the end of the next session. MailRepo was
+  checked the same day and does not have the fault (it checks the exit
+  status, runs the command in its own process group, and has its own
+  catch-up job); nothing changed there.
+- **2026-11-21 — AI Scribe takes a long note in sections.** Richard has
+  since proofread at least one long note with it: the result read fine,
+  with a visible pause of a second or two at a section boundary (the model
+  reading the next section). Write Up and Expand across a seam are still
+  untried on the real model.
+- **2026-11-16 — Stat cards no longer jump into place** on the main view
+  and the Ledger.
+- **2026-11-11 — Client file New menu stays on screen; AirLock review
+  fixes** on the EdgeCase side.
+
+**To reconsider (no decision yet, raised 2026-11-28): the AI Scribe's
+buttons.** Richard finds Proofread useful and Write Up, Expand and Condense
+of limited value for the full-prose notes he writes. Ideas on the table,
+none agreed: keep Proofread; add a Summarise that sits beside the note and
+never replaces it; add a comments-only "reader check"; or a free
+instruction box. Cautions noted: a free instruction is an unverified prompt
+every time (see AI SCRIBE PROMPT ENGINEERING in Architecture Decisions), and
+anything that needs the whole note (a summary) cannot simply run section by
+section. Start from a list of what Richard would actually ask it to do.
 
 **2026-11-11 code review** — every finding is fixed (CHANGELOG, "Code
 review fixes"). Before 2.0.6 is built:
