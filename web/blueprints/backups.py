@@ -102,7 +102,6 @@ def save_backup_settings():
 def backup_now():
     """Trigger immediate backup. System auto-decides full vs incremental."""
     from utils import backup
-    import subprocess
     
     location = db.get_setting('backup_location', '')
     if not location:
@@ -128,19 +127,23 @@ def backup_now():
             backup.cleanup_old_backups(retention, location)
         
         # Run post-backup command if configured
+        # A failure does not fail the backup, but it is reported and the
+        # command is tried again at the end of the session.
+        warning = None
         post_cmd = db.get_setting('post_backup_command', '')
         if post_cmd:
-            try:
-                import shlex
-                subprocess.run(shlex.split(post_cmd), timeout=300)
-            except Exception as cmd_error:
-                # Log but don't fail the backup
-                print(f"Post-backup command error: {cmd_error}")
+            failure = backup.run_post_backup_command(post_cmd)
+            if failure:
+                print(f"Post-backup command FAILED ({failure})")
+                backup.record_post_backup_failure(failure)
+                warning = (f"The post-backup command failed ({failure}). "
+                           f"It will be tried again when you log out.")
         
         return jsonify({
             'success': True,
             'message': 'Backup created',
-            'backup': result
+            'backup': result,
+            'warning': warning
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

@@ -404,7 +404,9 @@ async function performBackup() {
         const data = await response.json();
         
         if (data.success) {
-            if (data.backup) {
+            if (data.backup && data.warning) {
+                showMessage(`Backup created (${data.backup.type}), but: ${data.warning}`, 'error');
+            } else if (data.backup) {
                 showMessage(`Backup created: ${data.backup.type}`, 'success');
             } else {
                 showMessage('No changes since last backup', 'info');

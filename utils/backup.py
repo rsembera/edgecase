@@ -1595,6 +1595,57 @@ def record_backup_error(message):
     save_manifest(manifest)
 
 
+def run_post_backup_command(command, timeout=300):
+    """Run the post-backup command; return None, or what went wrong.
+
+    Until 2026-11-28 the command's exit status was never looked at: an
+    rsync that died with "error (code 255)" was followed by "Post-backup
+    command completed". The result is a short phrase for a message, e.g.
+    "exit code 255".
+    """
+    import shlex
+    import subprocess
+    try:
+        completed = subprocess.run(shlex.split(command), timeout=timeout)
+    except subprocess.TimeoutExpired:
+        minutes = timeout / 60
+        return f"did not finish within {minutes:g} minute{'' if minutes == 1 else 's'}"
+    except Exception as e:
+        return f"could not be run: {e}"
+    if completed.returncode < 0:
+        return f"stopped by signal {-completed.returncode}"
+    if completed.returncode != 0:
+        return f"exit code {completed.returncode}"
+    return None
+
+
+def record_post_backup_failure(failure):
+    """Remember that the backup was made but the post-backup command failed.
+
+    Shown at the next login like a failed automatic backup, and marked so
+    the command is run again at the next session end even when there is
+    nothing new to back up: whatever it does (usually an off-site copy) is
+    still owed.
+    """
+    manifest = load_manifest()
+    manifest['last_backup_error'] = {
+        'message': (f"The backup was made, but the post-backup command failed "
+                    f"({failure}). It will be tried again at the end of your "
+                    f"next session"),
+        'at': datetime.now().isoformat(),
+        'post_command': True}
+    save_manifest(manifest)
+
+
+def post_backup_retry_pending():
+    """True when the last post-backup command failed and has not since succeeded."""
+    try:
+        error = load_manifest().get('last_backup_error')
+    except Exception:
+        return False
+    return bool(error and error.get('post_command'))
+
+
 @_serialized
 def clear_backup_error():
     manifest = load_manifest()
@@ -1612,6 +1663,8 @@ def get_backup_error():
     if not error:
         return None
     when = (error.get('at') or '')[:16].replace('T', ' at ')
+    if error.get('post_command'):
+        return f"{error.get('message')} ({when})"
     return f"{error.get('message')} (automatic backup of {when})"
 
 

@@ -1,5 +1,29 @@
 # EdgeCase Equalizer - Changelog
 
+### 2026-11-28 — A failed post-backup command says so, and is tried again
+
+**"Post-backup command completed" was printed after the command had
+failed.** Reported from production: the server was stopped with Ctrl+C
+while the post-backup rsync to the home server was still running; rsync
+printed "error … (code 255)" and the next line said the command had
+completed. (That day's copy had in fact arrived — checked against the local
+backup byte for byte — but only because the interrupt landed after the
+data was across.) The command's exit status was never looked at, on the
+logout path or on Back Up Now, so an off-site copy that really failed
+passed unnoticed; the desktop app has no console to read at all.
+
+- The result is checked (`utils.backup.run_post_backup_command`): a non-zero
+  exit, a timeout, a signal or a command that cannot start is a failure,
+  and the console says `Post-backup command FAILED (exit code 255)`.
+- A failure is kept and shown at the next login, like a failed automatic
+  backup. Back Up Now reports it on the page.
+- The command is run again at the end of the next session even when there
+  is nothing new to back up, since whatever it does is still owed; a
+  success clears the warning. Removing the command drops the retry.
+
+`tests/test_post_backup_command.py` (12 tests; the four that pin the bug are
+red against the old code).
+
 ### 2026-11-21 — AI Scribe: long notes go through in sections
 
 **A long session note came back cut off mid-sentence ("Result Is

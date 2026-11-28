@@ -45,7 +45,6 @@ def _heartbeat_monitor():
 
 def _run_shutdown_backup(db, label="Shutdown"):
     """Checkpoint WAL and run backup check. Shared by all shutdown paths."""
-    import subprocess
     try:
         from utils import backup
         db.checkpoint()
@@ -56,17 +55,24 @@ def _run_shutdown_backup(db, label="Shutdown"):
             result = backup.create_backup(location if location else None, db=db)
             if result:
                 print(f"[{label}] Backup completed: {result['filename']}")
-                post_cmd = db.get_setting('post_backup_command', '')
-                if post_cmd:
-                    try:
-                        import shlex
-                        subprocess.run(shlex.split(post_cmd), timeout=300)
-                        print(f"[{label}] Post-backup command completed")
-                    except Exception as cmd_error:
-                        print(f"[{label}] Post-backup command error: {cmd_error}")
             else:
                 print(f"[{label}] No changes since last backup")
-            backup.clear_backup_error()
+            # The post-backup command runs after a new backup, and again
+            # when its last run failed: what it does is still owed.
+            post_failure = None
+            post_cmd = db.get_setting('post_backup_command', '')
+            if post_cmd and (result or backup.post_backup_retry_pending()):
+                if not result:
+                    print(f"[{label}] Retrying the post-backup command that failed last time...")
+                post_failure = backup.run_post_backup_command(post_cmd)
+                if post_failure:
+                    print(f"[{label}] Post-backup command FAILED ({post_failure})")
+                else:
+                    print(f"[{label}] Post-backup command completed")
+            if post_failure:
+                backup.record_post_backup_failure(post_failure)
+            else:
+                backup.clear_backup_error()
             backup.record_backup_check()
     except Exception as e:
         print(f"[{label}] Backup warning: {e}")
